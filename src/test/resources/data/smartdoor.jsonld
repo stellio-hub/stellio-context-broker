@@ -1,0 +1,15 @@
+{
+  "@context": {
+    "SmartDoor": "https://diatomic.eglobalmark.com/ontology#SmartDoor",
+    "connectsTo": "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo",
+    "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject"
+  },
+  "@id": "urn:ngsi-ld:SmartDoor:0021",
+  "@type": "SmartDoor",
+  "connectsTo": {
+    "@type": "connectsTo",
+    "hasObject": {
+      "@id": "urn:ngsi-ld:BeeHive:TESTC"
+    }
+  }
+}

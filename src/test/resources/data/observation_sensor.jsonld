@@ -1,0 +1,25 @@
+{
+  "@context": {
+    "Observation": "https://diatomic.eglobalmark.com/ontology#Observation",
+    "ObservedBy": "https://diatomic.eglobalmark.com/ontology#ObservedBy",
+    "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject",
+    "observedAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#observedAt",
+    "hasMeasure": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasMeasure",
+    "unitCode": "https://uri.etsi.org/ngsi-ld/v1/ontology#unitCode",
+    "hasValue": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasValue"
+  },
+  "@id": "urn:ngsi-ld:Observation:001112",
+  "@type": "Observation",
+  "ObservedBy": {
+    "@type": "ObservedBy",
+    "hasObject": {
+      "@id": "urn:ngsi-ld:Sensor:0022CCC"
+    }
+  },
+  "hasMeasure": {
+    "@type": "hasMeasure",
+    "hasValue": "45",
+    "unitCode": "C",
+    "observedAt": "2019-09-26T21:32:52+02:00"
+  }
+}

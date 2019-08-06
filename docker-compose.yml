@@ -1,0 +1,10 @@
+version: '3.2'
+services:
+  graphdb:
+    image: nabda/graphdb:8.9.0-free
+    container_name: graphdb
+    volumes:
+      - ./data/graphdb/data:/opt/graphdb/home/data
+      - ./data/graphdb/work:/opt/graphdb/home/work
+    ports:
+      - 7200:7200

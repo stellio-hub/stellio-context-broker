@@ -6,6 +6,7 @@ import org.eclipse.rdf4j.rio.Rio
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
@@ -33,5 +34,19 @@ class EntityHandler(
                         { ok().build() }
                 )
             }
+    }
+
+    fun retrieve(req: ServerRequest): Mono<ServerResponse> {
+        val type = req.queryParam("type")
+
+        return type
+            .map {
+                graphDBRepository.getByType(it)
+                    .fold(
+                            { status(HttpStatus.INTERNAL_SERVER_ERROR).build() },
+                            { ok().body(BodyInserters.fromObject(it)) }
+                    )
+            }
+            .orElse(badRequest().build())
     }
 }

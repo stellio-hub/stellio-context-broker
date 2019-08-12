@@ -28,10 +28,10 @@ class GraphDBRepository(
         }
     }
 
-    fun getByType(type: String): Try<String> {
+    fun getById(id: String): Try<String> {
         val queryString = """
             SELECT ?x ?y WHERE {
-                ?x rdf:type $type.
+                ?x rdf:type $id.
                 ?x ?p ?y.
             }
         """.trimIndent().replace("\n", "")

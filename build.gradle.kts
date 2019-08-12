@@ -29,9 +29,9 @@ repositories {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-	implementation("org.springframework.boot:spring-boot-starter-security")
+	//implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+	//implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+	//implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -42,6 +42,7 @@ dependencies {
 	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
 	implementation("io.arrow-kt:arrow-core-data:0.9.0")
 	implementation("io.arrow-kt:arrow-core-extensions:0.9.0")
+	implementation("org.neo4j.driver:neo4j-java-driver:1.7.2")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")

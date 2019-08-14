@@ -1,6 +1,7 @@
 package com.egm.datahub.context.registry.repository
 
 import arrow.core.Try
+import org.eclipse.rdf4j.model.Model
 import org.eclipse.rdf4j.model.Statement
 import org.eclipse.rdf4j.query.QueryLanguage
 import org.eclipse.rdf4j.repository.http.HTTPRepository
@@ -20,12 +21,10 @@ class GraphDBRepository(
 
     private val logger = LoggerFactory.getLogger(GraphDBRepository::class.java)
 
-    fun createEntity(statements: List<Statement>): Try<String> {
+    fun createEntity(model: Model): String {
         val connection = httpRepository.connection
-        return Try {
-            connection.add(statements)
-            return Try.just("OK")
-        }
+        connection.add(model.toList())
+        return model.toString()
     }
 
     fun getById(id: String): Try<String> {

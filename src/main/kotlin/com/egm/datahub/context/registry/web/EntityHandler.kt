@@ -16,33 +16,37 @@ import com.github.jsonldjava.utils.JsonUtils.toPrettyString
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.utils.JsonUtils
-import org.neo4j.driver.v1.Config
-import org.neo4j.driver.v1.StatementResult
-import org.neo4j.driver.v1.Config.EncryptionLevel
-import org.neo4j.driver.v1.GraphDatabase
-
+import org.springframework.kafka.core.KafkaTemplate
+import reactor.core.publisher.toMono
+import java.net.URI
 
 
 @Component
 class EntityHandler(
-        private val graphDBRepository: GraphDBRepository
+        private val graphDBRepository: GraphDBRepository,
+        private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
+        var originJsonLD = ""
+        var entityUrn = ""
         return req.bodyToMono<String>()
-            .map {
-                Rio.parse(it.reader(), "", RDFFormat.JSONLD)
-            }
             .log()
             .map {
-                graphDBRepository.createEntity(it.toList())
+                originJsonLD = it
+                Rio.parse(it.reader(), "", RDFFormat.JSONLD)
+            }
+            .map {
+                entityUrn = it.toList().find { it.subject.stringValue().startsWith("urn:") }?.subject.toString()
+                graphDBRepository.createEntity(it)
             }.flatMap {
-                it.fold(
-                        { status(HttpStatus.INTERNAL_SERVER_ERROR).build() },
-                        { ok().build() }
-                )
+                kafkaTemplate.send("entities", originJsonLD).completable().toMono()
+            }.flatMap {
+                created(URI("/ngsi-ld/entities/$entityUrn")).build()
+            }.onErrorResume {
+                ServerResponse.badRequest().body(BodyInserters.fromObject(it.localizedMessage))
             }
     }
 

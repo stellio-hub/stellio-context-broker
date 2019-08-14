@@ -9,11 +9,19 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
+import org.springframework.kafka.test.EmbeddedKafkaBroker
+import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class EntityHandlerTests(
-) {
+@EmbeddedKafka(topics = ["entities"])
+class EntityHandlerTests {
+
+    companion object {
+        init {
+            System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
+        }
+    }
 
     @Autowired
     private lateinit var webClient: WebTestClient

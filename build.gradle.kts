@@ -1,10 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-	id("org.springframework.boot") version "2.1.6.RELEASE"
+	id("org.springframework.boot") version "2.1.6.RELEASE" apply false
 	id("io.spring.dependency-management") version "1.0.7.RELEASE"
-	kotlin("jvm") version "1.2.71"
-	kotlin("plugin.spring") version "1.2.71"
+	kotlin("jvm") version "1.3.11"
+	kotlin("plugin.spring") version "1.3.11"
+	kotlin("plugin.noarg") version "1.3.11"
 }
 
 group = "com.egm.datahub"
@@ -24,7 +25,14 @@ configurations {
 repositories {
 	mavenCentral()
 	jcenter()
-	maven { setUrl("https://dl.bintray.com/arrow-kt/arrow-kt/") }
+}
+
+dependencyManagement {
+	imports {
+		mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES) {
+			bomProperty("kotlin.version", "1.3.11")
+		}
+	}
 }
 
 dependencies {
@@ -40,20 +48,24 @@ dependencies {
 	implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-repository-http:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
-	implementation("io.arrow-kt:arrow-core-data:0.9.0")
-	implementation("io.arrow-kt:arrow-core-extensions:0.9.0")
 	implementation("org.neo4j.driver:neo4j-java-driver:1.7.2")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
+
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
-		exclude("junit", "junit")
+		exclude(module = "junit")
 		exclude(module = "mockito-core")
 	}
-	testImplementation("org.junit.jupiter:junit-jupiter:5.5.1")
+	testImplementation("org.junit.jupiter:junit-jupiter-api")
+	testImplementation("org.junit.jupiter:junit-jupiter-params")
 	testImplementation("com.ninja-squad:springmockk:1.1.2")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
-	testImplementation("org.springframework.security:spring-security-test")
+	//testImplementation("org.springframework.security:spring-security-test")
+
+	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
 tasks.withType<KotlinCompile> {
@@ -61,4 +73,8 @@ tasks.withType<KotlinCompile> {
 		freeCompilerArgs = listOf("-Xjsr305=strict")
 		jvmTarget = "1.8"
 	}
+}
+
+tasks.withType<Test> {
+	useJUnitPlatform()
 }

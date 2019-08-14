@@ -15,8 +15,7 @@ class Routes(
         (accept(MediaType.valueOf("application/ld+json")) and "/ngsi-ld/v1").nest {
             "/entities".nest {
                 POST("", entityHandler::create)
-                GET("{entityId}", entityHandler::getById)
-                POST("/play", entityHandler::parseAndPlay)
+                GET("/{entityId}", entityHandler::getById)
             }
         }
     }

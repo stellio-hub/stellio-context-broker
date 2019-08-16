@@ -11,9 +11,7 @@
   "@type": "Observation",
   "ObservedBy": {
     "@type": "ObservedBy",
-    "hasObject": {
-      "@id": "urn:ngsi-ld:Door:0008"
-    }
+    "@id": "urn:ngsi-ld:Door:0008"
   },
   "observedAt": "209-09-26T21:32:52+02:00",
   "IncomingRate": "1000",

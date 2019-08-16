@@ -48,7 +48,9 @@ dependencies {
 	implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-repository-http:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
-	implementation("org.neo4j.driver:neo4j-java-driver:1.7.2")
+	//implementation("org.neo4j.driver:neo4j-java-driver:1.7.2")
+	//implementation("org.springframework.data:spring-data-neo4j:5.1.10.RELEASE")
+	implementation("org.neo4j:neo4j-jdbc-bolt:3.3.1")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 

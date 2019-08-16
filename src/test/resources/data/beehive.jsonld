@@ -10,8 +10,6 @@
   "connectsTo": {
     "@type": "connectsTo",
     "createdAt": "2010-10-26T21:32:52+02:00",
-    "hasObject": {
-      "@id": "urn:ngsi-ld:Beekeeper:TEST1"
-    }
+    "@id": "urn:ngsi-ld:Beekeeper:TEST1"
   }
 }

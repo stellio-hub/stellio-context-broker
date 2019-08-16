@@ -8,8 +8,7 @@
   "@type": "SmartDoor",
   "connectsTo": {
     "@type": "connectsTo",
-    "hasObject": {
-      "@id": "urn:ngsi-ld:BeeHive:TESTC"
-    }
+    "@id": "urn:ngsi-ld:BeeHive:TESTC"
+
   }
 }

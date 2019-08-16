@@ -12,9 +12,7 @@
   "@type": "Observation",
   "ObservedBy": {
     "@type": "ObservedBy",
-    "hasObject": {
-      "@id": "urn:ngsi-ld:Sensor:0022CCC"
-    }
+    "@id": "urn:ngsi-ld:Sensor:0022CCC"
   },
   "hasMeasure": {
     "@type": "hasMeasure",

@@ -10,8 +10,7 @@
   "DoorNumber": "15",
   "connectsTo": {
     "@type": "connectsTo",
-    "hasObject": {
-      "@id": "urn:ngsi-ld:SmartDoor:0021"
-    }
+    "@id": "urn:ngsi-ld:SmartDoor:0021"
+
   }
 }

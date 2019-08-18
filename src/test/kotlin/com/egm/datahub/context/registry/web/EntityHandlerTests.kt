@@ -1,6 +1,6 @@
 package com.egm.datahub.context.registry.web
 
-import com.egm.datahub.context.registry.repository.GraphDBRepository
+import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.hamcrest.core.Is
@@ -27,12 +27,12 @@ class EntityHandlerTests {
     private lateinit var webClient: WebTestClient
 
     @MockkBean
-    private lateinit var graphDBRepository: GraphDBRepository
+    private lateinit var neo4jRepository: Neo4jRepository
 
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
-        every { graphDBRepository.createEntity(any(), any()) } returns ""
+        every { neo4jRepository.createEntity(any()) } returns 7
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -44,7 +44,7 @@ class EntityHandlerTests {
 
     @Test
     fun `should return a 400 if JSON-LD payload is not correct`() {
-        every { graphDBRepository.createEntity(any(), any()) } returns ""
+        every { neo4jRepository.createEntity(any()) } returns -1
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -54,12 +54,14 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `should return a 200 if entity exists`() {
-        every { graphDBRepository.getById(any()) } returns ""
+    fun `should return one entity of type diat__BeeHive`() {
+        every { neo4jRepository.getEntitiesByLabel(any()) } returns emptyList()
         webClient.get()
-                .uri("/ngsi-ld/v1/entities/1234")
+                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isOk
+                // TODO compare with expected JSON-LD
+                //.expectBody().json("")
     }
 }

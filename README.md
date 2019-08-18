@@ -28,6 +28,8 @@ CREATE (:NamespacePrefixDefinition {
   `https://diatomic.eglobalmark.com/ontology#`: 'diat',
   `http://xmlns.com/foaf/0.1/`: 'foaf',
   `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})
+
+CREATE INDEX ON :Resource(uri)
 ```
 
 * Useful queries

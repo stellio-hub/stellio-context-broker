@@ -1,59 +1,31 @@
 package com.egm.datahub.context.registry.repository
 
+import org.neo4j.ogm.session.Session
 import org.springframework.stereotype.Component
-import java.sql.Connection
-import java.sql.PreparedStatement
-import java.sql.ResultSet
 
 @Component
 class Neo4jRepository(
-        private val neo4jconnection: Connection
+        private val ogmSession: Session
 ) {
 
-    fun insertJsonLd(jsonld: String) : String{
-        val insert = "CALL semantics.importRDFSnippet({1},'JSON-LD',{ handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500})"
-        val stmt : PreparedStatement = neo4jconnection.prepareStatement(insert)
-        stmt.use {
-            it.setString(1,jsonld)
-            val rs : ResultSet = it.executeQuery()
-            val rsmd = rs.metaData
-            val columnsNumber = rsmd.getColumnCount()
-            while (rs.next()) {
-                for (i in 1..columnsNumber) {
-                    if (i > 1) print(",  ")
-                    val columnValue = rs.getString(i)
-                    print(columnValue + " " + rsmd.getColumnName(i))
-                }
-                println("")
-            }
-        }
-        return "OK"
+    fun createEntity(jsonld: String) : Long {
+        val importStatement = """
+            CALL semantics.importRDFSnippet(
+                '$jsonld',
+                'JSON-LD',
+                { handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500 }
+            )
+        """.trimIndent()
+
+        val queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
+        return queryResults.first()["triplesLoaded"] as Long
     }
 
-    fun getEntitiesByLabel(label: String) : MutableList<Map<String, Any>>{
-        //val insert = "MATCH (a)-[b]-(c: {1} )  RETURN *"
-        val insert = "MATCH (n:"+label+") RETURN n"
-        val stmt : PreparedStatement = neo4jconnection.prepareStatement(insert)
-        val list : MutableList<Map<String, Any>> = mutableListOf<Map<String, Any>>()
-        stmt.use {
-            val rs : ResultSet = it.executeQuery()
-            val rsmd = rs.metaData
-
-            while (rs.next()) {
-                val numColumns = rsmd.columnCount
-                val obj = HashMap<String, Any>()
-                for (i in 1..numColumns) {
-                    if (i > 1) print(",  ")
-                    val column_name = rsmd.getColumnName(i)
-                    val column_value = rs.getObject(column_name)
-                    obj.put(column_name, column_value)
-                    list.add(obj)
-                    print(column_name + " : " + column_value)
-                }
-                println("")
-            }
-        }
-        return list
+    fun getEntitiesByLabel(label: String) : List<Map<String, Any>> {
+        val matchQuery = """
+            MATCH (a)-[b]-(c:$label)  RETURN *
+        """.trimIndent()
+        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
+        return result.queryResults().toList()
     }
-
 }

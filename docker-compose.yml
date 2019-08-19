@@ -1,13 +1,5 @@
 version: '3.2'
 services:
-  graphdb:
-    image: nabda/graphdb:8.9.0-free
-    container_name: graphdb
-    volumes:
-      - ./data/graphdb/data:/opt/graphdb/home/data
-      - ./data/graphdb/work:/opt/graphdb/home/work
-    ports:
-      - 7200:7200
   neo4j:
     image: neo4j
     container_name: neo4j
@@ -22,23 +14,39 @@ services:
     ports:
       - 7474:7474
       - 7687:7687
+    networks:
+      - default
   zookeeper:
-    image: wurstmeister/zookeeper
+    image: zookeeper:3.4.9
+    container_name: zookeeper
     ports:
       - "2181:2181"
-  kafka:
-    image: wurstmeister/kafka:latest
-    ports:
-      - target: 9094
-        published: 9094
-        protocol: tcp
-        mode: host
     environment:
-      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9092,OUTSIDE://_{HOSTNAME_COMMAND}:9094
-      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
+      ZOO_SERVERS: server.1=zookeeper:2888:3888
+    networks:
+      - default
+
+  kafka:
+    image: confluentinc/cp-kafka:5.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://192.168.99.100:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_BROKER_ID: 1
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - default
+
+networks:
+  default:
+    external:
+      name: egm

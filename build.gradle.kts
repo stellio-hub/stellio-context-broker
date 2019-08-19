@@ -47,8 +47,6 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("org.springframework.kafka:spring-kafka")
 	implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
-	implementation("org.eclipse.rdf4j:rdf4j-repository-http:2.5.3")
-	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 

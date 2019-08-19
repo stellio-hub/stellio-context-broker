@@ -41,6 +41,7 @@ dependencies {
 	//implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	//implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
+	implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
@@ -48,9 +49,6 @@ dependencies {
 	implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-repository-http:2.5.3")
 	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
-	//implementation("org.neo4j.driver:neo4j-java-driver:1.7.2")
-	//implementation("org.springframework.data:spring-data-neo4j:5.1.10.RELEASE")
-	implementation("org.neo4j:neo4j-jdbc-bolt:3.3.1")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 

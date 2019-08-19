@@ -44,11 +44,11 @@ class EntityHandlerTests {
 
     @Test
     fun `should return a 400 if JSON-LD payload is not correct`() {
-        every { neo4jRepository.createEntity(any()) } returns -1
+        val jsonLdFile = ClassPathResource("/data/beehive_missing_context.jsonld")
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
-                .syncBody("{hophop}")
+                .syncBody(jsonLdFile)
                 .exchange()
                 .expectStatus().isBadRequest
     }

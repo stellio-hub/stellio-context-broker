@@ -1,8 +1,8 @@
 package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.repository.Neo4jRepository
-import org.eclipse.rdf4j.rio.RDFFormat
-import org.eclipse.rdf4j.rio.Rio
+import com.egm.datahub.context.registry.service.JsonLDService
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -17,17 +17,22 @@ import java.net.URI
 
 @Component
 class EntityHandler(
+    private val jsonLDService: JsonLDService,
     private val neo4JRepository: Neo4jRepository
 ) {
+
+    private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
         var entityUrn = ""
 
         return req.bodyToMono<String>()
             .map {
-                val model = Rio.parse(it.reader(), "", RDFFormat.JSONLD)
-                entityUrn = model.toList().find { it.subject.stringValue().startsWith("urn:") }?.subject.toString()
+                entityUrn = jsonLDService.parsePayload(it)
                 it
+            }
+            .doOnError {
+                logger.error("JSON-LD parsing raised an error : ${it.message}")
             }
             .map {
                 neo4JRepository.createEntity(it)

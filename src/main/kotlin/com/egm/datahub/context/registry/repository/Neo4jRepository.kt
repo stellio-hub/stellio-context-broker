@@ -21,11 +21,30 @@ class Neo4jRepository(
         return queryResults.first()["triplesLoaded"] as Long
     }
 
-    fun getEntitiesByLabel(label: String) : List<Map<String, Any>> {
+    fun getByURI(uri: String) : List<Map<String, Any>> {
+        val pattern = "{ uri: '$uri' }"
+        val matchQuery = """
+            MATCH (n $pattern ) RETURN n
+        """.trimIndent()
+        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
+        return result.queryResults().toList()
+    }
+
+
+    fun getRelatedEntitiesByLabel(label: String) : List<Map<String, Any>> {
         val matchQuery = """
             MATCH (a)-[b]-(c:$label)  RETURN *
         """.trimIndent()
         val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
         return result.queryResults().toList()
     }
+
+    fun getEntitiesByLabel(label: String) : List<Map<String, Any>> {
+        val matchQuery = """
+            MATCH (n:$label) RETURN n
+        """.trimIndent()
+        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
+        return result.queryResults().toList()
+    }
+
 }

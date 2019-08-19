@@ -43,7 +43,7 @@ class EntityHandler(
             }
     }
 
-    fun getByType(req: ServerRequest): Mono<ServerResponse> {
+    fun getEntitiesByType(req: ServerRequest): Mono<ServerResponse> {
         val type = req.queryParam("type").orElse("") as String
         return type.toMono()
             .map {
@@ -56,4 +56,31 @@ class EntityHandler(
                 status(HttpStatus.INTERNAL_SERVER_ERROR).build()
             }
     }
+    fun getGraphByType(req: ServerRequest): Mono<ServerResponse> {
+        val type = req.queryParam("type").orElse("") as String
+        return type.toMono()
+                .map {
+                    neo4JRepository.getRelatedEntitiesByLabel(it)
+                }
+                .flatMap {
+                    ok().body(BodyInserters.fromObject(it))
+                }
+                .onErrorResume {
+                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                }
+    }
+    fun getByURI(req: ServerRequest): Mono<ServerResponse> {
+        val type = req.queryParam("uri").orElse("") as String
+        return type.toMono()
+                .map {
+                    neo4JRepository.getByURI(it)
+                }
+                .flatMap {
+                    ok().body(BodyInserters.fromObject(it))
+                }
+                .onErrorResume {
+                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                }
+    }
+
 }

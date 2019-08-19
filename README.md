@@ -14,14 +14,28 @@ http GET http://localhost:8080/ngsi-ld/v1/entities?type=BeeHive Content-Type:app
 
 * Insert jsonld
 ```
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/beehive.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/beekeeper.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/door.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/observation_door.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/observation_sensor.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/sensor.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities/neo4j -d @src/test/resources/data/smartdoor.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beehive.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beehive_nested.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beekeeper.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/door.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/observation_door.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/observation_sensor.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/sensor.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/smartdoor.jsonld --header "Content-Type: application/ld+json"
 ```
+* return entities list by label
+```
+curl -vX GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive
+```
+* return related objects by label
+```
+curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/graph?type=diat__BeeHive
+```
+* return object by URI
+```
+curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/uri?uri=urn:ngsi-ld:Beekeeper:TEST1
+```
+
 * Important create namespaces on neo4j
 ```
 CREATE (:NamespacePrefixDefinition {

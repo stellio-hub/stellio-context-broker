@@ -16,7 +16,10 @@ class Routes(
                 .nest {
                     "/entities".nest {
                         POST("", entityHandler::create)
-                        GET("", entityHandler::getByType)
+                        GET("", entityHandler::getEntitiesByType)
+                        GET("/graph", entityHandler::getGraphByType)
+                        GET("/uri", entityHandler::getByURI)
+
                     }
         }
     }

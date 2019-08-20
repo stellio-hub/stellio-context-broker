@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-	id("org.springframework.boot") version "2.1.6.RELEASE" apply false
+	id("org.springframework.boot") version "2.1.6.RELEASE"
 	id("io.spring.dependency-management") version "1.0.7.RELEASE"
 	kotlin("jvm") version "1.3.11"
 	kotlin("plugin.spring") version "1.3.11"
@@ -47,8 +47,6 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("org.springframework.kafka:spring-kafka")
 	implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
-	implementation("org.eclipse.rdf4j:rdf4j-repository-http:2.5.3")
-	implementation("org.eclipse.rdf4j:rdf4j-sparqlbuilder:2.5.3")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -68,6 +66,8 @@ dependencies {
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
+defaultTasks("bootRun")
+
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
 		freeCompilerArgs = listOf("-Xjsr305=strict")
@@ -75,6 +75,14 @@ tasks.withType<KotlinCompile> {
 	}
 }
 
+tasks.bootRun {
+	environment("SPRING_PROFILES_ACTIVE", "dev")
+}
+
 tasks.withType<Test> {
+	environment("SPRING_PROFILES_ACTIVE", "test")
 	useJUnitPlatform()
+	testLogging {
+		events("passed", "skipped", "failed")
+	}
 }

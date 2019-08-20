@@ -1,3 +1,25 @@
+# Quick start
+
+* Clone the repository
+
+```
+git clone git@bitbucket.org:eglobalmark/context-registry.git
+```
+
+* Start Kafka and Neo4j with the provided `docker-compose.yml` file (edit the `.env` file if you need to specify a different host for Kafka) :
+
+```
+docker-compose up -d && docker-compose logs -f
+```
+
+* Create a `src/main/resources/application-dev.properties` file and put in it the configuration properties you want to override
+
+* Start the application :
+
+```
+./gradlew bootRun
+```
+
 * Important create namespaces on neo4j
 ```
 CREATE (:NamespacePrefixDefinition {

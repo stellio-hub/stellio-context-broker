@@ -36,9 +36,6 @@ class EntityHandler(
                 logger.error("JSON-LD parsing raised an error : ${it.message}")
             }
             .map {
-                if(neo4JRepository.getByURI(entityUrn).size > 0){
-                    throw AlreadyExistingEntityException("already existing entity $entityUrn")
-                }
                 neo4JRepository.createEntity(it)
             }.flatMap {
                 created(URI("/ngsi-ld/v1/entities/$entityUrn")).build()
@@ -53,18 +50,7 @@ class EntityHandler(
     fun getEntities(req: ServerRequest): Mono<ServerResponse> {
         val type = req.queryParam("type").orElse("") as String
         val q = req.queryParam("q").orElse("") as String
-        if (isNullOrEmpty(q) && isNullOrEmpty(type)){
-            return "".toMono()
-                    .map {
-                        neo4JRepository.getEntities()
-                    }
-                    .flatMap {
-                        ok().body(BodyInserters.fromObject(it))
-                    }
-                    .onErrorResume {
-                        status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
-        }
+
         if (!isNullOrEmpty(q) && !isNullOrEmpty(type)){
             return "".toMono()
                     .map {
@@ -77,7 +63,7 @@ class EntityHandler(
                         status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                     }
         }
-        if (isNullOrEmpty(q)){
+        else if (isNullOrEmpty(q) && !isNullOrEmpty(type)){
             return type.toMono()
                     .map {
                         neo4JRepository.getEntitiesByLabel(it)
@@ -89,7 +75,7 @@ class EntityHandler(
                         status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                     }
         }
-        if (isNullOrEmpty(type)){
+        else if (isNullOrEmpty(type) && !isNullOrEmpty(q)){
             return q.toMono()
                     .map {
                         neo4JRepository.getEntitiesByQuery(it)
@@ -101,7 +87,8 @@ class EntityHandler(
                         status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                     }
         }
-        return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified"))
+        return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
+
     }
     fun getGraphByType(req: ServerRequest): Mono<ServerResponse> {
         val type = req.queryParam("type").orElse("") as String

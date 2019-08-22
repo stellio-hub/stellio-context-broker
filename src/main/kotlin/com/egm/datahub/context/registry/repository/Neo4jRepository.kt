@@ -1,14 +1,21 @@
 package com.egm.datahub.context.registry.repository
 
+import com.egm.datahub.context.registry.service.JsonLDService
+import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
 import org.neo4j.ogm.session.Session
 import org.springframework.stereotype.Component
 
 @Component
 class Neo4jRepository(
-        private val ogmSession: Session
+        private val ogmSession: Session,
+        private val jsonLDService: JsonLDService
 ) {
 
     fun createEntity(jsonld: String) : Long {
+        val entityUrn = jsonLDService.parsePayload(jsonld)
+        if(getByURI(entityUrn).size > 0){
+            throw AlreadyExistingEntityException("already existing entity $entityUrn")
+        }
         val importStatement = """
             CALL semantics.importRDFSnippet(
                 '$jsonld',

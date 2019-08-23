@@ -54,7 +54,7 @@ class EntityHandler(
         if (!isNullOrEmpty(q) && !isNullOrEmpty(type)){
             return "".toMono()
                     .map {
-                        neo4JRepository.getEntitiesByLabelandQuery(q, type)
+                        neo4JRepository.getEntitiesByLabelAndQuery(q, type)
                     }
                     .flatMap {
                         ok().body(BodyInserters.fromObject(it))
@@ -66,7 +66,7 @@ class EntityHandler(
         else if (isNullOrEmpty(q) && !isNullOrEmpty(type)){
             return type.toMono()
                     .map {
-                        neo4JRepository.getEntitiesByLabel(it)
+                        neo4JRepository.getEntitiesByLabel( it)
                     }
                     .flatMap {
                         ok().body(BodyInserters.fromObject(it))
@@ -90,19 +90,7 @@ class EntityHandler(
         return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
 
     }
-    fun getGraphByType(req: ServerRequest): Mono<ServerResponse> {
-        val type = req.queryParam("type").orElse("") as String
-        return type.toMono()
-                .map {
-                    neo4JRepository.getRelatedEntitiesByLabel(it)
-                }
-                .flatMap {
-                    ok().body(BodyInserters.fromObject(it))
-                }
-                .onErrorResume {
-                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                }
-    }
+
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId") as String
         return uri.toMono()

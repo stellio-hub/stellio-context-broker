@@ -6,12 +6,13 @@
     "observedAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#observedAt",
     "hasMeasure": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasMeasure",
     "unitCode": "https://uri.etsi.org/ngsi-ld/v1/ontology#unitCode",
-    "hasValue": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasValue"
+    "hasValue": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasValue",
+    "Sensor": "https://diatomic.eglobalmark.com/ontology#Sensor"
   },
   "@id": "urn:ngsi-ld:Observation:001112",
   "@type": "Observation",
   "ObservedBy": {
-    "@type": "ObservedBy",
+    "@type": "Sensor",
     "@id": "urn:ngsi-ld:Sensor:0022CCC"
   },
   "hasMeasure": {

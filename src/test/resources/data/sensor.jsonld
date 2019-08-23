@@ -2,12 +2,13 @@
   "@context": {
     "Sensor": "https://diatomic.eglobalmark.com/ontology#Sensor",
     "connectsTo": "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo",
-    "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject"
+    "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject",
+    "SmartDoor": "https://diatomic.eglobalmark.com/ontology#SmartDoor"
   },
   "@id": "urn:ngsi-ld:Sensor:0022CCC",
   "@type": "Sensor",
   "connectsTo": {
-    "@type": "connectsTo",
+    "@type": "SmartDoor",
     "@id": "urn:ngsi-ld:SmartDoor:0021"
 
   }

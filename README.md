@@ -46,14 +46,7 @@ http GET http://localhost:8080/ngsi-ld/v1/entities?type=BeeHive Content-Type:app
 
 * Insert jsonld
 ```
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beehive.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beehive_nested.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/beekeeper.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/door.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/observation_door.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/observation_sensor.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/sensor.jsonld --header "Content-Type: application/ld+json"
-curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/smartdoor.jsonld --header "Content-Type: application/ld+json"
+./insertData.sh
 ```
 * return entities list by label
 ```
@@ -69,15 +62,26 @@ curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:TES
 ```
 * return object by QUERY (is a cypher query) : find all the objects that connects to Beekeeper
 ```
-curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__Beekeeper&query=ngsild__connectsTo==urn:ngsi-ld:Beekeeper:TEST1
+curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=c&query=ngsild__connectsTo==urn:ngsi-ld:Beekeeper:TEST1
 curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__Beekeeper&query=foaf__name==TEST1
 
 ```
+* get by uri using rdf/describe
+```
+curl -X GET http://neo4j:test@docker:7474/rdf/describe/uri/urn:ngsi-ld:SmartDoor:0021?format=JSON-LD
+http://docker:7474/rdf/describe/find/diat__BeeHive/foaf__name/ParisBeehive12?format=JSON-LD
 
-
+** Get entity related objects
+* give me all the BeeHive (search by label)
+curl -g -X POST http://neo4j:test@docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__BeeHive )-[r]->(s)  RETURN o, r" , "format": "JSON-LD" }'
+* give me all the BeeHive (search by label/property/value)
+curl -g -X POST http://neo4j:test@docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__BeeHive { foaf__name : \"ParisBeehive12\" })-[r]->(s)  RETURN o, r" , "format": "JSON-LD" }'
+* give me all the Doors attached to a SmartDoor (search by label/relation/uri)
+curl -g -X POST http://neo4j:test@docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__Door )-[r:ngsild__connectsTo]->(s { uri : \"urn:ngsi-ld:SmartDoor:0021\" })  RETURN o, r" , "format": "JSON-LD" }'
+```
 * Useful queries
 ```
-MATCH (n:ns0__Beekeeper) RETURN n.uri
+MATCH (n:diat__Beekeeper) RETURN n.uri
 ```
 Delete all
 ```
@@ -89,3 +93,4 @@ MATCH (s:Resource)-[:ngsild__connectsTo]-(o:Resource) RETURN s,o
 ```
 
 MATCH ()-[r:ngsild__connectsTo]-(n:diat__Beekeeper{foaf__name:'TEST1'} ) RETURN n
+MATCH (s:diat__Beekeeper{foaf__name: 'TEST1'})-[r:ngsild__connectsTo]-(o ) RETURN s

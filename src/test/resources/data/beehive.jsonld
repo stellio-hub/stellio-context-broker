@@ -3,12 +3,15 @@
     "BeeHive": "https://diatomic.eglobalmark.com/ontology#BeeHive",
     "connectsTo": "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo",
     "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject",
-    "createdAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#createdAt"
+    "createdAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#createdAt",
+    "beekeeper": "https://diatomic.eglobalmark.com/ontology#Beekeeper",
+    "name": "http://xmlns.com/foaf/0.1/name"
   },
   "@id": "urn:ngsi-ld:BeeHive:TESTC",
   "@type": "BeeHive",
+  "name": "ParisBeehive12",
   "connectsTo": {
-    "@type": "connectsTo",
+    "@type": "beekeeper",
     "createdAt": "2010-10-26T21:32:52+02:00",
     "@id": "urn:ngsi-ld:Beekeeper:TEST1"
   }

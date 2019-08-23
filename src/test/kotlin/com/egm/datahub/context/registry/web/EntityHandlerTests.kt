@@ -12,6 +12,9 @@ import org.springframework.http.MediaType
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.io.File
+import java.nio.file.Files
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(topics = ["entities"])
@@ -55,13 +58,17 @@ class EntityHandlerTests {
 
     @Test
     fun `should return one entity of type diat__BeeHive`() {
-        every { neo4jRepository.getEntitiesByLabel(any()) } returns emptyList()
+        val jsonLdFile = ClassPathResource("/mock/response_getEntitiesByLabel.jsonld")
+        val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+
+        val map = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
+        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isOk
-                // TODO compare with expected JSON-LD
-                //.expectBody().json("")
+                .expectBody().json(content)
     }
+    
 }

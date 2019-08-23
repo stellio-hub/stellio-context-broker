@@ -5,12 +5,13 @@
     "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject",
     "observedAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#observedAt",
     "IncomingRate": "https://diatomic.eglobalmark.com/ontology#IncomingRate",
-    "OutgoingRate": "https://diatomic.eglobalmark.com/ontology#OutgoingRate"
+    "OutgoingRate": "https://diatomic.eglobalmark.com/ontology#OutgoingRate",
+    "Door": "https://diatomic.eglobalmark.com/ontology#Door"
   },
   "@id": "urn:ngsi-ld:Observation:0085",
   "@type": "Observation",
   "ObservedBy": {
-    "@type": "ObservedBy",
+    "@type": "Door",
     "@id": "urn:ngsi-ld:Door:0008"
   },
   "observedAt": "209-09-26T21:32:52+02:00",

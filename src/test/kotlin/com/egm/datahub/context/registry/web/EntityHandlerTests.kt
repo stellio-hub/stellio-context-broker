@@ -76,7 +76,7 @@ class EntityHandlerTests {
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
 
         val map = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
-        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
+        every { neo4jRepository.getEntitiesByLabelAndQuery(any(), any()) } returns listOf(map)
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__BeeHive&q=foaf__name==ParisBeehive12")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -89,7 +89,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_rel_uri.jsonld")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
         val map = mapOf("@id" to "urn:ngsi-ld:Door:0015", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#Door"), "https://diatomic.eglobalmark.com/ontology#DoorNumber" to arrayOf(mapOf("@value" to "15")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:SmartDoor:0021")))
-        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
+        every { neo4jRepository.getEntitiesByLabelAndQuery(any(), any()) } returns listOf(map)
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__Door&q=ngsild__connectsTo==urn:ngsi-ld:SmartDoor:0021")
                 .accept(MediaType.valueOf("application/ld+json"))

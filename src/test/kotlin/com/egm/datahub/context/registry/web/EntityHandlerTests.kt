@@ -12,8 +12,6 @@ import org.springframework.http.MediaType
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.io.File
-import java.nio.file.Files
 
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -57,12 +55,14 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `should return one entity of type diat__BeeHive`() {
-        val jsonLdFile = ClassPathResource("/mock/response_getEntitiesByLabel.jsonld")
+    fun `query by type should return list of entities of type diat__BeeHive`() {
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label.jsonld")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
 
-        val map = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
-        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
+        val map1 = mapOf("@id" to "urn:ngsi-ld:BeeHive:HiveRomania", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "Bucarest")))
+        val map2 = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
+
+        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map1,map2)
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -70,5 +70,32 @@ class EntityHandlerTests {
                 .expectStatus().isOk
                 .expectBody().json(content)
     }
-    
+    @Test
+    fun `query by type and query (where criteria is property) should return one entity of type diat__BeeHive with specified criteria`() {
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_and_query.jsonld")
+        val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+
+        val map = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
+        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
+        webClient.get()
+                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive&q=foaf__name==ParisBeehive12")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .exchange()
+                .expectStatus().isOk
+                .expectBody().json(content)
+    }
+    @Test
+    fun `query by type and query (where criteria is relationship) should return a list of type diat__BeeHive that connectsTo specified entity`() {
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_rel_uri.jsonld")
+        val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+        val map = mapOf("@id" to "urn:ngsi-ld:Door:0015", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#Door"), "https://diatomic.eglobalmark.com/ontology#DoorNumber" to arrayOf(mapOf("@value" to "15")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:SmartDoor:0021")))
+        every { neo4jRepository.getEntitiesByLabel(any()) } returns listOf(map)
+        webClient.get()
+                .uri("/ngsi-ld/v1/entities?type=diat__Door&q=ngsild__connectsTo==urn:ngsi-ld:SmartDoor:0021")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .exchange()
+                .expectStatus().isOk
+                .expectBody().json(content)
+    }
+
 }

@@ -56,12 +56,46 @@ class Neo4jRepository(
 
 
     fun getEntitiesByLabel(label: String) : List<Map<String, Any>> {
+        return performQuery("{ \"cypher\" : \"MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r \" , \"format\": \"JSON-LD\" }")
+    }
+
+    fun getEntitiesByLabelAndQuery(query: String, label: String) : List<Map<String, Any>> {
+        var q = ""
+        //RELATION
+        if(query.split("==")[1].startsWith("urn:")){
+            val rel = query.split("==")[0]
+            val node = query.split("==")[1]
+            val cypher = "{ \"cypher\" : \"MATCH (o:$label)-[r:$rel]-(s { uri : \\\"$node\\\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
+            return performQuery(cypher)
+        } else{
+            //PROPERTY
+            val property = query.split("==")[0]
+            val value = query.split("==")[1]
+            val cypher = "{ \"cypher\" : \"MATCH (o:$label { $property : \\\"$value\\\" }) OPTIONAL MATCH (o:$label { $property : \\\"$value\\\" })-[r]-(s) RETURN o,r\" , \"format\": \"JSON-LD\" }"
+            return performQuery(cypher)
+        }
+    }
+
+    fun getEntitiesByQuery(query: String) : List<Map<String, Any>> {
+        var q = ""
+        if(query.split("==")[1].startsWith("urn:")){
+            val rel = query.split("==")[0]
+            val node = query.split("==")[1]
+            val cypher = "{ \"cypher\" : \"OPTIONAL MATCH (o)-[r:$rel]-(s { uri : \\\"$node\\\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
+            return performQuery(cypher)
+        } else{
+            val property = query.split("==")[0]
+            val value = query.split("==")[1]
+            val cypher = "{ \"cypher\" : \"MATCH (o { $property : \\\"$value\\\" }) OPTIONAL MATCH (o { $property : \\\"$value\\\" })-[r]-(s)  RETURN o,r\" , \"format\": \"JSON-LD\" }"
+            return performQuery(cypher)
+        }
+    }
+
+    fun performQuery(cypher : String) : List<Map<String, Any>>{
         val headers = LinkedMultiValueMap<String, String>()
         headers.add("Content-Type", "application/json")
         headers.add("Accept", "application/ld+json")
-        val request = HttpEntity<String>("{ \"cypher\" : \"MATCH (o:$label)-[r]->(s )  RETURN o , r \" , \"format\": \"JSON-LD\" }", headers)
-        //val resp = .postForObject("", request, String::class.java)
-        //val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
+        val request = HttpEntity<String>(cypher, headers)
         try {
             val restTemplate= RestTemplate()
             restTemplate.getInterceptors().add(
@@ -80,55 +114,4 @@ class Neo4jRepository(
         return emptyList()
     }
 
-    fun getEntitiesByLabelAndQuery(query: String, label: String) : List<Map<String, Any>> {
-        var q = ""
-        val headers = LinkedMultiValueMap<String, String>()
-        headers.add("HeaderName", "value")
-        headers.add("Content-Type", "application/json")
-        //RELATION
-        if(query.split("==")[1].startsWith("urn:")){
-            val rel = query.split("==")[0]
-            val node = query.split("==")[1]
-            val request = HttpEntity<String>("{ \"cypher\" : \"MATCH (o:$label)-[r:$rel]-(s { uri : \"$node\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }", headers)
-            val resp = RestTemplate().postForObject("http://neo4j:test@docker:7474/rdf/cypheronrdf", request, String::class.java)
-            //q = ":POST /rdf/cypheronrdf { \"cypher\" : \"MATCH (o:$label)-[r:$rel]-(s { uri : \"$node\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
-        } else{
-            //PROPERTY
-            val property = query.split("==")[0]
-            val value = query.split("==")[1]
-            val request = HttpEntity<String>("{ \"cypher\" : \"MATCH (o:$label { $property : \"$value\" })-[r]-(s) RETURN o,r\" , \"format\": \"JSON-LD\" }", headers)
-            val resp = RestTemplate().postForObject("http://neo4j:test@docker:7474/rdf/cypheronrdf", request, String::class.java)
-            //q = ":POST /rdf/cypheronrdf { \"cypher\" : \"MATCH (o:$label { $property : \"$value\" })-[r]-(s) RETURN o,r\" , \"format\": \"JSON-LD\" }"
-        }
-        val matchQuery = """
-            $q
-        """.trimIndent()
-        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
-        return result.queryResults().toList()
-    }
-
-    fun getEntitiesByQuery(query: String) : List<Map<String, Any>> {
-        var q = ""
-        if(query.split("==")[1].startsWith("urn:")){
-            val rel = query.split("==")[0]
-            val node = query.split("==")[1]
-            q = ":POST /rdf/cypheronrdf { \"cypher\" : \"MATCH (o)-[r:$rel]-(s { uri : \"$node\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
-        } else{
-            val property = query.split("==")[0]
-            val value = query.split("==")[1]
-            q = ":POST /rdf/cypheronrdf { \"cypher\" : \"MATCH (o { $property : \"$value\" })-[r]-(s) RETURN o,r\" , \"format\": \"JSON-LD\" }"
-        }
-        val matchQuery = """
-            $query
-        """.trimIndent()
-        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
-        return result.queryResults().toList()
-    }
-    fun getEntities() : List<Map<String, Any>> {
-        val matchQuery = """
-            MATCH (n:Resource) RETURN n
-        """.trimIndent()
-        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
-        return result.queryResults().toList()
-    }
 }

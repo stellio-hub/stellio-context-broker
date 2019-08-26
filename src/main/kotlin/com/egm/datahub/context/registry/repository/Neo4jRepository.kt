@@ -110,7 +110,6 @@ class Neo4jRepository(
         if (!headers.containsKey("Content-Type")) headers.add("Content-Type", "application/json")
         if (!headers.containsKey("Accept")) headers.add("Accept", "application/ld+json")
 
-
         val cypher = jackson.writeValueAsString(payload)
         val request = HttpEntity<String>(cypher, headers)
         try {

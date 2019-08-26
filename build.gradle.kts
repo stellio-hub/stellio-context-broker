@@ -61,6 +61,11 @@ dependencies {
 	testImplementation("com.ninja-squad:springmockk:1.1.2")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
+	testImplementation("org.neo4j.test:neo4j-harness:3.5.8")
+	testImplementation("org.neo4j:neo4j-ogm-embedded-driver")
+
+	testImplementation(files("data/neo4j/plugins/neosemantics-3.5.0.3.jar"))
+	testImplementation(files("data/neo4j/plugins/apoc-3.5.0.4-all.jar"))
 	//testImplementation("org.springframework.security:spring-security-test")
 
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

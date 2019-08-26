@@ -48,8 +48,8 @@ class EntityHandler(
     }
 
     fun getEntities(req: ServerRequest): Mono<ServerResponse> {
-        val type = req.queryParam("type").orElse("") as String
-        val q = req.queryParam("q").orElse("") as String
+        val type = req.queryParam("type").orElse("")
+        val q = req.queryParam("q").orElse("")
 
         if (isNullOrEmpty(q) && isNullOrEmpty(type)){
             return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))

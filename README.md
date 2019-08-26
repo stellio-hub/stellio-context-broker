@@ -12,6 +12,12 @@ git clone git@bitbucket.org:eglobalmark/context-registry.git
 docker-compose up -d && docker-compose logs -f
 ```
 
+* Update your `/etc/hosts` file and add the following entry :
+
+```
+127.0.0.1       dh-local-docker
+```
+
 * Create a `src/main/resources/application-dev.properties` file and put in it the configuration properties you want to override
 
 * Start the application :

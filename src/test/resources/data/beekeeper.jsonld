@@ -3,7 +3,7 @@
     "beekeeper": "https://diatomic.eglobalmark.com/ontology#Beekeeper",
     "name": "http://xmlns.com/foaf/0.1/name"
   },
-  "@id": "urn:ngsi-ld:Beekeeper:TEST1",
+  "@id": "urn:ngsi-ld:Beekeeper:Pascal",
   "@type": "beekeeper",
-  "name": "TEST1"
+  "name": "Pellizzoni"
 }

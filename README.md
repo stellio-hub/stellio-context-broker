@@ -54,7 +54,7 @@ curl -vX GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive
 ```
 * return related objects by label
 ```
-curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/graph?type=diat__BeeHive
+curl -vX GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive
 ```
 * return object by URI
 ```
@@ -62,7 +62,7 @@ curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:TES
 ```
 * return object by QUERY (is a cypher query) : find all the objects that connects to Beekeeper
 ```
-curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=c&query=ngsild__connectsTo==urn:ngsi-ld:Beekeeper:TEST1
+curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&query=ngsild__connectsTo==urn:ngsi-ld:Beekeeper:TEST1
 curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__Beekeeper&query=foaf__name==TEST1
 
 ```

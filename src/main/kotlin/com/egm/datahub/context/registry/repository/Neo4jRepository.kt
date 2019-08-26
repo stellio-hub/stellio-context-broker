@@ -3,6 +3,8 @@ package com.egm.datahub.context.registry.repository
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.JsonLDService
 import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.netty.util.internal.StringUtil
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.core.ParameterizedTypeReference
@@ -20,8 +22,9 @@ import java.time.format.DateTimeFormatter
 class Neo4jRepository(
         private val ogmSession: Session,
         private val jsonLDService: JsonLDService,
-        private val neo4jProperties : Neo4jProperties
+        private val neo4jProperties: Neo4jProperties
 ) {
+    private val jackson = jacksonObjectMapper()
     private val headers = LinkedMultiValueMap<String, String>()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
     fun createEntity(jsonld: String): Long {
@@ -74,44 +77,41 @@ class Neo4jRepository(
 
 
     fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
-        return performQuery("{ \"cypher\" : \"MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r \" , \"format\": \"JSON-LD\" }")
+        val payload = mapOf("cypher" to "MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r", "format" to "JSON-LD")
+        return performQuery(payload)
     }
 
     fun getEntitiesByLabelAndQuery(query: String, label: String): List<Map<String, Any>> {
-        var q = ""
-        //RELATION
-        if (query.split("==")[1].startsWith("urn:")) {
-            val rel = query.split("==")[0]
-            val node = query.split("==")[1]
-            val cypher = "{ \"cypher\" : \"MATCH (o:$label)-[r:$rel]-(s { uri : \\\"$node\\\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
-            return performQuery(cypher)
-        } else {
-            //PROPERTY
-            val property = query.split("==")[0]
-            val value = query.split("==")[1]
-            val cypher = "{ \"cypher\" : \"MATCH (o:$label { $property : \\\"$value\\\" }) OPTIONAL MATCH (o:$label { $property : \\\"$value\\\" })-[r]-(s) RETURN o,r\" , \"format\": \"JSON-LD\" }"
-            return performQuery(cypher)
-        }
+        val property = query.split("==")[0]
+        val value = query.split("==")[1]
+        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o:$label)-[r:$property]-(s { uri : \"$value\" })  RETURN o,r" else "MATCH (o:$label { $property : \"$value\" }) OPTIONAL MATCH (o:$label { $property : \"$value\" })-[r]-(s) RETURN o,r", "format" to "JSON-LD")
+        return performQuery(payload)
     }
 
     fun getEntitiesByQuery(query: String): List<Map<String, Any>> {
-        var q = ""
-        if (query.split("==")[1].startsWith("urn:")) {
-            val rel = query.split("==")[0]
-            val node = query.split("==")[1]
-            val cypher = "{ \"cypher\" : \"MATCH (o)-[r:$rel]-(s { uri : \\\"$node\\\" })  RETURN o,r\" , \"format\": \"JSON-LD\" }"
-            return performQuery(cypher)
-        } else {
-            val property = query.split("==")[0]
-            val value = query.split("==")[1]
-            val cypher = "{ \"cypher\" : \"MATCH (o { $property : \\\"$value\\\" }) OPTIONAL MATCH (o { $property : \\\"$value\\\" })-[r]-(s)  RETURN o,r\" , \"format\": \"JSON-LD\" }"
-            return performQuery(cypher)
-        }
+        val property = query.split("==")[0]
+        val value = query.split("==")[1]
+        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o)-[r:$property]-(s { uri : \"$value\" })  RETURN o,r" else "MATCH (o { $property : \"$value\" }) OPTIONAL MATCH (o { $property : \"$value\" })-[r]-(s)  RETURN o,r", "format" to "JSON-LD")
+        return performQuery(payload)
     }
 
-    fun performQuery(cypher: String): List<Map<String, Any>> {
-        headers.add("Content-Type", "application/json")
-        headers.add("Accept", "application/ld+json")
+    fun getEntities(query: String, label: String): List<Map<String, Any>> {
+        if (!StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
+            return getEntitiesByLabelAndQuery(query, label)
+        } else if (StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
+            return getEntitiesByLabel(label)
+        } else if (StringUtil.isNullOrEmpty(label) && !StringUtil.isNullOrEmpty(query)) {
+            return getEntitiesByQuery(query)
+        }
+        return emptyList()
+    }
+
+    fun performQuery(payload: Map<String, Any>): List<Map<String, Any>> {
+        if (!headers.containsKey("Content-Type")) headers.add("Content-Type", "application/json")
+        if (!headers.containsKey("Accept")) headers.add("Accept", "application/ld+json")
+
+
+        val cypher = jackson.writeValueAsString(payload)
         val request = HttpEntity<String>(cypher, headers)
         try {
             val restTemplate = RestTemplate()

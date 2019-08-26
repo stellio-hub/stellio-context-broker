@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-@ConfigurationProperties("neo4j")
+@ConfigurationProperties("spring.data.neo4j")
 class Neo4jProperties {
-    lateinit var url: String
+    lateinit var uri: String
     lateinit var username: String
     lateinit var password: String
 }

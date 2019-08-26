@@ -51,48 +51,25 @@ class EntityHandler(
         val type = req.queryParam("type").orElse("") as String
         val q = req.queryParam("q").orElse("") as String
 
-        if (!isNullOrEmpty(q) && !isNullOrEmpty(type)){
-            return "".toMono()
-                    .map {
-                        neo4JRepository.getEntitiesByLabelAndQuery(q, type)
-                    }
-                    .flatMap {
-                        ok().body(BodyInserters.fromObject(it))
-                    }
-                    .onErrorResume {
-                        status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
+        if (isNullOrEmpty(q) && isNullOrEmpty(type)){
+            return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
         }
-        else if (isNullOrEmpty(q) && !isNullOrEmpty(type)){
-            return type.toMono()
-                    .map {
-                        neo4JRepository.getEntitiesByLabel( it)
-                    }
-                    .flatMap {
-                        ok().body(BodyInserters.fromObject(it))
-                    }
-                    .onErrorResume {
-                        status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
-        }
-        else if (isNullOrEmpty(type) && !isNullOrEmpty(q)){
-            return q.toMono()
-                    .map {
-                        neo4JRepository.getEntitiesByQuery(it)
-                    }
-                    .flatMap {
-                        ok().body(BodyInserters.fromObject(it))
-                    }
-                    .onErrorResume {
-                        status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    }
-        }
-        return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
+        return "".toMono()
+                .map {
+                    neo4JRepository.getEntities(q, type)
+                }
+                .flatMap {
+                    ok().body(BodyInserters.fromObject(it))
+                }
+                .onErrorResume {
+                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                }
+
 
     }
 
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
-        val uri = req.pathVariable("entityId") as String
+        val uri = req.pathVariable("entityId")
         return uri.toMono()
                 .map {
                     neo4JRepository.getByURI(it)

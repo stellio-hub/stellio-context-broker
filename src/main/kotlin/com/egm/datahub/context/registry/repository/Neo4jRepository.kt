@@ -17,16 +17,15 @@ import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
-
 @Component
 class Neo4jRepository(
-        private val ogmSession: Session,
-        private val jsonLDService: JsonLDService,
-        private val neo4jProperties: Neo4jProperties
+    private val ogmSession: Session,
+    private val jsonLDService: JsonLDService,
+    private val neo4jProperties: Neo4jProperties
 ) {
     private val jackson = jacksonObjectMapper()
-    private val headers = LinkedMultiValueMap<String, String>()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
+
     fun createEntity(jsonld: String): Long {
         val entityUrn = jsonLDService.parsePayload(jsonld)
         if (checkExistingUrn(entityUrn)) {
@@ -52,7 +51,7 @@ class Neo4jRepository(
             createEntity(entityUrn)
         }
         val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val update: String = "MATCH(o {uri:$entityUrn}) SET o.modifiedAt = $timestamp"
+        val update = "MATCH(o {uri:$entityUrn}) SET o.modifiedAt = $timestamp"
 
         val queryResults = ogmSession.query(update, emptyMap<String, Any>()).queryResults()
         return queryResults.first()["triplesLoaded"] as Long
@@ -60,11 +59,10 @@ class Neo4jRepository(
 
     fun addCreatedAtProperty(entityUrn: String): String {
         val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val insert: String = "MATCH(o {uri:$entityUrn}) SET o.createdAt = $timestamp"
+        val insert = "MATCH(o {uri:$entityUrn}) SET o.createdAt = $timestamp"
         val result = ogmSession.query(insert, emptyMap<String, Any>())
         return result.queryResults().toString()
     }
-
 
     fun getByURI(uri: String): List<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
@@ -74,7 +72,6 @@ class Neo4jRepository(
         val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
         return result.queryResults().toList()
     }
-
 
     fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
         val payload = mapOf("cypher" to "MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r", "format" to "JSON-LD")
@@ -107,23 +104,22 @@ class Neo4jRepository(
     }
 
     fun performQuery(payload: Map<String, Any>): List<Map<String, Any>> {
-        if (!headers.containsKey("Content-Type")) headers.add("Content-Type", "application/json")
-        if (!headers.containsKey("Accept")) headers.add("Accept", "application/ld+json")
+        val headers = LinkedMultiValueMap<String, String>()
+        headers.add("Content-Type", "application/json")
+        headers.add("Accept", "application/ld+json")
 
         val cypher = jackson.writeValueAsString(payload)
-        val request = HttpEntity<String>(cypher, headers)
+        val request = HttpEntity(cypher, headers)
         try {
             val restTemplate = RestTemplate()
-            restTemplate.getInterceptors().add(
+            restTemplate.interceptors.add(
                     BasicAuthenticationInterceptor(neo4jProperties.username, neo4jProperties.password))
-            val response = restTemplate.exchange(
-                    "http://docker:7474/rdf/cypheronrdf",
+            return restTemplate.exchange(
+                    "${neo4jProperties.nsmntx}/cypheronrdf",
                     HttpMethod.POST,
                     request,
                     object : ParameterizedTypeReference<List<Map<String, Any>>>() {
-
                     }).body.orEmpty()
-            return response
         } catch (e: Exception) {
             logger.error(e.message)
         }
@@ -131,7 +127,6 @@ class Neo4jRepository(
     }
 
     fun checkExistingUrn(entityUrn: String): Boolean {
-        if (getByURI(entityUrn).isNotEmpty()) return true else return false
+        return getByURI(entityUrn).isNotEmpty()
     }
-
 }

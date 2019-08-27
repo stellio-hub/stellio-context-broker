@@ -12,7 +12,7 @@ class JsonLDService {
 
     private val logger = LoggerFactory.getLogger(JsonLDService::class.java)
 
-    fun parsePayload(payload: String) : String {
+    fun parsePayload(payload: String): String {
         val rdfParser = Rio.createParser(RDFFormat.JSONLD)
         val errorCollector = ParseErrorCollector()
         val statementCollector = StatementCollector()

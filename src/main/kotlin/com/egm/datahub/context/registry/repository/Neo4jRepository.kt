@@ -17,12 +17,11 @@ import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
-
 @Component
 class Neo4jRepository(
-        private val ogmSession: Session,
-        private val jsonLDService: JsonLDService,
-        private val neo4jProperties: Neo4jProperties
+    private val ogmSession: Session,
+    private val jsonLDService: JsonLDService,
+    private val neo4jProperties: Neo4jProperties
 ) {
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
@@ -65,7 +64,6 @@ class Neo4jRepository(
         return result.queryResults().toString()
     }
 
-
     fun getByURI(uri: String): List<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
         val matchQuery = """
@@ -74,7 +72,6 @@ class Neo4jRepository(
         val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
         return result.queryResults().toList()
     }
-
 
     fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
         val payload = mapOf("cypher" to "MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r", "format" to "JSON-LD")
@@ -122,7 +119,6 @@ class Neo4jRepository(
                     HttpMethod.POST,
                     request,
                     object : ParameterizedTypeReference<List<Map<String, Any>>>() {
-
                     }).body.orEmpty()
         } catch (e: Exception) {
             logger.error(e.message)

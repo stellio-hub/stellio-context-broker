@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class ContextRegistryApplication
 
 fun main(args: Array<String>) {
-	runApplication<ContextRegistryApplication>(*args)
+    runApplication<ContextRegistryApplication>(*args)
 }

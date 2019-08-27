@@ -14,7 +14,6 @@ import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
 
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(topics = ["entities"])
 class EntityHandlerTests {
@@ -31,12 +30,11 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var neo4jRepository: Neo4jRepository
 
-
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
         every { neo4jRepository.createEntity(any()) } returns 2
-        every { neo4jRepository.checkExistingUrn(any())} returns true
+        every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -50,7 +48,7 @@ class EntityHandlerTests {
     fun `should return a 409 if the entity is already existing`() {
         val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
         every { neo4jRepository.createEntity(any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
-        //every { neo4jRepository.checkExistingUrn(any())} returns false
+        // every { neo4jRepository.checkExistingUrn(any())} returns false
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -58,8 +56,6 @@ class EntityHandlerTests {
                 .exchange()
                 .expectStatus().isEqualTo(409)
     }
-
-
 
     @Test
     fun `should return a 400 if JSON-LD payload is not correct`() {
@@ -80,7 +76,7 @@ class EntityHandlerTests {
         val map1 = mapOf("@id" to "urn:ngsi-ld:BeeHive:HiveRomania", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "Bucarest")))
         val map2 = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
 
-        every { neo4jRepository.getEntities(any(), any()) } returns listOf(map1,map2)
+        every { neo4jRepository.getEntities(any(), any()) } returns listOf(map1, map2)
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -118,5 +114,4 @@ class EntityHandlerTests {
                 .expectStatus().isOk
                 .expectBody().json(content)
     }
-
 }

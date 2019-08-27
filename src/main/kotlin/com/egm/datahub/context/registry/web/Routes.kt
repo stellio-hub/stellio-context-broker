@@ -7,7 +7,7 @@ import org.springframework.web.reactive.function.server.router
 
 @Configuration
 class Routes(
-        private val entityHandler: EntityHandler
+    private val entityHandler: EntityHandler
 ) {
 
     @Bean
@@ -18,7 +18,6 @@ class Routes(
                         POST("", entityHandler::create)
                         GET("", entityHandler::getEntities)
                         GET("/{entityId}", entityHandler::getByURI)
-
                     }
         }
     }

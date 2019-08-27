@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import java.net.URI
 
-
 @Component
 class EntityHandler(
     private val jsonLDService: JsonLDService,
@@ -51,7 +50,7 @@ class EntityHandler(
         val type = req.queryParam("type").orElse("")
         val q = req.queryParam("q").orElse("")
 
-        if (isNullOrEmpty(q) && isNullOrEmpty(type)){
+        if (isNullOrEmpty(q) && isNullOrEmpty(type)) {
             return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
         }
         return "".toMono()
@@ -64,8 +63,6 @@ class EntityHandler(
                 .onErrorResume {
                     status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                 }
-
-
     }
 
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
@@ -81,5 +78,4 @@ class EntityHandler(
                     status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                 }
     }
-
 }

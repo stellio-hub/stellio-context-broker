@@ -1,10 +1,13 @@
 HELP.md
 .gradle
 build/
+bin/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**
 !**/src/test/**
-/data/
+/data/graphdb
+/data/neo4j/data
+
 
 ### STS ###
 .apt_generated

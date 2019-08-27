@@ -1,0 +1,18 @@
+[
+  {
+    "@id": "urn:ngsi-ld:Door:0015",
+    "@type": [
+      "https://diatomic.eglobalmark.com/ontology#Door"
+    ],
+    "https://diatomic.eglobalmark.com/ontology#DoorNumber": [
+      {
+        "@value": "15"
+      }
+    ],
+    "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo": [
+      {
+        "@id": "urn:ngsi-ld:SmartDoor:0021"
+      }
+    ]
+  }
+]

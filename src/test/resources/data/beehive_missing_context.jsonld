@@ -7,7 +7,7 @@
   "@id": "urn:ngsi-ld:BeeHive:TESTC",
   "@type": "BeeHive",
   "connectsTo": {
-    "@type": "connectsTo",
+    "@type": "Beekeeper",
     "createdAt": "2010-10-26T21:32:52+02:00",
     "@id": "urn:ngsi-ld:Beekeeper:TEST1"
   }

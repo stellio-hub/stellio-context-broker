@@ -40,7 +40,8 @@ class Neo4jRepository(
         """.trimIndent()
 
         val queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
-        addCreatedAtProperty(entityUrn)
+        //addCreatedAtProperty(entityUrn)
+        println(queryResults.first()["extraInfo"])
         return queryResults.first()["triplesLoaded"] as Long
     }
 
@@ -113,9 +114,9 @@ class Neo4jRepository(
         try {
             val restTemplate = RestTemplate()
             restTemplate.interceptors.add(
-                    BasicAuthenticationInterceptor(neo4jProperties.username, neo4jProperties.password))
+                    BasicAuthenticationInterceptor("${neo4jProperties.username}", "${neo4jProperties.password}"))
             return restTemplate.exchange(
-                    "${neo4jProperties.nsmntx}/cypheronrdf",
+                    "${neo4jProperties.nsmntx}",
                     HttpMethod.POST,
                     request,
                     object : ParameterizedTypeReference<List<Map<String, Any>>>() {

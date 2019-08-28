@@ -1,146 +1,207 @@
 package com.egm.datahub.context.registry.repository
 
+import com.egm.datahub.context.registry.config.properties.Neo4jProperties
+import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import junit.framework.Assert.assertEquals
-import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.fail
+import junit.framework.Assert.assertTrue
+import org.junit.jupiter.api.*
 import org.neo4j.driver.v1.AuthTokens
 import org.neo4j.driver.v1.GraphDatabase
 import org.neo4j.driver.v1.StatementResult
+import org.neo4j.ogm.config.Configuration
+import org.neo4j.ogm.session.SessionFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
 import org.springframework.core.io.ClassPathResource
+import org.springframework.kafka.test.EmbeddedKafkaBroker
+import org.springframework.kafka.test.context.EmbeddedKafka
 import org.testcontainers.containers.Neo4jContainer
+import org.testcontainers.containers.Network
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.MountableFile
 
+
+
+
 class KtNeo4jContainer(val imageName: String) : Neo4jContainer<KtNeo4jContainer>(imageName)
 
+@SpringBootTest
 @Testcontainers
+@EmbeddedKafka(topics = ["entities"])
 class Neo4jRepositoryTest() {
+
+    @MockkBean
+    private lateinit var neo4jProperties: Neo4jProperties
+
+    private lateinit var sessionFactory: SessionFactory
+
+    @Autowired
+    private lateinit var neo4jRepository: Neo4jRepository
+
+    @TestConfiguration // <2>
+    internal class Config {
+
+        @Bean // <3>
+        fun configuration(): org.neo4j.ogm.config.Configuration {
+            return Configuration.Builder()
+                .uri(databaseServer.boltUrl)
+                .build()
+        }
+    }
+
+
+
 
 
     companion object {
         const val IMAGE_NAME = "neo4j"
         const val TAG_NAME = "3.5.8"
-
-
+        var network = Network.newNetwork()
 
         @Container
         @JvmStatic
         val databaseServer: KtNeo4jContainer = KtNeo4jContainer("$IMAGE_NAME:$TAG_NAME")
-                        .withPlugins(MountableFile.forHostPath("data/neo4j/plugins"))
-                        .withNeo4jConfig("dbms.unmanaged_extension_classes", "semantics.extension=/rdf")
-                        .withNeo4jConfig("dbms.security.procedures.whitelist", "semantics.*,apoc.*")
-                        .withNeo4jConfig("dbms.security.procedures.unrestricted", "semantics.*,apoc.*")
-                        .withNeo4jConfig("apoc.export.file.enabled", "true")
-                        .withNeo4jConfig("apoc.import.file.enabled", "true")
-                        .withNeo4jConfig("apoc.import.file.use_neo4j_config", "true")
-                        .withExposedPorts(7474, 7687)
-                        .withEnv("NEO4J_apoc_export_file_enabled", "true")
-                        .withEnv("NEO4J_apoc_export_file_enabled", "true")
-                        .withEnv("NEO4J_apoc_import_file_use__neo4j__config", "true")
-                        .withoutAuthentication()
-                //.addFileSystemBind("db","/data", BindMode.READ_WRITE)
+            .withPlugins(MountableFile.forHostPath("data/neo4j/plugins"))
+            .withNeo4jConfig("dbms.unmanaged_extension_classes", "semantics.extension=/rdf")
+            .withNeo4jConfig("dbms.security.procedures.whitelist", "semantics.*,apoc.*")
+            .withNeo4jConfig("dbms.security.procedures.unrestricted", "semantics.*,apoc.*")
+            .withNeo4jConfig("apoc.export.file.enabled", "true")
+            .withNeo4jConfig("apoc.import.file.enabled", "true")
+            .withNeo4jConfig("apoc.import.file.use_neo4j_config", "true")
+            .withExposedPorts(7474, 7687)
+            .withEnv("NEO4J_apoc_export_file_enabled", "true")
+            .withEnv("NEO4J_apoc_export_file_enabled", "true")
+            .withEnv("NEO4J_apoc_import_file_use__neo4j__config", "true")
+            .withoutAuthentication()
+            .withNetwork(network)
+            .withNetworkAliases("dh-local-docker")
+        //.addFileSystemBind("db","/data", BindMode.READ_WRITE)
 
 
     }
-    init{
+
+    init {
+        System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
         databaseServer.start()
-        val boltUrl = databaseServer.getBoltUrl()
         try {
-            GraphDatabase.driver(boltUrl, AuthTokens.none()).use({ driver ->
-                driver.session().use({ session ->
-                    val execResult : StatementResult = session.run("CREATE INDEX ON :Resource(uri)", emptyMap<String, Any>())
-                    execResult.list().map {
-                        println(it)
-                    }
+            val ogmConfiguration = Configuration.Builder()
+                .uri(databaseServer.boltUrl)
+                .build()
+            sessionFactory = SessionFactory(
+                ogmConfiguration,
+                "com.egm.datahub.context.registry.domain"
+            )
 
 
-                })
-            })
         } catch (e: Exception) {
-            fail(e.message)
+            fail(e.localizedMessage)
         }
-
+        addURIindex()
+        addNamespaces()
     }
 
+    @BeforeEach
+    fun mockConfig(){
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+    }
+
+    @BeforeAll
+    fun initializeDbFixtures(){
+        insertFixtures()
+    }
+    @AfterAll
+    fun reset(){
+        cleanDb()
+    }
 
     @Test
-    fun `insert list of JSON-LD files successfully`() {
+    fun `query on cypherOnRdf by label`() {
+        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
+        assertEquals(result.first().size, 2)
+    }
+
+    @Test
+    fun `query on cypherOnRdf by query`() {
+        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByQuery("foaf__name==ParisBeehive12")
+        assertEquals(result.size, 1)
+    }
+
+    @Test
+    fun `query on cypherOnRdf by label and query`() {
+        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabelAndQuery("foaf__name==ParisBeehive12", "diat__BeeHive")
+        assertEquals(result.size, 1)
+    }
+
+    fun addNamespaces(){
+        val addNamespaces = "CREATE (:NamespacePrefixDefinition {\n" +
+                "  `https://diatomic.eglobalmark.com/ontology#`: 'diat',\n" +
+                "  `http://xmlns.com/foaf/0.1/`: 'foaf',\n" +
+                "  `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})"
+        GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
+            driver.session().use({ session ->
+                val execResult : StatementResult = session.run(addNamespaces, emptyMap<String, Any>())
+                execResult.list().map {
+                    println(it)
+                }
+
+
+            })
+        })
+    }
+    fun addURIindex(){
+        GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
+            driver.session().use({ session ->
+                val execResult : StatementResult = session.run("CREATE INDEX ON :Resource(uri)", emptyMap<String, Any>())
+                execResult.list().map {
+                    println(it)
+                }
+
+
+            })
+        })
+    }
+    fun cleanDb(){
+        GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
+            driver.session().use({ session ->
+                val execResult : StatementResult = session.run("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r", emptyMap<String, Any>())
+                execResult.list().map {
+                    println(it)
+                }
+
+
+            })
+        })
+    }
+    fun insertFixtures(){
         val listOfFiles = listOf(
-                ClassPathResource("/data/beehive.jsonld"),
-                ClassPathResource("/data/beehive_not_connected.jsonld"),
-                ClassPathResource("/data/beekeeper.jsonld"),
-                ClassPathResource("/data/door.jsonld"),
-                ClassPathResource("/data/observation_door.jsonld"),
-                ClassPathResource("/data/observation_sensor.jsonld"),
-                ClassPathResource("/data/sensor.jsonld"),
-                ClassPathResource("/data/smartdoor.jsonld")
-                )
-        // Retrieve the Bolt URL from the container
-        val boltUrl = databaseServer.getBoltUrl()
+            ClassPathResource("/data/beehive.jsonld"),
+            ClassPathResource("/data/beehive_not_connected.jsonld"),
+            ClassPathResource("/data/beekeeper.jsonld"),
+            ClassPathResource("/data/door.jsonld"),
+            ClassPathResource("/data/observation_door.jsonld"),
+            ClassPathResource("/data/observation_sensor.jsonld"),
+            ClassPathResource("/data/sensor.jsonld"),
+            ClassPathResource("/data/smartdoor.jsonld")
+        )
+        for (item in listOfFiles) {
+            val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
+            try{
+                var triplesLoaded : Long= this.neo4jRepository.createEntity(content)
+                assertTrue("At least one triple loaded", triplesLoaded > 0)
+            } catch(e : AlreadyExistingEntityException){
+                println(e.message)
+            }
 
 
-        try {
-            GraphDatabase.driver(boltUrl, AuthTokens.none()).use({ driver ->
-                driver.session().use({ session ->
-                    for (item in listOfFiles) {
-                        val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
-                        val insert = "CALL semantics.importRDFSnippet(\n" +
-                                "                '$content',\n" +
-                                "                'JSON-LD',\n" +
-                                "                { handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500 }\n" +
-                                "            )"
-                        val execResult : StatementResult = session.run(insert, emptyMap<String, Any>())
-                        execResult.list().map {
-                            assertEquals(it.get("terminationStatus").asString(),"OK")
-                            assertThat(it.get("namespaces")).isNotNull
-                        }
-                    }
-                })
-            })
-        } catch (e: Exception) {
-            fail(e.message)
         }
-
     }
-
-
-    @Test
-    fun queryEntitiesByLabel() {
-        val beekeeper = ClassPathResource("/data/beekeeper.jsonld")
-        val content = beekeeper.inputStream.readBytes().toString(Charsets.UTF_8)
-        val insert = "CALL semantics.importRDFSnippet(\n" +
-                "                '$content',\n" +
-                "                'JSON-LD',\n" +
-                "                { handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500 }\n" +
-                "            )"
-
-        val query = "MATCH (s:diat__Beekeeper) RETURN s"
-
-        val boltUrl = databaseServer.getBoltUrl()
-        try {
-            GraphDatabase.driver(boltUrl, AuthTokens.none()).use({ driver ->
-                driver.session().use({ session ->
-                    val insertResult : StatementResult = session.run(insert, emptyMap<String, Any>())
-                    insertResult.list().map {
-                        assertEquals(it.get("terminationStatus").asString(),"OK")
-                        assertThat(it.get("namespaces")).isNotNull
-                    }
-
-                    val execResult : StatementResult = session.run(query, emptyMap<String, Any>())
-                    execResult.list().map {
-                        println(it)
-                    }
-                })
-            })
-        } catch (e: Exception) {
-            fail(e.message)
-        }
-
-    }
-
-
 
 
 }

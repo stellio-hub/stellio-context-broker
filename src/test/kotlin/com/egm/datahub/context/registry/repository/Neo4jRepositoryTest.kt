@@ -1,17 +1,19 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
-import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import junit.framework.Assert.assertEquals
 import junit.framework.Assert.assertTrue
-import org.junit.jupiter.api.*
+import org.junit.Assert.assertNotEquals
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.neo4j.driver.v1.AuthTokens
 import org.neo4j.driver.v1.GraphDatabase
 import org.neo4j.driver.v1.StatementResult
 import org.neo4j.ogm.config.Configuration
 import org.neo4j.ogm.session.SessionFactory
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -40,6 +42,8 @@ class Neo4jRepositoryTest() {
 
     private lateinit var sessionFactory: SessionFactory
 
+    private val logger = LoggerFactory.getLogger(Neo4jRepositoryTest::class.java)
+
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
 
@@ -61,6 +65,7 @@ class Neo4jRepositoryTest() {
     companion object {
         const val IMAGE_NAME = "neo4j"
         const val TAG_NAME = "3.5.8"
+
         var network = Network.newNetwork()
 
         @Container
@@ -80,8 +85,7 @@ class Neo4jRepositoryTest() {
             .withoutAuthentication()
             .withNetwork(network)
             .withNetworkAliases("dh-local-docker")
-        //.addFileSystemBind("db","/data", BindMode.READ_WRITE)
-
+            //.withClasspathResourceMapping("/db", "/data",  BindMode.READ_WRITE)
 
     }
 
@@ -96,47 +100,62 @@ class Neo4jRepositoryTest() {
                 ogmConfiguration,
                 "com.egm.datahub.context.registry.domain"
             )
-
-
         } catch (e: Exception) {
-            fail(e.localizedMessage)
+            println("can't bootstrap ogm session")
         }
+        cleanDb()
         addURIindex()
         addNamespaces()
-    }
-
-    @BeforeEach
-    fun mockConfig(){
-        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
-        every { neo4jProperties.username } returns "neo4j"
-        every { neo4jProperties.password } returns "neo4j"
     }
 
     @BeforeAll
     fun initializeDbFixtures(){
         insertFixtures()
     }
-    @AfterAll
-    fun reset(){
-        cleanDb()
-    }
+
 
     @Test
     fun `query on cypherOnRdf by label`() {
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+
         val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
-        assertEquals(result.first().size, 2)
+        assertEquals(result.size, 2)
     }
 
     @Test
     fun `query on cypherOnRdf by query`() {
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+
         val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByQuery("foaf__name==ParisBeehive12")
         assertEquals(result.size, 1)
     }
 
     @Test
     fun `query on cypherOnRdf by label and query`() {
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+
         val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabelAndQuery("foaf__name==ParisBeehive12", "diat__BeeHive")
         assertEquals(result.size, 1)
+    }
+
+    @Test
+    fun `update on cypherOnRdf by payload, URI and attribute`() {
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+
+        val file = ClassPathResource("/data/sensor_update.jsonld")
+        val content = file.inputStream.readBytes().toString(Charsets.UTF_8)
+        val entityBefore = this.neo4jRepository.getNodesByURI("urn:ngsi-ld:Sensor:0022CCC")
+        this.neo4jRepository.updateEntity(content,"urn:ngsi-ld:Sensor:0022CCC", "name")
+        val entityAfter = this.neo4jRepository.getNodesByURI("urn:ngsi-ld:Sensor:0022CCC")
+        assertNotEquals(entityBefore, entityAfter)
     }
 
     fun addNamespaces(){
@@ -149,6 +168,7 @@ class Neo4jRepositoryTest() {
                 val execResult : StatementResult = session.run(addNamespaces, emptyMap<String, Any>())
                 execResult.list().map {
                     println(it)
+                    println("added namespaces *************")
                 }
 
 
@@ -161,6 +181,7 @@ class Neo4jRepositoryTest() {
                 val execResult : StatementResult = session.run("CREATE INDEX ON :Resource(uri)", emptyMap<String, Any>())
                 execResult.list().map {
                     println(it)
+                    println("added index *************")
                 }
 
 
@@ -180,10 +201,11 @@ class Neo4jRepositoryTest() {
         })
     }
     fun insertFixtures(){
+
         val listOfFiles = listOf(
+            ClassPathResource("/data/beekeeper.jsonld"),
             ClassPathResource("/data/beehive.jsonld"),
             ClassPathResource("/data/beehive_not_connected.jsonld"),
-            ClassPathResource("/data/beekeeper.jsonld"),
             ClassPathResource("/data/door.jsonld"),
             ClassPathResource("/data/observation_door.jsonld"),
             ClassPathResource("/data/observation_sensor.jsonld"),
@@ -195,8 +217,8 @@ class Neo4jRepositoryTest() {
             try{
                 var triplesLoaded : Long= this.neo4jRepository.createEntity(content)
                 assertTrue("At least one triple loaded", triplesLoaded > 0)
-            } catch(e : AlreadyExistingEntityException){
-                println(e.message)
+            } catch(e : Exception){
+                logger.error("already existing "+item)
             }
 
 

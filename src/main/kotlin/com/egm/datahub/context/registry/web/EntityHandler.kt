@@ -69,7 +69,7 @@ class EntityHandler(
         val uri = req.pathVariable("entityId")
         return uri.toMono()
                 .map {
-                    neo4JRepository.getByURI(it)
+                    neo4JRepository.getNodesByURI(it)
                 }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))
@@ -77,5 +77,24 @@ class EntityHandler(
                 .onErrorResume {
                     status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                 }
+    }
+
+    fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {
+        val attr = req.pathVariable("attrId")
+        val uri = req.pathVariable("entityId")
+
+        return req.bodyToMono<String>()
+            .map {
+                neo4JRepository.updateEntity(it, uri, attr)
+            }
+            .flatMap {
+                ServerResponse.status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))
+            }
+            .onErrorResume {
+                when (it) {
+                    is NotExistingEntityException -> ServerResponse.status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
+                    else -> ServerResponse.badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                }
+            }
     }
 }

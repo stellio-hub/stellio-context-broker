@@ -55,6 +55,26 @@ class JsonLDService {
         }
         val prefix  = mapOfNamespaces.get(namespace)
         return statementCollector.statements.find { it.predicate.stringValue().contains(prefix+property) }?.`object`.toString()
+    }
+    fun getContext(payload: String): String {
+        val rdfParser = Rio.createParser(RDFFormat.JSONLD)
+        val errorCollector = ParseErrorCollector()
+        val statementCollector = StatementCollector()
+        rdfParser.setParseErrorListener(errorCollector)
+        rdfParser.setRDFHandler(statementCollector)
+        rdfParser.parse(payload.reader(), "")
 
+        // FIXME not sure there are cases we go through them (parser raises runtime exceptions instead)
+        //       keep an eye on them and handle them if necessary
+        errorCollector.warnings.forEach {
+            logger.warn("Got warning : $it")
+        }
+        errorCollector.errors.forEach {
+            logger.warn("Got error : $it")
+        }
+        errorCollector.fatalErrors.forEach {
+            logger.warn("Got fatal error : $it")
+        }
+        return statementCollector.statements.find { it.predicate.stringValue().contains("@context") }?.`object`.toString()
     }
 }

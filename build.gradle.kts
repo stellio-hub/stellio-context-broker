@@ -61,32 +61,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation("com.ninja-squad:springmockk:1.1.2")
-    testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
-    // testImplementation("org.springframework.security:spring-security-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-test") {
-		exclude(module = "junit")
-		exclude(module = "mockito-core")
-	}
-	testImplementation("org.junit.jupiter:junit-jupiter-api")
-	testImplementation("org.junit.jupiter:junit-jupiter-params")
-	testImplementation("com.ninja-squad:springmockk:1.1.2")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
-
 	testImplementation("org.testcontainers:testcontainers:1.11.3")
 	testImplementation("org.testcontainers:neo4j:1.11.3")
 	testImplementation("org.testcontainers:junit-jupiter:1.11.3")
-
-	testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.2")
-	testImplementation("org.junit.jupiter:junit-jupiter-params:5.4.2")
-
-
-
-	testImplementation(files("data/neo4j/plugins/neosemantics-3.5.0.3.jar"))
-	testImplementation(files("data/neo4j/plugins/apoc-3.5.0.4-all.jar"))
-	//testImplementation("org.springframework.security:spring-security-test")
-
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 

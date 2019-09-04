@@ -10,7 +10,7 @@
   "@id": "urn:ngsi-ld:Sensor:0066UUU",
   "@type": "Sensor",
   "connectsTo": {
-    "@type": "Relationship",
+    "@type": "connectsTo",
     "@id": "urn:ngsi-ld:connectsTo:908545",
     "hasObject": {
          "@type": "SmartDoor",

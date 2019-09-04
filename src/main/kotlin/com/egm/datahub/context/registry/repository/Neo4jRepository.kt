@@ -134,4 +134,28 @@ class Neo4jRepository(
     fun checkExistingUrn(entityUrn: String): Boolean {
         return getNodesByURI(entityUrn).isNotEmpty()
     }
+    fun addNamespaceDefinition(url : String, prefix : String){
+        val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
+        val queryResults = ogmSession.query(addNamespacesStatement, emptyMap<String, Any>()).queryResults()
+    }
+    fun parseNgsiLDandWriteToNeo4j(payload : String){
+        //1.scan context and add namespaces if needed
+        val context = this.jsonLDService.getContext(payload)
+
+        /*for((k, v) in context.first()) {
+            // insert namespaces
+            println(v)
+            //addNamespaceDefinition(k,v)
+        }*/
+
+        //
+        val importStatement = "CALL apoc.load.json(payload) YIELD value AS payload  WITH payload, payload.id AS id, payload.type AS type\n" +
+                "        MERGE (u:User {id:m.id}) ON CREATE SET u.initials = m.initials, u.name = m.fullname, u.user = m.username\n" +
+                "        MERGE (b:Board {id: d.board.id}) ON CREATE SET b = d.board\n" +
+                "        MERGE (c:Card {id: d.card.id}) ON CREATE SET c = d.card\n" +
+                "        MERGE (u)-[r:CREATED]->(c) ON CREATE SET r.id = payload.id, r.date_created=apoc.date.parse(payload.date,'s',\"yyyy-MM-dd'T'HH:mm:ss'Z'\")\n" +
+                "        MERGE (c)-[:IN_BOARD]->(b)\n" +
+                "        RETURN count(*)"
+        //queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
+    }
 }

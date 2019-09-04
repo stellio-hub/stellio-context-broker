@@ -19,5 +19,8 @@ echo "obs END......"
 
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/observation_sensor.jsonld --header "Content-Type: application/ld+json"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/sensor.jsonld --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/sensor_with_properties_in_rel.jsonld --header "Content-Type: application/ld+json"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/smartdoor.jsonld --header "Content-Type: application/ld+json"
 echo "END injection"
+
+#curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/data/parking.jsonld --header "Content-Type: application/ld+json"

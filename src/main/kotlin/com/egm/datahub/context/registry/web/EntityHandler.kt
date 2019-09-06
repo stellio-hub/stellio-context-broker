@@ -28,13 +28,6 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                entityUrn = jsonLDService.parsePayload(it)
-                it
-            }
-            .doOnError {
-                logger.error("JSON-LD parsing raised an error : ${it.message}")
-            }
-            .map {
                 neo4JRepository.createEntity(it)
             }.flatMap {
                 created(URI("/ngsi-ld/v1/entities/$entityUrn")).build()

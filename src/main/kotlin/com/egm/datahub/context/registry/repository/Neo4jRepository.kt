@@ -1,10 +1,12 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
+import com.egm.datahub.context.registry.parser.NgsiLdParser
 import com.egm.datahub.context.registry.service.JsonLDService
-import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
 import com.egm.datahub.context.registry.web.NotExistingEntityException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import io.netty.util.internal.StringUtil
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
@@ -13,12 +15,14 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.client.support.BasicAuthenticationInterceptor
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 @Component
+@Transactional
 class Neo4jRepository(
     private val ogmSession: Session,
     private val jsonLDService: JsonLDService,
@@ -26,27 +30,45 @@ class Neo4jRepository(
 ) {
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
+    private val gson = GsonBuilder().setPrettyPrinting().create()
 
     fun createEntity(jsonld: String): Long {
-        val entityUrn = jsonLDService.parsePayload(jsonld)
-        if (checkExistingUrn(entityUrn)) {
-            throw AlreadyExistingEntityException("already existing entity $entityUrn")
-        }
-        val importStatement = """
-            CALL semantics.importRDFSnippet(
-                '$jsonld',
-                'JSON-LD',
-                { handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500 }
-            )
-        """.trimIndent()
+        var entityMap: Map<String, Any> = gson.fromJson(jsonld, object : TypeToken<Map<String, Any>>() {}.type)
+        val ngsiLd = NgsiLdParser.Builder().entity(entityMap).build()
+        val tx = ogmSession.transaction
+        try {
+            // This constraint ensures that each profileId is unique per user node
 
-        val queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
-        //addCreatedAtProperty(entityUrn)
-        println(queryResults.first()["extraInfo"])
-        return queryResults.first()["triplesLoaded"] as Long
+            // insert entities first
+            ngsiLd.entityStatements?.forEach {
+                val insert = buildInsert(it.subject, it.predicate, it.obj)
+                logger.info(insert)
+                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
+                logger.info(gson.toJson(queryResults.first()))
+            }
+
+            // insert relationships second
+            ngsiLd.relStatements?.forEach {
+                val insert = buildInsert(it.subject, it.predicate, it.obj)
+                logger.info(insert)
+                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
+                logger.info(gson.toJson(queryResults.first()))
+            }
+
+            // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
+
+            tx.commit()
+            tx.close()
+        } catch (ex: Exception) {
+            // The constraint is already created or the database is not available
+            ex.printStackTrace()
+            tx.rollback()
+            return 0
+        }
+        return 3
     }
 
-    fun updateEntity(payload : String, uri: String, attr: String) {
+    fun updateEntity(payload: String, uri: String, attr: String) {
         if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
             throw NotExistingEntityException("not existing entity! ")
@@ -64,6 +86,14 @@ class Neo4jRepository(
         val insert = "MATCH(o {uri: '$entityUrn'}) SET o.createdAt = $timestamp"
         val result = ogmSession.query(insert, emptyMap<String, Any>())
         return result.queryResults().toString()
+    }
+
+    fun buildInsert(subject: String, predicate: String?, obj: String?): String {
+        if (predicate == null || obj == null) {
+            return "CREATE (a : $subject) return a"
+        }
+        return "MATCH (a: $subject),(b : $obj)\n" +
+                "CREATE (a)-[r:$predicate]->(b) return *"
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {
@@ -118,9 +148,9 @@ class Neo4jRepository(
         try {
             val restTemplate = RestTemplate()
             restTemplate.interceptors.add(
-                    BasicAuthenticationInterceptor("${neo4jProperties.username}", "${neo4jProperties.password}"))
+                    BasicAuthenticationInterceptor(neo4jProperties.username, neo4jProperties.password))
             return restTemplate.exchange(
-                    "${neo4jProperties.nsmntx}",
+                    neo4jProperties.nsmntx,
                     HttpMethod.POST,
                     request,
                     object : ParameterizedTypeReference<List<Map<String, Any>>>() {
@@ -134,12 +164,12 @@ class Neo4jRepository(
     fun checkExistingUrn(entityUrn: String): Boolean {
         return getNodesByURI(entityUrn).isNotEmpty()
     }
-    fun addNamespaceDefinition(url : String, prefix : String){
+    fun addNamespaceDefinition(url: String, prefix: String) {
         val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
         val queryResults = ogmSession.query(addNamespacesStatement, emptyMap<String, Any>()).queryResults()
     }
-    fun parseNgsiLDandWriteToNeo4j(payload : String){
-        //1.scan context and add namespaces if needed
+    fun parseNgsiLDandWriteToNeo4j(payload: String) {
+        // 1.scan context and add namespaces if needed
         val context = this.jsonLDService.getContext(payload)
 
         /*for((k, v) in context.first()) {
@@ -156,6 +186,6 @@ class Neo4jRepository(
                 "        MERGE (u)-[r:CREATED]->(c) ON CREATE SET r.id = payload.id, r.date_created=apoc.date.parse(payload.date,'s',\"yyyy-MM-dd'T'HH:mm:ss'Z'\")\n" +
                 "        MERGE (c)-[:IN_BOARD]->(b)\n" +
                 "        RETURN count(*)"
-        //queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
+        // queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
     }
 }

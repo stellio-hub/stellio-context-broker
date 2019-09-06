@@ -7,7 +7,7 @@
     "beekeeper": "https://diatomic.eglobalmark.com/ontology#Beekeeper",
     "name": "http://xmlns.com/foaf/0.1/name"
   },
-  "@id": "urn:ngsi-ld:BeeHive:TESTH",
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
   "@type": "BeeHive",
   "name": "ParisBeehive12",
   "connectsTo": {

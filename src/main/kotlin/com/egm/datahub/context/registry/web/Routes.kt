@@ -18,7 +18,7 @@ class Routes(
                         POST("", entityHandler::create)
                         GET("", entityHandler::getEntities)
                         GET("/{entityId}", entityHandler::getByURI)
-                        PATCH("/{entityId}/attrs/{attrId}",  entityHandler::updateAttribute)
+                        PATCH("/{entityId}/attrs/{attrId}", entityHandler::updateAttribute)
                     }
         }
     }

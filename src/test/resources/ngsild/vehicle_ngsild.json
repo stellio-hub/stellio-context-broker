@@ -5,6 +5,7 @@
     "type": "Property",
     "value": "Mercedes"
   },
+  "name":  "very stupid attribute",
   "isParked": {
     "type": "Relationship",
     "object": "urn:ngsi-ld:OffStreetParking:Downtown1",

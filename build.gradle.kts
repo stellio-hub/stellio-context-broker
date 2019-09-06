@@ -49,6 +49,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
+    implementation("com.google.code.gson:gson:2.8.5")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -61,11 +62,11 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation("com.ninja-squad:springmockk:1.1.2")
-	testImplementation("io.projectreactor:reactor-test")
-	testImplementation("org.springframework.kafka:spring-kafka-test")
-	testImplementation("org.testcontainers:testcontainers:1.11.3")
-	testImplementation("org.testcontainers:neo4j:1.11.3")
-	testImplementation("org.testcontainers:junit-jupiter:1.11.3")
+    testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.springframework.kafka:spring-kafka-test")
+    testImplementation("org.testcontainers:testcontainers:1.11.3")
+    testImplementation("org.testcontainers:neo4j:1.11.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.11.3")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 

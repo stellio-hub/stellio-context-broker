@@ -114,5 +114,4 @@ class EntityHandlerTests {
                 .expectStatus().isOk
                 .expectBody().json(content)
     }
-
 }

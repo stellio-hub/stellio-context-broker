@@ -27,9 +27,6 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.MountableFile
 
-
-
-
 class KtNeo4jContainer(val imageName: String) : Neo4jContainer<KtNeo4jContainer>(imageName)
 
 @SpringBootTest
@@ -58,10 +55,6 @@ class Neo4jRepositoryTest() {
         }
     }
 
-
-
-
-
     companion object {
         const val IMAGE_NAME = "neo4j"
         const val TAG_NAME = "3.5.8"
@@ -85,8 +78,7 @@ class Neo4jRepositoryTest() {
             .withoutAuthentication()
             .withNetwork(network)
             .withNetworkAliases("dh-local-docker")
-            //.withClasspathResourceMapping("/db", "/data",  BindMode.READ_WRITE)
-
+            // .withClasspathResourceMapping("/db", "/data",  BindMode.READ_WRITE)
     }
 
     init {
@@ -109,98 +101,91 @@ class Neo4jRepositoryTest() {
     }
 
     @BeforeAll
-    fun initializeDbFixtures(){
+    fun initializeDbFixtures() {
         insertFixtures()
     }
 
-
     @Test
     fun `query on cypherOnRdf by label`() {
-        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl + "/rdf/cypheronrdf"
         every { neo4jProperties.username } returns "neo4j"
         every { neo4jProperties.password } returns "neo4j"
 
-        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
+        val result: List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
         assertEquals(result.size, 2)
     }
 
     @Test
     fun `query on cypherOnRdf by query`() {
-        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl + "/rdf/cypheronrdf"
         every { neo4jProperties.username } returns "neo4j"
         every { neo4jProperties.password } returns "neo4j"
 
-        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByQuery("foaf__name==ParisBeehive12")
+        val result: List<Map<String, Any>> = this.neo4jRepository.getEntitiesByQuery("foaf__name==ParisBeehive12")
         assertEquals(result.size, 1)
     }
 
     @Test
     fun `query on cypherOnRdf by label and query`() {
-        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl + "/rdf/cypheronrdf"
         every { neo4jProperties.username } returns "neo4j"
         every { neo4jProperties.password } returns "neo4j"
 
-        val result : List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabelAndQuery("foaf__name==ParisBeehive12", "diat__BeeHive")
+        val result: List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabelAndQuery("foaf__name==ParisBeehive12", "diat__BeeHive")
         assertEquals(result.size, 1)
     }
 
     @Test
     fun `update on cypherOnRdf by payload, URI and attribute`() {
-        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl+"/rdf/cypheronrdf"
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl + "/rdf/cypheronrdf"
         every { neo4jProperties.username } returns "neo4j"
         every { neo4jProperties.password } returns "neo4j"
 
         val file = ClassPathResource("/data/sensor_update.jsonld")
         val content = file.inputStream.readBytes().toString(Charsets.UTF_8)
         val entityBefore = this.neo4jRepository.getNodesByURI("urn:ngsi-ld:Sensor:0022CCC")
-        this.neo4jRepository.updateEntity(content,"urn:ngsi-ld:Sensor:0022CCC", "name")
+        this.neo4jRepository.updateEntity(content, "urn:ngsi-ld:Sensor:0022CCC", "name")
         val entityAfter = this.neo4jRepository.getNodesByURI("urn:ngsi-ld:Sensor:0022CCC")
         assertNotEquals(entityBefore, entityAfter)
     }
 
-    fun addNamespaces(){
+    fun addNamespaces() {
         val addNamespaces = "CREATE (:NamespacePrefixDefinition {\n" +
                 "  `https://diatomic.eglobalmark.com/ontology#`: 'diat',\n" +
                 "  `http://xmlns.com/foaf/0.1/`: 'foaf',\n" +
                 "  `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})"
         GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
             driver.session().use({ session ->
-                val execResult : StatementResult = session.run(addNamespaces, emptyMap<String, Any>())
+                val execResult: StatementResult = session.run(addNamespaces, emptyMap<String, Any>())
                 execResult.list().map {
                     println(it)
                     println("added namespaces *************")
                 }
-
-
             })
         })
     }
-    fun addURIindex(){
+    fun addURIindex() {
         GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
             driver.session().use({ session ->
-                val execResult : StatementResult = session.run("CREATE INDEX ON :Resource(uri)", emptyMap<String, Any>())
+                val execResult: StatementResult = session.run("CREATE INDEX ON :Resource(uri)", emptyMap<String, Any>())
                 execResult.list().map {
                     println(it)
                     println("added index *************")
                 }
-
-
             })
         })
     }
-    fun cleanDb(){
+    fun cleanDb() {
         GraphDatabase.driver(databaseServer.boltUrl, AuthTokens.none()).use({ driver ->
             driver.session().use({ session ->
-                val execResult : StatementResult = session.run("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r", emptyMap<String, Any>())
+                val execResult: StatementResult = session.run("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r", emptyMap<String, Any>())
                 execResult.list().map {
                     println(it)
                 }
-
-
             })
         })
     }
-    fun insertFixtures(){
+    fun insertFixtures() {
 
         val listOfFiles = listOf(
             ClassPathResource("/data/beekeeper.jsonld"),
@@ -214,23 +199,19 @@ class Neo4jRepositoryTest() {
         )
         for (item in listOfFiles) {
             val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
-            try{
-                var triplesLoaded : Long= this.neo4jRepository.createEntity(content)
+            try {
+                var triplesLoaded: Long = this.neo4jRepository.createEntity(content)
                 assertTrue("At least one triple loaded", triplesLoaded > 0)
-            } catch(e : Exception){
-                logger.error("already existing "+item)
+            } catch (e: Exception) {
+                logger.error("already existing " + item)
             }
-
-
         }
     }
 
     @Test
-    fun `parse ngsild`(){
+    fun `parse ngsild`() {
         val jsonLdFile = ClassPathResource("{\n  \"id\": \"urn:ngsi-ld:OffStreetParking:Downtown1\",\n  \"type\": \"OffStreetParking\",\n  \"name\": {\n    \"type\": \"Property\",\n    \"value\": \"Downtown One\"\n  },\n  \"availableSpotNumber\": {\n    \"type\": \"Property\",\n    \"value\": 121,\n    \"observedAt\": \"2017-07-29T12:05:02Z\",\n    \"reliability\": {\n      \"type\": \"Property\",\n      \"value\": 0.7\n    },\n    \"providedBy\": {\n      \"type\": \"Relationship\",\n      \"object\": \"urn:ngsi-ld:Camera:C1\"\n    }\n  },\n  \"totalSpotNumber\": {\n    \"type\": \"Property\",\n    \"value\": 200\n  },\n  \"location\": {\n    \"type\": \"GeoProperty\",\n    \"value\": {\n      \"type\": \"Point\",\n      \"coordinates\": [-8.5, 41.2]\n    }\n  },\n  \"@context\": [\n    \"file://ngsild/ngsi-ld-core-context.jsonld\"\n  ]\n} ")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
         neo4jRepository.parseNgsiLDandWriteToNeo4j(content)
     }
-
-
 }

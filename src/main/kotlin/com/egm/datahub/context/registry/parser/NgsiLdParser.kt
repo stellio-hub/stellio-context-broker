@@ -8,6 +8,8 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
+
+
 class Statement(subject: String, predicate: String?, obj: String?) {
     val subject = subject
     val predicate = predicate
@@ -19,7 +21,8 @@ class NgsiLdParser(
     val relationshipLabels: List<String>?,
     val nodeLabels: List<String>?,
     var entityStatements: ArrayList<Statement>?,
-    var relStatements: ArrayList<Statement>?
+    var relStatements: ArrayList<Statement>?,
+    var matRelStatements: ArrayList<Statement>?
 
 ) {
 
@@ -29,7 +32,8 @@ class NgsiLdParser(
         var nodeLabels: MutableList<String>? = ArrayList(),
         var properties: MutableList<Map<String, Any>>? = ArrayList(),
         var entityStatements: ArrayList<Statement> = ArrayList<Statement>(),
-        var relStatements: ArrayList<Statement> = ArrayList<Statement>()
+        var relStatements: ArrayList<Statement> = ArrayList<Statement>(),
+        var matRelStatements: ArrayList<Statement> = ArrayList<Statement>()
 
     ) {
         private val gson = GsonBuilder().setPrettyPrinting().create()
@@ -47,7 +51,7 @@ class NgsiLdParser(
             this.entity = entity
             // scan entity attributes
             travestContext(expandObjToMap(entity.get("@context")))
-            travestNgsiLd(entity)
+            travestNgsiLd(entity, null, null)
         }
 
         /*fun withNamespaces(namespaces: Map<String,List<String>>) = apply {
@@ -74,11 +78,8 @@ class NgsiLdParser(
             }
         }
 
-        fun travestNgsiLd(entity: Map<String, Any>) {
-            travestProperties(entity, null, null)
-        }
 
-        fun travestProperties(node: Map<String, Any>, uuid: String?, parentAttribute: String?) {
+        fun travestNgsiLd(node: Map<String, Any>, uuid: String?, parentAttribute: String?) {
             var attributes: HashMap<String, Any> = getAttributes(node)
             var uriSubj: String? = null
             if (node.containsKey("id")) {
@@ -87,7 +88,7 @@ class NgsiLdParser(
             } else {
                 uuid?.let { attributes.put("uri", it) }
             }
-            var attrs = gson.toJson(attributes)
+
             val nsSubj: String? = getNamespaceByLabel(node.get("type").toString())
 
             // if is Property override the Property type
@@ -98,11 +99,27 @@ class NgsiLdParser(
                     typeSubj = ns + "__" + parentAttribute
                 }
             }
+            var subject = "$typeSubj {uri : '$uriSubj'}"
 
             node.forEach {
                 // foreach attribute get the Map and check type is Property
-                logger.info("attribute : " + it.key)
                 val content = expandObjToMap(it.value)
+                if(isAttribute(content)){
+                    logger.info(it.key + " is attribute")
+                    // add to attr map
+                }
+                /*if (isRelationship(content)) {
+                    logger.info(it.key + " is relationship")
+                    //
+                    val ns = getNamespaceByLabel(it.key)
+                    val predicate = ns + "__" +it.key
+                    val obj : String= content.get("object") as String
+                    val typeObj = obj.split(":")[3]
+                    val uriObj = obj.split(":")[4]
+                    relStatements.add(Statement(subject, predicate, "$typeObj {uri : $uriObj} "))
+                    //add materialized relationship NODE
+                    matRelStatements.add(Statement("$predicate {uri : $uriObj} ", null, null))
+                }*/
                 if (isProperty(content)) {
                     logger.info(it.key + " is property")
                     // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
@@ -122,7 +139,6 @@ class NgsiLdParser(
                         val typeObj = nsObj + "__" + it.key
                         // subject attributes
                         val attrs = gson.toJson(attributes)
-                        var subject = "$typeSubj {uri : '$uriSubj'}"
 
                         // create uri for object
                         val uuid = UUID.randomUUID()
@@ -134,22 +150,25 @@ class NgsiLdParser(
                         // ADD THE RELATIONSHIP
                         relStatements.add(Statement(subject, predicate, "$typeObj $objAttrs"))
                         // go deeper
-                        travestProperties(content, urn, it.key)
+                        travestNgsiLd(content, urn, it.key)
                     }
                 }
                 if(isGeoProperty(content)){
                     val obj = it.key
                     val value = expandObjToMap(content.get("value"))
-                    val coordinates = value.get("coordinates")
-                    val coords = coordinates as Array<Double>
-                    val lon = coords[0]
-                    val lat = coords[1]
+                    val coordinates  = value.get("coordinates") as ArrayList<Double>
+                    val lon = coordinates.get(0)
+                    val lat = coordinates.get(1)
                     val location : String ="point({ x: $lon , y: $lat, crs: 'WGS-84' })"
-                    attributes.put("location",location)
+                    attributes.put(obj,location)
                 }
             }
-            val p = Pattern.compile("\\\"(\\w+)\\\"\\:")
+
+            var attrs = gson.toJson(attributes)
+            var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
             attrs = p.matcher(attrs).replaceAll("$1:")
+
+            attrs = attrs.replace("(\"point([^\"]|\"\")*\")", "")
             attrs = attrs.replace("\n", "")
             entityStatements.add(Statement("$typeSubj $attrs", null, null))
         }
@@ -160,9 +179,14 @@ class NgsiLdParser(
         fun isGeoProperty(prop: Map<String, Any>): Boolean{
             return if (prop.get("type")?.toString().equals("GeoProperty")) true else false
         }
-
         fun isRelationship(prop: Map<String, Any>): Boolean {
             return if (prop.get("type")?.toString().equals("Relationship")) true else false
+        }
+        fun isAttribute(prop: Map<String, Any>): Boolean {
+            val type = prop.get("type")?.toString()
+            if(type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
+            if (prop.isEmpty()) return true
+            return if (hasAttributes(prop)) true else false
         }
 
         fun getAttributes(node: Map<String, Any>?): HashMap<String, Any> {
@@ -206,6 +230,6 @@ class NgsiLdParser(
             }
         }
 
-        fun build() = NgsiLdParser(entity, nodeLabels, relationshipLabels, entityStatements, relStatements)
+        fun build() = NgsiLdParser(entity, nodeLabels, relationshipLabels, entityStatements, relStatements, matRelStatements)
     }
 }

@@ -35,6 +35,7 @@ class Neo4jRepository(
     fun createEntity(jsonld: String): Long {
         var entityMap: Map<String, Any> = gson.fromJson(jsonld, object : TypeToken<Map<String, Any>>() {}.type)
         val ngsiLd = NgsiLdParser.Builder().entity(entityMap).build()
+        var x : Long= 0
         val tx = ogmSession.transaction
         try {
             // This constraint ensures that each profileId is unique per user node
@@ -45,7 +46,18 @@ class Neo4jRepository(
                 logger.info(insert)
                 val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
                 logger.info(gson.toJson(queryResults.first()))
+                x++
             }
+
+            ngsiLd.matRelStatements?.forEach {
+                val insert = buildMerge(it.subject)
+                logger.info(insert)
+                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
+                logger.info(gson.toJson(queryResults.first()))
+                x++
+            }
+
+
 
             // insert relationships second
             ngsiLd.relStatements?.forEach {
@@ -53,6 +65,7 @@ class Neo4jRepository(
                 logger.info(insert)
                 val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
                 logger.info(gson.toJson(queryResults.first()))
+                x++
             }
 
             // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
@@ -65,7 +78,7 @@ class Neo4jRepository(
             tx.rollback()
             return 0
         }
-        return 3
+        return x
     }
 
     fun updateEntity(payload: String, uri: String, attr: String) {
@@ -94,6 +107,9 @@ class Neo4jRepository(
         }
         return "MATCH (a: $subject),(b : $obj)\n" +
                 "CREATE (a)-[r:$predicate]->(b) return *"
+    }
+    fun buildMerge(subject: String): String {
+        return "MERGE (a : $subject) return a"
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {

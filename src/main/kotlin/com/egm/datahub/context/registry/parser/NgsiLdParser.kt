@@ -4,33 +4,32 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
 import java.util.*
-import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
 
-class Statement(subject: String, predicate: String?, obj: String?) {
+class Statement(subject: Entity, predicate: String?, obj: Entity?) {
     val subject = subject
     val predicate = predicate
     val obj = obj
 }
+class Entity(label: String, attrs: Map<String,Any>) {
+    val attrs = attrs
+    val label = label
+}
 
 class NgsiLdParser(
-    val entity: Map<String, Any>?,
-    val relationshipLabels: List<String>?,
-    val nodeLabels: List<String>?,
+    //val entity: Map<String, Any>?,
+    //var namespacesMapping:  Map<String, List<String>>?,
     var entityStatements: ArrayList<Statement>?,
-    var relStatements: ArrayList<Statement>?,
-    var matRelStatements: ArrayList<Statement>?
+    var relStatements: ArrayList<Statement>?
 
 ) {
 
     data class Builder(
         var entity: Map<String, Any>? = HashMap(),
-        var relationshipLabels: MutableList<String>? = ArrayList(),
-        var nodeLabels: MutableList<String>? = ArrayList(),
-        var properties: MutableList<Map<String, Any>>? = ArrayList(),
+        var namespacesMapping:  Map<String, List<String>>? = HashMap(),
         var entityStatements: ArrayList<Statement> = ArrayList<Statement>(),
         var relStatements: ArrayList<Statement> = ArrayList<Statement>(),
         var matRelStatements: ArrayList<Statement> = ArrayList<Statement>()
@@ -41,12 +40,10 @@ class NgsiLdParser(
 
         private var context: Map<String, Any> = emptyMap()
         // TO EXTERNALIZE?  var namespacesMapping : Map<String,List<String>>
-        private var namespacesMapping: Map<String, List<String>> = mapOf(
-            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation"),
-            "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
-            "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle") // this is property of property in order to allow nested property we need to add it to model
-        )
 
+        fun withContext(namespacesMapping: Map<String, List<String>>) = apply {
+            this.namespacesMapping = namespacesMapping
+        }
         fun entity(entity: Map<String, Any>) = apply {
             this.entity = entity
             // scan entity attributes
@@ -58,7 +55,7 @@ class NgsiLdParser(
             this.namespacesMapping = namespacesMapping
         }*/
         fun getNamespaceByLabel(label: String): String? {
-            this.namespacesMapping.forEach {
+            this.namespacesMapping?.forEach {
                 if (it.value.contains(label)) {
                     return it.key
                 }
@@ -80,6 +77,11 @@ class NgsiLdParser(
 
 
         fun travestNgsiLd(node: Map<String, Any>, uuid: String?, parentAttribute: String?) {
+
+            logger.info("travesting node : "+node.get("type"))
+
+            val parentIsRelationship : Boolean =  if (node.get("type")?.toString().equals("Relationship"))   true else  false
+
             var attributes: HashMap<String, Any> = getAttributes(node)
             var uriSubj: String? = null
             if (node.containsKey("id")) {
@@ -105,29 +107,54 @@ class NgsiLdParser(
                 // foreach attribute get the Map and check type is Property
                 val content = expandObjToMap(it.value)
                 if(isAttribute(content)){
-                    logger.info(it.key + " is attribute")
+                    logger.debug(it.key + " is attribute")
                     // add to attr map
                 }
-                /*if (isRelationship(content)) {
-                    logger.info(it.key + " is relationship")
-                    //
-                    val ns = getNamespaceByLabel(it.key)
-                    val predicate = ns + "__" +it.key
-                    val obj : String= content.get("object") as String
-                    val typeObj = obj.split(":")[3]
-                    val uriObj = obj.split(":")[4]
-                    relStatements.add(Statement(subject, predicate, "$typeObj {uri : $uriObj} "))
+                if (isRelationship(content)) {
+                    logger.debug(it.key + " is relationship")
+                    //THIS IS THE NODE --> REL --> NODE (object)
+                    val rel = it.key
+                    val ns = getNamespaceByLabel(rel)
+                    val predicate = ns + "__" +rel
+
+                    val urn : String= content.get("object") as String
+                    val typeObj = urn.split(":")[2]
+                    if(parentIsRelationship){
+                        parentAttribute?.let {
+                            val ns = getNamespaceByLabel(parentAttribute)
+                            val parentSubj = ns + "__" + parentAttribute
+                            relStatements.add(Statement(Entity(parentSubj, emptyMap()),predicate, Entity(typeObj, mapOf("uri" to urn))))
+                        }
+
+                    } else{
+                        val ns = getNamespaceByLabel(typeObj)
+                        val typeObj = ns + "__" + typeObj
+                        relStatements.add(Statement(Entity(typeSubj, emptyMap()),predicate, Entity(typeObj, mapOf("uri" to urn))))
+                    }
+
+                    // DowntownParking can exist or not
+                    entityStatements.add(Statement(Entity(predicate,mapOf("uri" to urn)), null, null))
+
+                    //create random uri for mat rel
+                    val uuid = UUID.randomUUID()
+                    val str = uuid.toString()
                     //add materialized relationship NODE
-                    matRelStatements.add(Statement("$predicate {uri : $uriObj} ", null, null))
-                }*/
+                    val urnMatRel = "urn:$ns:$rel:$str"
+                    //matRelStatements.add(Statement("$predicate {uri : $urnMatRel} ", null, null))
+
+                    if (hasAttributes(content)) {
+                        // go deeper using the materialized rel Node
+                        travestNgsiLd(content, urnMatRel, it.key)
+                    }
+                }
                 if (isProperty(content)) {
-                    logger.info(it.key + " is property")
+                    logger.debug(it.key + " is property")
                     // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
                     val predicate = "ngsild__hasObject"
                     // is not a map or the only attributes are type and value
                     if (!hasAttributes(content)) {
                         // has attributes or just value and type? if so store as attribute  (es. name and available spot number in vehicle)
-                        logger.info("this property has just type and value")
+                        logger.debug("this property has just type and value")
 
                         val value = content.get("value")
                         val obj = it.key
@@ -136,19 +163,18 @@ class NgsiLdParser(
                         // this property has one ore more nested objects ==> use the attr. key (es. availableSpotNumber) as object to create a Relationship between entity and Property
                         // MATERIALIZED PROPERTY
                         val nsObj = getNamespaceByLabel(it.key)
-                        val typeObj = nsObj + "__" + it.key
-                        // subject attributes
-                        val attrs = gson.toJson(attributes)
+                        val type = it.key
+                        val typeObj = nsObj + "__" + type
 
                         // create uri for object
                         val uuid = UUID.randomUUID()
                         val str = uuid.toString()
 
                         val urn = "urn:$nsObj:$typeObj:$str"
-                        val objAttrs = "{uri : '$urn'}"
                         // object attributes will be set in the next travestPropertiesIteration with a match on URI
                         // ADD THE RELATIONSHIP
-                        relStatements.add(Statement(subject, predicate, "$typeObj $objAttrs"))
+                        logger.info("$subject hasObject")
+                        relStatements.add(Statement(Entity(typeSubj, attributes),predicate, Entity(typeObj, mapOf("uri" to urn))))
                         // go deeper
                         travestNgsiLd(content, urn, it.key)
                     }
@@ -164,13 +190,13 @@ class NgsiLdParser(
                 }
             }
 
-            var attrs = gson.toJson(attributes)
+            /*var attrs = gson.toJson(attributes)
             var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
-            attrs = p.matcher(attrs).replaceAll("$1:")
+            attrs = p.matcher(attrs).replaceAll("$1:")*/
 
-            attrs = attrs.replace("(\"point([^\"]|\"\")*\")", "")
-            attrs = attrs.replace("\n", "")
-            entityStatements.add(Statement("$typeSubj $attrs", null, null))
+            //attrs = attrs.replace("(\"point([^\"]|\"\")*\")", "")
+
+            entityStatements.add(Statement(Entity(typeSubj,attributes), null, null))
         }
 
         fun isProperty(prop: Map<String, Any>): Boolean {
@@ -193,13 +219,21 @@ class NgsiLdParser(
             var out = HashMap<String, Any>()
             node?.forEach {
                 if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("@context") && !it.key.equals("id")) {
-                    // check if entry.value has Attributes
-
-                    if (!hasAttributes(expandObjToMap(it.value))) {
-                        var attrName = it.key
-                        val innerValue = expandObjToMap(it.value).get("value")
-                        innerValue?.let {
-                            out.put(attrName, it)
+                    if(it.value is String){
+                        out.put(it.key, it.value)
+                    }
+                    else{
+                        // check if Nested Attributes es:
+                        /*"brandName": {
+                            "type": "Property",
+                            "value": "Mercedes"
+                        },*/
+                        if (!hasAttributes(expandObjToMap(it.value))) {
+                            var attrName = it.key
+                            val innerValue = expandObjToMap(it.value).get("value")
+                            innerValue?.let {
+                                out.put(attrName, it)
+                            }
                         }
                     }
                 }
@@ -211,8 +245,9 @@ class NgsiLdParser(
             // if a Property has just type and value we save it as attribute value in the parent entity
             var resp = false
             node.forEach {
-                if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("id")) {
+                if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("object") && !it.key.equals("id")) {
                     resp = true
+                    return resp
                 }
             }
             return resp
@@ -230,6 +265,6 @@ class NgsiLdParser(
             }
         }
 
-        fun build() = NgsiLdParser(entity, nodeLabels, relationshipLabels, entityStatements, relStatements, matRelStatements)
+        fun build() = NgsiLdParser(entityStatements, relStatements)
     }
 }

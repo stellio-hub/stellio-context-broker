@@ -8,11 +8,11 @@
   "name":  "very stupid attribute",
   "isParked": {
     "type": "Relationship",
-    "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
+    "object": "urn:example:OffStreetParking:Downtown1",
     "observedAt": "2017-07-29T12:00:04Z",
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:ngsi-ld:Person:Bob"
+      "object": "urn:example:Person:Bob"
     }
   },
   "@context": [

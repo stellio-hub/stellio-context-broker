@@ -15,7 +15,7 @@
     },
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:ngsi-ld:Camera:C1"
+      "object": "urn:example:Camera:C1"
     }
   },
   "totalSpotNumber": {

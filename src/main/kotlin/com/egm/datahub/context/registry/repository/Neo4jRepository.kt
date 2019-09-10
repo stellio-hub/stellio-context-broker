@@ -1,6 +1,7 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
+import com.egm.datahub.context.registry.parser.Entity
 import com.egm.datahub.context.registry.parser.NgsiLdParser
 import com.egm.datahub.context.registry.service.JsonLDService
 import com.egm.datahub.context.registry.web.NotExistingEntityException
@@ -20,6 +21,7 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import java.util.regex.Pattern
 
 @Component
 @Transactional
@@ -31,10 +33,14 @@ class Neo4jRepository(
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
     private val gson = GsonBuilder().setPrettyPrinting().create()
-
+    private var namespacesMapping: Map<String, List<String>> = mapOf(
+        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation"),
+        "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
+        "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy","Camera") // this is property of property in order to allow nested property we need to add it to model
+    )
     fun createEntity(jsonld: String): Long {
         var entityMap: Map<String, Any> = gson.fromJson(jsonld, object : TypeToken<Map<String, Any>>() {}.type)
-        val ngsiLd = NgsiLdParser.Builder().entity(entityMap).build()
+        val ngsiLd = NgsiLdParser.Builder().withContext(namespacesMapping).entity(entityMap).build()
         var x : Long= 0
         val tx = ogmSession.transaction
         try {
@@ -45,17 +51,17 @@ class Neo4jRepository(
                 val insert = buildInsert(it.subject, it.predicate, it.obj)
                 logger.info(insert)
                 val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
-                logger.info(gson.toJson(queryResults.first()))
+                logger.info(gson.toJson(queryResults))
                 x++
             }
 
-            ngsiLd.matRelStatements?.forEach {
+            /*ngsiLd.matRelStatements?.forEach {
                 val insert = buildMerge(it.subject)
                 logger.info(insert)
                 val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
                 logger.info(gson.toJson(queryResults.first()))
                 x++
-            }
+            }  MATERIALIZED REL ARE ENTITIES */
 
 
 
@@ -64,7 +70,7 @@ class Neo4jRepository(
                 val insert = buildInsert(it.subject, it.predicate, it.obj)
                 logger.info(insert)
                 val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
-                logger.info(gson.toJson(queryResults.first()))
+                logger.info(gson.toJson(queryResults))
                 x++
             }
 
@@ -93,23 +99,24 @@ class Neo4jRepository(
 
         val queryResults = ogmSession.query(update, emptyMap<String, Any>()).queryResults()
     }
-
-    fun addCreatedAtProperty(entityUrn: String): String {
-        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val insert = "MATCH(o {uri: '$entityUrn'}) SET o.createdAt = $timestamp"
-        val result = ogmSession.query(insert, emptyMap<String, Any>())
-        return result.queryResults().toString()
+    fun formatAttributes(attributes  : Map<String,Any>) : String{
+        var attrs = gson.toJson(attributes)
+        var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
+        attrs = p.matcher(attrs).replaceAll("$1:")
+        attrs = attrs.replace("\n", "")
+        return attrs
     }
-
-    fun buildInsert(subject: String, predicate: String?, obj: String?): String {
+    fun buildInsert(subject: Entity, predicate: String?, obj: Entity?): String {
         if (predicate == null || obj == null) {
-            return "CREATE (a : $subject) return a"
+            val labelSubject = subject.label
+            val attrsSubj = formatAttributes(subject.attrs)
+            return "CREATE (a : $labelSubject $attrsSubj) return a"
         }
-        return "MATCH (a: $subject),(b : $obj)\n" +
-                "CREATE (a)-[r:$predicate]->(b) return *"
-    }
-    fun buildMerge(subject: String): String {
-        return "MERGE (a : $subject) return a"
+        val labelObj = obj.label
+        val attrsObj = formatAttributes(obj.attrs)
+        val labelSubject = subject.label
+        val attrsSubj = formatAttributes(subject.attrs)
+        return "MERGE (a : $labelSubject $attrsSubj)-[r:$predicate]->(b : $labelObj $attrsObj) return a,b"
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {
@@ -176,32 +183,11 @@ class Neo4jRepository(
         }
         return emptyList()
     }
-
     fun checkExistingUrn(entityUrn: String): Boolean {
         return getNodesByURI(entityUrn).isNotEmpty()
     }
     fun addNamespaceDefinition(url: String, prefix: String) {
         val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
         val queryResults = ogmSession.query(addNamespacesStatement, emptyMap<String, Any>()).queryResults()
-    }
-    fun parseNgsiLDandWriteToNeo4j(payload: String) {
-        // 1.scan context and add namespaces if needed
-        val context = this.jsonLDService.getContext(payload)
-
-        /*for((k, v) in context.first()) {
-            // insert namespaces
-            println(v)
-            //addNamespaceDefinition(k,v)
-        }*/
-
-        //
-        val importStatement = "CALL apoc.load.json(payload) YIELD value AS payload  WITH payload, payload.id AS id, payload.type AS type\n" +
-                "        MERGE (u:User {id:m.id}) ON CREATE SET u.initials = m.initials, u.name = m.fullname, u.user = m.username\n" +
-                "        MERGE (b:Board {id: d.board.id}) ON CREATE SET b = d.board\n" +
-                "        MERGE (c:Card {id: d.card.id}) ON CREATE SET c = d.card\n" +
-                "        MERGE (u)-[r:CREATED]->(c) ON CREATE SET r.id = payload.id, r.date_created=apoc.date.parse(payload.date,'s',\"yyyy-MM-dd'T'HH:mm:ss'Z'\")\n" +
-                "        MERGE (c)-[:IN_BOARD]->(b)\n" +
-                "        RETURN count(*)"
-        // queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
     }
 }

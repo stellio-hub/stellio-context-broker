@@ -188,6 +188,9 @@ class Neo4jRepositoryTest() {
     fun insertFixtures() {
 
         val listOfFiles = listOf(
+            ClassPathResource("/ngsild/parking_ngsild.json"),
+            ClassPathResource("/ngsild/vehicle_ngsild.json")
+           /*
             ClassPathResource("/data/beekeeper.jsonld"),
             ClassPathResource("/data/beehive.jsonld"),
             ClassPathResource("/data/beehive_not_connected.jsonld"),
@@ -195,7 +198,7 @@ class Neo4jRepositoryTest() {
             ClassPathResource("/data/observation_door.jsonld"),
             ClassPathResource("/data/observation_sensor.jsonld"),
             ClassPathResource("/data/sensor.jsonld"),
-            ClassPathResource("/data/smartdoor.jsonld")
+            ClassPathResource("/data/smartdoor.jsonld")*/
         )
         for (item in listOfFiles) {
             val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
@@ -208,10 +211,6 @@ class Neo4jRepositoryTest() {
         }
     }
 
-    @Test
-    fun `parse ngsild`() {
-        val jsonLdFile = ClassPathResource("{\n  \"id\": \"urn:ngsi-ld:OffStreetParking:Downtown1\",\n  \"type\": \"OffStreetParking\",\n  \"name\": {\n    \"type\": \"Property\",\n    \"value\": \"Downtown One\"\n  },\n  \"availableSpotNumber\": {\n    \"type\": \"Property\",\n    \"value\": 121,\n    \"observedAt\": \"2017-07-29T12:05:02Z\",\n    \"reliability\": {\n      \"type\": \"Property\",\n      \"value\": 0.7\n    },\n    \"providedBy\": {\n      \"type\": \"Relationship\",\n      \"object\": \"urn:ngsi-ld:Camera:C1\"\n    }\n  },\n  \"totalSpotNumber\": {\n    \"type\": \"Property\",\n    \"value\": 200\n  },\n  \"location\": {\n    \"type\": \"GeoProperty\",\n    \"value\": {\n      \"type\": \"Point\",\n      \"coordinates\": [-8.5, 41.2]\n    }\n  },\n  \"@context\": [\n    \"file://ngsild/ngsi-ld-core-context.jsonld\"\n  ]\n} ")
-        val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
-        neo4jRepository.parseNgsiLDandWriteToNeo4j(content)
-    }
+
+
 }

@@ -1,0 +1,14 @@
+{
+  "@context": [
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
+  ],
+  "id": "urn:ngsi-ld:Sensor:0022CCC",
+  "type": "Sensor",
+  "connectsTo": {
+    "type": "Relationship",
+    "id": "urn:ngsi-ld:SmartDoor:0021"
+
+  },
+  "name" : "My precious sensor"
+}

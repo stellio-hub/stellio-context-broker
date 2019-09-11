@@ -5,6 +5,7 @@ services:
     container_name: neo4j
     volumes:
       - ./data/neo4j/data:/data
+      - ./src/main/resources/ontologies:/ontologies
       - ./data/neo4j/plugins:/plugins
       - ./data/neo4j/conf/neo4j.conf:/conf/neo4j.conf
     environment:

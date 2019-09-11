@@ -127,3 +127,8 @@ MATCH (s:Resource)-[:ngsild__connectsTo]-(o:Resource) RETURN s,o
 MATCH ()-[r:ngsild__connectsTo]-(n:diat__Beekeeper{foaf__name:'TEST1'} ) RETURN n
 MATCH (s:diat__Beekeeper{foaf__name: 'TEST1'})-[r:ngsild__connectsTo]-(o ) RETURN s
 ```
+
+* import Ontologies
+```
+CALL semantics.importRDF("file:////ontologies/ngsild.ttl","Turtle")
+```

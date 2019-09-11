@@ -188,17 +188,14 @@ class Neo4jRepositoryTest() {
     fun insertFixtures() {
 
         val listOfFiles = listOf(
-            ClassPathResource("/ngsild/parking_ngsild.json"),
-            ClassPathResource("/ngsild/vehicle_ngsild.json")
-           /*
-            ClassPathResource("/data/beekeeper.jsonld"),
-            ClassPathResource("/data/beehive.jsonld"),
-            ClassPathResource("/data/beehive_not_connected.jsonld"),
-            ClassPathResource("/data/door.jsonld"),
-            ClassPathResource("/data/observation_door.jsonld"),
-            ClassPathResource("/data/observation_sensor.jsonld"),
-            ClassPathResource("/data/sensor.jsonld"),
-            ClassPathResource("/data/smartdoor.jsonld")*/
+            ClassPathResource("/ngsild/beekeeper.json"),
+            ClassPathResource("/ngsild/beehive.json"),
+            ClassPathResource("/ngsild/beehive_not_connected.json"),
+            ClassPathResource("/ngsild/door.json"),
+            ClassPathResource("/ngsild/observation_door.json"),
+            ClassPathResource("/ngsild/observation_sensor.json"),
+            ClassPathResource("/ngsild/sensor.json"),
+            ClassPathResource("/ngsild/smartdoor.json")
         )
         for (item in listOfFiles) {
             val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
@@ -210,6 +207,29 @@ class Neo4jRepositoryTest() {
             }
         }
     }
+
+    @Test
+    fun `insert parking ngsild `() {
+
+        every { neo4jProperties.nsmntx } returns databaseServer.httpUrl + "/rdf/cypheronrdf"
+        every { neo4jProperties.username } returns "neo4j"
+        every { neo4jProperties.password } returns "neo4j"
+
+        val item = ClassPathResource("/ngsild/parking_ngsild.json")
+        val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
+        try {
+            var triplesLoaded: Long = this.neo4jRepository.createEntity(content)
+            assertTrue("At least one triple loaded", triplesLoaded > 0)
+        } catch (e: Exception) {
+            logger.error("already existing " + item)
+        }
+
+
+        val result: List<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("example__OffStreetParking")
+        assertEquals(result.size, 1)
+    }
+
+    //ClassPathResource("/ngsild/vehicle_ngsild.json")
 
 
 

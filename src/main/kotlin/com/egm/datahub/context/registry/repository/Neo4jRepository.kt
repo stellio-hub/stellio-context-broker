@@ -1,7 +1,6 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
-import com.egm.datahub.context.registry.parser.Entity
 import com.egm.datahub.context.registry.parser.NgsiLdParser
 import com.egm.datahub.context.registry.service.JsonLDService
 import com.egm.datahub.context.registry.web.NotExistingEntityException
@@ -21,7 +20,6 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import java.util.regex.Pattern
 
 @Component
 @Transactional
@@ -33,8 +31,9 @@ class Neo4jRepository(
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
     private val gson = GsonBuilder().setPrettyPrinting().create()
+
     private var namespacesMapping: Map<String, List<String>> = mapOf(
-        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation"),
+        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy"),
         "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
         "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy","Camera") // this is property of property in order to allow nested property we need to add it to model
     )
@@ -48,28 +47,16 @@ class Neo4jRepository(
 
             // insert entities first
             ngsiLd.entityStatements?.forEach {
-                val insert = buildInsert(it.subject, it.predicate, it.obj)
-                logger.info(insert)
-                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
+                logger.info(it)
+                val queryResults = ogmSession.query(it, emptyMap<String, Any>()).queryResults()
                 logger.info(gson.toJson(queryResults))
                 x++
             }
 
-            /*ngsiLd.matRelStatements?.forEach {
-                val insert = buildMerge(it.subject)
-                logger.info(insert)
-                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
-                logger.info(gson.toJson(queryResults.first()))
-                x++
-            }  MATERIALIZED REL ARE ENTITIES */
-
-
-
             // insert relationships second
             ngsiLd.relStatements?.forEach {
-                val insert = buildInsert(it.subject, it.predicate, it.obj)
-                logger.info(insert)
-                val queryResults = ogmSession.query(insert, emptyMap<String, Any>()).queryResults()
+                logger.info(it)
+                val queryResults = ogmSession.query(it, emptyMap<String, Any>()).queryResults()
                 logger.info(gson.toJson(queryResults))
                 x++
             }
@@ -98,25 +85,6 @@ class Neo4jRepository(
         val update = "MATCH(o {uri : '$uri'}) SET o.modifiedAt = '$timestamp' , o.$attr = '$value'"
 
         val queryResults = ogmSession.query(update, emptyMap<String, Any>()).queryResults()
-    }
-    fun formatAttributes(attributes  : Map<String,Any>) : String{
-        var attrs = gson.toJson(attributes)
-        var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
-        attrs = p.matcher(attrs).replaceAll("$1:")
-        attrs = attrs.replace("\n", "")
-        return attrs
-    }
-    fun buildInsert(subject: Entity, predicate: String?, obj: Entity?): String {
-        if (predicate == null || obj == null) {
-            val labelSubject = subject.label
-            val attrsSubj = formatAttributes(subject.attrs)
-            return "CREATE (a : $labelSubject $attrsSubj) return a"
-        }
-        val labelObj = obj.label
-        val attrsObj = formatAttributes(obj.attrs)
-        val labelSubject = subject.label
-        val attrsSubj = formatAttributes(subject.attrs)
-        return "MERGE (a : $labelSubject $attrsSubj)-[r:$predicate]->(b : $labelObj $attrsObj) return a,b"
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {

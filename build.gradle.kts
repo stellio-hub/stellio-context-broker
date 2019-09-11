@@ -43,13 +43,15 @@ dependencies {
     // implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     // implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
     implementation("com.google.code.gson:gson:2.8.5")
+    implementation("org.neo4j.driver:neo4j-java-driver:1.7.5")
+    implementation("org.neo4j:neo4j-ogm-core:3.1.14")
+    implementation("org.neo4j:neo4j-ogm-bolt-driver:3.1.14")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -66,9 +68,12 @@ dependencies {
     testImplementation("com.ninja-squad:springmockk:1.1.2")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
-    testImplementation("org.testcontainers:testcontainers:1.11.3")
-    testImplementation("org.testcontainers:neo4j:1.11.3")
-    testImplementation("org.testcontainers:junit-jupiter:1.11.3")
+    testImplementation("org.neo4j:neo4j-ogm-embedded-driver:3.1.14")
+    testImplementation("org.neo4j:neo4j:3.4.15")
+    testImplementation("org.neo4j:neo4j-bolt:3.4.15")
+    // testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("com.intuit.karate:karate-junit5:0.9.4")
+    testImplementation("com.intuit.karate:karate-apache:0.9.4")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
@@ -92,10 +97,26 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
+sourceSets {
+    test {
+        resources {
+            srcDir(file("src/test/kotlin"))
+            exclude("**/*.kt")
+        }
+    }
+}
+
 tasks.withType<Test> {
     environment("SPRING_PROFILES_ACTIVE", "test")
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
     }
+
+    // pull karate options into the runtime
+    systemProperties["karate.options"] = System.getProperties().getProperty("karate.options")
+    // pull karate env into the runtime
+    systemProperties["karate.env"] = System.getProperties().getProperty("karate.env")
+    // ensure tests are always run
+    outputs.upToDateWhen { false }
 }

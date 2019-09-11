@@ -7,7 +7,7 @@ bin/
 !**/src/test/**
 /data/graphdb
 /data/neo4j/data
-
+tmp/
 
 ### STS ###
 .apt_generated

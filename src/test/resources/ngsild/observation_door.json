@@ -3,11 +3,11 @@
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
       "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
     ],
-  "id": "urn:ngsi-ld:Observation:0085",
+  "id": "urn:diat:Observation:0085",
   "type": "Observation",
   "ObservedBy": {
     "type": "Relationship",
-    "id": "urn:ngsi-ld:Door:0008"
+    "object": "urn:diat:Door:0008"
   },
   "observedAt": "209-09-26T21:32:52+02:00",
   "IncomingRate": "1000",

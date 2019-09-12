@@ -33,8 +33,8 @@ class Neo4jRepository(
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
     private var namespacesMapping: Map<String, List<String>> = mapOf(
-        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy"),
-        "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
+        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
+        "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
         "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy","Camera") // this is property of property in order to allow nested property we need to add it to model
     )
     fun createEntity(jsonld: String): Long {
@@ -84,41 +84,31 @@ class Neo4jRepository(
         val value = this.jsonLDService.getValueOfProperty(payload, attr, "foaf")
         val update = "MATCH(o {uri : '$uri'}) SET o.modifiedAt = '$timestamp' , o.$attr = '$value'"
 
-        val queryResults = ogmSession.query(update, emptyMap<String, Any>()).queryResults()
+        ogmSession.query(update, emptyMap<String, Any>()).queryResults()
     }
 
-    fun getNodesByURI(uri: String): List<Map<String, Any>> {
+    fun getNodesByURI(uri: String):MutableList<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
-        val payload = mapOf("cypher" to "MATCH (n $pattern ) RETURN n", "format" to "JSON-LD")
-        return performQuery(payload)
+        return ogmSession.query("MATCH (n $pattern ) RETURN n", HashMap<String,Any>()).toMutableList()
     }
 
-    fun getRelationsByURI(uri: String): List<Map<String, Any>> {
-        val pattern = "{ uri: '$uri' }"
-        val payload = mapOf("cypher" to "MATCH ()-[r $pattern]->() return r", "format" to "JSON-LD")
-        return performQuery(payload)
+    fun getEntitiesByLabel(label: String): MutableList<Map<String, Any>> {
+        return ogmSession.query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String,Any>()).toMutableList() //
     }
 
-    fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
-        val payload = mapOf("cypher" to "MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]->(s)  RETURN o , r", "format" to "JSON-LD")
-        return performQuery(payload)
-    }
-
-    fun getEntitiesByLabelAndQuery(query: String, label: String): List<Map<String, Any>> {
+    fun getEntitiesByLabelAndQuery(query: String, label: String): MutableList<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o:$label)-[r:$property]->(s { uri : '$value' })  RETURN o,r" else "MATCH (o:$label { $property : '$value' }) OPTIONAL MATCH (o:$label { $property : '$value' })-[r]->(s) RETURN o,r", "format" to "JSON-LD")
-        return performQuery(payload)
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String,Any>()).toMutableList()
     }
 
-    fun getEntitiesByQuery(query: String): List<Map<String, Any>> {
+    fun getEntitiesByQuery(query: String): MutableList<Map<String, Any>>{
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o)-[r:$property]->(s { uri : '$value' })  RETURN o,r" else "MATCH (o { $property : '$value' }) OPTIONAL MATCH (o { $property : '$value' })-[r]->(s)  RETURN o,r", "format" to "JSON-LD")
-        return performQuery(payload)
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String,Any>()).toMutableList()
     }
 
-    fun getEntities(query: String, label: String): List<Map<String, Any>> {
+    fun getEntities(query: String, label: String): MutableList<Map<String, Any>> {
         if (!StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
             return getEntitiesByLabelAndQuery(query, label)
         } else if (StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
@@ -126,7 +116,7 @@ class Neo4jRepository(
         } else if (StringUtil.isNullOrEmpty(label) && !StringUtil.isNullOrEmpty(query)) {
             return getEntitiesByQuery(query)
         }
-        return emptyList()
+        return ArrayList<Map<String, Any>>()
     }
 
     fun performQuery(payload: Map<String, Any>): List<Map<String, Any>> {

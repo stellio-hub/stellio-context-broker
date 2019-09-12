@@ -1,0 +1,147 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix prissma: <http://ns.inria.fr/prissma/v2#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix cc: <http://creativecommons.org/ns#> .
+@prefix fresnel: <http://www.w3.org/2004/09/fresnel#> .
+
+
+prissma: a owl:Ontology ;
+	cc:license <http://creativecommons.org/licenses/by/3.0/> ;
+    dc:creator <http://www-sop.inria.fr/members/Luca.Costabello/foaf.rdf#me> ;
+    dc:description "A vocabulary to model context-aware presentation knowledge for RDF User Interfaces."@en ;
+    dc:issued "2012-03-20"^^<http://www.w3.org/2001/XMLSchema#date> ;
+    dc:modified "2012-03-20"^^<http://www.w3.org/2001/XMLSchema#date> ;
+    dc:publisher <http://dbpedia.org/resource/National_Institute_for_Research_in_Computer_Science_and_Control> ;
+    dc:title "PRISSMA: Presentation of Resources for Interoperable Semantic and Shareable Mobile Adaptability" ;
+    vann:preferredNamespacePrefix "prissma" ;
+    vann:preferredNamespaceUri "http://ns.inria.fr/prissma/v2#" ;
+    foaf:page <http://ns.inria.fr/prissma/v2/prissma_v2.html> .
+
+# ==============    PRISSMA Classes  ===========
+prissma:Prism
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "Wrapper class for describing the contextual conditions under which a given RDF presentation must be activated." ;
+    rdfs:label "Prism" ;
+    rdfs:subClassOf fresnel:Group ;
+    vs:term_status "stable"@en .
+
+prissma:Context
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "The Context class represents the mobile context and is equivalent to a fresnel:Purpose" ;
+    rdfs:label "Context" ;
+    rdfs:subClassOf fresnel:Purpose ;
+    vs:term_status "stable"@en .
+
+prissma:User
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "Represents the target mobile user associated to a prissma:Context. To provide more flexibility, the class can be used to model both user stereotypes and specific users, according to the designer needs." ;
+    rdfs:label "User" ;
+    rdfs:subClassOf foaf:Person ;
+    vs:term_status "stable"@en .
+	
+prissma:Device
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "The Device represents the mobile device on which Web of Data resource consumption takes place. It enables device-specific data representation. It is equivalent to the Device class of the delivery context ontology" ;
+    rdfs:label "Device" ;
+    rdfs:subClassOf <http://www.w3.org/2007/uwa/context/deliveryContext.owl#Device> ;
+    vs:term_status "stable"@en .
+
+prissma:Environment
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "The class Environment models the user context in which the resource consumption takes place, therefore enabling customized resource presentation according to specific situations. " ;
+    rdfs:label "Environment" ;
+    vs:term_status "stable"@en .
+	
+		
+prissma:Activity
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "The Activity class consists in a placemark aimed at modeling a high-level representation of an user action, such as 'running', 'driving', 'working', 'shopping', etc." ;
+    rdfs:label "Activity" ;
+    vs:term_status "testing"@en .
+
+prissma:POI
+    a rdfs:Class, owl:Class ;
+    rdfs:comment "The class models a Point of Interest (POI) and consists in a simplified version of W3C Point of Interest Core specifications. POIs are defined as entities that \"describe information about locations such as name, category, unique identifier, or civic address\"." ;
+    rdfs:label "POI" ;
+    rdfs:subClassOf <http://www.w3.org/2003/01/geo/wgs84_pos#SpatialThing> ;
+    vs:term_status "stable"@en .
+
+
+
+# ==============    PRISSMA Properties  ===========
+
+prissma:user
+    a rdf:Property ;
+    rdfs:comment "The property associates a User to a Context" ;
+    rdfs:domain :Context> ;
+    rdfs:label "user" ;
+    rdfs:range prissma:User ;
+    vs:term_status "stable"@en .
+	
+prissma:device
+    a rdf:Property ;
+    rdfs:comment "The property associates a Device to a Context" ;
+    rdfs:domain prissma:Context ;
+    rdfs:label "device" ;
+    rdfs:range :Device> ;
+    vs:term_status "stable"@en .
+
+prissma:environment
+    a rdf:Property ;
+    rdfs:comment "The property associates an Environment to a Context" ;
+    rdfs:domain prissma:Context ;
+    rdfs:label "environment" ;
+    rdfs:range prissma:Environment ;
+    vs:term_status "stable"@en .
+
+prissma:poi
+    a rdf:Property ;
+    rdfs:comment "The property associates a POI to a prissma:Environment" ;
+    rdfs:domain prissma:Environment ;
+    rdfs:label "poi" ;
+    rdfs:range :POI> ;
+    vs:term_status "stable"@en .
+
+prissma:poiCategory
+    a rdf:Property ;
+    rdfs:comment "Associates a category to a POI (e.g. monument, restaurant, etc.)" ;
+    rdfs:domain prissma:POI;
+    rdfs:label "poiCategory" ;
+    vs:term_status "stable"@en .
+
+prissma:poiLabel
+    a rdf:Property ;
+    rdfs:comment "Associates an identifying resource to a POI (e.g. a given monument, a specific restaurant, etc.)" ;
+    rdfs:domain prissma:POI ;
+    rdfs:label "poiLabel" ;
+    vs:term_status "stable"@en .
+
+prissma:radius
+    a rdf:Property, owl:DatatypeProperty ;
+    rdfs:comment "Specifies the geographic extension of a POI. Value is expressed in metres." ;
+    rdfs:domain prissma:POI ;
+    rdfs:label "radius" ;
+    rdfs:range <http://www.w3.org/2001/XMLSchema#nonNegativeInteger> ;
+    vs:term_status "stable"@en .
+
+prissma:string
+    a rdf:Property ;
+    rdfs:comment "Associates any given high-level representation of motion to a prissma:Environment" ;
+    rdfs:domain prissma:Environment ;
+    rdfs:label "motion" ;
+    vs:term_status "testing"@en .
+
+prissma:nearbyEntity
+    a rdf:Property ;
+    rdfs:comment "The environmental proximity of a generic real-world entity can trigger different resource representations. The property is therefore used to associate nearby objects to the Environment model." ;
+    rdfs:domain prissma:Environment ;
+    rdfs:label "nearbyObject" ;
+    rdfs:range owl:Thing ;
+    vs:term_status "testing"@en .
+

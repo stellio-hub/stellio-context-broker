@@ -1,5 +1,5 @@
 {
-  "id": "urn:ngsi-ld:OffStreetParking:Downtown1",
+  "id": "urn:example:OffStreetParking:Downtown1",
   "type": "OffStreetParking",
   "name": {
     "type": "Property",

@@ -8,20 +8,18 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-
-
-class Entity(label: String, attrs: HashMap<String,Any>, ns : String?) {
+class Entity(label: String, attrs: HashMap<String, Any>, ns: String?) {
     var attrs = attrs
     var label = label
     var ns = ns
-    fun getLabelWithPrefix() : String{
-        return this.ns +"__"+this.label
+    fun getLabelWithPrefix(): String {
+        return this.ns + "__" + this.label
     }
 }
 
 class NgsiLdParser(
-    //val entity: Map<String, Any>?,
-    //var namespacesMapping:  Map<String, List<String>>?,
+    // val entity: Map<String, Any>?,
+    // var namespacesMapping:  Map<String, List<String>>?,
     var entityStatements: ArrayList<String>?,
     var relStatements: ArrayList<String>?
 
@@ -29,7 +27,7 @@ class NgsiLdParser(
 
     data class Builder(
         var entity: Map<String, Any>? = HashMap(),
-        var namespacesMapping:  Map<String, List<String>>? = HashMap(),
+        var namespacesMapping: Map<String, List<String>>? = HashMap(),
         var entityStatements: ArrayList<String> = ArrayList<String>(),
         var relStatements: ArrayList<String> = ArrayList<String>()
 
@@ -74,15 +72,14 @@ class NgsiLdParser(
             }
         }
 
-
         fun travestNgsiLd(node: Map<String, Any>, uuid: String?, parentAttribute: String?) {
 
             logger.info("traversing node with label {} **** ", node.get("type"))
 
-            val parentIsRelationship : Boolean =  if (node.get("type")?.toString().equals("Relationship"))   true else  false
+            val parentIsRelationship: Boolean = if (node.get("type")?.toString().equals("Relationship")) true else false
 
             val nsSubj: String? = getNamespaceByLabel(node.get("type").toString())
-            var nodeEntity = Entity(node.get("type").toString(),getAttributes(node), nsSubj)
+            var nodeEntity = Entity(node.get("type").toString(), getAttributes(node), nsSubj)
             if (node.containsKey("id")) {
                 nodeEntity.attrs.put("uri", node.get("id").toString())
             } else {
@@ -96,60 +93,55 @@ class NgsiLdParser(
                     nodeEntity.label = parentAttribute
                 }
             }
-            //var typeSubj = nodeEntity.getLabelWithPrefix()
-           // var subject = "$typeSubj {uri : '$uriSubj'}"
+            // var typeSubj = nodeEntity.getLabelWithPrefix()
+            // var subject = "$typeSubj {uri : '$uriSubj'}"
 
             for (item in node) {
                 // foreach attribute get the Map and check type is Property
                 val content = expandObjToMap(item.value)
-                if(isAttribute(content)){
+                if (isAttribute(content)) {
                     logger.debug(item.key + " is attribute")
                     // add to attr map
                 }
                 if (isRelationship(content)) {
                     logger.debug(item.key + " is relationship")
-                    //THIS IS THE NODE --> REL --> NODE (object)
+                    // THIS IS THE NODE --> REL --> NODE (object)
                     val rel = item.key
                     val nsPredicate = getNamespaceByLabel(rel)
-                    val predicate = nsPredicate + "__" +rel
+                    val predicate = nsPredicate + "__" + rel
 
-                    //a Relationship witemhout a object? not possible skip!
+                    // a Relationship witemhout a object? not possible skip!
                     if (content.get("object") == null)
                         continue
 
                     content.get("object").let {
-                        val urn : String = it.toString()
+                        val urn: String = it.toString()
                         val typeObj = urn.split(":")[2]
                         val nsObj = getNamespaceByLabel(typeObj)
 
-                        if(parentIsRelationship){
+                        if (parentIsRelationship) {
                             parentAttribute?.let {
                                 nodeEntity.ns = getNamespaceByLabel(parentAttribute)
-                                buildInsert(nodeEntity,predicate, Entity(typeObj, hashMapOf("uri" to urn), nsObj))
+                                buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), nsObj))
                             }
-
-                        } else{
+                        } else {
                             val ns = getNamespaceByLabel(typeObj)
-                            buildInsert(nodeEntity,predicate, Entity(typeObj, hashMapOf("uri" to urn),ns))
+                            buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), ns))
                         }
 
                         // DowntownParking can exist or not
-                        buildInsert(Entity(rel,hashMapOf("uri" to urn), nsPredicate), null, null)
+                        buildInsert(Entity(rel, hashMapOf("uri" to urn), nsPredicate), null, null)
 
-                        //create random uri for mat rel
+                        // create random uri for mat rel
                         val uuid = UUID.randomUUID()
                         val str = uuid.toString()
-                        //add materialized relationship NODE
+                        // add materialized relationship NODE
                         val urnMatRel = "urn:$nsPredicate:$rel:$str"
                         if (hasAttributes(content)) {
                             // go deeper using the materialized rel Node
                             travestNgsiLd(content, urnMatRel, item.key)
                         }
                     }
-
-
-
-
                 }
                 if (isProperty(content)) {
                     logger.debug(item.key + " is property")
@@ -178,19 +170,19 @@ class NgsiLdParser(
 
                         // object attributes will be set in the next travestPropertiesIteration with a match on URI
                         // ADD THE RELATIONSHIP
-                        buildInsert(nodeEntity,predicate, Entity(labelObj, hashMapOf("uri" to urn), nsObj))
+                        buildInsert(nodeEntity, predicate, Entity(labelObj, hashMapOf("uri" to urn), nsObj))
                         // go deeper
                         travestNgsiLd(content, urn, item.key)
                     }
                 }
-                if(isGeoProperty(content)){
+                if (isGeoProperty(content)) {
                     val obj = item.key
                     val value = expandObjToMap(content.get("value"))
-                    val coordinates  = value.get("coordinates") as ArrayList<Double>
+                    val coordinates = value.get("coordinates") as ArrayList<Double>
                     val lon = coordinates.get(0)
                     val lat = coordinates.get(1)
-                    val location : String ="point({ x: $lon , y: $lat, crs: 'WGS-84' })"
-                    nodeEntity.attrs.put(obj,location)
+                    val location: String = "point({ x: $lon , y: $lat, crs: 'WGS-84' })"
+                    nodeEntity.attrs.put(obj, location)
                 }
             }
             buildInsert(nodeEntity, null, null)
@@ -199,10 +191,10 @@ class NgsiLdParser(
         fun isProperty(prop: Map<String, Any>): Boolean {
             return if (prop.get("type")?.toString().equals("Property")) true else false
         }
-        fun isGeoProperty(prop: Map<String, Any>): Boolean{
+        fun isGeoProperty(prop: Map<String, Any>): Boolean {
             return if (prop.get("type")?.toString().equals("GeoProperty")) true else false
         }
-        fun isPoint(prop: Map<String, Any>): Boolean{
+        fun isPoint(prop: Map<String, Any>): Boolean {
             return if (prop.get("type")?.toString().equals("Point")) true else false
         }
         fun isRelationship(prop: Map<String, Any>): Boolean {
@@ -210,20 +202,19 @@ class NgsiLdParser(
         }
         fun isAttribute(prop: Map<String, Any>): Boolean {
             val type = prop.get("type")?.toString()
-            if(type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
+            if (type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
             if (prop.isEmpty()) return true
             return if (hasAttributes(prop)) true else false
         }
 
         fun getAttributes(node: Map<String, Any>): HashMap<String, Any> {
             var out = HashMap<String, Any>()
-            for(item in node) {
-                if (!item.key.equals("type") && !item.key.equals("value") && !item.key.equals("@context") && !item.key.equals("id") ) {
-                    if(item.value is String){
+            for (item in node) {
+                if (!item.key.equals("type") && !item.key.equals("value") && !item.key.equals("@context") && !item.key.equals("id")) {
+                    if (item.value is String) {
                         out.put(item.key, item.value)
-                    }
-                    else{
-                        if( isGeoProperty(expandObjToMap(item.value))) continue
+                    } else {
+                        if (isGeoProperty(expandObjToMap(item.value))) continue
                         // check if Nested Attributes es:
                         /*"brandName": {
                             "type": "Property",
@@ -241,7 +232,7 @@ class NgsiLdParser(
             }
             return out
         }
-        fun formatAttributes(attributes  : Map<String,Any>) : String{
+        fun formatAttributes(attributes: Map<String, Any>): String {
             var attrs = gson.toJson(attributes)
             var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
             attrs = p.matcher(attrs).replaceAll("$1:")
@@ -253,8 +244,7 @@ class NgsiLdParser(
                 val labelSubject = subject.getLabelWithPrefix()
                 val attrsSubj = formatAttributes(subject.attrs)
                 entityStatements.add("CREATE (a : $labelSubject $attrsSubj) return a")
-            }
-            else{
+            } else {
                 val labelObj = obj.getLabelWithPrefix()
                 val attrsObj = formatAttributes(obj.attrs)
                 val labelSubject = subject.getLabelWithPrefix()

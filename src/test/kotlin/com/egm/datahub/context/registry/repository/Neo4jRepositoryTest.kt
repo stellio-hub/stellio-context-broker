@@ -162,7 +162,6 @@ class Neo4jRepositoryTest() {
             logger.error("already existing " + item)
         }
 
-
         val result: MutableList<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("example__OffStreetParking")
         assertEquals(result.size, 1)
     }
@@ -181,7 +180,6 @@ class Neo4jRepositoryTest() {
         } catch (e: Exception) {
             logger.error("already existing " + item)
         }
-
 
         val result: MutableList<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("example__Vehicle")
         assertEquals(result.size, 1)
@@ -245,6 +243,4 @@ class Neo4jRepositoryTest() {
             }
         }
     }
-
-
 }

@@ -35,12 +35,12 @@ class Neo4jRepository(
     private var namespacesMapping: Map<String, List<String>> = mapOf(
         "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
         "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
-        "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy","Camera") // this is property of property in order to allow nested property we need to add it to model
+        "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
     )
     fun createEntity(jsonld: String): Long {
         var entityMap: Map<String, Any> = gson.fromJson(jsonld, object : TypeToken<Map<String, Any>>() {}.type)
         val ngsiLd = NgsiLdParser.Builder().withContext(namespacesMapping).entity(entityMap).build()
-        var x : Long= 0
+        var x: Long = 0
         val tx = ogmSession.transaction
         try {
             // This constraint ensures that each profileId is unique per user node
@@ -87,25 +87,25 @@ class Neo4jRepository(
         ogmSession.query(update, emptyMap<String, Any>()).queryResults()
     }
 
-    fun getNodesByURI(uri: String):MutableList<Map<String, Any>> {
+    fun getNodesByURI(uri: String): MutableList<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
-        return ogmSession.query("MATCH (n $pattern ) RETURN n", HashMap<String,Any>()).toMutableList()
+        return ogmSession.query("MATCH (n $pattern ) RETURN n", HashMap<String, Any>()).toMutableList()
     }
 
     fun getEntitiesByLabel(label: String): MutableList<Map<String, Any>> {
-        return ogmSession.query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String,Any>()).toMutableList() //
+        return ogmSession.query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String, Any>()).toMutableList() //
     }
 
     fun getEntitiesByLabelAndQuery(query: String, label: String): MutableList<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String,Any>()).toMutableList()
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
     }
 
-    fun getEntitiesByQuery(query: String): MutableList<Map<String, Any>>{
+    fun getEntitiesByQuery(query: String): MutableList<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String,Any>()).toMutableList()
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
     }
 
     fun getEntities(query: String, label: String): MutableList<Map<String, Any>> {

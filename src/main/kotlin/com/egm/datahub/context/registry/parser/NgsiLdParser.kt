@@ -8,276 +8,253 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
-class Entity(label: String, attrs: HashMap<String, Any>, ns: String?) {
-    var attrs = attrs
-    var label = label
-    var ns = ns
+class Entity(var label: String, var attrs: HashMap<String, Any>, var ns: String?) {
+
     fun getLabelWithPrefix(): String {
         return this.ns + "__" + this.label
     }
 }
 
-class NgsiLdParser(
-    // val entity: Map<String, Any>?,
-    // var namespacesMapping:  Map<String, List<String>>?,
-    var entityStatements: ArrayList<String>?,
-    var relStatements: ArrayList<String>?
+typealias EntityStatements = List<String>
+typealias RelationshipStatements = List<String>
 
-) {
+object NgsiLdParser {
 
-    data class Builder(
-        var entity: Map<String, Any>? = HashMap(),
-        var namespacesMapping: Map<String, List<String>>? = HashMap(),
-        var entityStatements: ArrayList<String> = ArrayList<String>(),
-        var relStatements: ArrayList<String> = ArrayList<String>()
+    private val gson = GsonBuilder().setPrettyPrinting().create()
+    private val logger = LoggerFactory.getLogger(NgsiLdParser::class.java)
 
-    ) {
-        private val gson = GsonBuilder().setPrettyPrinting().create()
-        private val logger = LoggerFactory.getLogger(NgsiLdParser::class.java)
+    fun parseEntity(entity: Map<String, Any>, namespacesMapping: Map<String, List<String>>): Pair<EntityStatements, RelationshipStatements> {
+        return travestNgsiLd(entity, namespacesMapping, null, null, mutableListOf(), mutableListOf())
+    }
 
-        private var context: Map<String, Any> = emptyMap()
-        // TO EXTERNALIZE?  var namespacesMapping : Map<String,List<String>>
+    fun travestNgsiLd(node: Map<String, Any>, namespacesMapping: Map<String, List<String>>, uuid: String?, parentAttribute: String?,
+                      accEntityStatements: MutableList<String>, accRelationshipStatements: MutableList<String>):
+            Pair<EntityStatements, RelationshipStatements> {
 
-        fun withContext(namespacesMapping: Map<String, List<String>>) = apply {
-            this.namespacesMapping = namespacesMapping
-        }
-        fun entity(entity: Map<String, Any>) = apply {
-            this.entity = entity
-            // scan entity attributes
-            travestContext(expandObjToMap(entity.get("@context")))
-            travestNgsiLd(entity, null, null)
+        logger.info("traversing node with label {}", node["type"])
+
+        val parentIsRelationship: Boolean = node["type"]?.toString().equals("Relationship")
+
+        val nsSubj: String? = getLabelNamespace(node["type"].toString(), namespacesMapping)
+        val nodeEntity = Entity(node["type"].toString(), getAttributes(node), nsSubj)
+        if (node.containsKey("id")) {
+            nodeEntity.attrs["uri"] = node["id"].toString()
+        } else {
+            uuid?.let { nodeEntity.attrs.put("uri", it) }
         }
 
-        /*fun withNamespaces(namespaces: Map<String,List<String>>) = apply {
-            this.namespacesMapping = namespacesMapping
-        }*/
-        fun getNamespaceByLabel(label: String): String? {
-            this.namespacesMapping?.forEach {
-                if (it.value.contains(label)) {
-                    return it.key
-                }
-            }
-            return null
-        }
-
-        fun travestContext(context: Any) {
-            // TODO
-            try {
-                val obj = context as Map<String, Object>
-            } catch (e: Exception) {
-            }
-            try {
-                val obj = context as List<String>
-            } catch (e: Exception) {
+        // if is Property override the generic Property type with the attribute
+        if (node["type"].toString() == "Property") {
+            parentAttribute?.let {
+                nodeEntity.ns = getLabelNamespace(it, namespacesMapping)
+                nodeEntity.label = parentAttribute
             }
         }
 
-        fun travestNgsiLd(node: Map<String, Any>, uuid: String?, parentAttribute: String?) {
-
-            logger.info("traversing node with label {} **** ", node.get("type"))
-
-            val parentIsRelationship: Boolean = if (node.get("type")?.toString().equals("Relationship")) true else false
-
-            val nsSubj: String? = getNamespaceByLabel(node.get("type").toString())
-            var nodeEntity = Entity(node.get("type").toString(), getAttributes(node), nsSubj)
-            if (node.containsKey("id")) {
-                nodeEntity.attrs.put("uri", node.get("id").toString())
-            } else {
-                uuid?.let { nodeEntity.attrs.put("uri", it) }
+        for (item in node) {
+            // foreach attribute get the Map and check type is Property
+            val content = expandObjToMap(item.value)
+            if (isAttribute(content)) {
+                logger.debug(item.key + " is attribute")
+                // add to attr map
             }
+            if (isRelationship(content)) {
+                logger.debug(item.key + " is relationship")
+                // THIS IS THE NODE --> REL --> NODE (object)
+                val rel = item.key
+                val nsPredicate = getLabelNamespace(rel, namespacesMapping)
+                val predicate = nsPredicate + "__" + rel
 
-            // if is Property override the generic Property type with the attribute
-            if (node.get("type").toString().equals("Property")) {
-                parentAttribute?.let {
-                    nodeEntity.ns = getNamespaceByLabel(it)
-                    nodeEntity.label = parentAttribute
-                }
-            }
-            // var typeSubj = nodeEntity.getLabelWithPrefix()
-            // var subject = "$typeSubj {uri : '$uriSubj'}"
+                // a Relationship witemhout a object? not possible skip!
+                if (content.get("object") == null)
+                    continue
 
-            for (item in node) {
-                // foreach attribute get the Map and check type is Property
-                val content = expandObjToMap(item.value)
-                if (isAttribute(content)) {
-                    logger.debug(item.key + " is attribute")
-                    // add to attr map
-                }
-                if (isRelationship(content)) {
-                    logger.debug(item.key + " is relationship")
-                    // THIS IS THE NODE --> REL --> NODE (object)
-                    val rel = item.key
-                    val nsPredicate = getNamespaceByLabel(rel)
-                    val predicate = nsPredicate + "__" + rel
+                content.get("object").let {
+                    val urn: String = it.toString()
+                    val typeObj = urn.split(":")[2]
+                    val nsObj = getLabelNamespace(typeObj, namespacesMapping)
 
-                    // a Relationship witemhout a object? not possible skip!
-                    if (content.get("object") == null)
-                        continue
-
-                    content.get("object").let {
-                        val urn: String = it.toString()
-                        val typeObj = urn.split(":")[2]
-                        val nsObj = getNamespaceByLabel(typeObj)
-
-                        if (parentIsRelationship) {
-                            parentAttribute?.let {
-                                nodeEntity.ns = getNamespaceByLabel(parentAttribute)
-                                buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), nsObj))
-                            }
-                        } else {
-                            val ns = getNamespaceByLabel(typeObj)
-                            buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), ns))
+                    if (parentIsRelationship) {
+                        parentAttribute?.let {
+                            nodeEntity.ns = getLabelNamespace(parentAttribute, namespacesMapping)
+                            val newStatements = buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), nsObj))
+                            if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
+                            if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
                         }
-
-                        // DowntownParking can exist or not
-                        buildInsert(Entity(rel, hashMapOf("uri" to urn), nsPredicate), null, null)
-
-                        // create random uri for mat rel
-                        val uuid = UUID.randomUUID()
-                        val str = uuid.toString()
-                        // add materialized relationship NODE
-                        val urnMatRel = "urn:$nsPredicate:$rel:$str"
-                        if (hasAttributes(content)) {
-                            // go deeper using the materialized rel Node
-                            travestNgsiLd(content, urnMatRel, item.key)
-                        }
-                    }
-                }
-                if (isProperty(content)) {
-                    logger.debug(item.key + " is property")
-
-                    // is not a map or the only attributes are type and value
-                    if (!hasAttributes(content)) {
-                        // has attributes or just value and type? if so store as attribute  (es. name and available spot number in vehicle)
-                        logger.debug("this property has just type and value")
-
-                        val value = content.get("value")
-                        val obj = item.key
-                        value?.let { nodeEntity.attrs.put(obj, value) }
                     } else {
-                        // this property has one ore more nested objects ==> use the attr. key (es. availableSpotNumber) as object to create a Relationship between entity and Property
-                        // MATERIALIZED PROPERTY
-                        val labelObj = item.key
-                        val nsObj = getNamespaceByLabel(labelObj)
+                        val ns = getLabelNamespace(typeObj, namespacesMapping)
+                        val newStatements = buildInsert(nodeEntity, predicate, Entity(typeObj, hashMapOf("uri" to urn), ns))
+                        if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
+                        if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+                    }
 
-                        // create uri for object
-                        val uuid = UUID.randomUUID()
-                        val str = uuid.toString()
+                    // DowntownParking can exist or not
+                    val newStatements = buildInsert(Entity(rel, hashMapOf("uri" to urn), nsPredicate), null, null)
+                    if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
+                    if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
 
-                        val urn = "urn:$nsObj:$labelObj:$str"
-                        // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
-                        val predicate = "ngsild__hasObject"
-
-                        // object attributes will be set in the next travestPropertiesIteration with a match on URI
-                        // ADD THE RELATIONSHIP
-                        buildInsert(nodeEntity, predicate, Entity(labelObj, hashMapOf("uri" to urn), nsObj))
-                        // go deeper
-                        travestNgsiLd(content, urn, item.key)
+                    // create random uri for mat rel
+                    val uuid = UUID.randomUUID()
+                    val str = uuid.toString()
+                    // add materialized relationship NODE
+                    val urnMatRel = "urn:$nsPredicate:$rel:$str"
+                    if (hasAttributes(content)) {
+                        // go deeper using the materialized rel Node
+                        travestNgsiLd(content, namespacesMapping, urnMatRel, item.key, accEntityStatements, accRelationshipStatements)
                     }
                 }
-                if (isGeoProperty(content)) {
+            }
+            if (isProperty(content)) {
+                logger.debug(item.key + " is property")
+
+                // is not a map or the only attributes are type and value
+                if (!hasAttributes(content)) {
+                    // has attributes or just value and type? if so store as attribute  (es. name and available spot number in vehicle)
+                    logger.debug("this property has just type and value")
+
+                    val value = content.get("value")
                     val obj = item.key
-                    val value = expandObjToMap(content.get("value"))
-                    val coordinates = value.get("coordinates") as ArrayList<Double>
-                    val lon = coordinates.get(0)
-                    val lat = coordinates.get(1)
-                    val location: String = "point({ x: $lon , y: $lat, crs: 'WGS-84' })"
-                    nodeEntity.attrs.put(obj, location)
+                    value?.let { nodeEntity.attrs.put(obj, value) }
+                } else {
+                    // this property has one ore more nested objects ==> use the attr. key (es. availableSpotNumber) as object to create a Relationship between entity and Property
+                    // MATERIALIZED PROPERTY
+                    val labelObj = item.key
+                    val nsObj = getLabelNamespace(labelObj, namespacesMapping)
+
+                    // create uri for object
+                    val uuid = UUID.randomUUID()
+                    val str = uuid.toString()
+
+                    val urn = "urn:$nsObj:$labelObj:$str"
+                    // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
+                    val predicate = "ngsild__hasObject"
+
+                    // object attributes will be set in the next travestPropertiesIteration with a match on URI
+                    // ADD THE RELATIONSHIP
+                    val newStatements = buildInsert(nodeEntity, predicate, Entity(labelObj, hashMapOf("uri" to urn), nsObj))
+                    if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
+                    if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+
+                    // go deeper
+                    travestNgsiLd(content, namespacesMapping, urn, item.key, accEntityStatements, accRelationshipStatements)
                 }
             }
-            buildInsert(nodeEntity, null, null)
+            if (isGeoProperty(content)) {
+                val obj = item.key
+                val value = expandObjToMap(content.get("value"))
+                val coordinates = value.get("coordinates") as ArrayList<Double>
+                val lon = coordinates.get(0)
+                val lat = coordinates.get(1)
+                val location: String = "point({ x: $lon , y: $lat, crs: 'WGS-84' })"
+                nodeEntity.attrs.put(obj, location)
+            }
         }
+        val newStatements = buildInsert(nodeEntity, null, null)
+        if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
+        if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
 
-        fun isProperty(prop: Map<String, Any>): Boolean {
-            return if (prop.get("type")?.toString().equals("Property")) true else false
-        }
-        fun isGeoProperty(prop: Map<String, Any>): Boolean {
-            return if (prop.get("type")?.toString().equals("GeoProperty")) true else false
-        }
-        fun isPoint(prop: Map<String, Any>): Boolean {
-            return if (prop.get("type")?.toString().equals("Point")) true else false
-        }
-        fun isRelationship(prop: Map<String, Any>): Boolean {
-            return if (prop.get("type")?.toString().equals("Relationship")) true else false
-        }
-        fun isAttribute(prop: Map<String, Any>): Boolean {
-            val type = prop.get("type")?.toString()
-            if (type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
-            if (prop.isEmpty()) return true
-            return if (hasAttributes(prop)) true else false
-        }
+        return Pair(accEntityStatements, accRelationshipStatements)
+    }
 
-        fun getAttributes(node: Map<String, Any>): HashMap<String, Any> {
-            var out = HashMap<String, Any>()
-            for (item in node) {
-                if (!item.key.equals("type") && !item.key.equals("value") && !item.key.equals("@context") && !item.key.equals("id")) {
-                    if (item.value is String) {
-                        out.put(item.key, item.value)
-                    } else {
-                        if (isGeoProperty(expandObjToMap(item.value))) continue
-                        // check if Nested Attributes es:
-                        /*"brandName": {
-                            "type": "Property",
-                            "value": "Mercedes"
-                        },*/
-                        if (!hasAttributes(expandObjToMap(item.value))) {
-                            var attrName = item.key
-                            val innerValue = expandObjToMap(item.value).get("value")
-                            innerValue?.let {
-                                out.put(attrName, it)
-                            }
+    private fun isProperty(prop: Map<String, Any>): Boolean {
+        return prop["type"]?.toString().equals("Property")
+    }
+
+    private fun isGeoProperty(prop: Map<String, Any>): Boolean {
+        return prop["type"]?.toString().equals("GeoProperty")
+    }
+
+    private fun isRelationship(prop: Map<String, Any>): Boolean {
+        return prop["type"]?.toString().equals("Relationship")
+    }
+
+    private fun isAttribute(prop: Map<String, Any>): Boolean {
+        val type = prop["type"]?.toString()
+        if (type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
+        if (prop.isEmpty()) return true
+        return hasAttributes(prop)
+    }
+
+    private fun getAttributes(node: Map<String, Any>): HashMap<String, Any> {
+        var out = HashMap<String, Any>()
+        for (item in node) {
+            if (!item.key.equals("type") && !item.key.equals("value") && !item.key.equals("@context") && !item.key.equals("id")) {
+                if (item.value is String) {
+                    out.put(item.key, item.value)
+                } else {
+                    if (isGeoProperty(expandObjToMap(item.value))) continue
+                    // check if Nested Attributes es:
+                    /*"brandName": {
+                        "type": "Property",
+                        "value": "Mercedes"
+                    },*/
+                    if (!hasAttributes(expandObjToMap(item.value))) {
+                        var attrName = item.key
+                        val innerValue = expandObjToMap(item.value).get("value")
+                        innerValue?.let {
+                            out.put(attrName, it)
                         }
                     }
                 }
             }
-            return out
         }
-        fun formatAttributes(attributes: Map<String, Any>): String {
-            var attrs = gson.toJson(attributes)
-            var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
-            attrs = p.matcher(attrs).replaceAll("$1:")
-            attrs = attrs.replace("\n", "")
-            return attrs
+        return out
+    }
+
+    private fun formatAttributes(attributes: Map<String, Any>): String {
+        var attrs = gson.toJson(attributes)
+        val p = Pattern.compile("\\\"(\\w+)\\\"\\:")
+        attrs = p.matcher(attrs).replaceAll("$1:")
+        attrs = attrs.replace("\n", "")
+        return attrs
+    }
+
+    private fun buildInsert(subject: Entity, predicate: String?, obj: Entity?): Pair<EntityStatements, RelationshipStatements> {
+        return if (predicate == null || obj == null) {
+            val labelSubject = subject.getLabelWithPrefix()
+            val attrsSubj = formatAttributes(subject.attrs)
+            Pair(listOf("CREATE (a : $labelSubject $attrsSubj) return a"), emptyList())
+        } else {
+            val labelObj = obj.getLabelWithPrefix()
+            val attrsObj = formatAttributes(obj.attrs)
+            val labelSubject = subject.getLabelWithPrefix()
+            val subjectUri = subject.attrs["uri"]!!
+            val attrsSubj = formatAttributes(mapOf("uri" to subjectUri))
+            Pair(emptyList(), listOf("MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj) CREATE (a)-[r:$predicate]->(b) return a,b"))
         }
-        fun buildInsert(subject: Entity, predicate: String?, obj: Entity?) {
-            if (predicate == null || obj == null) {
-                val labelSubject = subject.getLabelWithPrefix()
-                val attrsSubj = formatAttributes(subject.attrs)
-                entityStatements.add("CREATE (a : $labelSubject $attrsSubj) return a")
+    }
+
+    private fun hasAttributes(node: Map<String, Any>): Boolean {
+        // if a Property has just type and value we save it as attribute value in the parent entity
+        var resp = false
+        node.forEach {
+            if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("object") && !it.key.equals("id")) {
+                resp = true
+                return resp
+            }
+        }
+        return resp
+    }
+
+    private fun expandObjToMap(obj: Any?): Map<String, Any> {
+        try {
+            if (obj is String) {
+                // FIXME : it always raises an exception
+                return gson.fromJson(obj.toString(), object : TypeToken<Map<String, Any>>() {}.type)
             } else {
-                val labelObj = obj.getLabelWithPrefix()
-                val attrsObj = formatAttributes(obj.attrs)
-                val labelSubject = subject.getLabelWithPrefix()
-                subject.attrs.get("uri")?.let {
-                    val attrsSubj = formatAttributes(mapOf("uri" to it))
-                    relStatements.add("MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj) CREATE (a)-[r:$predicate]->(b) return a,b")
-                }
+                return obj as Map<String, Object>
             }
+        } catch (e: Exception) {
+            return emptyMap()
         }
-        fun hasAttributes(node: Map<String, Any>): Boolean {
-            // if a Property has just type and value we save it as attribute value in the parent entity
-            var resp = false
-            node.forEach {
-                if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("object") && !it.key.equals("id")) {
-                    resp = true
-                    return resp
-                }
-            }
-            return resp
-        }
+    }
 
-        fun expandObjToMap(obj: Any?): Map<String, Any> {
-            try {
-                if (obj is String) {
-                    return gson.fromJson(obj.toString(), object : TypeToken<Map<String, Any>>() {}.type)
-                } else {
-                    return obj as Map<String, Object>
-                }
-            } catch (e: Exception) {
-                return emptyMap()
+    private fun getLabelNamespace(label: String, namespacesMapping: Map<String, List<String>>): String? {
+        namespacesMapping.forEach {
+            if (it.value.contains(label)) {
+                return it.key
             }
         }
-
-        fun build() = NgsiLdParser(entityStatements, relStatements)
+        return null
     }
 }

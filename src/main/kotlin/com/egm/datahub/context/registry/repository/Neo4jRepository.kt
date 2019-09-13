@@ -3,6 +3,7 @@ package com.egm.datahub.context.registry.repository
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.parser.NgsiLdParser
 import com.egm.datahub.context.registry.service.JsonLDService
+import com.egm.datahub.context.registry.web.EntityCreationException
 import com.egm.datahub.context.registry.web.NotExistingEntityException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.GsonBuilder
@@ -37,28 +38,24 @@ class Neo4jRepository(
         "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
         "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
     )
-    fun createEntity(jsonld: String): Long {
-        var entityMap: Map<String, Any> = gson.fromJson(jsonld, object : TypeToken<Map<String, Any>>() {}.type)
-        val ngsiLd = NgsiLdParser.Builder().withContext(namespacesMapping).entity(entityMap).build()
-        var x: Long = 0
+
+    fun createEntity(payload: String): String {
+        val entityMap: Map<String, Any> = gson.fromJson(payload, object : TypeToken<Map<String, Any>>() {}.type)
+        val parsedEntity = NgsiLdParser.parseEntity(entityMap, namespacesMapping)
         val tx = ogmSession.transaction
         try {
             // This constraint ensures that each profileId is unique per user node
 
             // insert entities first
-            ngsiLd.entityStatements?.forEach {
+            parsedEntity.first.forEach {
                 logger.info(it)
-                val queryResults = ogmSession.query(it, emptyMap<String, Any>()).queryResults()
-                logger.info(gson.toJson(queryResults))
-                x++
+                ogmSession.query(it, emptyMap<String, Any>()).queryResults()
             }
 
             // insert relationships second
-            ngsiLd.relStatements?.forEach {
+            parsedEntity.second.forEach {
                 logger.info(it)
-                val queryResults = ogmSession.query(it, emptyMap<String, Any>()).queryResults()
-                logger.info(gson.toJson(queryResults))
-                x++
+                ogmSession.query(it, emptyMap<String, Any>()).queryResults()
             }
 
             // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
@@ -69,9 +66,10 @@ class Neo4jRepository(
             // The constraint is already created or the database is not available
             ex.printStackTrace()
             tx.rollback()
-            return 0
+            throw EntityCreationException("Something went wrong when creating entity")
         }
-        return x
+
+        return entityMap["id"] as String
     }
 
     fun updateEntity(payload: String, uri: String, attr: String) {

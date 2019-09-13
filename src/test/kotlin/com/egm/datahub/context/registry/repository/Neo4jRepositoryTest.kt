@@ -5,8 +5,8 @@ import com.google.gson.GsonBuilder
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import junit.framework.Assert.assertEquals
-import junit.framework.Assert.assertTrue
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.neo4j.driver.v1.AuthTokens
@@ -156,8 +156,8 @@ class Neo4jRepositoryTest() {
         val item = ClassPathResource("/ngsild/parking_ngsild.json")
         val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
         try {
-            var triplesLoaded: Long = this.neo4jRepository.createEntity(content)
-            assertTrue("At least one triple loaded", triplesLoaded > 0)
+            val entityUri = neo4jRepository.createEntity(content)
+            assertEquals("urn:example:OffStreetParking:Downtown1", entityUri)
         } catch (e: Exception) {
             logger.error("already existing " + item)
         }
@@ -175,8 +175,8 @@ class Neo4jRepositoryTest() {
         val item = ClassPathResource("/ngsild/vehicle_ngsild.json")
         val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
         try {
-            var triplesLoaded: Long = this.neo4jRepository.createEntity(content)
-            assertTrue("At least one triple loaded", triplesLoaded > 0)
+            val entityUri = neo4jRepository.createEntity(content)
+            assertEquals("urn:example:Vehicle:A4567", entityUri)
         } catch (e: Exception) {
             logger.error("already existing " + item)
         }
@@ -236,8 +236,8 @@ class Neo4jRepositoryTest() {
         for (item in listOfFiles) {
             val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
             try {
-                var triplesLoaded: Long = this.neo4jRepository.createEntity(content)
-                assertTrue("At least one triple loaded", triplesLoaded > 0)
+                val entityUri = neo4jRepository.createEntity(content)
+                assertTrue(entityUri.isNotEmpty())
             } catch (e: Exception) {
                 logger.error("already existing " + item)
             }

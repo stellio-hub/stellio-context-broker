@@ -33,7 +33,7 @@ class EntityHandlerTests {
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
-        every { neo4jRepository.createEntity(any()) } returns 2
+        every { neo4jRepository.createEntity(any()) } returns "urn:ngsi-ld:BeeHive:TESTC"
         every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")

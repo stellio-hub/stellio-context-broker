@@ -24,16 +24,15 @@ class EntityHandler(
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
-        var entityUrn = ""
-
         return req.bodyToMono<String>()
             .map {
                 neo4JRepository.createEntity(it)
             }.flatMap {
-                created(URI("/ngsi-ld/v1/entities/$entityUrn")).build()
+                created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
                     when (it) {
                         is AlreadyExistingEntityException -> ServerResponse.status(HttpStatus.CONFLICT).body(BodyInserters.fromObject(it.localizedMessage))
+                        is EntityCreationException -> ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject(it.localizedMessage))
                         else -> ServerResponse.badRequest().body(BodyInserters.fromObject(it.localizedMessage))
                     }
             }

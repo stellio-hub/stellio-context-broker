@@ -1,5 +1,8 @@
 package com.egm.datahub.context.registry.service
 
+import com.github.jsonldjava.core.JsonLdOptions
+import com.github.jsonldjava.core.JsonLdProcessor
+import com.github.jsonldjava.utils.JsonUtils
 import org.eclipse.rdf4j.rio.RDFFormat
 import org.eclipse.rdf4j.rio.Rio
 import org.eclipse.rdf4j.rio.helpers.ParseErrorCollector
@@ -33,5 +36,14 @@ class JsonLDService {
         }
 
         return statementCollector.statements.find { it.subject.stringValue().startsWith("urn:") }?.subject.toString()
+    }
+
+    fun expandNgsiLDEntity(payload: String?): String {
+        val jsonLdOptions = JsonLdOptions()
+        jsonLdOptions.processingMode = JsonLdOptions.JSON_LD_1_0
+        jsonLdOptions.explicit = true
+        val jsonLdObject = JsonUtils.fromString(payload)
+        val expanded = JsonLdProcessor.expand(jsonLdObject, jsonLdOptions)
+        return JsonUtils.toPrettyString(expanded)
     }
 }

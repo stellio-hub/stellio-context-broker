@@ -123,3 +123,11 @@ MATCH (s:Resource)-[:ngsild__connectsTo]-(o:Resource) RETURN s,o
 MATCH ()-[r:ngsild__connectsTo]-(n:diat__Beekeeper{foaf__name:'TEST1'} ) RETURN n
 MATCH (s:diat__Beekeeper{foaf__name: 'TEST1'})-[r:ngsild__connectsTo]-(o ) RETURN s
 ```
+
+# Experiments
+
+* Expand the context of an NGSI-LD entity
+
+```
+http POST http://localhost:8080/experiments/entities/expand < src/test/resources/data/fiware/building_01.jsonld
+```

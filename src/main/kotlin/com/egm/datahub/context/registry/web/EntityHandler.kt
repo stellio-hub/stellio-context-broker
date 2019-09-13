@@ -78,4 +78,13 @@ class EntityHandler(
                     status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                 }
     }
+
+    fun expand(req: ServerRequest): Mono<ServerResponse> {
+        return req.bodyToMono<String>()
+            .map {
+                jsonLDService.expandNgsiLDEntity(it)
+            }.flatMap {
+                ok().body(BodyInserters.fromObject(it))
+            }
+    }
 }

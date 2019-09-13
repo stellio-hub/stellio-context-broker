@@ -20,5 +20,11 @@ class Routes(
                         GET("/{entityId}", entityHandler::getByURI)
                     }
         }
+        (accept(MediaType.valueOf("application/ld+json")) and "/experiments")
+            .nest {
+                "/entities".nest {
+                    POST("/expand", entityHandler::expand)
+                }
+            }
     }
 }

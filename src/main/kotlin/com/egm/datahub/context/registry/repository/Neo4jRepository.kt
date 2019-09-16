@@ -1,13 +1,12 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
-import com.egm.datahub.context.registry.parser.NgsiLdParser
+import com.egm.datahub.context.registry.service.EntityStatements
 import com.egm.datahub.context.registry.service.JsonLDService
+import com.egm.datahub.context.registry.service.RelationshipStatements
 import com.egm.datahub.context.registry.web.EntityCreationException
 import com.egm.datahub.context.registry.web.NotExistingEntityException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import io.netty.util.internal.StringUtil
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
@@ -31,29 +30,20 @@ class Neo4jRepository(
 ) {
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
-    private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    private var namespacesMapping: Map<String, List<String>> = mapOf(
-        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
-        "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
-        "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
-    )
-
-    fun createEntity(payload: String): String {
-        val entityMap: Map<String, Any> = gson.fromJson(payload, object : TypeToken<Map<String, Any>>() {}.type)
-        val parsedEntity = NgsiLdParser.parseEntity(entityMap, namespacesMapping)
+    fun createEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
         val tx = ogmSession.transaction
         try {
             // This constraint ensures that each profileId is unique per user node
 
             // insert entities first
-            parsedEntity.first.forEach {
+            statements.first.forEach {
                 logger.info(it)
                 ogmSession.query(it, emptyMap<String, Any>()).queryResults()
             }
 
             // insert relationships second
-            parsedEntity.second.forEach {
+            statements.second.forEach {
                 logger.info(it)
                 ogmSession.query(it, emptyMap<String, Any>()).queryResults()
             }
@@ -69,7 +59,7 @@ class Neo4jRepository(
             throw EntityCreationException("Something went wrong when creating entity")
         }
 
-        return entityMap["id"] as String
+        return entityUrn
     }
 
     fun updateEntity(payload: String, uri: String, attr: String) {

@@ -32,8 +32,8 @@ class EntityHandlerTests {
 
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
-        every { neo4jRepository.createEntity(any()) } returns "urn:ngsi-ld:BeeHive:TESTC"
+        val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
+        every { neo4jRepository.createEntity(any(), any()) } returns "urn:ngsi-ld:BeeHive:TESTC"
         every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
@@ -46,8 +46,8 @@ class EntityHandlerTests {
 
     @Test
     fun `should return a 409 if the entity is already existing`() {
-        val jsonLdFile = ClassPathResource("/data/beehive.jsonld")
-        every { neo4jRepository.createEntity(any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
+        val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
+        every { neo4jRepository.createEntity(any(), any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
         // every { neo4jRepository.checkExistingUrn(any())} returns false
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
@@ -59,7 +59,7 @@ class EntityHandlerTests {
 
     @Test
     fun `should return a 400 if JSON-LD payload is not correct`() {
-        val jsonLdFile = ClassPathResource("/data/beehive_missing_context.jsonld")
+        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))

@@ -7,7 +7,7 @@
   "type": "BeeHive",
   "name": "ParisBeehive12",
   "connectsTo": {
-    "type": "Beekeeper",
+    "type": "Relationship",
     "createdAt": "2010-10-26T21:32:52+02:00",
     "object": "urn:diat:Beekeeper:Pascal"
   }

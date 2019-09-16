@@ -9,7 +9,5 @@
   "connectsTo": {
     "type": "Relationship",
     "object": "urn:diat:SmartDoor:0021"
-
-
   }
 }

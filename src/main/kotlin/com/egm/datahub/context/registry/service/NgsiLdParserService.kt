@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.util.*
 import java.util.regex.Pattern
-import kotlin.collections.ArrayList
 
 typealias EntityStatements = List<String>
 typealias RelationshipStatements = List<String>
@@ -188,16 +187,8 @@ class NgsiLdParserService {
                     )
                 }
             }
-//            if (isGeoProperty(content)) {
-//                val obj = item.key
-//                val value = expandObjToMap(content.get("value"))
-//                val coordinates = value.get("coordinates") as ArrayList<Double>
-//                val lon = coordinates.get(0)
-//                val lat = coordinates.get(1)
-//                val location: String = "point({ x: $lon , y: $lat, crs: 'WGS-84' })"
-//                nodeEntity.attrs.put(obj, location)
-//            }
         }
+
         val newStatements = buildInsert(nodeEntity, null, null)
         if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
         if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
@@ -229,13 +220,13 @@ class NgsiLdParserService {
         return node.filterKeys { key ->
             !listOf("type", "@context", "id").contains(key)
         }.filter {
-            /*isGeoProperty(expandObjToMap(it.value)) ||*/ hasAttributes(expandObjToMap(it.value))
+            hasAttributes(expandObjToMap(it.value))
         }.mapValues {
             if (it.value is String) {
                 it.value
             } else if (isGeoProperty(expandObjToMap(it.value))) {
-                val value = expandObjToMap(it.value)
-                val coordinates = value["coordinates"] as ArrayList<Double>
+                val value = expandObjToMap(it.value)["value"] as Map<String, Any>
+                val coordinates = value["coordinates"] as List<Double>
                 val lon = coordinates[0]
                 val lat = coordinates[1]
                 "point({ x: $lon , y: $lat, crs: 'WGS-84' })"
@@ -279,7 +270,7 @@ class NgsiLdParserService {
 
     private fun expandObjToMap(obj: Any?): Map<String, Any> {
         return when (obj) {
-            is Map<*,*> -> obj as Map<String, Any>
+            is Map<*, *> -> obj as Map<String, Any>
             is String -> mapOf(obj to obj)
             else -> emptyMap()
         }

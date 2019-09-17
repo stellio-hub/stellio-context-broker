@@ -36,6 +36,22 @@ class NgsiLdParserServiceTests {
     }
 
     @Test
+    fun `it should create a node with a geo property`() {
+        val expectedCreateStatement =
+            """
+                CREATE (a : diat__BeeHive { name: "ParisBeehive12", location: "point({ x: 13.3986 , y: 52.5547, crs: \u0027WGS-84\u0027 })",  
+                        uri: "urn:diat:BeeHive:TESTC"}) return a
+            """.trimIndent()
+        val beekeeper = ClassPathResource("/ngsild/beehive_with_geoproperty.json")
+        val parsingResult = ngsiLdParserService.parseEntity(beekeeper.inputStream.readBytes().toString(Charsets.UTF_8))
+
+        assertThat(parsingResult.first, equalTo("urn:diat:BeeHive:TESTC"))
+        assertThat(parsingResult.second.first.size, equalTo(1))
+        assertThat(parsingResult.second.second.size, equalTo(0))
+        assertThat(parsingResult.second.first[0], equalToCompressingWhiteSpace(expectedCreateStatement))
+    }
+
+    @Test
     fun `it should create a node with a relationship`() {
         val expectedMatchStatement =
             """

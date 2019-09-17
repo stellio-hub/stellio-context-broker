@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.core.io.ClassPathResource
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
+import org.springframework.test.annotation.DirtiesContext
 import org.testcontainers.containers.Neo4jContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.junit.jupiter.Container
@@ -31,6 +32,7 @@ class KtNeo4jContainer(imageName: String) : Neo4jContainer<KtNeo4jContainer>(ima
 
 @SpringBootTest
 @Testcontainers
+@DirtiesContext
 @EmbeddedKafka(topics = ["entities"])
 class Neo4jRepositoryTest() {
 

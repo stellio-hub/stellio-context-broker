@@ -1,8 +1,11 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
+import com.egm.datahub.context.registry.service.EntityStatements
 import com.egm.datahub.context.registry.service.JsonLDService
-import com.egm.datahub.context.registry.web.AlreadyExistingEntityException
+import com.egm.datahub.context.registry.service.RelationshipStatements
+import com.egm.datahub.context.registry.web.EntityCreationException
+import com.egm.datahub.context.registry.web.NotExistingEntityException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.netty.util.internal.StringUtil
 import org.neo4j.ogm.session.Session
@@ -12,12 +15,14 @@ import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.client.support.BasicAuthenticationInterceptor
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestTemplate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 
 @Component
+@Transactional
 class Neo4jRepository(
     private val ogmSession: Session,
     private val jsonLDService: JsonLDService,
@@ -26,73 +31,72 @@ class Neo4jRepository(
     private val jackson = jacksonObjectMapper()
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
 
-    fun createEntity(jsonld: String): Long {
-        val entityUrn = jsonLDService.parsePayload(jsonld)
-        if (checkExistingUrn(entityUrn)) {
-            throw AlreadyExistingEntityException("already existing entity $entityUrn")
-        }
-        val importStatement = """
-            CALL semantics.importRDFSnippet(
-                '$jsonld',
-                'JSON-LD',
-                { handleVocabUris: 'SHORTEN', typesToLabels: true, commitSize: 500 }
-            )
-        """.trimIndent()
+    fun createEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
+        val tx = ogmSession.transaction
+        try {
+            // This constraint ensures that each profileId is unique per user node
 
-        val queryResults = ogmSession.query(importStatement, emptyMap<String, Any>()).queryResults()
-        addCreatedAtProperty(entityUrn)
-        return queryResults.first()["triplesLoaded"] as Long
+            // insert entities first
+            statements.first.forEach {
+                logger.info(it)
+                ogmSession.query(it, emptyMap<String, Any>()).queryResults()
+            }
+
+            // insert relationships second
+            statements.second.forEach {
+                logger.info(it)
+                ogmSession.query(it, emptyMap<String, Any>()).queryResults()
+            }
+
+            // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
+
+            tx.commit()
+            tx.close()
+        } catch (ex: Exception) {
+            // The constraint is already created or the database is not available
+            ex.printStackTrace()
+            tx.rollback()
+            throw EntityCreationException("Something went wrong when creating entity")
+        }
+
+        return entityUrn
     }
 
-    fun updateEntity(jsonld: String): Long {
-        val entityUrn = jsonLDService.parsePayload(jsonld)
-        if (!checkExistingUrn(entityUrn)) {
+    fun updateEntity(payload: String, uri: String, attr: String) {
+        if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
-            createEntity(entityUrn)
+            throw NotExistingEntityException("not existing entity! ")
         }
-        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val update = "MATCH(o {uri:$entityUrn}) SET o.modifiedAt = $timestamp"
 
-        val queryResults = ogmSession.query(update, emptyMap<String, Any>()).queryResults()
-        return queryResults.first()["triplesLoaded"] as Long
+        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
+        val value = this.jsonLDService.getValueOfProperty(payload, attr, "foaf")
+        val update = "MATCH(o {uri : '$uri'}) SET o.modifiedAt = '$timestamp' , o.$attr = '$value'"
+
+        ogmSession.query(update, emptyMap<String, Any>()).queryResults()
     }
 
-    fun addCreatedAtProperty(entityUrn: String): String {
-        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-        val insert = "MATCH(o {uri:$entityUrn}) SET o.createdAt = $timestamp"
-        val result = ogmSession.query(insert, emptyMap<String, Any>())
-        return result.queryResults().toString()
-    }
-
-    fun getByURI(uri: String): List<Map<String, Any>> {
+    fun getNodesByURI(uri: String): MutableList<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
-        val matchQuery = """
-            MATCH (n $pattern ) RETURN n
-        """.trimIndent()
-        val result = ogmSession.query(matchQuery, emptyMap<String, Any>())
-        return result.queryResults().toList()
+        return ogmSession.query("MATCH (n $pattern ) RETURN n", HashMap<String, Any>()).toMutableList()
     }
 
-    fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
-        val payload = mapOf("cypher" to "MATCH (o:$label) OPTIONAL MATCH (o:$label)-[r]-(s )  RETURN o , r", "format" to "JSON-LD")
-        return performQuery(payload)
+    fun getEntitiesByLabel(label: String): MutableList<Map<String, Any>> {
+        return ogmSession.query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String, Any>()).toMutableList() //
     }
 
-    fun getEntitiesByLabelAndQuery(query: String, label: String): List<Map<String, Any>> {
+    fun getEntitiesByLabelAndQuery(query: String, label: String): MutableList<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o:$label)-[r:$property]-(s { uri : \"$value\" })  RETURN o,r" else "MATCH (o:$label { $property : \"$value\" }) OPTIONAL MATCH (o:$label { $property : \"$value\" })-[r]-(s) RETURN o,r", "format" to "JSON-LD")
-        return performQuery(payload)
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
     }
 
-    fun getEntitiesByQuery(query: String): List<Map<String, Any>> {
+    fun getEntitiesByQuery(query: String): MutableList<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        val payload = mapOf("cypher" to if (query.split("==")[1].startsWith("urn:")) "MATCH (o)-[r:$property]-(s { uri : \"$value\" })  RETURN o,r" else "MATCH (o { $property : \"$value\" }) OPTIONAL MATCH (o { $property : \"$value\" })-[r]-(s)  RETURN o,r", "format" to "JSON-LD")
-        return performQuery(payload)
+        return ogmSession.query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
     }
 
-    fun getEntities(query: String, label: String): List<Map<String, Any>> {
+    fun getEntities(query: String, label: String): MutableList<Map<String, Any>> {
         if (!StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
             return getEntitiesByLabelAndQuery(query, label)
         } else if (StringUtil.isNullOrEmpty(query) && !StringUtil.isNullOrEmpty(label)) {
@@ -100,7 +104,7 @@ class Neo4jRepository(
         } else if (StringUtil.isNullOrEmpty(label) && !StringUtil.isNullOrEmpty(query)) {
             return getEntitiesByQuery(query)
         }
-        return emptyList()
+        return ArrayList<Map<String, Any>>()
     }
 
     fun performQuery(payload: Map<String, Any>): List<Map<String, Any>> {
@@ -115,7 +119,7 @@ class Neo4jRepository(
             restTemplate.interceptors.add(
                     BasicAuthenticationInterceptor(neo4jProperties.username, neo4jProperties.password))
             return restTemplate.exchange(
-                    "${neo4jProperties.nsmntx}/cypheronrdf",
+                    neo4jProperties.nsmntx,
                     HttpMethod.POST,
                     request,
                     object : ParameterizedTypeReference<List<Map<String, Any>>>() {
@@ -125,8 +129,11 @@ class Neo4jRepository(
         }
         return emptyList()
     }
-
     fun checkExistingUrn(entityUrn: String): Boolean {
-        return getByURI(entityUrn).isNotEmpty()
+        return getNodesByURI(entityUrn).isNotEmpty()
+    }
+    fun addNamespaceDefinition(url: String, prefix: String) {
+        val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
+        val queryResults = ogmSession.query(addNamespacesStatement, emptyMap<String, Any>()).queryResults()
     }
 }

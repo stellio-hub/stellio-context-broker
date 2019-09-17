@@ -2,7 +2,7 @@ package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.JsonLDService
-import io.netty.util.internal.StringUtil.isNullOrEmpty
+import com.egm.datahub.context.registry.service.NgsiLdParserService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -17,31 +17,28 @@ import java.net.URI
 
 @Component
 class EntityHandler(
-    private val jsonLDService: JsonLDService,
-    private val neo4JRepository: Neo4jRepository
+    private val ngsiLdParserService: NgsiLdParserService,
+    private val neo4JRepository: Neo4jRepository,
+    private val jsonLDService: JsonLDService
 ) {
 
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
-        var entityUrn = ""
 
         return req.bodyToMono<String>()
             .map {
-                entityUrn = jsonLDService.parsePayload(it)
-                it
-            }
-            .doOnError {
-                logger.error("JSON-LD parsing raised an error : ${it.message}")
+                ngsiLdParserService.parseEntity(it)
             }
             .map {
-                neo4JRepository.createEntity(it)
+                neo4JRepository.createEntity(it.first, it.second)
             }.flatMap {
-                created(URI("/ngsi-ld/v1/entities/$entityUrn")).build()
+                created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
                     when (it) {
-                        is AlreadyExistingEntityException -> ServerResponse.status(HttpStatus.CONFLICT).body(BodyInserters.fromObject(it.localizedMessage))
-                        else -> ServerResponse.badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                        is AlreadyExistingEntityException -> status(HttpStatus.CONFLICT).body(BodyInserters.fromObject(it.localizedMessage))
+                        is EntityCreationException -> status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject(it.localizedMessage))
+                        else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
                     }
             }
     }
@@ -50,8 +47,8 @@ class EntityHandler(
         val type = req.queryParam("type").orElse("")
         val q = req.queryParam("q").orElse("")
 
-        if (isNullOrEmpty(q) && isNullOrEmpty(type)) {
-            return ServerResponse.badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
+        if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
+            return badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
         }
         return "".toMono()
                 .map {
@@ -69,7 +66,7 @@ class EntityHandler(
         val uri = req.pathVariable("entityId")
         return uri.toMono()
                 .map {
-                    neo4JRepository.getByURI(it)
+                    neo4JRepository.getNodesByURI(it)
                 }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))
@@ -85,6 +82,25 @@ class EntityHandler(
                 jsonLDService.expandNgsiLDEntity(it)
             }.flatMap {
                 ok().body(BodyInserters.fromObject(it))
+            }
+    }
+
+    fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {
+        val attr = req.pathVariable("attrId")
+        val uri = req.pathVariable("entityId")
+
+        return req.bodyToMono<String>()
+            .map {
+                neo4JRepository.updateEntity(it, uri, attr)
+            }
+            .flatMap {
+                status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))
+            }
+            .onErrorResume {
+                when (it) {
+                    is NotExistingEntityException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                }
             }
     }
 }

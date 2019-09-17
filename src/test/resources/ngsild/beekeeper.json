@@ -1,0 +1,9 @@
+{
+  "@context": [
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
+  ],
+  "id": "urn:diat:Beekeeper:Pascal",
+  "type": "Beekeeper",
+  "name": "Scalpa"
+}

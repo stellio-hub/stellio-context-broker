@@ -56,7 +56,7 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with an externalized property`() {
         val expectedHasMeasureCreateStatement =
             """
-                CREATE \(a : diat__hasMeasure \{  observedAt: "2019-09-26T21:32:52\+02:00",  unitCode: "C",  
+                CREATE \(a : diat__hasMeasure \{ value: "45", unitCode: "C", observedAt: "2019-09-26T21:32:52\+02:00",  
                         uri: "urn:diat:hasMeasure:[a-zA-Z\-0-9]+"}\) return a
             """.trimIndent()
         val expectedObservationCreateStatement =

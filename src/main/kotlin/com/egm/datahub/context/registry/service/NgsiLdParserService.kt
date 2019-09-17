@@ -151,13 +151,9 @@ class NgsiLdParserService {
                 logger.debug(item.key + " is property")
 
                 // is not a map or the only attributes are type and value
-                if (!hasAttributes(content)) {
+                if (hasAttributes(content)) {
                     // has attributes or just value and type? if so store as attribute  (es. name and available spot number in vehicle)
-                    logger.debug("this property has just type and value")
-
-                    val value = content.get("value")
-                    val obj = item.key
-                    //value?.let { nodeEntity.attrs.put(obj, value) }
+                    logger.debug("this property has just type and value, it is already in node entity")
                 } else {
                     // this property has one ore more nested objects ==> use the attr. key (es. availableSpotNumber) as object to create a Relationship between entity and Property
                     // MATERIALIZED PROPERTY
@@ -231,8 +227,8 @@ class NgsiLdParserService {
     private fun getAttributes(node: Map<String, Any>): Map<String, Any> {
 
         return node.filterKeys { key ->
-            !listOf("type", "value", "@context", "id").contains(key)
-        }.filterNot {
+            !listOf("type", "@context", "id").contains(key)
+        }.filter {
             /*isGeoProperty(expandObjToMap(it.value)) ||*/ hasAttributes(expandObjToMap(it.value))
         }.mapValues {
             if (it.value is String) {
@@ -278,14 +274,7 @@ class NgsiLdParserService {
 
     private fun hasAttributes(node: Map<String, Any>): Boolean {
         // if a Property has just type and value we save it as attribute value in the parent entity
-        var resp = false
-        node.forEach {
-            if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("object") && !it.key.equals("id")) {
-                resp = true
-                return resp
-            }
-        }
-        return resp
+        return node.size == 1 || (node.size == 2 && node.containsKey("type") && node.containsKey("value"))
     }
 
     private fun expandObjToMap(obj: Any?): Map<String, Any> {

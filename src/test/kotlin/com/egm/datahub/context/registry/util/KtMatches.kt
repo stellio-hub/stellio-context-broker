@@ -7,11 +7,12 @@ import org.hamcrest.TypeSafeMatcher
 class KtMatches(private val regex: Regex) : TypeSafeMatcher<String>() {
 
     override fun matchesSafely(input: String): Boolean {
-        return regex.matches(input.replace(" ", ""))
+        val concatInput = input.replace("\n", "").replace(" ", "")
+        return regex.matches(concatInput)
     }
 
     override fun describeTo(description: Description) {
-        description.appendText("matches the given input string")
+        description.appendText("matches the regex : $regex")
     }
 
     companion object {

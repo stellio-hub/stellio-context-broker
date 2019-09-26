@@ -27,6 +27,7 @@ class Neo4jRepository(
         val configuration = Configuration.Builder()
             .uri(neo4jProperties.uri)
             .credentials(neo4jProperties.username, neo4jProperties.password)
+            .encryptionLevel(Config.EncryptionLevel.NONE.name)
             .build()
         sessionFactory = SessionFactory(configuration, "com.egm.datahub.context.registry")
     }

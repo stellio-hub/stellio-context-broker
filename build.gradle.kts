@@ -69,7 +69,6 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.neo4j:neo4j-ogm-embedded-driver:3.1.14")
-    testImplementation("org.neo4j:neo4j:3.4.15")
     testImplementation("org.neo4j:neo4j-bolt:3.4.15")
     // testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.intuit.karate:karate-junit5:0.9.4")

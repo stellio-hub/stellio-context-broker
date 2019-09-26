@@ -2,7 +2,10 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.IntegrationTestsBase
 import com.egm.datahub.context.registry.service.NgsiLdParserService
+import com.egm.datahub.context.registry.web.EntityCreationException
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -23,27 +26,34 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
 
     @BeforeAll
     fun initializeDbFixtures() {
+        logger.info("Initializing fixtures for test")
         cleanDb()
         addURIindex()
         addNamespaces()
         insertFixtures()
     }
 
+    @AfterAll
+    fun removeFixtures() {
+        logger.info("Removing fixtures for test")
+        cleanDb()
+    }
+
     @Test
     fun `query on cypherOnRdf by label`() {
-        val result = this.neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
+        val result = neo4jRepository.getEntitiesByLabel("diat__Beekeeper")
         assertEquals(2, result.size)
     }
 
     @Test
     fun `query on cypherOnRdf by query`() {
-        val result = this.neo4jRepository.getEntitiesByQuery("name==ParisBeehive12")
+        val result = neo4jRepository.getEntitiesByQuery("name==ParisBeehive12")
         assertEquals(1, result.size)
     }
 
     @Test
     fun `query on cypherOnRdf by label and query`() {
-        val result = this.neo4jRepository.getEntitiesByLabelAndQuery("name==Scalpa", "diat__Beekeeper")
+        val result = neo4jRepository.getEntitiesByLabelAndQuery("name==Scalpa", "diat__Beekeeper")
         assertEquals(1, result.size)
     }
 
@@ -68,7 +78,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
 
     fun insertFixtures() {
 
-        val listOfFiles = listOf(
+        listOf(
             ClassPathResource("/ngsild/beekeeper.json"),
             ClassPathResource("/ngsild/beekeeper_notconnected.json"),
             ClassPathResource("/ngsild/beehive.json"),
@@ -77,14 +87,15 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
             ClassPathResource("/ngsild/observation_sensor.json"),
             ClassPathResource("/ngsild/sensor.json"),
             ClassPathResource("/ngsild/smartdoor.json")
-        )
-        for (item in listOfFiles) {
-            val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
+        ).forEach {
+            val content = it.inputStream.readBytes().toString(Charsets.UTF_8)
             try {
                 val parsedContent = ngsiLdParserService.parseEntity(content)
                 neo4jRepository.createOrUpdateEntity("", parsedContent.second)
+            } catch (e: EntityCreationException) {
+                logger.warn("Entity already exists $it")
             } catch (e: Exception) {
-                logger.error("already existing $item")
+                fail("Unable to bootstrap fixtures", e)
             }
         }
     }

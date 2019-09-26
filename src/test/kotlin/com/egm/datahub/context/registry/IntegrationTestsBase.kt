@@ -2,6 +2,7 @@ package com.egm.datahub.context.registry
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
 import org.neo4j.driver.v1.AuthTokens
 import org.neo4j.driver.v1.Config
 import org.neo4j.driver.v1.Driver
@@ -13,6 +14,7 @@ import org.springframework.test.annotation.DirtiesContext
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb.factory.GraphDatabaseSettings
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
@@ -28,8 +30,15 @@ class IntegrationTestsBase {
 
     private lateinit var graphDb: GraphDatabaseService
 
+    private val logger = LoggerFactory.getLogger(IntegrationTestsBase::class.java)
+
     init {
         System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
+    }
+
+    @BeforeAll
+    private fun startNeo4jEmbed() {
+        logger.info("Starting Neo4j")
 
         val bolt = GraphDatabaseSettings.boltConnector("bolt")
 
@@ -45,6 +54,8 @@ class IntegrationTestsBase {
 
     @AfterAll
     private fun shutdownNeo4jEmbed() {
+        logger.info("Shutting down Neo4j")
+
         graphDb.shutdown()
     }
 

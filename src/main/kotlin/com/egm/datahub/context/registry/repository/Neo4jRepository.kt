@@ -8,7 +8,9 @@ import com.egm.datahub.context.registry.web.NotExistingEntityException
 import com.google.gson.GsonBuilder
 import io.netty.util.internal.StringUtil
 import org.neo4j.driver.v1.*
+import org.neo4j.ogm.config.Configuration
 import org.neo4j.ogm.response.model.NodeModel
+import org.neo4j.ogm.session.SessionFactory
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -19,17 +21,18 @@ class Neo4jRepository(
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    private lateinit var driver: Driver
+    private lateinit var sessionFactory: SessionFactory
 
     init {
-        val config = Config.build()
-            .withoutEncryption()
-            .toConfig()
-        driver = GraphDatabase.driver(neo4jProperties.uri, AuthTokens.basic(neo4jProperties.username, neo4jProperties.password), config)
+        val configuration = Configuration.Builder()
+            .uri(neo4jProperties.uri)
+            .credentials(neo4jProperties.username, neo4jProperties.password)
+            .build()
+        sessionFactory = SessionFactory(configuration, "com.egm.datahub.context.registry")
     }
 
     fun createOrUpdateEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
-        val session = driver.session()
+        val session = sessionFactory.openSession()
         val tx = session.beginTransaction()
         try {
             // This constraint ensures that each profileId is unique per user node
@@ -37,22 +40,22 @@ class Neo4jRepository(
             // insert entities first
             statements.first.forEach {
                 logger.info("Creating entity : $it")
-                tx.run(it, emptyMap<String, Any>())
+                session.query(it, emptyMap<String, Any>())
             }
 
             // insert relationships second
             statements.second.forEach {
                 logger.info("Creating relation : $it")
-                tx.run(it, emptyMap<String, Any>())
+                session.query(it, emptyMap<String, Any>())
             }
 
             // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
 
-            tx.success()
+            tx.commit()
         } catch (ex: Exception) {
             // The constraint is already created or the database is not available
-            ex.printStackTrace()
-            tx.failure()
+            logger.error("Error while persisting entity $entityUrn", ex)
+            tx.rollback()
             throw EntityCreationException("Something went wrong when creating entity")
         } finally {
             tx.close()
@@ -67,33 +70,37 @@ class Neo4jRepository(
             throw NotExistingEntityException("not existing entity! ")
         }
 
-        val updateResults = driver.session().run(statement, emptyMap<String, Any>()).list()
+        val updateResults = sessionFactory.openSession().query(statement, emptyMap<String, Any>()).queryResults()
         logger.info(gson.toJson((updateResults.first().get("a") as NodeModel).propertyList))
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {
         val pattern = "{ uri: '$uri' }"
-        return driver.session().run("MATCH (n $pattern ) RETURN n", HashMap<String, Any>())
-            .list().map { it.asMap() }
+        return sessionFactory.openSession()
+            .query("MATCH (n $pattern ) RETURN n", emptyMap<String, Any>(), true)
+            .toList()
     }
 
     fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
-        return driver.session().run("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String, Any>())
-            .list().map { it.asMap() }
+        return sessionFactory.openSession()
+            .query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", emptyMap<String, Any>(), true)
+            .toList()
     }
 
     fun getEntitiesByLabelAndQuery(query: String, label: String): List<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        return driver.session().run(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String, Any>())
-            .list().map { it.asMap() }
+        return sessionFactory.openSession()
+            .query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", emptyMap<String, Any>())
+            .toList()
     }
 
     fun getEntitiesByQuery(query: String): List<Map<String, Any>> {
         val property = query.split("==")[0]
         val value = query.split("==")[1]
-        return driver.session().run(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String, Any>())
-            .list().map { it.asMap() }
+        return sessionFactory.openSession()
+            .query(if (query.split("==")[1].startsWith("urn:")) "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o" else "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String, Any>())
+            .toList()
     }
 
     fun getEntities(query: String, label: String): List<Map<String, Any>> {
@@ -122,6 +129,6 @@ class Neo4jRepository(
 
     fun addNamespaceDefinition(url: String, prefix: String) {
         val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
-        driver.session().run(addNamespacesStatement, emptyMap<String, Any>())
+        sessionFactory.openSession().query(addNamespacesStatement, emptyMap<String, Any>())
     }
 }

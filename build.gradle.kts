@@ -49,8 +49,8 @@ dependencies {
     implementation("org.springframework.kafka:spring-kafka")
     implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
     implementation("com.google.code.gson:gson:2.8.5")
-    implementation("org.neo4j.driver:neo4j-java-driver:1.7.5")
     implementation("org.neo4j:neo4j-ogm-core:3.1.14")
+    implementation("org.neo4j:neo4j-ogm-api:3.1.14")
     implementation("org.neo4j:neo4j-ogm-bolt-driver:3.1.14")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")

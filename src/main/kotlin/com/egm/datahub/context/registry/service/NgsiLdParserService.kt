@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.regex.Pattern
 
@@ -13,10 +14,16 @@ typealias RelationshipStatements = List<String>
 @Component
 class NgsiLdParserService {
 
-    class Entity(var label: String, var attrs: Map<String, Any>, var ns: String?) {
+    class Entity(var label: String, initialAttrs: Map<String, Any>, var ns: String?) {
+
+        var attrs: MutableMap<String, Any> = initialAttrs.toMutableMap()
 
         fun getLabelWithPrefix(): String {
             return this.ns + "__" + this.label
+        }
+
+        fun getUri(): String {
+            return this.attrs["uri"].toString()
         }
     }
 
@@ -250,16 +257,35 @@ class NgsiLdParserService {
     private fun buildInsert(subject: Entity, predicate: String?, obj: Entity?): Pair<EntityStatements, RelationshipStatements> {
         return if (predicate == null || obj == null) {
             val labelSubject = subject.getLabelWithPrefix()
+            val uri = subject.getUri()
+            val attrsUriSubj = formatAttributes(mapOf("uri" to uri))
+            val timeStamp = SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(Date())
+            if (!subject.attrs.containsKey("createdAt")) {
+                subject.attrs["createdAt"] = timeStamp
+            }
+            subject.attrs["modifiedAt"] = timeStamp
             val attrsSubj = formatAttributes(subject.attrs)
-            Pair(listOf("CREATE (a : $labelSubject $attrsSubj) return a"), emptyList())
+            val entityStatement = """
+                MERGE (a : $labelSubject $attrsUriSubj) 
+                ON CREATE SET a = $attrsSubj 
+                ON MATCH  SET a += $attrsSubj 
+                return a
+            """.trimIndent()
+
+            Pair(listOf(entityStatement), emptyList())
         } else {
             val labelObj = obj.getLabelWithPrefix()
-            val attrsObj = formatAttributes(obj.attrs)
             val labelSubject = subject.getLabelWithPrefix()
-            val subjectUri = subject.attrs["uri"]!!
-            val attrsSubj =
-                formatAttributes(mapOf("uri" to subjectUri))
-            Pair(emptyList(), listOf("MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj) CREATE (a)-[r:$predicate]->(b) return a,b"))
+            val uriSubj = subject.getUri()
+            val uriObj = obj.getUri()
+            val attrsSubj = formatAttributes(mapOf("uri" to uriSubj))
+            val attrsObj = formatAttributes(mapOf("uri" to uriObj))
+            val relationshipStatement = """
+                MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj ) 
+                MERGE (a)-[r:$predicate]->(b) 
+                return a,b
+            """.trimIndent()
+            Pair(emptyList(), listOf(relationshipStatement))
         }
     }
 

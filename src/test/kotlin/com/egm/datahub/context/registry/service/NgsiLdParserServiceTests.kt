@@ -10,6 +10,7 @@ import org.springframework.test.context.ActiveProfiles
 
 import org.hamcrest.Matchers.*
 import org.hamcrest.MatcherAssert.assertThat
+import org.junit.jupiter.api.Assertions.assertEquals
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ NgsiLdParserService::class ])
 @ActiveProfiles("test")
@@ -94,5 +95,21 @@ class NgsiLdParserServiceTests {
         assertThat(parsingResult.second.first, hasItem(ktMatches(expectedHasMeasureCreateStatement)))
         assertThat(parsingResult.second.first, hasItem(expectedObservationCreateStatement))
         assertThat(parsingResult.second.second[0], ktMatches(expectedMatchStatement))
+    }
+
+    @Test
+    fun `check vehicle insert create certain numbers of CREATE entities and CREATE relationships`() {
+        val item = ClassPathResource("/ngsild/vehicle_ngsild.json")
+        val parsingResult = ngsiLdParserService.parseEntity(item.inputStream.readBytes().toString(Charsets.UTF_8))
+        assertEquals(4, parsingResult.second.first.size)
+        assertEquals(2, parsingResult.second.second.size)
+    }
+
+    @Test
+    fun `check parking insert create certain numbers of CREATE entities and CREATE relationships`() {
+        val item = ClassPathResource("/ngsild/parking_ngsild.json")
+        val parsingResult = ngsiLdParserService.parseEntity(item.inputStream.readBytes().toString(Charsets.UTF_8))
+        assertEquals(3, parsingResult.second.first.size)
+        assertEquals(2, parsingResult.second.second.size)
     }
 }

@@ -21,16 +21,8 @@ echo "obs END......"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/observation_sensor.json --header "Content-Type: application/ld+json"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/sensor.json --header "Content-Type: application/ld+json"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/smartdoor.json --header "Content-Type: application/ld+json"
+
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/parking_ngsild.json --header "Content-Type: application/ld+json"
+curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/vehicle_ngsild.json --header "Content-Type: application/ld+json"
+
 echo "END injection"
-
-#curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/vehicle_ngsild.json --header "Content-Type: application/ld+json"
-#curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/parking_ngsild.json --header "Content-Type: application/ld+json"
-
-            ClassPathResource("/"),
-            ClassPathResource("/"),
-            ClassPathResource("/"),
-            ClassPathResource("/ngsild/door.json"),
-            ClassPathResource("/ngsild/observation_door.json"),
-            ClassPathResource("/ngsild/observation_sensor.json"),
-            ClassPathResource("/ngsild/sensor.json"),
-            ClassPathResource("/ngsild/smartdoor.json")

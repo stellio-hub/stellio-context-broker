@@ -31,7 +31,7 @@ class EntityHandler(
                 ngsiLdParserService.parseEntity(it)
             }
             .map {
-                neo4JRepository.createEntity(it.first, it.second)
+                neo4JRepository.createOrUpdateEntity(it.first, it.second)
             }.flatMap {
                 created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
@@ -91,7 +91,10 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                neo4JRepository.updateEntity(it, uri, attr)
+                ngsiLdParserService.ngsiLdToUpdateQuery(it, uri, attr)
+            }
+            .map {
+                neo4JRepository.updateEntity(it.first, it.second)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))

@@ -5,6 +5,8 @@ import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.regex.Pattern
 
@@ -30,11 +32,13 @@ class NgsiLdParserService {
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private val logger = LoggerFactory.getLogger(NgsiLdParserService::class.java)
 
-    private var namespacesMapping: Map<String, List<String>> = mapOf(
-        "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
-        "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
-        "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
-    )
+    companion object {
+        val namespacesMapping: Map<String, List<String>> = mapOf(
+            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
+            "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
+            "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
+        )
+    }
 
     fun parseEntity(ngsiLdPayload: String): Pair<String, Pair<EntityStatements, RelationshipStatements>> {
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
@@ -105,7 +109,7 @@ class NgsiLdParserService {
 
                     if (parentIsRelationship) {
                         parentAttribute?.let {
-                            nodeEntity.ns = getLabelNamespace(parentAttribute)
+                            // nodeEntity.ns = getLabelNamespace(parentAttribute)
                             val newStatements = buildInsert(
                                 nodeEntity,
                                 predicate,
@@ -287,6 +291,21 @@ class NgsiLdParserService {
             """.trimIndent()
             Pair(emptyList(), listOf(relationshipStatement))
         }
+    }
+
+    fun ngsiLdToUpdateQuery(payload: String, uri: String, attr: String): Pair<String, String> {
+        val payloadMap = expandObjToMap(payload)
+        payloadMap[attr]?.let {
+            val value = it.toString()
+            val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
+            val attrsUriMatch = formatAttributes(mapOf("uri" to uri))
+            val attrsUriSubj = formatAttributes(mapOf("uri" to uri, "modifiedAt" to timestamp, attr to value))
+
+            return Pair(uri, "MERGE (a $attrsUriMatch) ON  MATCH  SET a += $attrsUriSubj return a")
+        }
+
+        // TODO : validation error ?
+        return Pair(uri, "")
     }
 
     private fun hasAttributes(node: Map<String, Any>): Boolean {

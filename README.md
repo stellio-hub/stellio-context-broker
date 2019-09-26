@@ -36,6 +36,12 @@ CREATE (:NamespacePrefixDefinition {
   `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})
 
 CREATE INDEX ON :Resource(uri)
+
+CREATE CONSTRAINT ON (camera:Camera) ASSERT camera:uri IS UNIQUE
+CREATE CONSTRAINT ON (asN:availableSpotNumber) ASSERT asN:uri IS UNIQUE
+CREATE CONSTRAINT ON (offStreetParking:OffStreetParking) ASSERT offStreetParking:uri IS UNIQUE
+CREATE CONSTRAINT ON (vehicle:Vehicle) ASSERT vehicle:uri IS UNIQUE
+CREATE CONSTRAINT ON (person:Person) ASSERT camera:uri IS UNIQUE
 ```
 
 # Sample queries

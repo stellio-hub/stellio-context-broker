@@ -2,23 +2,22 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.EntityStatements
-import com.egm.datahub.context.registry.service.JsonLDService
 import com.egm.datahub.context.registry.service.RelationshipStatements
 import com.egm.datahub.context.registry.web.EntityCreationException
 import com.egm.datahub.context.registry.web.NotExistingEntityException
+import com.google.gson.GsonBuilder
 import io.netty.util.internal.StringUtil
 import org.neo4j.driver.v1.*
+import org.neo4j.ogm.response.model.NodeModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.Instant
-import java.time.format.DateTimeFormatter
 
 @Component
 class Neo4jRepository(
-    private val jsonLDService: JsonLDService,
     neo4jProperties: Neo4jProperties
 ) {
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
+    private val gson = GsonBuilder().setPrettyPrinting().create()
 
     private lateinit var driver: Driver
 
@@ -29,7 +28,7 @@ class Neo4jRepository(
         driver = GraphDatabase.driver(neo4jProperties.uri, AuthTokens.basic(neo4jProperties.username, neo4jProperties.password), config)
     }
 
-    fun createEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
+    fun createOrUpdateEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
         val session = driver.session()
         val tx = session.beginTransaction()
         try {
@@ -62,17 +61,14 @@ class Neo4jRepository(
         return entityUrn
     }
 
-    fun updateEntity(payload: String, uri: String, attr: String) {
+    fun updateEntity(uri: String, statement: String) {
         if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
             throw NotExistingEntityException("not existing entity! ")
         }
 
-        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
-        val value = this.jsonLDService.getValueOfProperty(payload, attr, "foaf")
-        val update = "MATCH(o {uri : '$uri'}) SET o.modifiedAt = '$timestamp' , o.$attr = '$value'"
-
-        driver.session().run(update, emptyMap<String, Any>()).list()
+        val updateResults = driver.session().run(statement, emptyMap<String, Any>()).list()
+        logger.info(gson.toJson((updateResults.first().get("a") as NodeModel).propertyList))
     }
 
     fun getNodesByURI(uri: String): List<Map<String, Any>> {

@@ -2,9 +2,7 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.IntegrationTestsBase
 import com.egm.datahub.context.registry.service.NgsiLdParserService
-import com.google.gson.GsonBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -22,7 +20,6 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     private lateinit var ngsiLdParserService: NgsiLdParserService
 
     private val logger = LoggerFactory.getLogger(Neo4jRepositoryTest::class.java)
-    private val gson = GsonBuilder().setPrettyPrinting().create()
 
     @BeforeAll
     fun initializeDbFixtures() {
@@ -48,16 +45,6 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query on cypherOnRdf by label and query`() {
         val result = this.neo4jRepository.getEntitiesByLabelAndQuery("name==Scalpa", "diat__Beekeeper")
         assertEquals(1, result.size)
-    }
-
-    // @Test
-    fun `update on cypherOnRdf by payload, URI and attribute`() {
-        val file = ClassPathResource("/ngsild/sensor_update.jsonld")
-        val content = file.inputStream.readBytes().toString(Charsets.UTF_8)
-        val entityBefore = this.neo4jRepository.getNodesByURI("urn:diat:Sensor:0022CCC")
-        this.neo4jRepository.updateEntity(content, "urn:diat:Sensor:0022CCC", "name")
-        val entityAfter = this.neo4jRepository.getNodesByURI("urn:diat:Sensor:0022CCC")
-        assertFalse(gson.toJson(entityBefore) == gson.toJson(entityAfter))
     }
 
     fun addNamespaces() {
@@ -95,7 +82,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
             val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
             try {
                 val parsedContent = ngsiLdParserService.parseEntity(content)
-                neo4jRepository.createEntity("", parsedContent.second)
+                neo4jRepository.createOrUpdateEntity("", parsedContent.second)
             } catch (e: Exception) {
                 logger.error("already existing $item")
             }

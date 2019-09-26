@@ -66,17 +66,17 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
                 "  `http://xmlns.com/foaf/0.1/`: 'foaf',\n" +
                 "  `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})"
         val resultSummary = driver().session().run(addNamespaces, emptyMap()).consume()
-        logger.debug("Got result ${resultSummary.counters()}")
+        logger.debug("Nodes created ${resultSummary.counters().nodesCreated()}")
     }
 
     fun addURIindex() {
         val resultSummary = driver().session().run("CREATE INDEX ON :Resource(uri)").consume()
-        logger.debug("Got result ${resultSummary.counters()}")
+        logger.debug("Indexes added : ${resultSummary.counters().indexesAdded()}")
     }
 
     fun cleanDb() {
         val resultSummary = driver().session().run("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r").consume()
-        logger.debug("Got result ${resultSummary.counters()}")
+        logger.debug("Node deleted ${resultSummary.counters().nodesDeleted()}")
     }
 
     fun insertFixtures() {

@@ -1,6 +1,5 @@
 package com.egm.datahub.context.registry.service
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.neo4j.ogm.response.model.NodeModel

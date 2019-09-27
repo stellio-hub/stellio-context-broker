@@ -66,7 +66,10 @@ class EntityHandler(
         val uri = req.pathVariable("entityId")
         return uri.toMono()
                 .map {
-                    neo4JRepository.getNodesByURI(it)
+                    neo4JRepository.getNodeByURI(it)
+                }
+                .map {
+                    ngsiLdParserService.queryResultToNgsiLd(it)
                 }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))

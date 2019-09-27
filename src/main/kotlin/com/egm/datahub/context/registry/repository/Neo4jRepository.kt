@@ -75,11 +75,14 @@ class Neo4jRepository(
         logger.info(gson.toJson((updateResults.first().get("a") as NodeModel).propertyList))
     }
 
-    fun getNodesByURI(uri: String): List<Map<String, Any>> {
-        val pattern = "{ uri: '$uri' }"
+    fun getNodeByURI(uri: String): Map<String, Any> {
+        val query = """
+            MATCH (n { uri: '$uri' }) RETURN n
+        """.trimIndent()
         return sessionFactory.openSession()
-            .query("MATCH (n $pattern ) RETURN n", emptyMap<String, Any>(), true)
-            .toList()
+            .query(query, emptyMap<String, Any>(), true)
+            .queryResults()
+            .first()
     }
 
     fun getEntitiesByLabel(label: String): List<Map<String, Any>> {
@@ -116,7 +119,7 @@ class Neo4jRepository(
     }
 
     fun checkExistingUrn(entityUrn: String): Boolean {
-        return getNodesByURI(entityUrn).isNotEmpty()
+        return getNodeByURI(entityUrn).isNotEmpty()
     }
 
     fun convert(value: Value): Any {

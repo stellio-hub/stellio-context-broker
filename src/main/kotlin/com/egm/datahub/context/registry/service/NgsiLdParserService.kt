@@ -1,7 +1,9 @@
 package com.egm.datahub.context.registry.service
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import org.neo4j.ogm.response.model.NodeModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.text.SimpleDateFormat
@@ -37,6 +39,14 @@ class NgsiLdParserService {
             "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
             "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
             "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera") // this is property of property in order to allow nested property we need to add it to model
+        )
+
+        val contextsMap = mapOf(
+            "@context" to listOf(
+                "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
+            )
         )
     }
 
@@ -331,5 +341,41 @@ class NgsiLdParserService {
         // fallback to default core NGSI-LD namespace
         // TODO : we should instead raise a 400-like exception
         return "ngsild"
+    }
+
+    /**
+     * Sample (simple) query result :
+     *
+     *  {"n": {
+     *      "id":57,
+     *      "version":null,
+     *      "labels":["diat__Door"],
+     *      "primaryIndex":null,
+     *      "previousDynamicLabels":[],
+     *      "propertyList":[
+     *          {"key":"createdAt","value":"2019.09.26.14.31.44"},
+     *          {"key":"doorNumber","value":"15"},
+     *          {"key":"modifiedAt","value":"2019.09.26.14.31.44"},
+     *          {"key":"uri","value":"urn:diat:Door:0015"}
+     *      ]
+     *   }}
+     */
+    fun queryResultToNgsiLd(queryResult: Map<String, Any>): Map<String, Any> {
+        val nodeModel = queryResult["n"] as NodeModel
+        val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
+        logger.debug("Transforming node ${nodeModel.id} ($uriProperty)")
+        val properties = nodeModel.propertyList
+            .filter { it.key != "uri" }
+            .map {
+                it.key to mapOf(
+                    "type" to "Property",
+                    "value" to it.value
+                )
+            }
+
+        return mapOf(
+            "id" to uriProperty.value,
+            "type" to nodeModel.labels[0]
+        ).plus(properties).plus(contextsMap)
     }
 }

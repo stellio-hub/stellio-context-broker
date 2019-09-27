@@ -330,6 +330,6 @@ class NgsiLdParserService {
 
         // fallback to default core NGSI-LD namespace
         // TODO : we should instead raise a 400-like exception
-        return "ngsi-ld"
+        return "ngsild"
     }
 }

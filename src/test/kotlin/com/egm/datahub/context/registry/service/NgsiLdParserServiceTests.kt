@@ -1,16 +1,15 @@
 package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.util.KtMatches.Companion.ktMatches
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-
-import org.hamcrest.Matchers.*
-import org.hamcrest.MatcherAssert.assertThat
-import org.junit.jupiter.api.Assertions.assertEquals
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ NgsiLdParserService::class ])
 @ActiveProfiles("test")
@@ -113,17 +112,22 @@ class NgsiLdParserServiceTests {
 
     @Test
     fun `check vehicle insert create certain numbers of CREATE entities and CREATE relationships`() {
+
         val item = ClassPathResource("/ngsild/vehicle_ngsild.json")
-        val parsingResult = ngsiLdParserService.parseEntity(item.inputStream.readBytes().toString(Charsets.UTF_8))
-        assertEquals(2, parsingResult.second.first.size)
-        assertEquals(1, parsingResult.second.second.size)
+        val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
+        val ngsiLd = ngsiLdParserService.parseEntity(content)
+        assertEquals(4, ngsiLd.second.first.size)
+        assertEquals(2, ngsiLd.second.second.size)
     }
 
     @Test
     fun `check parking insert create certain numbers of CREATE entities and CREATE relationships`() {
+
         val item = ClassPathResource("/ngsild/parking_ngsild.json")
-        val parsingResult = ngsiLdParserService.parseEntity(item.inputStream.readBytes().toString(Charsets.UTF_8))
-        assertEquals(3, parsingResult.second.first.size)
-        assertEquals(2, parsingResult.second.second.size)
+        val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
+        val ngsiLd = ngsiLdParserService.parseEntity(content)
+        assertEquals(3, ngsiLd.second.first.size)
+        assertEquals(2, ngsiLd.second.second.size)
     }
+
 }

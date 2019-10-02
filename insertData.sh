@@ -25,4 +25,7 @@ curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/n
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/parking_ngsild.json --header "Content-Type: application/ld+json"
 curl -vX POST http://localhost:8080/ngsi-ld/v1/entities -d @src/test/resources/ngsild/vehicle_ngsild.json --header "Content-Type: application/ld+json"
 
+
 echo "END injection"
+
+

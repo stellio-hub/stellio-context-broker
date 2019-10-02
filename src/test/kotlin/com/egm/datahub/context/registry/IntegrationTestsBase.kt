@@ -7,13 +7,13 @@ import org.neo4j.driver.v1.AuthTokens
 import org.neo4j.driver.v1.Config
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.GraphDatabase
-import org.springframework.kafka.test.EmbeddedKafkaBroker
-import org.springframework.kafka.test.context.EmbeddedKafka
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb.factory.GraphDatabaseSettings
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.kafka.test.EmbeddedKafkaBroker
+import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
 
@@ -26,6 +26,8 @@ open class IntegrationTestsBase {
 
     private lateinit var graphDb: GraphDatabaseService
 
+    private lateinit var bolt: GraphDatabaseSettings.BoltConnector
+
     private val logger = LoggerFactory.getLogger(IntegrationTestsBase::class.java)
 
     init {
@@ -36,7 +38,7 @@ open class IntegrationTestsBase {
     private fun startNeo4jEmbed() {
         logger.info("Starting Neo4j")
 
-        val bolt = GraphDatabaseSettings.boltConnector("bolt")
+        bolt = GraphDatabaseSettings.boltConnector("bolt")
 
         graphDb = GraphDatabaseFactory()
             .newEmbeddedDatabaseBuilder(File("tmp/db.data"))

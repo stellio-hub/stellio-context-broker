@@ -14,6 +14,9 @@ import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import java.net.URI
+import java.util.concurrent.Callable
+
+
 
 @Component
 class EntityHandler(
@@ -25,13 +28,14 @@ class EntityHandler(
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
+        var entityUrn = ""
 
         return req.bodyToMono<String>()
             .map {
                 ngsiLdParserService.parseEntity(it)
             }
             .map {
-                neo4JRepository.createOrUpdateEntity(it.first, it.second)
+                neo4JRepository.createEntity(it.first, it.second)
             }.flatMap {
                 created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
@@ -94,10 +98,7 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                ngsiLdParserService.ngsiLdToUpdateQuery(it, uri, attr)
-            }
-            .map {
-                neo4JRepository.updateEntity(it.first, it.second)
+                neo4JRepository.updateEntity(it, uri, attr)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))

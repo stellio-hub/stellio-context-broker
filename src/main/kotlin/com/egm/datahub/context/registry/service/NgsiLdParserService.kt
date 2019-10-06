@@ -13,25 +13,23 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.regex.Pattern
 
-typealias EntityStatements = List<String>
-typealias RelationshipStatements = List<String>
+typealias EntityStatement = String
+typealias RelationshipStatement = String
+typealias EntityStatements = List<EntityStatement>
+typealias RelationshipStatements = List<RelationshipStatement>
 
 @Component
 class NgsiLdParserService(
     private val neo4jRepository: Neo4jRepository
 ) {
 
-    class Entity {
+    class Entity(var attrs: MutableMap<String, Any>, var ns: String?) {
         var label: String = ""
-        var attrs: MutableMap<String, Any>
-        var ns: String?
-        constructor(attrs: MutableMap<String, Any>, ns: String?) {
-            this.attrs = attrs
-            this.ns = ns
-        }
+
         fun getUri(): String {
             return this.attrs.get("uri").toString()
         }
+
         fun getLabelWithPrefix(): String {
             this.attrs.get("uri")?.let {
                 this.label = it.toString().split(":")[2]
@@ -58,24 +56,20 @@ class NgsiLdParserService(
             )
         )
         fun expandObjToMap(obj: Any?): Map<String, Any> {
-            try {
-                if (obj is String) {
-                    return gson.fromJson(obj.toString(), object : TypeToken<Map<String, Any>>() {}.type)
-                } else {
-                    return obj as Map<String, Any>
-                }
-            } catch (e: Exception) {
-                return emptyMap()
+            return when (obj) {
+                is Map<*, *> -> obj as Map<String, Any>
+                else -> emptyMap()
             }
         }
         fun formatAttributes(attributes: Map<String, Any>): String {
             var attrs = gson.toJson(attributes)
-            var p = Pattern.compile("\\\"(\\w+)\\\"\\:")
+            val p = Pattern.compile("\\\"(\\w+)\\\"\\:")
             attrs = p.matcher(attrs).replaceAll("$1:")
             attrs = attrs.replace("\n", "")
             return attrs
         }
     }
+
     private fun iterateOverRelationships(node: Map<String, Any>): Map<String, Any> {
         val nodeModel = node["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
@@ -85,7 +79,6 @@ class NgsiLdParserService(
         // add relationships
         relationships.map {
             val target = it.get("t") as NodeModel
-            val relationship = it.get("r") as RelationshipModel
             var relMapProperties = mutableMapOf<String, Any>("type" to "Relationship")
             target.propertyList.filter {
                 it.key == "uri"
@@ -116,6 +109,7 @@ class NgsiLdParserService(
         }
         return inneroutput
     }
+
     private fun iterateOverProperties(node: Map<String, Any>): Map<String, Any> {
         val nodeModel = node["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
@@ -175,12 +169,11 @@ class NgsiLdParserService(
 
         val nodeType = node["type"].toString()
         val nodeUuid = node.getOrDefault("id", uuid).toString()
-        val nsSubj = getLabelNamespace(nodeType)
-        val attrs = getAttributes(node).toMutableMap()
-        attrs.put("uri", nodeUuid)
+        val nodeNs = getLabelNamespace(nodeType)
+        val attrs = getAttributes(node).plus("uri" to nodeUuid)
         val nodeEntity = Entity(
-            attrs,
-            nsSubj
+            attrs.toMutableMap(),
+            nodeNs
         )
 
         // if is Property override the generic Property type with the attribute
@@ -199,62 +192,57 @@ class NgsiLdParserService(
                 // add to attr map
             }
             if (isRelationship(content)) {
+                // a relationship without an object? not possible skip!
+                if (content.get("object") == null)
+                    continue
+
                 logger.debug(item.key + " is relationship")
                 // THIS IS THE NODE --> REL --> NODE (object)
                 val rel = item.key
                 val nsPredicate = getLabelNamespace(rel)
-                val predicate = nsPredicate + "__" + rel
-                // create random uri for rel
-                val uuid = UUID.randomUUID().toString()
                 // add materialized relationship NODE
-                val urnRel = "urn:$nsPredicate:$rel:$uuid"
-                // a Relationship witemhout a object? not possible skip!
-                if (content.get("object") == null)
-                    continue
+                val urnRel = "urn:$nsPredicate:$rel:${UUID.randomUUID()}"
+                val relObject = content["object"].toString()
 
-                content.get("object").let {
-                    val urn: String = it.toString()
-                    val typeObj = urn.split(":")[2]
-                    val nsObj = getLabelNamespace(typeObj)
-                    // ADD RELATIONSHIP
+                val typeObj = relObject.split(":")[2]
+                val nsObj = getLabelNamespace(typeObj)
+                // ADD RELATIONSHIP
 
-                    if (parentIsRelationship) {
-                        parentAttribute?.let {
-                            nodeEntity.ns = getLabelNamespace(parentAttribute)
-                            val newStatements = buildInsert(
-                                nodeEntity,
-                                Entity(hashMapOf("uri" to urnRel), nsPredicate),
-                                Entity(hashMapOf("uri" to urn), nsObj)
-                            )
-                            if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
-                            if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
-                        }
-                    } else {
-                        val ns = getLabelNamespace(typeObj)
+                if (parentIsRelationship) {
+                    parentAttribute?.let {
+                        nodeEntity.ns = getLabelNamespace(parentAttribute)
                         val newStatements = buildInsert(
                             nodeEntity,
                             Entity(hashMapOf("uri" to urnRel), nsPredicate),
-                            Entity(hashMapOf("uri" to urn), ns)
+                            Entity(hashMapOf("uri" to relObject), nsObj)
                         )
-                        if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
-                        if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+                        logger.debug("Built statement : ${newStatements.second}")
+                        accRelationshipStatements.add(newStatements.second)
                     }
+                } else {
+                    val newStatements = buildInsert(
+                        nodeEntity,
+                        Entity(hashMapOf("uri" to urnRel), nsPredicate),
+                        Entity(hashMapOf("uri" to relObject), nsObj)
+                    )
+                    logger.debug("Built statement : ${newStatements.second}")
+                    accRelationshipStatements.add(newStatements.second)
+                }
 
-                    // ADD the "object"
-                    val newStatements = buildInsert(Entity(hashMapOf("uri" to urn), nsObj), null, null)
-                    if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
-                    if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+                // ADD the "object"
+                val newStatements = buildInsert(Entity(hashMapOf("uri" to relObject), nsObj), null, null)
+                logger.debug("Built statement : ${newStatements.first}")
+                accEntityStatements.add(newStatements.first)
 
-                    if (hasAttributes(content)) {
-                        // go deeper using the materialized rel Node
-                        transformNgsiLdToCypher(
-                            content,
-                            urnRel,
-                            item.key,
-                            accEntityStatements,
-                            accRelationshipStatements
-                        )
-                    }
+                if (hasAttributes(content)) {
+                    // go deeper using the materialized rel Node
+                    transformNgsiLdToCypher(
+                        content,
+                        urnRel,
+                        item.key,
+                        accEntityStatements,
+                        accRelationshipStatements
+                    )
                 }
             }
 
@@ -276,10 +264,8 @@ class NgsiLdParserService(
                     val nsObj = getLabelNamespace(labelObj)
 
                     // create uri for object
-                    val uuid = UUID.randomUUID().toString()
-                    val urn = "urn:$nsObj:$labelObj:$uuid"
+                    val urn = "urn:$nsObj:$labelObj:${UUID.randomUUID()}"
                     // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
-                    val predicate = "ngsild__hasObject"
 
                     // object attributes will be set in the next travestPropertiesIteration with a match on URI
                     // ADD THE RELATIONSHIP
@@ -290,8 +276,8 @@ class NgsiLdParserService(
                         Entity(hashMapOf("uri" to urnPredicate), "ngsild"),
                         Entity(hashMapOf("uri" to urn), nsObj)
                     )
-                    if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
-                    if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+                    logger.debug("Built statement : ${newStatements.second}")
+                    accRelationshipStatements.add(newStatements.second)
                     // go deeper
                     transformNgsiLdToCypher(
                         content,
@@ -305,8 +291,8 @@ class NgsiLdParserService(
         }
 
         val newStatements = buildInsert(nodeEntity, null, null)
-        if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
-        if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
+        logger.debug("Built statement : ${newStatements.first}")
+        accEntityStatements.add(newStatements.first)
 
         return Pair(accEntityStatements, accRelationshipStatements)
     }
@@ -334,9 +320,9 @@ class NgsiLdParserService(
     }
 
     private fun isAttribute(prop: Map<String, Any>): Boolean {
+        if (prop.isEmpty()) return true
         val type = prop["type"]?.toString()
         if (type.equals("Property") || type.equals("Relationship") || type.equals("GeoProperty")) return false
-        if (prop.isEmpty()) return true
         return hasAttributes(prop)
     }
 
@@ -363,7 +349,7 @@ class NgsiLdParserService(
         }
     }
 
-    private fun buildInsert(subject: Entity, predicate: Entity?, obj: Entity?): Pair<EntityStatements, RelationshipStatements> {
+    private fun buildInsert(subject: Entity, predicate: Entity?, obj: Entity?): Pair<EntityStatement, RelationshipStatement> {
         return if (predicate == null || obj == null) {
             val labelSubject = subject.getLabelWithPrefix()
             val uri = subject.getUri()
@@ -374,7 +360,7 @@ class NgsiLdParserService(
             }
             subject.attrs.put("modifiedAt", timeStamp)
             val attrsSubj = formatAttributes(subject.attrs.filter { it.value != "" })
-            Pair(listOf("MERGE (a : $labelSubject $attrsUriSubj) ON CREATE SET a = $attrsSubj ON MATCH  SET a += $attrsSubj return a"), emptyList())
+            Pair("MERGE (a : $labelSubject $attrsUriSubj) ON CREATE SET a = $attrsSubj ON MATCH  SET a += $attrsSubj return a", "")
         } else {
             val labelObj = obj.getLabelWithPrefix()
             val labelPredicate = predicate.getLabelWithPrefix()
@@ -385,20 +371,18 @@ class NgsiLdParserService(
             val attrsSubj = formatAttributes(hashMapOf("uri" to uriSubj))
             val attrsObj = formatAttributes(hashMapOf("uri" to uriObj))
             val attrsPredicate = formatAttributes(hashMapOf("uri" to uriPredicate))
-            Pair(emptyList(), listOf("MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj ) MERGE (a)-[r: $labelPredicate $attrsPredicate]->(b) return a,b"))
+            Pair("", "MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj ) MERGE (a)-[r: $labelPredicate $attrsPredicate]->(b) return a,b")
         }
     }
 
     private fun hasAttributes(node: Map<String, Any>): Boolean {
         // if a Property has just type and value we save it as attribute value in the parent entity
-        var resp = false
         node.forEach {
             if (!it.key.equals("type") && !it.key.equals("value") && !it.key.equals("object") && !it.key.equals("id")) {
-                resp = true
-                return resp
+                return true
             }
         }
-        return resp
+        return false
     }
 
     private fun getLabelNamespace(label: String): String {
@@ -434,28 +418,30 @@ class NgsiLdParserService(
         val nodeModel = queryResult["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         logger.debug("Transforming node ${nodeModel.id} ($uriProperty)")
+
         val properties = nodeModel.propertyList
             .filter { it.key != "uri" && it.key != "location" && it.value != "" }
             .map {
                 it.key to it.value
             }
 
-        var output = mutableMapOf(
+        val idAndType = mutableMapOf(
             "id" to uriProperty.value,
             "type" to nodeModel.labels[0].split("__")[1]
         )
+
         val location = nodeModel.propertyList.find { it.key == "location" }
         if (location != null) {
             val lon = location.value.toString().split("x:")[1].split(",")[0].toDouble()
             val lat = location.value.toString().split("y:")[1].split(",")[0].toDouble()
-            output.put("location", mapOf("type" to "GeoProperty", "value" to mapOf("type" to "Point", "coordinates" to arrayOf(lon, lat))))
+            idAndType.put("location", mapOf("type" to "GeoProperty", "value" to mapOf("type" to "Point", "coordinates" to arrayOf(lon, lat))))
         }
 
         // go deeper
 
-        var rr = iterateOverRelationships(queryResult)
-        var pp = iterateOverProperties(queryResult)
+        val rr = iterateOverRelationships(queryResult)
+        val pp = iterateOverProperties(queryResult)
 
-        return output.plus(rr).plus(pp).plus(properties).plus(contextsMap)
+        return idAndType.plus(rr).plus(pp).plus(properties).plus(contextsMap)
     }
 }

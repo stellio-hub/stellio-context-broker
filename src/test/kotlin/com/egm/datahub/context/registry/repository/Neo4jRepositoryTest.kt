@@ -48,18 +48,17 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val result = neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1")
         val ngsild = ngsiLdParserService.queryResultToNgsiLd(result)
         println(gson.toJson(ngsild))
-        val nestedProperty = ngsild.get("availableSpotNumber") as Map<String,Any>
+        val nestedProperty = ngsild.get("availableSpotNumber") as Map<String, Any>
         assertNotNull(nestedProperty.get("type"))
         assertNotNull(nestedProperty.get("value"))
-        val nestedRelationshipInProperty = nestedProperty.get("providedBy") as Map<String,Any>
+        val nestedRelationshipInProperty = nestedProperty.get("providedBy") as Map<String, Any>
         assertEquals("Relationship", nestedRelationshipInProperty.get("type"))
         assertEquals("urn:example:Camera:C1", nestedRelationshipInProperty.get("object"))
-        val location =  ngsild.get("location") as Map<String, Any>
-        assertNotNull( ngsild.get("location"))
-        val value =  location.get("value") as Map<String, Any>
-        val coords =  value.get("coordinates") as Array<Double>
+        val location = ngsild.get("location") as Map<String, Any>
+        assertNotNull(ngsild.get("location"))
+        val value = location.get("value") as Map<String, Any>
+        val coords = value.get("coordinates") as Array<Double>
         assertEquals(-8.5, coords[0])
-
     }
 
     @Test
@@ -68,11 +67,11 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val result = neo4jRepository.getNodeByURI("urn:example:Vehicle:A4567")
         val ngsild = ngsiLdParserService.queryResultToNgsiLd(result)
         println(gson.toJson(ngsild))
-        val relationship = ngsild.get("isParked") as Map<String,Any>
+        val relationship = ngsild.get("isParked") as Map<String, Any>
         assertEquals("Relationship", relationship.get("type"))
         assertNotNull(relationship.get("object"))
         assertEquals("urn:example:OffStreetParking:Downtown1", relationship.get("object"))
-        val relationshipDepeer = relationship.get("providedBy") as Map<String,Any>
+        val relationshipDepeer = relationship.get("providedBy") as Map<String, Any>
         assertEquals("urn:example:Person:Bob", relationshipDepeer.get("object"))
         assertEquals("Relationship", relationshipDepeer.get("type"))
     }
@@ -99,10 +98,10 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query results parking ngsild`() {
 
         val entityUri = "urn:example:OffStreetParking:Downtown1"
-        //check has one nested properties
+        // check has one nested properties
         val nestedProperties = neo4jRepository.getNestedPropertiesByURI(entityUri)
         assertEquals(1, nestedProperties.size)
-        //check nested property has one relationship
+        // check nested property has one relationship
         val nodemodel = nestedProperties.first().get("t") as NodeModel
         val nestedpropUri = nodemodel.property("uri").toString()
         val relationships = neo4jRepository.getRelationshipByURI(nestedpropUri)
@@ -117,15 +116,15 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query results vehicle ngsild`() {
 
         val entityUri = "urn:example:Vehicle:A4567"
-        //check No nested properties
+        // check No nested properties
         val nestedProperties = neo4jRepository.getNestedPropertiesByURI(entityUri)
         assertEquals(0, nestedProperties.size)
-        //check (Vehicle)--[isParked]--(Downtown)
+        // check (Vehicle)--[isParked]--(Downtown)
         val relationships = neo4jRepository.getRelationshipByURI(entityUri)
         assertEquals(1, relationships.size)
         // check nested relationship has been materialized in a node and the uri is equal to telationship uri
         val nodemodel = relationships.first().get("r") as RelationshipModel
-        val matRelUri = nodemodel.propertyList.filter { it.key == "uri" }.map{it.value}.get(0)
+        val matRelUri = nodemodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0)
         val materializedRel = neo4jRepository.getNodeByURI(matRelUri.toString())
         assertNotNull(materializedRel)
         val matrel = materializedRel.get("n") as NodeModel
@@ -136,8 +135,6 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val result: MutableList<Map<String, Any>> = this.neo4jRepository.getEntitiesByLabel("example__Vehicle")
         assertEquals(result.size, 1)
     }
-
-
 
     @Test
     fun `update on cypherOnRdf by payload, URI and attribute`() {

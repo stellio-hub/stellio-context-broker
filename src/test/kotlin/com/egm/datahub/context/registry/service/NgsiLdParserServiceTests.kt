@@ -129,5 +129,4 @@ class NgsiLdParserServiceTests {
         assertEquals(3, ngsiLd.second.first.size)
         assertEquals(2, ngsiLd.second.second.size)
     }
-
 }

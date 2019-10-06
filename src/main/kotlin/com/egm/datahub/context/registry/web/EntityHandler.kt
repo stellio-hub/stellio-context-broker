@@ -14,9 +14,6 @@ import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
 import reactor.core.publisher.toMono
 import java.net.URI
-import java.util.concurrent.Callable
-
-
 
 @Component
 class EntityHandler(
@@ -28,7 +25,6 @@ class EntityHandler(
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
-        var entityUrn = ""
 
         return req.bodyToMono<String>()
             .map {

@@ -17,9 +17,9 @@ typealias EntityStatements = List<String>
 typealias RelationshipStatements = List<String>
 
 @Component
-class NgsiLdParserService (
+class NgsiLdParserService(
     private val neo4jRepository: Neo4jRepository
-){
+) {
 
     class Entity {
         var label: String = ""
@@ -75,65 +75,64 @@ class NgsiLdParserService (
             attrs = attrs.replace("\n", "")
             return attrs
         }
-
     }
-    private fun iterateOverRelationships(node : Map<String, Any>) :  Map<String, Any>{
+    private fun iterateOverRelationships(node: Map<String, Any>): Map<String, Any> {
         val nodeModel = node["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
-        var inneroutput =  mutableMapOf<String,Any>()
-        //get relationships
+        var inneroutput = mutableMapOf<String, Any>()
+        // get relationships
         val relationships = neo4jRepository.getRelationshipByURI(uriProperty.value.toString())
-        //add relationships
+        // add relationships
         relationships.map {
             val target = it.get("t") as NodeModel
             val relationship = it.get("r") as RelationshipModel
-            var relMapProperties = mutableMapOf<String,Any>("type" to "Relationship")
+            var relMapProperties = mutableMapOf<String, Any>("type" to "Relationship")
             target.propertyList.filter {
-                it.key=="uri"
-            }.map{
+                it.key == "uri"
+            }.map {
                 relMapProperties.put("object", it.value)
             }
-            //add relationships properties stored in materialized node
-            //1. get relationship URI
+            // add relationships properties stored in materialized node
+            // 1. get relationship URI
             val relmodel = relationships.first().get("r") as RelationshipModel
-            val matRelUri = relmodel.propertyList.filter { it.key == "uri" }.map{it.value}.get(0).toString()
-            //2. find materialized rel node
+            val matRelUri = relmodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0).toString()
+            // 2. find materialized rel node
             val matRelNode = neo4jRepository.getNodeByURI(matRelUri)
-            if(!matRelNode.isEmpty()){
+            if (!matRelNode.isEmpty()) {
                 val nestedObj1 = iterateOverRelationships(matRelNode)
                 val nestedObj2 = iterateOverProperties(matRelNode)
                 // do things with it!
                 val mrn = matRelNode.get("n") as NodeModel
-                //3. add to existing map
+                // 3. add to existing map
                 mrn.propertyList.filter {
-                    it.key!="uri" && it.value!="" && !relMapProperties.containsKey(it.key)
-                }.map{
+                    it.key != "uri" && it.value != "" && !relMapProperties.containsKey(it.key)
+                }.map {
                     relMapProperties.put(it.key, it.value)
                 }
                 relMapProperties.putAll(nestedObj1)
                 relMapProperties.putAll(nestedObj2)
             }
-            inneroutput.put(it.get("rel").toString().split("__")[1] , relMapProperties)
+            inneroutput.put(it.get("rel").toString().split("__")[1], relMapProperties)
         }
         return inneroutput
     }
-    private fun iterateOverProperties(node : Map<String, Any>) : Map<String, Any>{
+    private fun iterateOverProperties(node: Map<String, Any>): Map<String, Any> {
         val nodeModel = node["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
-        var inneroutput =  mutableMapOf<String, Any>()
-        //get properties
+        var inneroutput = mutableMapOf<String, Any>()
+        // get properties
         val nestedProperties = neo4jRepository.getNestedPropertiesByURI(uriProperty.value.toString())
-        //add properties
+        // add properties
         nestedProperties.map {
             val target = it.get("t") as NodeModel
-            var nestedPropertyMap = mutableMapOf<String,Any>("type" to "Property")
-            //get target URI to get the attribute name
-            val nestedPropUri = target.propertyList.filter { it.key == "uri"  }.map{it.value}.get(0).toString()
-            val attrname= nestedPropUri.split(":")[2]
+            var nestedPropertyMap = mutableMapOf<String, Any>("type" to "Property")
+            // get target URI to get the attribute name
+            val nestedPropUri = target.propertyList.filter { it.key == "uri" }.map { it.value }.get(0).toString()
+            val attrname = nestedPropUri.split(":")[2]
             val nestedPropNode = neo4jRepository.getNodeByURI(nestedPropUri)
-            if(!nestedPropNode.isEmpty()){
-                //in case of FLAG compact instead of explode all the properties just show type and id
-                target.propertyList.filter { it.key != "uri"}.forEach{
+            if (!nestedPropNode.isEmpty()) {
+                // in case of FLAG compact instead of explode all the properties just show type and id
+                target.propertyList.filter { it.key != "uri" }.forEach {
                     nestedPropertyMap.put(it.key, it.value)
                 }
                 val nestedObj1 = iterateOverRelationships(nestedPropNode)
@@ -142,7 +141,7 @@ class NgsiLdParserService (
                 nestedPropertyMap.putAll(nestedObj2)
             }
 
-            inneroutput.put(attrname,nestedPropertyMap)
+            inneroutput.put(attrname, nestedPropertyMap)
         }
         return inneroutput
     }
@@ -244,7 +243,6 @@ class NgsiLdParserService (
                     val newStatements = buildInsert(Entity(hashMapOf("uri" to urn), nsObj), null, null)
                     if (newStatements.first.isNotEmpty()) accEntityStatements.add(newStatements.first[0])
                     if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
-
 
                     if (hasAttributes(content)) {
                         // go deeper using the materialized rel Node
@@ -349,8 +347,7 @@ class NgsiLdParserService (
         }.mapValues {
             if (it.value is String || it.value is Double) {
                 it.value
-            }
-            else if (isGeoProperty(expandObjToMap(it.value))) {
+            } else if (isGeoProperty(expandObjToMap(it.value))) {
                 val value = expandObjToMap(it.value)["value"] as Map<String, Any>
                 val coordinates = value["coordinates"] as List<Double>
                 val lon = coordinates[0]
@@ -390,7 +387,6 @@ class NgsiLdParserService (
             Pair(emptyList(), listOf("MATCH (a : $labelSubject $attrsSubj), (b : $labelObj $attrsObj ) MERGE (a)-[r: $labelPredicate $attrsPredicate]->(b) return a,b"))
         }
     }
-
 
     private fun hasAttributes(node: Map<String, Any>): Boolean {
         // if a Property has just type and value we save it as attribute value in the parent entity
@@ -437,24 +433,24 @@ class NgsiLdParserService (
         val nodeModel = queryResult["n"] as NodeModel
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         logger.debug("Transforming node ${nodeModel.id} ($uriProperty)")
-        var properties = nodeModel.propertyList
-            .filter { it.key != "uri" && it.key != "location" && it.value!="" }
+        val properties = nodeModel.propertyList
+            .filter { it.key != "uri" && it.key != "location" && it.value != "" }
             .map {
-                it.key to  it.value
+                it.key to it.value
             }
 
-        var output =  mutableMapOf(
+        var output = mutableMapOf(
             "id" to uriProperty.value,
             "type" to nodeModel.labels[0].split("__")[1]
         )
         val location = nodeModel.propertyList.find { it.key == "location" }
-        if(location != null){
+        if (location != null) {
             val lon = location.value.toString().split("x:")[1].split(",")[0].toDouble()
             val lat = location.value.toString().split("y:")[1].split(",")[0].toDouble()
             output.put("location", mapOf("type" to "GeoProperty", "value" to mapOf("type" to "Point", "coordinates" to arrayOf(lon, lat))))
         }
 
-        //go deeper
+        // go deeper
 
         var rr = iterateOverRelationships(queryResult)
         var pp = iterateOverProperties(queryResult)

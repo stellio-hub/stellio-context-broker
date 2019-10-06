@@ -162,5 +162,4 @@ class Neo4jRepository(
         val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
         sessionFactory.openSession().query(addNamespacesStatement, emptyMap<String, Any>())
     }
-
 }

@@ -8,6 +8,8 @@ import org.neo4j.ogm.response.model.RelationshipModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.regex.Pattern
 
@@ -308,6 +310,16 @@ class NgsiLdParserService (
         if (newStatements.second.isNotEmpty()) accRelationshipStatements.add(newStatements.second[0])
 
         return Pair(accEntityStatements, accRelationshipStatements)
+    }
+
+    fun ngsiLdToUpdateQuery(payload: String, uri: String, attr: String): String {
+        val expandedPayload = expandObjToMap(payload)
+        val value = expandedPayload[attr].toString()
+        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
+        val attrsUriMatch = formatAttributes(mapOf("uri" to uri))
+        val attrsUriSubj = formatAttributes(mapOf("uri" to uri, "modifiedAt" to timestamp, attr to value))
+
+        return "MERGE (a $attrsUriMatch) ON  MATCH  SET a += $attrsUriSubj return a"
     }
 
     private fun isProperty(prop: Map<String, Any>): Boolean {

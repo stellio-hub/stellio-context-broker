@@ -2,7 +2,6 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.EntityStatements
-import com.egm.datahub.context.registry.service.NgsiLdParserService
 import com.egm.datahub.context.registry.service.RelationshipStatements
 import com.egm.datahub.context.registry.web.EntityCreationException
 import com.egm.datahub.context.registry.web.NotExistingEntityException
@@ -14,8 +13,6 @@ import org.neo4j.ogm.response.model.NodeModel
 import org.neo4j.ogm.session.SessionFactory
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.Instant
-import java.time.format.DateTimeFormatter
 
 @Component
 class Neo4jRepository(
@@ -68,22 +65,14 @@ class Neo4jRepository(
         return entityUrn
     }
 
-    fun updateEntity(payload: String, uri: String, attr: String) {
+    fun updateEntity(query: String, uri: String) {
         if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
             throw NotExistingEntityException("not existing entity! ")
         }
-        val payload = NgsiLdParserService.expandObjToMap(payload)
-        val attrsUriSubj = NgsiLdParserService.formatAttributes(hashMapOf("uri" to uri))
-        payload.get(attr)?.let {
-            val value = it.toString()
-            val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
-            val attrsUriMatch = NgsiLdParserService.formatAttributes(hashMapOf("uri" to uri))
-            val attrsUriSubj = NgsiLdParserService.formatAttributes(hashMapOf("uri" to uri, "modifiedAt" to timestamp, attr to value))
-            val update = "MERGE (a $attrsUriMatch) ON  MATCH  SET a += $attrsUriSubj return a"
-            val updateResults = sessionFactory.openSession().query(update, emptyMap<String, Any>()).queryResults()
-            logger.info(gson.toJson((updateResults.first().get("a") as NodeModel).propertyList))
-        }
+
+        val updateResults = sessionFactory.openSession().query(query, emptyMap<String, Any>()).queryResults()
+        logger.info(gson.toJson((updateResults.first().get("a") as NodeModel).propertyList))
     }
 
     fun getNodeByURI(uri: String): Map<String, Any> {

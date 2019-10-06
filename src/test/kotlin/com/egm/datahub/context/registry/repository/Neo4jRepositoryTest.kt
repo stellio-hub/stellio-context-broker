@@ -145,7 +145,8 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val content = file.inputStream.readBytes().toString(Charsets.UTF_8)
         val uri: String = "urn:diat:Sensor:0022CCC"
         val entityBefore = neo4jRepository.getNodeByURI(uri).get("n") as NodeModel
-        this.neo4jRepository.updateEntity(content, uri, "name")
+        val updateQuery = ngsiLdParserService.ngsiLdToUpdateQuery(content, uri, "name")
+        this.neo4jRepository.updateEntity(updateQuery, uri)
         val entityAfter = neo4jRepository.getNodeByURI(uri).get("n") as NodeModel
         assertNotEquals(entityBefore.propertyList.find { it.key == "name" }, entityAfter.propertyList.find { it.key == "name" })
         assertNotNull(entityAfter.propertyList.find { it.key == "modifiedAt" })

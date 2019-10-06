@@ -98,7 +98,10 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                neo4JRepository.updateEntity(it, uri, attr)
+                ngsiLdParserService.ngsiLdToUpdateQuery(it, uri, attr)
+            }
+            .map {
+                neo4JRepository.updateEntity(it, uri)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))

@@ -80,7 +80,7 @@ class Neo4jRepository(
             MATCH (n { uri: '$uri' }) 
             RETURN n
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyMap()
@@ -93,7 +93,7 @@ class Neo4jRepository(
             WHERE NOT (n)-[r:ngsild__hasObject]->(t) 
             RETURN n,type(r) as rel,t,r
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyList()
@@ -105,7 +105,7 @@ class Neo4jRepository(
             MATCH (n { uri: '$uri' })-[r:ngsild__hasObject]->(t) 
             RETURN n,type(r) as rel,t,r
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyList()
@@ -118,7 +118,7 @@ class Neo4jRepository(
             OPTIONAL MATCH (s:$label)-[r]->(o)
             RETURN s, type(r), o
         """.trimIndent()
-        return sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+        return sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
     }
 
     fun getEntitiesByLabelAndQuery(query: String, label: String): MutableList<Map<String, Any>> {
@@ -128,7 +128,8 @@ class Neo4jRepository(
             if (query.split("==")[1].startsWith("urn:"))
                 "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o"
             else
-                "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
+                "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o",
+            HashMap<String, Any>(), true).toMutableList()
     }
 
     fun getEntitiesByQuery(query: String): MutableList<Map<String, Any>> {
@@ -138,7 +139,8 @@ class Neo4jRepository(
             if (query.split("==")[1].startsWith("urn:"))
                 "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o"
             else
-                "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o", HashMap<String, Any>()).toMutableList()
+                "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o",
+            HashMap<String, Any>(), true).toMutableList()
     }
 
     fun getEntities(query: String, label: String): MutableList<Map<String, Any>> {

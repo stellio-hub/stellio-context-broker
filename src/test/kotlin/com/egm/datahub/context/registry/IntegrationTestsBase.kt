@@ -9,7 +9,7 @@ import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.GraphDatabase
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
-import org.neo4j.graphdb.factory.GraphDatabaseSettings
+import org.neo4j.kernel.configuration.BoltConnector
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.test.EmbeddedKafkaBroker
@@ -26,8 +26,6 @@ open class IntegrationTestsBase {
 
     private lateinit var graphDb: GraphDatabaseService
 
-    private lateinit var bolt: GraphDatabaseSettings.BoltConnector
-
     private val logger = LoggerFactory.getLogger(IntegrationTestsBase::class.java)
 
     init {
@@ -38,15 +36,14 @@ open class IntegrationTestsBase {
     private fun startNeo4jEmbed() {
         logger.info("Starting Neo4j")
 
-        bolt = GraphDatabaseSettings.boltConnector("bolt")
+        val bolt = BoltConnector()
 
         graphDb = GraphDatabaseFactory()
             .newEmbeddedDatabaseBuilder(File("tmp/db.data"))
             .setConfig(bolt.type, "BOLT")
             .setConfig(bolt.enabled, "true")
-            .setConfig(bolt.address, "localhost:7687")
+            .setConfig(bolt.listen_address, "localhost:7687")
             .setConfig(bolt.encryption_level, "DISABLED")
-            .setConfig("dbms.connector.bolt.tls_level", "DISABLED")
             .newGraphDatabase()
     }
 

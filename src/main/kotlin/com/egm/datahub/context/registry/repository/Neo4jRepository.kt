@@ -76,34 +76,49 @@ class Neo4jRepository(
     }
 
     fun getNodeByURI(uri: String): Map<String, Any> {
-        val pattern = "{ uri: '$uri' }"
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query("MATCH (n $pattern ) RETURN n", HashMap<String, Any>()).toMutableList()
-        if (nodes.size == 0) {
-            return emptyMap()
-        }
-        return nodes.first()
+        val query = """
+            MATCH (n { uri: '$uri' }) 
+            RETURN n
+        """.trimIndent()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+
+        return if (nodes.isEmpty())
+            emptyMap()
+        else nodes.first()
     }
 
     fun getRelationshipByURI(uri: String): List<Map<String, Any>> {
-        val pattern = "{ uri: '$uri' }"
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query("MATCH (n $pattern)-[r]->(t) WHERE NOT (n)-[r:ngsild__hasObject]->(t) RETURN n,type(r) as rel,t,r", HashMap<String, Any>()).toMutableList()
-        if (nodes.size == 0) {
-            return emptyList()
-        }
-        return nodes
+        val query = """
+            MATCH (n { uri: '$uri' })-[r]->(t) 
+            WHERE NOT (n)-[r:ngsild__hasObject]->(t) 
+            RETURN n,type(r) as rel,t,r
+        """.trimIndent()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+
+        return if (nodes.isEmpty())
+            emptyList()
+        else nodes
     }
 
     fun getNestedPropertiesByURI(uri: String): List<Map<String, Any>> {
-        val pattern = "{ uri: '$uri' }"
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query("MATCH (n $pattern)-[r:ngsild__hasObject]->(t) RETURN n,type(r) as rel,t,r", HashMap<String, Any>()).toMutableList()
-        if (nodes.size == 0) {
-            return emptyList()
-        }
-        return nodes
+        val query = """
+            MATCH (n { uri: '$uri' })-[r:ngsild__hasObject]->(t) 
+            RETURN n,type(r) as rel,t,r
+        """.trimIndent()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
+
+        return if (nodes.isEmpty())
+            emptyList()
+        else nodes
     }
 
     fun getEntitiesByLabel(label: String): MutableList<Map<String, Any>> {
-        return sessionFactory.openSession().query("MATCH (s:$label) OPTIONAL MATCH (s:$label)-[r]->(o)  RETURN s, type(r), o", HashMap<String, Any>()).toMutableList() //
+        val query = """
+            MATCH (s:$label) 
+            OPTIONAL MATCH (s:$label)-[r]->(o)
+            RETURN s, type(r), o
+        """.trimIndent()
+        return sessionFactory.openSession().query(query, HashMap<String, Any>()).toMutableList()
     }
 
     fun getEntitiesByLabelAndQuery(query: String, label: String): MutableList<Map<String, Any>> {

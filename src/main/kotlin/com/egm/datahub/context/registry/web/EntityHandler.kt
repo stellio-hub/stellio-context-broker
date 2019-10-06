@@ -31,7 +31,7 @@ class EntityHandler(
                 ngsiLdParserService.parseEntity(it)
             }
             .map {
-                neo4JRepository.createEntity(it.first, it.second)
+                neo4JRepository.createEntity(it.first, Pair(it.second, it.third))
             }.flatMap {
                 created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {

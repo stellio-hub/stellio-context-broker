@@ -185,7 +185,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
             val content = it.inputStream.readBytes().toString(Charsets.UTF_8)
             try {
                 val parsedContent = ngsiLdParserService.parseEntity(content)
-                neo4jRepository.createEntity(parsedContent.first, parsedContent.second)
+                neo4jRepository.createEntity(parsedContent.first, Pair(parsedContent.second, parsedContent.third))
             } catch (e: EntityCreationException) {
                 logger.warn("Entity already exists $it")
             } catch (e: Exception) {

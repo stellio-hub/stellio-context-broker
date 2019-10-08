@@ -10,7 +10,6 @@ import org.neo4j.driver.v1.GraphDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
-import org.springframework.test.annotation.DirtiesContext
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.graphdb.factory.GraphDatabaseSettings
@@ -20,7 +19,6 @@ import org.springframework.test.context.ActiveProfiles
 import java.io.File
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@DirtiesContext
 @EmbeddedKafka(topics = ["entities"])
 @ActiveProfiles("test")
 class IntegrationTestsBase {

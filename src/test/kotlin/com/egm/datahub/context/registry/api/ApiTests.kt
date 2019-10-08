@@ -8,5 +8,6 @@ class ApiTests : IntegrationTestsBase() {
     @Karate.Test
     fun testAll(): Karate {
         return Karate().relativeTo(this::class.java)
+            .tags("~@ignore")
     }
 }

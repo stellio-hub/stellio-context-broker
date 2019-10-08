@@ -8,6 +8,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.11"
     kotlin("plugin.noarg") version "1.3.11"
     id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
+    id("com.google.cloud.tools.jib") version "1.6.1"
 }
 
 group = "com.egm.datahub"
@@ -118,4 +119,18 @@ tasks.withType<Test> {
     systemProperties["karate.env"] = System.getProperties().getProperty("karate.env")
     // ensure tests are always run
     outputs.upToDateWhen { false }
+}
+
+jib {
+    from {
+        image = "openjdk:alpine"
+    }
+    to {
+        image = "easyglobalmarket/context-registry"
+    }
+    container {
+        jvmFlags = listOf("-Xms512m")
+        ports = listOf("8081")
+        creationTime = "USE_CURRENT_TIMESTAMP"
+    }
 }

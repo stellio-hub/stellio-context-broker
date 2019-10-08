@@ -44,6 +44,32 @@ CREATE CONSTRAINT ON (vehicle:Vehicle) ASSERT vehicle:uri IS UNIQUE
 CREATE CONSTRAINT ON (person:Person) ASSERT camera:uri IS UNIQUE
 ```
 
+* Create and publish a Docker image:
+
+```
+./gradlew jib
+```
+
+# Work locally with Docker images
+
+* Build a tar image:
+
+```
+./gradlew jibBuildTar
+```
+
+* Load the tar image into Docker:
+
+```
+docker load --input build/jib-image.tar
+```
+
+* Run the image:
+
+```
+docker run easyglobalmarket/context-registry:latest
+```
+
 # Sample queries
 
 * Create a new entity

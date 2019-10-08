@@ -5,7 +5,7 @@ function fn() {
     env = 'dev'; // a custom 'intelligent' default
   }
   var config = { // base config JSON
-    urlBase: 'http://localhost:8080/ngsi-ld/v1/'
+    urlBase: 'http://localhost:8081/ngsi-ld/v1/'
   };
   // if (env == 'stage') {
   //   // over-ride only those that need to be

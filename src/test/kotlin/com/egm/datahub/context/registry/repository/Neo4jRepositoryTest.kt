@@ -10,8 +10,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class Neo4jRepositoryTest : IntegrationTestsBase() {
 
     @Autowired

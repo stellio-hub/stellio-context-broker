@@ -7,7 +7,6 @@ import org.neo4j.driver.v1.AuthTokens
 import org.neo4j.driver.v1.Config
 import org.neo4j.driver.v1.Driver
 import org.neo4j.driver.v1.GraphDatabase
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.neo4j.graphdb.GraphDatabaseService
@@ -18,10 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @EmbeddedKafka(topics = ["entities"])
 @ActiveProfiles("test")
-class IntegrationTestsBase {
+open class IntegrationTestsBase {
 
     @Autowired
     private lateinit var neo4jProperties: Neo4jProperties

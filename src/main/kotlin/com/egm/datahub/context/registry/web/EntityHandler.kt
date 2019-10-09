@@ -1,7 +1,6 @@
 package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.repository.Neo4jRepository
-import com.egm.datahub.context.registry.service.JsonLDService
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
 import org.slf4j.LoggerFactory
@@ -20,7 +19,6 @@ import java.net.URI
 class EntityHandler(
     private val ngsiLdParserService: NgsiLdParserService,
     private val neo4JRepository: Neo4jRepository,
-    private val jsonLDService: JsonLDService,
     private val neo4jService: Neo4jService
 ) {
 
@@ -79,15 +77,6 @@ class EntityHandler(
                 .onErrorResume {
                     status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                 }
-    }
-
-    fun expand(req: ServerRequest): Mono<ServerResponse> {
-        return req.bodyToMono<String>()
-            .map {
-                jsonLDService.expandNgsiLDEntity(it)
-            }.flatMap {
-                ok().body(BodyInserters.fromObject(it))
-            }
     }
 
     fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {

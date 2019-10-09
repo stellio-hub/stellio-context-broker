@@ -21,11 +21,5 @@ class Routes(
                         PATCH("/{entityId}/attrs/{attrId}", entityHandler::updateAttribute)
                     }
         }
-        (accept(MediaType.valueOf("application/ld+json")) and "/experiments")
-            .nest {
-                "/entities".nest {
-                    POST("/expand", entityHandler::expand)
-                }
-            }
     }
 }

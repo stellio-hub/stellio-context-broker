@@ -48,7 +48,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.springframework.kafka:spring-kafka")
-    implementation("org.eclipse.rdf4j:rdf4j-rio-jsonld:2.5.3")
     implementation("com.google.code.gson:gson:2.8.5")
     implementation("org.neo4j:neo4j-ogm-core:3.1.14")
     implementation("org.neo4j:neo4j-ogm-api:3.1.14")

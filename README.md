@@ -72,6 +72,8 @@ docker run easyglobalmarket/context-registry:latest
 
 # Sample queries
 
+## API queries
+
 * Create a new entity
 
 ```
@@ -112,33 +114,7 @@ curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=ng
 curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__Beekeeper&q=foaf__name==TEST1
 ```
 
-* get by uri using rdf/describe
-
-```
-curl -X GET http://neo4j:test@dh-local-docker:7474/rdf/describe/uri/urn:ngsi-ld:SmartDoor:0021?format=JSON-LD
-http://docker:7474/rdf/describe/find/diat__BeeHive/foaf__name/ParisBeehive12?format=JSON-LD
-```
-
-* give me all the BeeHive (search by label)
-
-```
-curl -g -X POST http://neo4j:test@dh-local-docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__BeeHive )-[r]->(s)  RETURN o, r" , "format": "JSON-LD" }'
-```
-
-* give me all the BeeHive (search by label/property/value)
-
-```
-curl -g -X POST http://neo4j:test@dh-local-docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__BeeHive { foaf__name : \"ParisBeehive12\" })-[r]->(s)  RETURN o, r" , "format": "JSON-LD" }'
-```
-
-* give me all the Doors attached to a SmartDoor (search by label/relation/uri)
-
-```
-curl -g -X POST http://neo4j:test@dh-local-docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (o:diat__Door )-[r:ngsild__connectsTo]->(s { uri : \"urn:ngsi-ld:SmartDoor:0021\" })  RETURN o, r" , "format": "JSON-LD" }'
-```
-```
-curl -g -X POST http://neo4j:test@dh-local-docker:7474/rdf/cypheronrdf -H "Content-Type: application/json" -d '{ "cypher" : "MATCH (s:example__Vehicle)-[r:example__isParked]-(o:example__OffStreetParking) RETURN s , r" , "format": "JSON-LD" }'
-```
+## Cypher queries
 
 * Get all URIs for beekeepers
 
@@ -158,18 +134,4 @@ MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r
 MATCH (s:Resource)-[:ngsild__connectsTo]-(o:Resource) RETURN s,o
 MATCH ()-[r:ngsild__connectsTo]-(n:diat__Beekeeper{foaf__name:'TEST1'} ) RETURN n
 MATCH (s:diat__Beekeeper{foaf__name: 'TEST1'})-[r:ngsild__connectsTo]-(o ) RETURN s
-```
-
-* Import an ontology
-
-```
-CALL semantics.importRDF("file:////ontologies/ngsild.ttl","Turtle")
-```
-
-# Experiments
-
-* Expand the context of an NGSI-LD entity
-
-```
-http POST http://localhost:8080/experiments/entities/expand < src/test/resources/data/fiware/building_01.jsonld
 ```

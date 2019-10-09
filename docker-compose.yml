@@ -5,13 +5,6 @@ services:
     container_name: neo4j
     volumes:
       - ./data/neo4j/data:/data
-      - ./src/main/resources/ontologies:/ontologies
-      - ./data/neo4j/plugins:/plugins
-      - ./data/neo4j/conf/neo4j.conf:/conf/neo4j.conf
-    environment:
-      - NEO4J_apoc_export_file_enabled=true
-      - NEO4J_apoc_import_file_enabled=true
-      - NEO4J_apoc_import_file_use__neo4j__config=true
     ports:
       - 7474:7474
       - 7687:7687

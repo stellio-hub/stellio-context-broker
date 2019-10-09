@@ -63,8 +63,9 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with a relationship`() {
         val expectedMatchStatement =
             """
-                MATCH (a : diat__Door \{  uri: "urn:diat:Door:0015"}), (b : diat__SmartDoor \{  uri: "urn:diat:SmartDoor:0021"} ) 
-                MERGE (a)-[r:ngsild__connectsTo \{ uri:"urn:ngsild:connectsTo:[a-zA-Z\-0-9]+"}]->(b) return a,b
+                MATCH \(a : diat__Door \{ uri: "urn:diat:Door:0015" }\), 
+                      \(b : diat__SmartDoor \{ uri: "urn:diat:SmartDoor:0021" }\) 
+                MERGE \(a\)-\[r:ngsild__connectsTo \{ uri:"urn:ngsild:connectsTo:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
             """.trimIndent()
         val door = ClassPathResource("/ngsild/door.json")
         val parsingResult = ngsiLdParserService.parseEntity(door.inputStream.readBytes().toString(Charsets.UTF_8))
@@ -98,7 +99,7 @@ class NgsiLdParserServiceTests {
             """
                 MATCH \(a : diat__Observation \{ uri: "urn:diat:Observation:001112" }\), 
                       \(b : diat__hasMeasure \{ uri: "urn:diat:hasMeasure:[a-zA-Z\-0-9]+" }\) 
-                MERGE \(a\)-\[r:ngsild__hasObject]->\(b\) return a,b
+                MERGE \(a\)-\[r:ngsild__hasObject \{ uri:"urn:ngsild:hasObject:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
              """.trimIndent()
         val observationSensor = ClassPathResource("/ngsild/observation_sensor_prop_only.json")
         val parsingResult = ngsiLdParserService.parseEntity(observationSensor.inputStream.readBytes().toString(Charsets.UTF_8))

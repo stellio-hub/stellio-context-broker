@@ -2,7 +2,8 @@ package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.util.KtMatches.Companion.ktMatches
 import org.hamcrest.MatcherAssert.assertThat
-import org.hamcrest.Matchers.*
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.hasItem
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -62,8 +63,8 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with a relationship`() {
         val expectedMatchStatement =
             """
-                MATCH (a : diat__Door {  uri: "urn:diat:Door:0015"}), (b : diat__SmartDoor {  uri: "urn:diat:SmartDoor:0021"} ) 
-                MERGE (a)-[r:ngsild__connectsTo]->(b) return a,b
+                MATCH (a : diat__Door \{  uri: "urn:diat:Door:0015"}), (b : diat__SmartDoor \{  uri: "urn:diat:SmartDoor:0021"} ) 
+                MERGE (a)-[r:ngsild__connectsTo \{ uri:"urn:ngsild:connectsTo:[a-zA-Z\-0-9]+"}]->(b) return a,b
             """.trimIndent()
         val door = ClassPathResource("/ngsild/door.json")
         val parsingResult = ngsiLdParserService.parseEntity(door.inputStream.readBytes().toString(Charsets.UTF_8))
@@ -72,7 +73,7 @@ class NgsiLdParserServiceTests {
         assertThat("urn:diat:Door:0015", equalTo(parsingResult.first))
         assertThat(parsingResult.second.size, equalTo(2))
         assertThat(parsingResult.third.size, equalTo(1))
-        assertThat(parsingResult.third[0], equalToCompressingWhiteSpace(expectedMatchStatement))
+        assertThat(parsingResult.third[0], ktMatches(expectedMatchStatement))
     }
 
     @Test

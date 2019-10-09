@@ -1,6 +1,7 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.IntegrationTestsBase
+import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
 import com.egm.datahub.context.registry.web.EntityCreationException
 import com.google.gson.GsonBuilder
@@ -20,6 +21,9 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
 
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
+
+    @Autowired
+    private lateinit var neo4jService: Neo4jService
 
     @Autowired
     private lateinit var ngsiLdParserService: NgsiLdParserService
@@ -46,7 +50,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query ngsild parking entity by URI`() {
 
         val result = neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1")
-        val ngsild = ngsiLdParserService.queryResultToNgsiLd(result)
+        val ngsild = neo4jService.queryResultToNgsiLd(result)
         println(gson.toJson(ngsild))
         val nestedProperty = ngsild.get("availableSpotNumber") as Map<String, Any>
         assertNotNull(nestedProperty.get("type"))
@@ -65,7 +69,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query ngsild vehicle entity by URI`() {
 
         val result = neo4jRepository.getNodeByURI("urn:example:Vehicle:A4567")
-        val ngsild = ngsiLdParserService.queryResultToNgsiLd(result)
+        val ngsild = neo4jService.queryResultToNgsiLd(result)
         println(gson.toJson(ngsild))
         val relationship = ngsild.get("isParked") as Map<String, Any>
         assertEquals("Relationship", relationship.get("type"))

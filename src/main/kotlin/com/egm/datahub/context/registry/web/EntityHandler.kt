@@ -2,6 +2,7 @@ package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.JsonLDService
+import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -19,7 +20,8 @@ import java.net.URI
 class EntityHandler(
     private val ngsiLdParserService: NgsiLdParserService,
     private val neo4JRepository: Neo4jRepository,
-    private val jsonLDService: JsonLDService
+    private val jsonLDService: JsonLDService,
+    private val neo4jService: Neo4jService
 ) {
 
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
@@ -69,7 +71,7 @@ class EntityHandler(
                     neo4JRepository.getNodeByURI(it)
                 }
                 .map {
-                    ngsiLdParserService.queryResultToNgsiLd(it)
+                    neo4jService.queryResultToNgsiLd(it)
                 }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))

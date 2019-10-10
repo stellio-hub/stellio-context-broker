@@ -50,7 +50,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query ngsild parking entity by URI`() {
 
         val result = neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1")
-        val ngsild = neo4jService.queryResultToNgsiLd(result)
+        val ngsild = neo4jService.queryResultToNgsiLd(result["n"] as NodeModel)
         println(gson.toJson(ngsild))
         val nestedProperty = ngsild.get("availableSpotNumber") as Map<String, Any>
         assertNotNull(nestedProperty.get("type"))
@@ -69,7 +69,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `query ngsild vehicle entity by URI`() {
 
         val result = neo4jRepository.getNodeByURI("urn:example:Vehicle:A4567")
-        val ngsild = neo4jService.queryResultToNgsiLd(result)
+        val ngsild = neo4jService.queryResultToNgsiLd(result["n"] as NodeModel)
         println(gson.toJson(ngsild))
         val relationship = ngsild.get("isParked") as Map<String, Any>
         assertEquals("Relationship", relationship.get("type"))

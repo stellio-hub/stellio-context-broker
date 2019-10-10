@@ -1,0 +1,20 @@
+[
+  {
+    "id": "urn:diat:BeeHive:TESTC",
+    "type": "BeeHive",
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:diat:Beekeeper:Pascal",
+      "createdAt": "2010-10-26T21:32:52+02:00",
+      "modifiedAt": "2019.10.09.11.53.05"
+    },
+    "createdAt": "2019.10.09.11.53.05",
+    "modifiedAt": "2019.10.09.11.53.05",
+    "name": "ParisBeehive12",
+    "@context": [
+      "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
+    ]
+  }
+]

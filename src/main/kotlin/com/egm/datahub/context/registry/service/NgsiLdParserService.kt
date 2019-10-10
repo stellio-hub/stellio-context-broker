@@ -66,9 +66,9 @@ class NgsiLdParserService {
         }
     }
 
-    fun parseEntity(ngsiLdPayload: String): NgsiLdParsedResult {
+    fun parseEntity(ngsiLdPayload: String): Triple<String, EntityStatements, RelationshipStatements> {
+        val entityUrn = getUrnByEntity(ngsiLdPayload)
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
-        val entityUrn = entityMap["id"] as String
         val entityType = entityMap["type"] as String
 
         val statements = transformNgsiLdToCypher(
@@ -80,6 +80,10 @@ class NgsiLdParserService {
         )
 
         return NgsiLdParsedResult(entityType, entityUrn, statements.first, statements.second, ngsiLdPayload)
+    }
+    fun getUrnByEntity(ngsiLdPayload: String): String {
+        val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
+        return entityMap["id"] as String
     }
 
     fun transformNgsiLdToCypher(

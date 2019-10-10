@@ -1,6 +1,7 @@
 package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.repository.Neo4jRepository
+import com.google.gson.GsonBuilder
 import org.neo4j.ogm.response.model.NodeModel
 import org.neo4j.ogm.response.model.RelationshipModel
 import org.slf4j.LoggerFactory
@@ -10,13 +11,15 @@ import org.springframework.stereotype.Component
 class Neo4jService(
     private val neo4jRepository: Neo4jRepository
 ) {
+    private val gson = GsonBuilder().setPrettyPrinting().create()
     private val logger = LoggerFactory.getLogger(Neo4jService::class.java)
-    private fun iterateOverRelationships(node: Map<String, Any>): Map<String, Any> {
-        val nodeModel = node["n"] as NodeModel
+    private fun iterateOverRelationships(nodeModel: NodeModel): Map<String, Any> {
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         var inneroutput = mutableMapOf<String, Any>()
         // get relationships
         val relationships = neo4jRepository.getRelationshipByURI(uriProperty.value.toString())
+        logger.info("relationships to be mocked for " + uriProperty.value.toString())
+        logger.info(gson.toJson(relationships))
         // add relationships
         relationships.map {
             val target = it.get("t") as NodeModel
@@ -32,9 +35,11 @@ class Neo4jService(
             val matRelUri = relmodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0).toString()
             // 2. find materialized rel node
             val matRelNode = neo4jRepository.getNodeByURI(matRelUri)
+            logger.info("matRelNode to be mocked for " + matRelUri)
+            logger.info(gson.toJson(matRelNode))
             if (!matRelNode.isEmpty()) {
-                val nestedObj1 = iterateOverRelationships(matRelNode)
-                val nestedObj2 = iterateOverProperties(matRelNode)
+                val nestedObj1 = iterateOverRelationships(matRelNode["n"] as NodeModel)
+                val nestedObj2 = iterateOverProperties(matRelNode["n"] as NodeModel)
                 // do things with it!
                 val mrn = matRelNode.get("n") as NodeModel
                 // 3. add to existing map
@@ -51,8 +56,7 @@ class Neo4jService(
         return inneroutput
     }
 
-    private fun iterateOverProperties(node: Map<String, Any>): Map<String, Any> {
-        val nodeModel = node["n"] as NodeModel
+    private fun iterateOverProperties(nodeModel: NodeModel): Map<String, Any> {
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         var inneroutput = mutableMapOf<String, Any>()
         // get properties
@@ -70,8 +74,8 @@ class Neo4jService(
                 target.propertyList.filter { it.key != "uri" }.forEach {
                     nestedPropertyMap.put(it.key, it.value)
                 }
-                val nestedObj1 = iterateOverRelationships(nestedPropNode)
-                val nestedObj2 = iterateOverProperties(nestedPropNode)
+                val nestedObj1 = iterateOverRelationships(nestedPropNode["n"] as NodeModel)
+                val nestedObj2 = iterateOverProperties(nestedPropNode["n"] as NodeModel)
                 nestedPropertyMap.putAll(nestedObj1)
                 nestedPropertyMap.putAll(nestedObj2)
             }
@@ -80,8 +84,8 @@ class Neo4jService(
         }
         return inneroutput
     }
-    fun queryResultToNgsiLd(queryResult: Map<String, Any>): Map<String, Any> {
-        val nodeModel = queryResult["n"] as NodeModel
+    fun queryResultToNgsiLd(nodeModel: NodeModel): Map<String, Any> {
+
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         logger.debug("Transforming node ${nodeModel.id} ($uriProperty)")
 
@@ -105,8 +109,8 @@ class Neo4jService(
 
         // go deeper
 
-        val rr = iterateOverRelationships(queryResult)
-        val pp = iterateOverProperties(queryResult)
+        val rr = iterateOverRelationships(nodeModel)
+        val pp = iterateOverProperties(nodeModel)
 
         return idAndType.plus(rr).plus(pp).plus(properties).plus(NgsiLdParserService.contextsMap)
     }

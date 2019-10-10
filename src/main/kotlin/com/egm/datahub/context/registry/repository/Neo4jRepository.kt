@@ -114,9 +114,8 @@ class Neo4jRepository(
 
     fun getEntitiesByLabel(label: String): MutableList<Map<String, Any>> {
         val query = """
-            MATCH (s:$label) 
-            OPTIONAL MATCH (s:$label)-[r]->(o)
-            RETURN s, type(r), o
+            MATCH (n:$label) 
+            RETURN n
         """.trimIndent()
         return sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
     }
@@ -126,9 +125,9 @@ class Neo4jRepository(
         val value = query.split("==")[1]
         return sessionFactory.openSession().query(
             if (query.split("==")[1].startsWith("urn:"))
-                "MATCH (s:$label)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o"
+                "MATCH (n:$label)-[r:$property]->(t { uri : '$value' })  RETURN n"
             else
-                "MATCH (s:$label { $property : '$value' }) OPTIONAL MATCH (s:$label { $property : '$value' })-[r]->(o) RETURN s,type(r),o",
+                "MATCH (n:$label { $property : '$value' }) RETURN n",
             HashMap<String, Any>(), true).toMutableList()
     }
 
@@ -137,9 +136,9 @@ class Neo4jRepository(
         val value = query.split("==")[1]
         return sessionFactory.openSession().query(
             if (query.split("==")[1].startsWith("urn:"))
-                "MATCH (s)-[r:$property]->(o { uri : '$value' })  RETURN s,type(r),o"
+                "MATCH (n)-[r:$property]->(t { uri : '$value' })  RETURN n"
             else
-                "MATCH (s { $property : '$value' }) OPTIONAL MATCH (s { $property : '$value' })-[r]->(o)  RETURN s,type(r),o",
+                "MATCH (n { $property : '$value' })  RETURN n",
             HashMap<String, Any>(), true).toMutableList()
     }
 

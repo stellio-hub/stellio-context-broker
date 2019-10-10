@@ -5,6 +5,7 @@ import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
+import org.neo4j.ogm.response.model.NodeModel
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
@@ -63,6 +64,11 @@ class EntityHandler(
                 .map {
                     neo4JRepository.getEntities(q, type)
                 }
+                .map {
+                    it.map {
+                        neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
+                    }
+                }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))
                 }
@@ -78,7 +84,7 @@ class EntityHandler(
                     neo4JRepository.getNodeByURI(it)
                 }
                 .map {
-                    neo4jService.queryResultToNgsiLd(it)
+                    neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
                 }
                 .flatMap {
                     ok().body(BodyInserters.fromObject(it))

@@ -3,10 +3,14 @@ package com.egm.datahub.context.registry.web
 import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.RepositoryEventsListener
+import com.egm.datahub.context.registry.service.Neo4jService
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
+import org.neo4j.ogm.response.model.NodeModel
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
@@ -24,6 +28,7 @@ class EntityHandlerTests {
         init {
             System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
         }
+        private val gson = GsonBuilder().setPrettyPrinting().create()
     }
 
     @Autowired
@@ -35,11 +40,14 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var repositoryEventsListener: RepositoryEventsListener
 
+    @MockkBean
+    private lateinit var neo4jService: Neo4jService
+
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
         every { neo4jRepository.createEntity(any(), any(), any()) } returns ""
-        every { neo4jRepository.checkExistingUrn(any()) } returns true
+        every { neo4jRepository.checkExistingUrn(any()) } returns false
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         webClient.post()
@@ -86,13 +94,68 @@ class EntityHandlerTests {
 
     @Test
     fun `query by type should return list of entities of type diat__BeeHive`() {
-        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label.jsonld")
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
 
-        val map1 = mapOf("@id" to "urn:ngsi-ld:BeeHive:HiveRomania", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "Bucarest")))
-        val map2 = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
+        val map1 = "{\n" +
+                "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"name\": \"Bucarest\",\n" +
+                "  \"uri\": \"urn:diat:BeeHive:HiveRomania\"\n" +
+                "}"
+        val map2 = "{\n" +
+                "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"name\": \"ParisBeehive12\",\n" +
+                "  \"uri\": \"urn:diat:BeeHive:TESTC\"\n" +
+                "}"
+        val entityMap1: Map<String, Any> = gson.fromJson(map1, object : TypeToken<Map<String, Any>>() {}.type)
+        var node1: NodeModel = NodeModel(27647624)
+        node1.setProperties(entityMap1)
+        node1.labels = arrayOf("diat__BeeHive")
+        val entityMap2: Map<String, Any> = gson.fromJson(map1, object : TypeToken<Map<String, Any>>() {}.type)
+        var node2: NodeModel = NodeModel(27565624)
+        node2.setProperties(entityMap2)
+        node2.labels = arrayOf("diat__BeeHive")
 
-        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(map1, map2)
+        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node1), mapOf("n" to node2))
+
+        val ngsild2 = "{\n" +
+                "    \"id\": \"urn:diat:BeeHive:TESTC\",\n" +
+                "    \"type\": \"BeeHive\",\n" +
+                "    \"connectsTo\": {\n" +
+                "      \"type\": \"Relationship\",\n" +
+                "      \"object\": \"urn:diat:Beekeeper:Pascal\",\n" +
+                "      \"createdAt\": \"2010-10-26T21:32:52+02:00\",\n" +
+                "      \"modifiedAt\": \"2019.10.09.11.53.05\"\n" +
+                "    },\n" +
+                "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"name\": \"ParisBeehive12\",\n" +
+                "    \"@context\": [\n" +
+                "      \"https://diatomic.eglobalmark.com/diatomic-context.jsonld\",\n" +
+                "      \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\",\n" +
+                "      \"https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld\"\n" +
+                "    ]\n" +
+                "  }"
+        val ngsild1 = "{\n" +
+                "    \"id\": \"urn:diat:BeeHive:HiveRomania\",\n" +
+                "    \"type\": \"BeeHive\",\n" +
+                "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"name\": \"Bucarest\",\n" +
+                "    \"@context\": [\n" +
+                "      \"https://diatomic.eglobalmark.com/diatomic-context.jsonld\",\n" +
+                "      \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\",\n" +
+                "      \"https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld\"\n" +
+                "    ]\n" +
+                "  }"
+        val resp1: Map<String, Any> = gson.fromJson(ngsild1, object : TypeToken<Map<String, Any>>() {}.type)
+        val resp2: Map<String, Any> = gson.fromJson(ngsild2, object : TypeToken<Map<String, Any>>() {}.type)
+
+        every { neo4jService.queryResultToNgsiLd(node1) } returns resp1
+        every { neo4jService.queryResultToNgsiLd(node2) } returns resp2
+
         webClient.get()
                 .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
                 .accept(MediaType.valueOf("application/ld+json"))
@@ -103,13 +166,44 @@ class EntityHandlerTests {
     }
     @Test
     fun `query by type and query (where criteria is property) should return one entity of type diat__BeeHive with specified criteria`() {
-        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_and_query.jsonld")
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_and_query.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
 
-        val map = mapOf("@id" to "urn:ngsi-ld:BeeHive:TESTC", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#BeeHive"), "http://xmlns.com/foaf/0.1/name" to arrayOf(mapOf("@value" to "ParisBeehive12")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:Beekeeper:TEST1")))
-        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(map)
+        val map = "{\n" +
+                "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"name\": \"ParisBeehive12\",\n" +
+                "  \"uri\": \"urn:diat:BeeHive:TESTC\"\n" +
+                "}"
+        val entityMap: Map<String, Any> = gson.fromJson(map, object : TypeToken<Map<String, Any>>() {}.type)
+        var node: NodeModel = NodeModel(27647624)
+        node.setProperties(entityMap)
+        node.labels = arrayOf("diat__BeeHive")
+        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node))
+
+        val ngsild = "{\n" +
+                "    \"id\": \"urn:diat:BeeHive:TESTC\",\n" +
+                "    \"type\": \"BeeHive\",\n" +
+                "    \"connectsTo\": {\n" +
+                "      \"type\": \"Relationship\",\n" +
+                "      \"object\": \"urn:diat:Beekeeper:Pascal\",\n" +
+                "      \"createdAt\": \"2010-10-26T21:32:52+02:00\",\n" +
+                "      \"modifiedAt\": \"2019.10.09.11.53.05\"\n" +
+                "    },\n" +
+                "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"name\": \"ParisBeehive12\",\n" +
+                "    \"@context\": [\n" +
+                "      \"https://diatomic.eglobalmark.com/diatomic-context.jsonld\",\n" +
+                "      \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\",\n" +
+                "      \"https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld\"\n" +
+                "    ]\n" +
+                "  }"
+        val resp: Map<String, Any> = gson.fromJson(ngsild, object : TypeToken<Map<String, Any>>() {}.type)
+
+        every { neo4jService.queryResultToNgsiLd(node) } returns resp
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive&q=foaf__name==ParisBeehive12")
+                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive&q=name==ParisBeehive12")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
@@ -118,12 +212,41 @@ class EntityHandlerTests {
     }
     @Test
     fun `query by type and query (where criteria is relationship) should return a list of type diat__BeeHive that connectsTo specified entity`() {
-        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_rel_uri.jsonld")
+        val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_rel_uri.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
-        val map = mapOf("@id" to "urn:ngsi-ld:Door:0015", "@type" to arrayOf("https://diatomic.eglobalmark.com/ontology#Door"), "https://diatomic.eglobalmark.com/ontology#DoorNumber" to arrayOf(mapOf("@value" to "15")), "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo" to arrayOf(mapOf("@id" to "urn:ngsi-ld:SmartDoor:0021")))
-        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(map)
+        val map = "{\n" +
+                "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"doorNumber\": \"15\",\n" +
+                "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "  \"uri\": \"urn:diat:Door:0015\"\n" +
+                "}"
+        val entityMap: Map<String, Any> = gson.fromJson(map, object : TypeToken<Map<String, Any>>() {}.type)
+        var node: NodeModel = NodeModel(576576)
+        node.setProperties(entityMap)
+        node.labels = arrayOf("diat__Door")
+        every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node))
+
+        val ngsild = "{\n" +
+                "    \"id\": \"urn:diat:Door:0015\",\n" +
+                "    \"type\": \"Door\",\n" +
+                "    \"connectsTo\": {\n" +
+                "      \"type\": \"Relationship\",\n" +
+                "      \"object\": \"urn:diat:SmartDoor:0021\"\n" +
+                "    },\n" +
+                "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"doorNumber\": \"15\",\n" +
+                "    \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
+                "    \"@context\": [\n" +
+                "      \"https://diatomic.eglobalmark.com/diatomic-context.jsonld\",\n" +
+                "      \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\",\n" +
+                "      \"https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld\"\n" +
+                "    ]\n" +
+                "  }"
+        val resp: Map<String, Any> = gson.fromJson(ngsild, object : TypeToken<Map<String, Any>>() {}.type)
+        every { neo4jService.queryResultToNgsiLd(node) } returns resp
+
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=diat__Door&q=ngsild__connectsTo==urn:ngsi-ld:SmartDoor:0021")
+                .uri("/ngsi-ld/v1/entities?type=diat__Door&q=ngsild__connectsTo==urn:ngsild:SmartDoor:0021")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()

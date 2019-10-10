@@ -66,7 +66,6 @@ class NgsiLdParserService {
         }
     }
 
-
     fun parseEntity(ngsiLdPayload: String): NgsiLdParsedResult {
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
         val entityUrn = entityMap["id"] as String

@@ -32,20 +32,20 @@ class Neo4jRepository(
         sessionFactory = SessionFactory(configuration, "com.egm.datahub.context.registry")
     }
 
-    fun createEntity(entityUrn: String, statements: Pair<EntityStatements, RelationshipStatements>): String {
+    fun createEntity(entityUrn: String, entityStatements: EntityStatements, relationshipStatements: RelationshipStatements): String {
         val session = sessionFactory.openSession()
         val tx = session.beginTransaction()
         try {
             // This constraint ensures that each profileId is unique per user node
 
             // insert entities first
-            statements.first.forEach {
+            entityStatements.forEach {
                 logger.info("Creating entity : $it")
                 session.query(it, emptyMap<String, Any>())
             }
 
             // insert relationships second
-            statements.second.forEach {
+            relationshipStatements.forEach {
                 logger.info("Creating relation : $it")
                 session.query(it, emptyMap<String, Any>())
             }

@@ -33,10 +33,11 @@ class NgsiLdParserServiceTests {
         val beekeeper = ClassPathResource("/ngsild/beekeeper.json")
         val parsingResult = ngsiLdParserService.parseEntity(beekeeper.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat(parsingResult.first, equalTo("urn:diat:Beekeeper:Pascal"))
-        assertThat(parsingResult.second.size, equalTo(1))
-        assertThat(parsingResult.third.size, equalTo(0))
-        assertThat(parsingResult.second[0], ktMatches(expectedCreateStatement))
+        assertThat(parsingResult.entityUrn, equalTo("urn:diat:Beekeeper:Pascal"))
+        assertThat(parsingResult.entityType, equalTo("Beekeeper"))
+        assertThat(parsingResult.entityStatements.size, equalTo(1))
+        assertThat(parsingResult.relationshipStatements.size, equalTo(0))
+        assertThat(parsingResult.entityStatements[0], ktMatches(expectedCreateStatement))
     }
 
     @Test
@@ -53,10 +54,10 @@ class NgsiLdParserServiceTests {
         val beekeeper = ClassPathResource("/ngsild/beehive_with_geoproperty.json")
         val parsingResult = ngsiLdParserService.parseEntity(beekeeper.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat(parsingResult.first, equalTo("urn:diat:BeeHive:TESTC"))
-        assertThat(parsingResult.second.size, equalTo(1))
-        assertThat(parsingResult.third.size, equalTo(0))
-        assertThat(parsingResult.second[0], ktMatches(expectedCreateStatement))
+        assertThat(parsingResult.entityUrn, equalTo("urn:diat:BeeHive:TESTC"))
+        assertThat(parsingResult.entityStatements.size, equalTo(1))
+        assertThat(parsingResult.relationshipStatements.size, equalTo(0))
+        assertThat(parsingResult.entityStatements[0], ktMatches(expectedCreateStatement))
     }
 
     @Test
@@ -71,10 +72,10 @@ class NgsiLdParserServiceTests {
         val parsingResult = ngsiLdParserService.parseEntity(door.inputStream.readBytes().toString(Charsets.UTF_8))
 
         logger.debug("Cypher queries are $parsingResult")
-        assertThat("urn:diat:Door:0015", equalTo(parsingResult.first))
-        assertThat(parsingResult.second.size, equalTo(2))
-        assertThat(parsingResult.third.size, equalTo(1))
-        assertThat(parsingResult.third[0], ktMatches(expectedMatchStatement))
+        assertThat("urn:diat:Door:0015", equalTo(parsingResult.entityUrn))
+        assertThat(parsingResult.entityStatements.size, equalTo(2))
+        assertThat(parsingResult.relationshipStatements.size, equalTo(1))
+        assertThat(parsingResult.relationshipStatements[0], ktMatches(expectedMatchStatement))
     }
 
     @Test
@@ -104,12 +105,12 @@ class NgsiLdParserServiceTests {
         val observationSensor = ClassPathResource("/ngsild/observation_sensor_prop_only.json")
         val parsingResult = ngsiLdParserService.parseEntity(observationSensor.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat("urn:diat:Observation:001112", equalTo(parsingResult.first))
-        assertThat(parsingResult.second.size, equalTo(2))
-        assertThat(parsingResult.third.size, equalTo(1))
-        assertThat(parsingResult.second, hasItem(ktMatches(expectedHasMeasureCreateStatement)))
-        assertThat(parsingResult.second, hasItem(ktMatches(expectedObservationCreateStatement)))
-        assertThat(parsingResult.third[0], ktMatches(expectedMatchStatement))
+        assertThat("urn:diat:Observation:001112", equalTo(parsingResult.entityUrn))
+        assertThat(parsingResult.entityStatements.size, equalTo(2))
+        assertThat(parsingResult.relationshipStatements.size, equalTo(1))
+        assertThat(parsingResult.entityStatements, hasItem(ktMatches(expectedHasMeasureCreateStatement)))
+        assertThat(parsingResult.entityStatements, hasItem(ktMatches(expectedObservationCreateStatement)))
+        assertThat(parsingResult.relationshipStatements[0], ktMatches(expectedMatchStatement))
     }
 
     @Test
@@ -118,8 +119,8 @@ class NgsiLdParserServiceTests {
         val item = ClassPathResource("/ngsild/vehicle_ngsild.json")
         val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
         val ngsiLd = ngsiLdParserService.parseEntity(content)
-        assertEquals(4, ngsiLd.second.size)
-        assertEquals(2, ngsiLd.third.size)
+        assertEquals(4, ngsiLd.entityStatements.size)
+        assertEquals(2, ngsiLd.relationshipStatements.size)
     }
 
     @Test
@@ -128,7 +129,7 @@ class NgsiLdParserServiceTests {
         val item = ClassPathResource("/ngsild/parking_ngsild.json")
         val content = item.inputStream.readBytes().toString(Charsets.UTF_8)
         val ngsiLd = ngsiLdParserService.parseEntity(content)
-        assertEquals(3, ngsiLd.second.size)
-        assertEquals(2, ngsiLd.third.size)
+        assertEquals(3, ngsiLd.entityStatements.size)
+        assertEquals(2, ngsiLd.relationshipStatements.size)
     }
 }

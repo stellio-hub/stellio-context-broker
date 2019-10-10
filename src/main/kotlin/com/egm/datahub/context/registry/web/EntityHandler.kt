@@ -1,9 +1,12 @@
 package com.egm.datahub.context.registry.web
 
+import com.egm.datahub.context.registry.model.EntityEvent
+import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -19,20 +22,26 @@ import java.net.URI
 class EntityHandler(
     private val ngsiLdParserService: NgsiLdParserService,
     private val neo4JRepository: Neo4jRepository,
-    private val neo4jService: Neo4jService
+    private val neo4jService: Neo4jService,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
-
         return req.bodyToMono<String>()
             .map {
                 ngsiLdParserService.parseEntity(it)
             }
             .map {
-                neo4JRepository.createEntity(it.first, Pair(it.second, it.third))
-            }.flatMap {
+                neo4JRepository.createEntity(it.entityUrn, it.entityStatements, it.relationshipStatements)
+                it
+            }.map {
+                val entityEvent = EntityEvent(it.entityType, it.entityUrn, EventType.POST, it.ngsiLdPayload)
+                applicationEventPublisher.publishEvent(entityEvent)
+                it.entityUrn
+            }
+            .flatMap {
                 created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
                     when (it) {

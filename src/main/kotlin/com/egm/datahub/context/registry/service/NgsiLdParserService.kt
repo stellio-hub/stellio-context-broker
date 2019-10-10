@@ -1,5 +1,6 @@
 package com.egm.datahub.context.registry.service
 
+import com.egm.datahub.context.registry.model.NgsiLdParsedResult
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
@@ -65,9 +66,11 @@ class NgsiLdParserService {
         }
     }
 
-    fun parseEntity(ngsiLdPayload: String): Triple<String, EntityStatements, RelationshipStatements> {
+
+    fun parseEntity(ngsiLdPayload: String): NgsiLdParsedResult {
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
         val entityUrn = entityMap["id"] as String
+        val entityType = entityMap["type"] as String
 
         val statements = transformNgsiLdToCypher(
             entityMap,
@@ -77,7 +80,7 @@ class NgsiLdParserService {
             mutableListOf()
         )
 
-        return Triple(entityUrn, statements.first, statements.second)
+        return NgsiLdParsedResult(entityType, entityUrn, statements.first, statements.second, ngsiLdPayload)
     }
 
     fun transformNgsiLdToCypher(

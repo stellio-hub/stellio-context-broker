@@ -1,8 +1,10 @@
 package com.egm.datahub.context.registry.web
 
+import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
+import com.egm.datahub.context.registry.service.RepositoryEventsListener
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every
+import io.mockk.*
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,24 +32,36 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var neo4jRepository: Neo4jRepository
 
+    @MockkBean
+    private lateinit var repositoryEventsListener: RepositoryEventsListener
+
     @Test
     fun `should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
-        every { neo4jRepository.createEntity(any(), any()) } returns "urn:ngsi-ld:BeeHive:TESTC"
+        every { neo4jRepository.createEntity(any(), any(), any()) } returns ""
         every { neo4jRepository.checkExistingUrn(any()) } returns true
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .syncBody(jsonLdFile)
                 .exchange()
                 .expectStatus().isCreated
-                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
+                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC"))
+
+        verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+            entityEvent.entityType == "BeeHive" &&
+                    entityEvent.entityUrn == "urn:diat:BeeHive:TESTC" &&
+                    entityEvent.operation == EventType.POST
+        }) }
+        confirmVerified(repositoryEventsListener)
     }
 
     @Test
     fun `should return a 409 if the entity is already existing`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
-        every { neo4jRepository.createEntity(any(), any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
+        every { neo4jRepository.createEntity(any(), any(), any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
         // every { neo4jRepository.checkExistingUrn(any())} returns false
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
@@ -55,6 +69,8 @@ class EntityHandlerTests {
                 .syncBody(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(409)
+
+        verify { repositoryEventsListener wasNot Called }
     }
 
     @Test

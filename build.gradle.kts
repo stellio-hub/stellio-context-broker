@@ -65,7 +65,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation("org.hamcrest:hamcrest:2.1")
-    testImplementation("com.ninja-squad:springmockk:1.1.2")
+    testImplementation("com.ninja-squad:springmockk:1.1.3")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.neo4j:neo4j-ogm-embedded-driver:3.1.14")

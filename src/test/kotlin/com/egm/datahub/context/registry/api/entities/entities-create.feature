@@ -15,8 +15,7 @@ And match header Location == '/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC'
 And def beehiveUrn = 'urn:diat:BeeHive:TESTC'
 
 # Trying to create it again should raise a 409
-# TODO : currently does not raise a 409 (to be fixed after https://bitbucket.org/eglobalmark/context-registry/pull-requests/14)
-#Given path 'entities'
-#And request beehive
-#When method post
-#Then status 409
+Given path 'entities'
+And request beehive
+When method post
+Then status 409

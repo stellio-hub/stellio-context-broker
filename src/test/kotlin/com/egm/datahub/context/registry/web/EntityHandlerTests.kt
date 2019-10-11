@@ -2,8 +2,8 @@ package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
-import com.egm.datahub.context.registry.service.RepositoryEventsListener
 import com.egm.datahub.context.registry.service.Neo4jService
+import com.egm.datahub.context.registry.service.RepositoryEventsListener
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.ninjasquad.springmockk.MockkBean
@@ -70,7 +70,7 @@ class EntityHandlerTests {
     fun `should return a 409 if the entity is already existing`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
         every { neo4jRepository.createEntity(any(), any(), any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
-        // every { neo4jRepository.checkExistingUrn(any())} returns false
+        every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .accept(MediaType.valueOf("application/ld+json"))

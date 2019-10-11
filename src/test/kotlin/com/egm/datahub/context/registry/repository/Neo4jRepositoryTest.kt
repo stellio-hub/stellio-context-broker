@@ -47,6 +47,15 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     }
 
     @Test
+    fun `cant insert duplicated entity (with same urn)`() {
+        val resource = ClassPathResource("/ngsild/beekeeper.json")
+        val content = resource.inputStream.readBytes().toString(Charsets.UTF_8)
+        val urn = ngsiLdParserService.extractEntityUrn(content)
+        // an entity with same urn is already provided in fixtures
+        assertTrue(neo4jRepository.checkExistingUrn(urn))
+    }
+
+    @Test
     fun `query ngsild parking entity by URI`() {
 
         val result = neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1")

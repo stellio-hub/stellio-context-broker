@@ -32,6 +32,10 @@ class EntityHandler(
     fun create(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono<String>()
             .map {
+                val urn = ngsiLdParserService.extractEntityUrn(it)
+                if (neo4JRepository.checkExistingUrn(urn)) {
+                    throw AlreadyExistingEntityException("$urn already existing")
+                }
                 ngsiLdParserService.parseEntity(it)
             }
             .map {

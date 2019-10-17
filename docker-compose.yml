@@ -1,0 +1,18 @@
+version: '3.1'
+services:
+  postgres:
+    image: timescale/timescaledb-postgis:latest-pg11
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-storage:/var/lib/postgresql/data
+      # this currently conflicts with Timescale own scripts,
+      # create DB structure manually unit https://redmine.eglobalmark.com/issues/726
+      # - ./src/main/resources/db/migration/V1__init.sql:/docker-entrypoint-initdb.d/V1__init.sql
+
+volumes:
+  postgres-storage:

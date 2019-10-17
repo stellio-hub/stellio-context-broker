@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="logfile" source="logging.file" defaultValue="./build/logs/onem2m-recorder.log"/>
+    <springProperty scope="context" name="maxFileSize" source="logging.filesize.max" defaultValue="100MB"/>
+    <springProperty scope="context" name="maxArchiveSize" source="logging.archivesize.max" defaultValue="10GB"/>
+    <springProperty scope="context" name="maxHistory" source="logging.history.max" defaultValue="60"/>
+
+    <appender name="consoleOut" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder
+            by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="rolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${logfile}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>${logfile}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- each file should be at most 100MB, keep 60 days worth of history, but at most 20GB -->
+            <maxFileSize>${maxFileSize}</maxFileSize>
+            <maxHistory>${maxHistory}</maxHistory>
+            <totalSizeCap>${maxArchiveSize}</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{dd-MMM-yy HH:mm:ss.SSS} %-5level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="rolling" />
+        <appender-ref ref="consoleOut" />
+    </root>
+
+</configuration>

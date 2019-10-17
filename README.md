@@ -18,6 +18,12 @@ docker-compose up -d && docker-compose logs -f
 127.0.0.1       dh-local-docker
 ```
 
+* Bootstrap some data in a batch (optional)
+
+```
+./insertData.sh
+```
+
 * Create a `src/main/resources/application-dev.properties` file and put in it the configuration properties you want to override
 
 * Start the application :
@@ -77,41 +83,43 @@ docker run easyglobalmarket/context-registry:latest
 * Create a new entity
 
 ```
-http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/resources/data/beehive.jsonld
+http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json
 ```
 
-* Get an entity by type
+* Eventually, create a second one
 
 ```
-http GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive Content-Type:application/json
+http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive_2.json
 ```
 
-* Bootstrap some data in a batch
+* Get entities by type
 
 ```
-./insertData.sh
+http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive Content-Type:application/json
 ```
 
-* return entities list by label
+* Get an entity by URI
 
 ```
-curl -vX GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive
+http http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC Content-Type:application/json
 ```
 
-* return related objects by label
+* Get entities by relationships
+
 ```
-curl -vX GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive
+http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=ngsild__connectsTo==urn:diat:Beekeeper:Pascal
 ```
 
-* return object by URI
+* Get entities by property
+
 ```
-curl -vX GET http://localhost:8080/ngsi-ld/v1/entities/urn:ngsi-ld:Beekeeper:TEST1
+http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=name==ParisBeehive12
 ```
 
-* return object by QUERY (is a cypher query) : find all the objects that connects to Beekeeper
+* Update the property of an entity
+
 ```
-curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=ngsild__connectsTo==urn:ngsi-ld:Beekeeper:TEST1
-curl -g -X GET http://localhost:8080/ngsi-ld/v1/entities?type=diat__Beekeeper&q=foaf__name==TEST1
+http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC/attrs/name name=BiotBeehive
 ```
 
 ## Cypher queries

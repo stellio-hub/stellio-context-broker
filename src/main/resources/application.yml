@@ -1,0 +1,20 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          login-client:
+            provider: keycloak
+            client-id: api-gateway
+            client-secret: fd3fa938-495c-4f21-9887-c226d77878bd
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid,profile,email,resource.read
+        provider:
+          keycloak:
+            authorization-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/auth
+            token-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/token
+            user-info-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/userinfo
+            user-name-attribute: sub
+            jwk-set-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/certs
+

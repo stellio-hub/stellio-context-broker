@@ -5,8 +5,9 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.regex.Pattern
@@ -286,7 +287,8 @@ class NgsiLdParserService {
             val labelSubject = subject.getLabelWithPrefix()
             val uri = subject.getUri()
             val attrsUriSubj = formatAttributes(hashMapOf("uri" to uri))
-            val timeStamp = SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(Date())
+
+            val timeStamp = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
             if (!subject.attrs.containsKey("createdAt")) {
                 subject.attrs.put("createdAt", timeStamp)
             }

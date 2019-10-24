@@ -1,5 +1,6 @@
 package com.egm.datahub.context.registry.service
 
+import com.egm.datahub.context.registry.model.Observation
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.google.gson.GsonBuilder
 import org.neo4j.ogm.response.model.NodeModel
@@ -113,5 +114,59 @@ class Neo4jService(
         val pp = iterateOverProperties(nodeModel)
 
         return idAndType.plus(rr).plus(pp).plus(properties).plus(NgsiLdParserService.contextsMap)
+    }
+
+    fun updateEntityLastMeasure(observation: Observation) {
+        val observingEntity = neo4jRepository.getNodeByURI(observation.observedBy.target)
+        if (observingEntity.isEmpty()) {
+            logger.warn("Unable to find observing entity ${observation.observedBy.target} for observation ${observation.id}")
+            return
+        }
+        val observingNode = observingEntity["n"] as NodeModel
+
+        // Find the previous observation of the same unit for the given sensor, then delete it
+        val previousMeasureQuery = listOf("observedBy==${observation.observedBy.target}", "unitCode==${observation.unitCode}")
+        val previousMeasures =
+            neo4jRepository.getEntitiesByLabelAndQuery(previousMeasureQuery, "Measure")
+        if (previousMeasures.isEmpty()) {
+            logger.debug("No previous observation of kind ${observation.unitCode} for ${observation.observedBy.target}")
+            val newMeasureQuery = """
+                CREATE (m:Measure { 
+                            uri: "${observation.id}", 
+                            unitCode: "${observation.unitCode}",
+                            value: ${observation.value},
+                            observedAt: "${observation.observedAt}",
+                            location: point({ x: ${observation.location.value.coordinates[0]}, 
+                                              y: ${observation.location.value.coordinates[1]}, 
+                                              crs: "WGS-84"
+                                            })
+                       })           
+            """.trimIndent()
+
+            val observedByRelationship = """
+                MATCH (m : Measure { uri: "${observation.id}" }),
+                      (e : ${observingNode.labels[0]} { uri: "${observingNode.property("uri")}" }) 
+                MERGE (e)-[r1:hasMeasure]->(m)
+                MERGE (m)-[r2:observedBy]->(e)
+            """.trimIndent()
+
+            neo4jRepository.createEntity(observation.id, listOf(newMeasureQuery), listOf(observedByRelationship))
+        } else {
+            // we should only have one result
+            // TODO delete all the found measures in case something gone wild in the repository ?
+            val previousMeasure = previousMeasures[0]["n"] as NodeModel
+            val updateMeasureQuery = """
+                MATCH (m:Measure { uri: '${previousMeasure.property("uri")}' })
+                SET m.uri = "${observation.id}",
+                    m.value = ${observation.value},
+                    m.observedAt = "${observation.observedAt}",
+                    m.location = point({ x: ${observation.location.value.coordinates[0]}, 
+                                         y: ${observation.location.value.coordinates[1]}, 
+                                         crs: "WGS-84"
+                                       })
+            """.trimIndent()
+
+            neo4jRepository.updateEntity(updateMeasureQuery, previousMeasure.property("uri") as String)
+        }
     }
 }

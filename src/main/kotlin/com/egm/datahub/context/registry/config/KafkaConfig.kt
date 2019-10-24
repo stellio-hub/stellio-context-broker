@@ -13,4 +13,7 @@ class KafkaConfig {
     fun entitiesTopic(): NewTopic {
         return NewTopic("entities", 2, 1.toShort())
     }
+
+    @Bean
+    fun observationsTopic(): NewTopic = NewTopic("cim.observations", 1, 1.toShort())
 }

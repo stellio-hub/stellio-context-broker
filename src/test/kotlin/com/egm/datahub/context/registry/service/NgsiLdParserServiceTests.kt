@@ -92,21 +92,21 @@ class NgsiLdParserServiceTests {
             """.trimIndent()
         val expectedObservationCreateStatement =
             """
-                MERGE \(a : diat__Observation \{  uri: "urn:diat:Observation:001112"}\)
-                ON CREATE SET a = \{  uri: "urn:diat:Observation:001112", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
-                ON MATCH SET a \+= \{  uri: "urn:diat:Observation:001112",  createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                MERGE \(a : sosa__Observation \{  uri: "urn:sosa:Observation:001112"}\)
+                ON CREATE SET a = \{  uri: "urn:sosa:Observation:001112", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                ON MATCH SET a \+= \{  uri: "urn:sosa:Observation:001112",  createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
                 return a
             """.trimIndent()
         val expectedMatchStatement =
             """
-                MATCH \(a : diat__Observation \{ uri: "urn:diat:Observation:001112" }\), 
+                MATCH \(a : sosa__Observation \{ uri: "urn:sosa:Observation:001112" }\), 
                       \(b : diat__hasMeasure \{ uri: "urn:diat:hasMeasure:[a-zA-Z\-0-9]+" }\) 
                 MERGE \(a\)-\[r:ngsild__hasObject \{ uri:"urn:ngsild:hasObject:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
              """.trimIndent()
         val observationSensor = ClassPathResource("/ngsild/observation_sensor_prop_only.json")
         val parsingResult = ngsiLdParserService.parseEntity(observationSensor.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat("urn:diat:Observation:001112", equalTo(parsingResult.entityUrn))
+        assertThat("urn:sosa:Observation:001112", equalTo(parsingResult.entityUrn))
         assertThat(parsingResult.entityStatements.size, equalTo(2))
         assertThat(parsingResult.relationshipStatements.size, equalTo(1))
         assertThat(parsingResult.entityStatements, hasItem(ktMatches(expectedHasMeasureCreateStatement)))

@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.FileSystemUtils
 import java.io.File
+import java.nio.file.Path
 
 @EmbeddedKafka(topics = ["entities"])
 @ActiveProfiles("test")
@@ -52,6 +54,9 @@ open class IntegrationTestsBase {
         logger.info("Shutting down Neo4j")
 
         graphDb.shutdown()
+
+        // delete Neo4j data to ensure we start on a fresh DB on every run
+        FileSystemUtils.deleteRecursively(Path.of("tmp"))
     }
 
     fun driver(): Driver {

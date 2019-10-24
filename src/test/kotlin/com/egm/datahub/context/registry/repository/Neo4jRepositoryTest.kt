@@ -97,13 +97,13 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
 
     @Test
     fun `query entities by query`() {
-        val result = neo4jRepository.getEntitiesByQuery("name==ParisBeehive12")
+        val result = neo4jRepository.getEntitiesByLabelAndQuery(listOf("name==ParisBeehive12"), null)
         assertEquals(1, result.size)
     }
 
     @Test
     fun `query entities by label and query`() {
-        val result = neo4jRepository.getEntitiesByLabelAndQuery("name==Scalpa", "diat__Beekeeper")
+        val result = neo4jRepository.getEntitiesByLabelAndQuery(listOf("name==Scalpa"), "diat__Beekeeper")
         assertEquals(1, result.size)
     }
 

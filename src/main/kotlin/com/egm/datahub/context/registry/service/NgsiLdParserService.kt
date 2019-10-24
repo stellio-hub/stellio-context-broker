@@ -40,8 +40,9 @@ class NgsiLdParserService {
     companion object {
         private val gson = GsonBuilder().setPrettyPrinting().create()
         val namespacesMapping: Map<String, List<String>> = mapOf(
-            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "Sensor", "Observation", "ObservedBy", "ManagedBy", "hasMeasure"),
             "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
+            "sosa" to listOf("Sensor", "Observation"),
+            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure"),
             "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
         )
 

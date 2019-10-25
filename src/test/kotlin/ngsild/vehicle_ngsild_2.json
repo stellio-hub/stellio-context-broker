@@ -1,19 +1,23 @@
 {
-  "id": "urn:example:Vehicle:A4567",
+  "id": "urn:example:Vehicle:A1234",
   "type": "Vehicle",
   "brandName": {
     "type": "Property",
     "value": "Mercedes"
   },
-  "name": "name of vehicle 1",
+  "name":  "name of vehicle 2",
   "isParked": {
     "type": "Relationship",
-    "object": "urn:example:OffStreetParking:Downtown1",
-    "observedAt": "2017-07-29T12:00:04Z",
+    "object": "urn:example:OffStreetParking:Downtown2",
+    "observedAt": "2019-10-22T12:00:04Z",
     "providedBy": {
       "type": "Relationship",
       "object": "urn:example:Person:Bob"
     }
+  },
+  "hasSensor": {
+    "type": "Relationship",
+    "object": "urn:sosa:Sensor:1234567890"
   },
   "@context": [
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",

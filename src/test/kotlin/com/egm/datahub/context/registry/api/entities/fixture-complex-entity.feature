@@ -5,11 +5,19 @@ Feature: create a "complex" entity (ignore bc only expected to be set as a call 
     * url urlBase
 
   Scenario: create a beekeeper and then check response status and header
-    * def measure = read('classpath:ngsild/observation.json')
+    * def vehicle1 = read('classpath:ngsild/vehicle_ngsild.json')
+    * def vehicle2 = read('classpath:ngsild/vehicle_ngsild_2.json')
 
     Given path 'entities'
-    And request measure
+    And request vehicle1
     When method post
     Then status 201
-    And match header Location == '/ngsi-ld/v1/entities/urn:sosa:Observation:111122223333'
-    And def entityUrn = 'urn:ssn:Measure:111122223333'
+    And match header Location == '/ngsi-ld/v1/entities/urn:example:Vehicle:A4567'
+    And def entityUrn = 'urn:example:Vehicle:A4567'
+
+    Given path 'entities'
+    And request vehicle2
+    When method post
+    Then status 201
+    And match header Location == '/ngsi-ld/v1/entities/urn:example:Vehicle:A1234'
+    And def entityUrn = 'urn:example:Vehicle:A1234'

@@ -43,7 +43,7 @@ class NgsiLdParserService {
             "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
             "sosa" to listOf("Sensor", "Observation"),
             "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure"),
-            "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
+            "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "hasSensor", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
         )
 
         val contextsMap = mapOf(

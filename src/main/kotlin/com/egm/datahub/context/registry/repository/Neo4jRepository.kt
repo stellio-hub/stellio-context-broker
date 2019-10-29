@@ -85,7 +85,7 @@ class Neo4jRepository(
     fun getRelationshipByURI(uri: String): List<Map<String, Any>> {
         val query = """
             MATCH (n { uri: '$uri' })-[r]->(t) 
-            WHERE NOT (n)-[r:ngsild__hasObject]->(t) 
+            WHERE NOT (n)-[r:ngsild__hasValue]->(t) 
             RETURN n,type(r) as rel,t,r
         """.trimIndent()
         val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
@@ -97,7 +97,7 @@ class Neo4jRepository(
 
     fun getNestedPropertiesByURI(uri: String): List<Map<String, Any>> {
         val query = """
-            MATCH (n { uri: '$uri' })-[r:ngsild__hasObject]->(t) 
+            MATCH (n { uri: '$uri' })-[r:ngsild__hasValue]->(t) 
             RETURN n,type(r) as rel,t,r
         """.trimIndent()
         val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()

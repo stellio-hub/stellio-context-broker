@@ -40,7 +40,7 @@ class NgsiLdParserService {
     companion object {
         private val gson = GsonBuilder().setPrettyPrinting().create()
         val namespacesMapping: Map<String, List<String>> = mapOf(
-            "ngsild" to listOf("connectsTo", "hasObject", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
+            "ngsild" to listOf("connectsTo", "hasValue", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
             "sosa" to listOf("Sensor", "Observation"),
             "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure"),
             "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "hasSensor", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
@@ -204,7 +204,7 @@ class NgsiLdParserService {
                     // object attributes will be set in the next travestPropertiesIteration with a match on URI
                     // ADD THE RELATIONSHIP
                     val uuidRel = UUID.randomUUID().toString()
-                    val urnPredicate = "urn:ngsild:hasObject:$uuidRel"
+                    val urnPredicate = "urn:ngsild:hasValue:$uuidRel"
                     val newStatements = buildInsert(
                         nodeEntity,
                         Entity(hashMapOf("uri" to urnPredicate), "ngsild"),

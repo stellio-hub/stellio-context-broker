@@ -1,7 +1,9 @@
 package com.egm.datahub.context.search.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.context.annotation.Configuration
 
+@Configuration
 @ConfigurationProperties("application.datasource")
 class DatasourceProperties {
     lateinit var database: String

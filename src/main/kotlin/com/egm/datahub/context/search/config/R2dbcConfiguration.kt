@@ -6,9 +6,6 @@ import io.r2dbc.spi.ConnectionFactoryOptions.*
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration
-import org.springframework.data.r2dbc.connectionfactory.R2dbcTransactionManager
-import org.springframework.data.r2dbc.core.DatabaseClient
-import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 
 @Configuration
@@ -16,9 +13,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 class R2dbcConfiguration(
         private val datasourceProperties: DatasourceProperties
 ) : AbstractR2dbcConfiguration() {
-
-    @Bean
-    fun databaseClient(connectionFactory: ConnectionFactory): DatabaseClient = DatabaseClient.create(connectionFactory)
 
     @Bean
     override fun connectionFactory(): ConnectionFactory {
@@ -33,7 +27,4 @@ class R2dbcConfiguration(
                 .build()
         return ConnectionFactories.get(options)
     }
-
-    @Bean
-    fun transactionManager(connectionFactory: ConnectionFactory): ReactiveTransactionManager = R2dbcTransactionManager(connectionFactory)
 }

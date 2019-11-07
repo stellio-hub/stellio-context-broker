@@ -5,6 +5,7 @@ import com.egm.datahub.context.registry.model.EventType
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
+import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
 import org.neo4j.ogm.response.model.NodeModel
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -29,12 +30,16 @@ class EntityHandler(
 
     private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
 
+    fun generatesProblemDetails(list: List<String>): String {
+        return objectMapper().writeValueAsString(mapOf("ProblemDetails" to list))
+    }
+
     fun create(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono<String>()
             .map {
-                val urn = ngsiLdParserService.extractEntityUrn(it)
+                val urn = ngsiLdParserService.run { extractEntityUrn(it) }
                 if (neo4JRepository.checkExistingUrn(urn)) {
-                    throw AlreadyExistingEntityException("$urn already existing")
+                    throw AlreadyExistsException("Already Exists")
                 }
                 ngsiLdParserService.parseEntity(it)
             }
@@ -49,11 +54,11 @@ class EntityHandler(
             .flatMap {
                 created(URI("/ngsi-ld/v1/entities/$it")).build()
             }.onErrorResume {
-                    when (it) {
-                        is AlreadyExistingEntityException -> status(HttpStatus.CONFLICT).body(BodyInserters.fromObject(it.localizedMessage))
-                        is EntityCreationException -> status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject(it.localizedMessage))
-                        else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
-                    }
+                when (it) {
+                    is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
+                    is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                    else -> badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
+                }
             }
     }
 
@@ -61,41 +66,45 @@ class EntityHandler(
         val type = req.queryParam("type").orElse("")
         val q = req.queryParams()["q"].orEmpty()
 
-        if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-            return badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
-        }
         return "".toMono()
-                .map {
-                    neo4JRepository.getEntities(q, type)
+            .map {
+                if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
+                    throw InvalidRequestException("Bad Request")
                 }
-                .map {
-                    it.map {
-                        neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
-                    }
+                neo4JRepository.getEntities(q, type)
+            }
+            .map {
+                it.map {
+                    neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
                 }
-                .flatMap {
-                    ok().body(BodyInserters.fromObject(it))
-                }
-                .onErrorResume {
-                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                }
+            }
+            .flatMap {
+                ok().body(BodyInserters.fromObject(it))
+            }
+            .onErrorResume {
+                badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
+            }
     }
 
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
         return uri.toMono()
-                .map {
-                    neo4JRepository.getNodeByURI(it)
+            .map {
+                if (!neo4JRepository.checkExistingUrn(uri)) throw ResourceNotFoundException("Entity Not Found")
+                neo4JRepository.getNodeByURI(it)
+            }
+            .map {
+                neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
+            }
+            .flatMap {
+                ok().body(BodyInserters.fromObject(it))
+            }
+            .onErrorResume {
+                when (it) {
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
+                    else -> badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
                 }
-                .map {
-                    neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
-                }
-                .flatMap {
-                    ok().body(BodyInserters.fromObject(it))
-                }
-                .onErrorResume {
-                    status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                }
+            }
     }
 
     fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {
@@ -114,7 +123,7 @@ class EntityHandler(
             }
             .onErrorResume {
                 when (it) {
-                    is NotExistingEntityException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
                     else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
                 }
             }

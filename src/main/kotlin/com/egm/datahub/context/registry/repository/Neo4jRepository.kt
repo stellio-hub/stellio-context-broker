@@ -3,8 +3,8 @@ package com.egm.datahub.context.registry.repository
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.EntityStatements
 import com.egm.datahub.context.registry.service.RelationshipStatements
-import com.egm.datahub.context.registry.web.EntityCreationException
-import com.egm.datahub.context.registry.web.NotExistingEntityException
+import com.egm.datahub.context.registry.web.ResourceNotFoundException
+import com.egm.datahub.context.registry.web.InternalErrorException
 import org.neo4j.driver.v1.Config
 import org.neo4j.ogm.config.Configuration
 import org.neo4j.ogm.session.SessionFactory
@@ -53,18 +53,17 @@ class Neo4jRepository(
             // The constraint is already created or the database is not available
             logger.error("Error while persisting entity $entityUrn", ex)
             tx.rollback()
-            throw EntityCreationException("Something went wrong when creating entity")
+            throw InternalErrorException("Error while persisting entity")
         } finally {
             tx.close()
         }
-
         return entityUrn
     }
 
     fun updateEntity(query: String, uri: String) {
         if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
-            throw NotExistingEntityException("not existing entity! ")
+            throw ResourceNotFoundException("not existing entity!")
         }
 
         sessionFactory.openSession().query(query, emptyMap<String, Any>()).queryResults()

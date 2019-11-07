@@ -67,9 +67,9 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `should return a 409 if the entity is already existing`() {
+    fun `should return a 409 error the entity is already existing`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
-        every { neo4jRepository.createEntity(any(), any(), any()) } throws AlreadyExistingEntityException("already existing entity urn:ngsi-ld:BeeHive:TESTC")
+
         every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
@@ -82,21 +82,85 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `should return a 400 if JSON-LD payload is not correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
+    fun `should return a 500 error if internal server Error`() {
+        val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
+
+        every { neo4jRepository.createEntity(any(), any(), any()) } throws InternalErrorException("Internal Server Exception")
+        every { neo4jRepository.checkExistingUrn(any()) } returns false
         webClient.post()
-                .uri("/ngsi-ld/v1/entities")
-                .accept(MediaType.valueOf("application/ld+json"))
-                .syncBody(jsonLdFile)
-                .exchange()
-                .expectStatus().isBadRequest
+            .uri("/ngsi-ld/v1/entities")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(500)
+
+        verify { repositoryEventsListener wasNot Called }
+    }
+
+    @Test
+    fun `should return a 400 and bad request in Json if JSON-LD payload is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `query by id should return 200 when the entity is found`() {
+
+        every { neo4jRepository.checkExistingUrn(any()) } returns true
+
+        val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
+        val contentJson = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+        // creating a fake node
+        val map1 = "{\n" + "}"
+        val entityMap1: Map<String, Any> = gson.fromJson(map1, object : TypeToken<Map<String, Any>>() {}.type)
+        var node1: NodeModel = NodeModel(27647624)
+        node1.setProperties(entityMap1)
+        every { neo4jRepository.getNodeByURI(any()) } returns mapOf("n" to node1)
+
+        val resp1: Map<String, Any> = gson.fromJson(contentJson, object : TypeToken<Map<String, Any>>() {}.type)
+        every { neo4jService.queryResultToNgsiLd(node1) } returns resp1
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(contentJson)
+    }
+
+    @Test
+    fun `query by id should return 404 and json not found`() {
+
+        every { neo4jRepository.checkExistingUrn(any()) } returns false
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:diat:BeeHive:TEST")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isEqualTo(404)
+    }
+
+    @Test
+    fun `query by type should return 400 if bad request`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?type=diat__Bee")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isBadRequest
     }
 
     @Test
     fun `query by type should return list of entities of type diat__BeeHive`() {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
-
         val map1 = "{\n" +
                 "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
@@ -164,6 +228,7 @@ class EntityHandlerTests {
                 .expectStatus().isOk
                 .expectBody().json(content)
     }
+
     @Test
     fun `query by type and query (where criteria is property) should return one entity of type diat__BeeHive with specified criteria`() {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_and_query.json")

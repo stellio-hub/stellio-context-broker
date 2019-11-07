@@ -3,7 +3,7 @@ package com.egm.datahub.context.registry.repository
 import com.egm.datahub.context.registry.IntegrationTestsBase
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
-import com.egm.datahub.context.registry.web.EntityCreationException
+import com.egm.datahub.context.registry.web.AlreadyExistsException
 import com.google.gson.GsonBuilder
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
@@ -200,7 +200,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
                 val ngsiLdParsedResult = ngsiLdParserService.parseEntity(content)
                 neo4jRepository.createEntity(ngsiLdParsedResult.entityUrn, ngsiLdParsedResult.entityStatements,
                     ngsiLdParsedResult.relationshipStatements)
-            } catch (e: EntityCreationException) {
+            } catch (e: AlreadyExistsException) {
                 logger.warn("Entity already exists $it")
             } catch (e: Exception) {
                 fail("Unable to bootstrap fixtures", e)

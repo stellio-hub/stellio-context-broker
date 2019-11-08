@@ -16,7 +16,7 @@ repositories {
 	maven { url = uri("https://repo.spring.io/milestone") }
 }
 
-extra["springCloudVersion"] = "Hoxton.M3"
+extra["springCloudVersion"] = "Hoxton.RC1"
 
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")

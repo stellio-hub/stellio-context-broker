@@ -5,6 +5,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.0.8.RELEASE"
 	kotlin("jvm") version "1.3.50"
 	kotlin("plugin.spring") version "1.3.50"
+	id("com.google.cloud.tools.jib") version "1.6.1"
 }
 
 group = "com.egm.datahub"
@@ -44,5 +45,19 @@ tasks.withType<KotlinCompile> {
 	kotlinOptions {
 		freeCompilerArgs = listOf("-Xjsr305=strict")
 		jvmTarget = "1.8"
+	}
+}
+
+jib {
+	from {
+		image = "openjdk:alpine"
+	}
+	to {
+		image = "easyglobalmarket/api-gateway"
+	}
+	container {
+		jvmFlags = listOf("-Xms512m")
+		ports = listOf("8080")
+		creationTime = "USE_CURRENT_TIMESTAMP"
 	}
 }

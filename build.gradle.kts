@@ -87,7 +87,11 @@ tasks.bootRun {
 }
 
 tasks.withType<Test> {
+    environment("SPRING_PROFILES_ACTIVE", "test")
     useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 jib {

@@ -11,7 +11,6 @@ Feature: test some more complex queries on a measure entity
     When method get
     Then status 200
     Then match response.size() == 2
-    Then match response[0].id == 'urn:example:Vehicle:A4567'
 
     Given path 'entities'
     And param type = 'example__Vehicle'

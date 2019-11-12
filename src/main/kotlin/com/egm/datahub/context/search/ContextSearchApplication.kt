@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class ContextSearchApplication
 
 fun main(args: Array<String>) {
-	runApplication<ContextSearchApplication>(*args)
+    runApplication<ContextSearchApplication>(*args)
 }

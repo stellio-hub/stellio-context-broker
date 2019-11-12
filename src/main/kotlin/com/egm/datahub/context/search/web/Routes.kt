@@ -7,7 +7,8 @@ import org.springframework.web.reactive.function.server.router
 
 @Configuration
 class Routes(
-    private val statusHandler: StatusHandler
+    private val statusHandler: StatusHandler,
+    private val temporalEntityHandler: TemporalEntityHandler
 ) {
 
     @Bean
@@ -15,6 +16,12 @@ class Routes(
         (accept(MediaType.APPLICATION_JSON) and "/api").nest {
             "/status".nest {
                 GET("/", statusHandler::status)
+            }
+        }
+        (accept(MediaType.valueOf("application/ld+json")) and "/ngsi-ld/v1").nest {
+            "/temporal/entities".nest {
+                GET("/{entityId}", temporalEntityHandler::getForEntity)
+                POST("/{entityId}/attrs", temporalEntityHandler::addAttrs)
             }
         }
     }

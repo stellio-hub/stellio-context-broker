@@ -4,10 +4,10 @@ import java.time.OffsetDateTime
 import javax.validation.constraints.NotNull
 
 data class Observation(
-        @NotNull val observedBy: String,
-        @NotNull val observedAt: OffsetDateTime,
-        @NotNull val value: Double,
-        @NotNull val unitCode: String,
-        @NotNull val latitude: Double,
-        @NotNull val longitude: Double
+    @NotNull val observedBy: String,
+    @NotNull val observedAt: OffsetDateTime,
+    @NotNull val value: Double,
+    @NotNull val unitCode: String,
+    val latitude: Double,
+    val longitude: Double
 )

@@ -1,9 +1,15 @@
 package com.egm.datahub.context.registry.service
 
-import com.egm.datahub.context.registry.model.*
+import com.egm.datahub.context.registry.model.GeoProperty
+import com.egm.datahub.context.registry.model.Observation
+import com.egm.datahub.context.registry.model.ObservedBy
+import com.egm.datahub.context.registry.model.Value
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.neo4j.ogm.response.model.NodeModel
 import org.springframework.beans.factory.annotation.Autowired
@@ -68,7 +74,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.getEntitiesByLabelAndQuery(any(), any()) } returns mutableListOf(mapOf("n" to mockkedMeasureNode))
         every { mockkedMeasureNode.property("uri") } returns "urn:ssn:Measure:12345678909876"
 
-        every { neo4jRepository.updateEntity(any(), any()) } just Runs
+        every { neo4jRepository.updateEntity(any(), any()) } returns emptyMap()
 
         neo4jService.updateEntityLastMeasure(observation)
 

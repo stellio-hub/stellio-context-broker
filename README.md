@@ -95,31 +95,34 @@ http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/jso
 * Get entities by type
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive Content-Type:application/json
+http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/beehive.jsonld>; rel=http://www.w3.org/ns/json-ld#diat; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get an entity by URI
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC Content-Type:application/json
+http http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC  Content-Type:application/json
+
 ```
 
 * Get entities by relationships
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=ngsild__connectsTo==urn:diat:Beekeeper:Pascal
+http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:diat:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/beehive.jsonld>; rel=http://www.w3.org/ns/json-ld#diat; type=application/ld+json" Content-Type:application/json
+http http://localhost:8080/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:example:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/vehicle.jsonld>; rel=http://www.w3.org/ns/json-ld#example; type=application/ld+json" Content-Type:application/json
+
 ```
 
 * Get entities by property
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=diat__BeeHive&q=name==ParisBeehive12
+http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/beehive.jsonld>; rel=http://www.w3.org/ns/json-ld#diat; type=application/ld+json" Content-Type:application/json
 ```
 
 * Update the property of an entity
 
 ```
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC/attrs/name name=BiotBeehive
+http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs/name type=Sensor name="My precious sensor Updated" Link:"<http://easyglobalmarket.com/contexts/sensor.jsonld>; rel=http://www.w3.org/ns/json-ld#sosa; type=application/ld+json"
 ```
 
 ## Cypher queries

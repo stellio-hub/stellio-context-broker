@@ -10,6 +10,7 @@ Feature: create a "complex" entity (ignore bc only expected to be set as a call 
 
     Given path 'entities'
     And request vehicle1
+    And header Link = '<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json'
     When method post
     Then status 201
     And match header Location == '/ngsi-ld/v1/entities/urn:example:Vehicle:A4567'
@@ -17,6 +18,7 @@ Feature: create a "complex" entity (ignore bc only expected to be set as a call 
 
     Given path 'entities'
     And request vehicle2
+    And header Link = '<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json'
     When method post
     Then status 201
     And match header Location == '/ngsi-ld/v1/entities/urn:example:Vehicle:A1234'

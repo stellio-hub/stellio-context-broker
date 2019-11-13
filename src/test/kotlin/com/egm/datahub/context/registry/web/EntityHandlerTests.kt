@@ -52,6 +52,7 @@ class EntityHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
+                .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .syncBody(jsonLdFile)
                 .exchange()
@@ -67,12 +68,13 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `should return a 409 error the entity is already existing`() {
+    fun `should return a 409 if the entity is already existing`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive.json")
 
         every { neo4jRepository.checkExistingUrn(any()) } returns true
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
+                .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .syncBody(jsonLdFile)
                 .exchange()
@@ -89,6 +91,7 @@ class EntityHandlerTests {
         every { neo4jRepository.checkExistingUrn(any()) } returns false
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .syncBody(jsonLdFile)
             .exchange()
@@ -103,6 +106,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .syncBody(jsonLdFile)
             .exchange()
@@ -158,7 +162,19 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `query by type should return list of entities of type diat__BeeHive`() {
+    fun `should return a 400 if Link header NS does not match the entity type`() {
+        val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `query by type should return list of entities of type BeeHive`() {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
         val map1 = "{\n" +
@@ -221,7 +237,8 @@ class EntityHandlerTests {
         every { neo4jService.queryResultToNgsiLd(node2) } returns resp2
 
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive")
+                .uri("/ngsi-ld/v1/entities?type=BeeHive")
+                .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
@@ -230,7 +247,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `query by type and query (where criteria is property) should return one entity of type diat__BeeHive with specified criteria`() {
+    fun `query by type and query (where criteria is property) should return one entity of type BeeHive with specified criteria`() {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_and_query.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
 
@@ -268,7 +285,8 @@ class EntityHandlerTests {
 
         every { neo4jService.queryResultToNgsiLd(node) } returns resp
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=diat__BeeHive&q=name==ParisBeehive12")
+                .uri("/ngsi-ld/v1/entities?type=BeeHive&q=name==ParisBeehive12")
+                .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
@@ -276,7 +294,7 @@ class EntityHandlerTests {
                 .expectBody().json(content)
     }
     @Test
-    fun `query by type and query (where criteria is relationship) should return a list of type diat__BeeHive that connectsTo specified entity`() {
+    fun `query by type and query (where criteria is relationship) should return a list of type BeeHive that connectsTo specified entity`() {
         val jsonLdFile = ClassPathResource("/mock/response_entities_by_label_rel_uri.json")
         val content = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
         val map = "{\n" +
@@ -311,11 +329,28 @@ class EntityHandlerTests {
         every { neo4jService.queryResultToNgsiLd(node) } returns resp
 
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=diat__Door&q=ngsild__connectsTo==urn:ngsild:SmartDoor:0021")
+                .uri("/ngsi-ld/v1/entities?type=Door&q=connectsTo==urn:ngsild:SmartDoor:0021")
                 .accept(MediaType.valueOf("application/ld+json"))
+                .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isOk
                 .expectBody().json(content)
+    }
+    @Test
+    fun `update should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
+
+        every { neo4jRepository.updateEntity(any(), any()) } returns emptyMap()
+        val entityId = "urn:sosa:Sensor:0022CCC"
+        val attrId = "name"
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
     }
 }

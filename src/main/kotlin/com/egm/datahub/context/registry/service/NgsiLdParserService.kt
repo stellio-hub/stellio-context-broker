@@ -40,12 +40,11 @@ class NgsiLdParserService {
     companion object {
         private val gson = GsonBuilder().setPrettyPrinting().create()
         val namespacesMapping: Map<String, List<String>> = mapOf(
-            "ngsild" to listOf("connectsTo", "hasValue", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship", "name"),
+            "ngsild" to listOf("hasValue", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
             "sosa" to listOf("Sensor", "Observation"),
-            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure"),
+            "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure", "connectsTo"),
             "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "hasSensor", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
         )
-
         val contextsMap = mapOf(
             "@context" to listOf(
                 "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
@@ -68,6 +67,33 @@ class NgsiLdParserService {
         }
     }
 
+    fun checkResourceNSmatch(t: String): Boolean {
+        if (t.split("__").size <2) {
+            return false
+        }
+        val ns = t.split("__")[0]
+        val type = t.split("__")[1]
+        return if (namespacesMapping[ns] == null) {
+            false
+        } else {
+            namespacesMapping[ns]!!.contains(type)
+        }
+    }
+    fun prependNsToQuery(q: List<String>, ns: String): List<String> {
+        return q.map {
+            if (it.split("==")[1].startsWith("urn:")) {
+                // is a relationship
+                val newel = ns + "__" + it.split("==")[0] + "==" + it.split("==")[1]
+                newel
+            } else {
+                // is a property
+                it
+            }
+        }.toList()
+    }
+    fun prependNsToType(type: String, ns: String): String {
+        return ns + "__" + type
+    }
     fun parseEntity(ngsiLdPayload: String): NgsiLdParsedResult {
         val entityUrn = extractEntityUrn(ngsiLdPayload)
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
@@ -87,6 +113,11 @@ class NgsiLdParserService {
     fun extractEntityUrn(ngsiLdPayload: String): String {
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
         return entityMap["id"] as String
+    }
+
+    fun extractEntityType(ngsiLdPayload: String): String {
+        val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)
+        return entityMap["type"] as String
     }
 
     fun transformNgsiLdToCypher(

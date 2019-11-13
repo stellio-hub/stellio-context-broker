@@ -4,7 +4,7 @@ import com.egm.datahub.context.registry.util.KtMatches.Companion.ktMatches
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.hasItem
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -67,7 +67,7 @@ class NgsiLdParserServiceTests {
             """
                 MATCH \(a : diat__Door \{ uri: "urn:diat:Door:0015" }\), 
                       \(b : diat__SmartDoor \{ uri: "urn:diat:SmartDoor:0021" }\) 
-                MERGE \(a\)-\[r:ngsild__connectsTo \{ uri:"urn:ngsild:connectsTo:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
+                MERGE \(a\)-\[r:diat__connectsTo \{ uri:"urn:diat:connectsTo:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
             """.trimIndent()
         val door = ClassPathResource("/ngsild/door.json")
         val parsingResult = ngsiLdParserService.parseEntity(door.inputStream.readBytes().toString(Charsets.UTF_8))
@@ -132,5 +132,13 @@ class NgsiLdParserServiceTests {
         val ngsiLd = ngsiLdParserService.parseEntity(content)
         assertEquals(3, ngsiLd.entityStatements.size)
         assertEquals(2, ngsiLd.relationshipStatements.size)
+    }
+    @Test
+    fun `check NS resource match`() {
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("diat__Beehive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("example__BeeHive"))
+        assertTrue(ngsiLdParserService.checkResourceNSmatch("diat__BeeHive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("notexistingns__BeeHive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("BeeHive"))
     }
 }

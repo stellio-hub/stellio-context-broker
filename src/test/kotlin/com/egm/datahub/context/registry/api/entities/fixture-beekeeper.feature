@@ -9,6 +9,7 @@ Scenario: create a beekeeper and then check response status and header
 
   Given path 'entities'
   And request beekeeper
+  And header Link = '<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json'
   When method post
   Then status 201
   And match header Location == '/ngsi-ld/v1/entities/urn:diat:Beekeeper:Pascal'

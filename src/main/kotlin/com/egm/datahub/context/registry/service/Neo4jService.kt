@@ -19,8 +19,8 @@ class Neo4jService(
         var inneroutput = mutableMapOf<String, Any>()
         // get relationships
         val relationships = neo4jRepository.getRelationshipByURI(uriProperty.value.toString())
-        logger.info("relationships to be mocked for " + uriProperty.value.toString())
-        logger.info(gson.toJson(relationships))
+        // logger.info("relationships to be mocked for " + uriProperty.value.toString())
+        // logger.info(gson.toJson(relationships))
         // add relationships
         relationships.map {
             val target = it.get("t") as NodeModel
@@ -36,8 +36,8 @@ class Neo4jService(
             val matRelUri = relmodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0).toString()
             // 2. find materialized rel node
             val matRelNode = neo4jRepository.getNodeByURI(matRelUri)
-            logger.info("matRelNode to be mocked for " + matRelUri)
-            logger.info(gson.toJson(matRelNode))
+            // logger.info("matRelNode to be mocked for " + matRelUri)
+            // logger.info(gson.toJson(matRelNode))
             if (!matRelNode.isEmpty()) {
                 val nestedObj1 = iterateOverRelationships(matRelNode["n"] as NodeModel)
                 val nestedObj2 = iterateOverProperties(matRelNode["n"] as NodeModel)
@@ -85,6 +85,7 @@ class Neo4jService(
         }
         return inneroutput
     }
+
     fun queryResultToNgsiLd(nodeModel: NodeModel): Map<String, Any> {
 
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!

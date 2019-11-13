@@ -60,13 +60,16 @@ class Neo4jRepository(
         return entityUrn
     }
 
-    fun updateEntity(query: String, uri: String) {
+    fun updateEntity(query: String, uri: String): Map<String, Any> {
         if (!checkExistingUrn(uri)) {
             logger.info("not existing entity")
             throw ResourceNotFoundException("not existing entity!")
         }
 
-        sessionFactory.openSession().query(query, emptyMap<String, Any>()).queryResults()
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, emptyMap<String, Any>()).toMutableList()
+        return if (nodes.isEmpty())
+            emptyMap()
+        else nodes.first()
     }
 
     fun getNodeByURI(uri: String): Map<String, Any> {

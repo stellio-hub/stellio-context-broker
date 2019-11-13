@@ -35,11 +35,17 @@ class EntityHandler(
     }
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
+        val ns = getNSFromLinkHeader(req)
+
         return req.bodyToMono<String>()
             .map {
                 val urn = ngsiLdParserService.run { extractEntityUrn(it) }
                 if (neo4JRepository.checkExistingUrn(urn)) {
                     throw AlreadyExistsException("Already Exists")
+                }
+                val type = ngsiLdParserService.extractEntityType(it)
+                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
                 }
                 ngsiLdParserService.parseEntity(it)
             }
@@ -57,14 +63,28 @@ class EntityHandler(
                 when (it) {
                     is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
                     is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromObject(it.localizedMessage))
                     else -> badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
                 }
             }
     }
 
     fun getEntities(req: ServerRequest): Mono<ServerResponse> {
-        val type = req.queryParam("type").orElse("")
-        val q = req.queryParams()["q"].orEmpty()
+        var type = req.queryParam("type").orElse("")
+        var q = req.queryParams()["q"].orEmpty()
+
+        val ns = getNSFromLinkHeader(req)
+
+        if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
+            return badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
+        }
+        if (!q.isNullOrEmpty()) {
+            q = ngsiLdParserService.prependNsToQuery(q, ns)
+        }
+        type = ngsiLdParserService.prependNsToType(type, ns)
+        if (!ngsiLdParserService.checkResourceNSmatch(type)) {
+            return badRequest().body(BodyInserters.fromObject("th NS provided in the Link Header is not correct or you're trying to access an undefined entity type"))
+        }
 
         return "".toMono()
             .map {
@@ -111,15 +131,21 @@ class EntityHandler(
         val attr = req.pathVariable("attrId")
         val uri = req.pathVariable("entityId")
 
+        val ns = getNSFromLinkHeader(req)
+
         return req.bodyToMono<String>()
             .map {
+                val type = ngsiLdParserService.extractEntityType(it)
+                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
+                }
                 ngsiLdParserService.ngsiLdToUpdateQuery(it, uri, attr)
             }
             .map {
                 neo4JRepository.updateEntity(it, uri)
             }
             .flatMap {
-                status(HttpStatus.NO_CONTENT).body(BodyInserters.fromObject(it))
+                status(HttpStatus.NO_CONTENT).build()
             }
             .onErrorResume {
                 when (it) {
@@ -127,5 +153,21 @@ class EntityHandler(
                     else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
                 }
             }
+    }
+
+    fun getLinkContextFromLinkHeader(req: ServerRequest): List<String> {
+        var link: String = "<https://uri.etsi.org/ngsi-ld/v1/ngsild.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+        if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
+            link = req.headers().header("Link").get(0)
+        return link.split(";")
+    }
+
+    fun getNSFromLinkHeader(req: ServerRequest): String {
+        return getLinkContextFromLinkHeader(req).get(0)
+            .replace("<", "")
+            .replace(">", "")
+            .split("/")
+            .last()
+            .replace(".jsonld", "")
     }
 }

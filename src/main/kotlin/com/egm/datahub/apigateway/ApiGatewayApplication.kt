@@ -16,12 +16,20 @@ class ApiGatewayApplication(
 	fun myRoutes(builder: RouteLocatorBuilder): RouteLocator {
 		return builder.routes()
 				.route { p ->
-					p.path("/ngsi-ld/v1/entities")
+					p.path("/ngsi-ld/v1/entities/**")
 							.filters {
 								it.filter(filterFactory.apply())
 							}
 							// TODO : configurable version
-							.uri("http://context-registry:8081")
+							.uri("http://context-registry:8082")
+				}
+				.route { p ->
+					p.path("/ngsi-ld/v1/temporal/entities/**")
+							.filters {
+								it.filter(filterFactory.apply())
+							}
+							// TODO : configurable version
+							.uri("http://context-search:8083")
 				}
 				.build()
 	}

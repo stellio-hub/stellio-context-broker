@@ -111,7 +111,7 @@ jib {
     }
     container {
         jvmFlags = listOf("-Xms512m")
-        ports = listOf("8081")
+        ports = listOf("8082")
         creationTime = "USE_CURRENT_TIMESTAMP"
     }
 }

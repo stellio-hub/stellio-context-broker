@@ -71,8 +71,6 @@ dependencies {
     testImplementation("org.neo4j:neo4j-ogm-embedded-driver:3.1.14")
     testImplementation("org.neo4j:neo4j-bolt:3.4.15")
     // testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("com.intuit.karate:karate-junit5:0.9.4")
-    testImplementation("com.intuit.karate:karate-apache:0.9.4")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
@@ -96,28 +94,12 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
-sourceSets {
-    test {
-        resources {
-            srcDir(file("src/test/kotlin"))
-            exclude("**/*.kt")
-        }
-    }
-}
-
 tasks.withType<Test> {
     environment("SPRING_PROFILES_ACTIVE", "test")
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
     }
-
-    // pull karate options into the runtime
-    systemProperties["karate.options"] = System.getProperties().getProperty("karate.options")
-    // pull karate env into the runtime
-    systemProperties["karate.env"] = System.getProperties().getProperty("karate.env")
-    // ensure tests are always run
-    outputs.upToDateWhen { false }
 }
 
 jib {

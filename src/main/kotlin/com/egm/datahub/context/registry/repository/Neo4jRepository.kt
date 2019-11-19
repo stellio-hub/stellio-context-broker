@@ -3,8 +3,8 @@ package com.egm.datahub.context.registry.repository
 import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.EntityStatements
 import com.egm.datahub.context.registry.service.RelationshipStatements
-import com.egm.datahub.context.registry.web.ResourceNotFoundException
 import com.egm.datahub.context.registry.web.InternalErrorException
+import com.egm.datahub.context.registry.web.ResourceNotFoundException
 import org.neo4j.driver.v1.Config
 import org.neo4j.ogm.config.Configuration
 import org.neo4j.ogm.session.SessionFactory
@@ -58,6 +58,12 @@ class Neo4jRepository(
             tx.close()
         }
         return entityUrn
+    }
+    fun updateEntity(update: String): Map<String, Any> {
+        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(update, emptyMap<String, Any>()).toMutableList()
+        return if (nodes.isEmpty())
+            emptyMap()
+        else nodes.first()
     }
 
     fun updateEntity(query: String, uri: String): Map<String, Any> {

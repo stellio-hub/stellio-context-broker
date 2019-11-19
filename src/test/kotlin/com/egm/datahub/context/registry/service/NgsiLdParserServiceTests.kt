@@ -133,6 +133,61 @@ class NgsiLdParserServiceTests {
         assertEquals(3, ngsiLd.entityStatements.size)
         assertEquals(2, ngsiLd.relationshipStatements.size)
     }
+
+    @Test
+    fun `it should merge the updated property into target entity`() {
+
+        val uri = "urn:diat:Beekeeper:Pascal"
+        val expectedMergeStatement = """
+            MERGE \(a \{ uri: "$uri"}\) 
+            ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP"} 
+            return a
+        """.trimIndent()
+
+        val payload = """
+            { "name": "A famous beekeeper" }
+        """.trimIndent()
+        val parsingResult = ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(payload, uri, "name")
+
+        assertThat(parsingResult, ktMatches(expectedMergeStatement))
+    }
+
+    @Test
+    fun `it should ignore extra properties when updating a specific property of an entity`() {
+
+        val uri = "urn:diat:Beekeeper:Pascal"
+        val expectedMergeStatement = """
+            MERGE \(a \{ uri: "$uri"}\) 
+            ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP"} 
+            return a
+        """.trimIndent()
+
+        val payload = """
+            { "name": "A famous beekeeper", "ignored": "it should" }
+        """.trimIndent()
+        val parsingResult = ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(payload, uri, "name")
+
+        assertThat(parsingResult, ktMatches(expectedMergeStatement))
+    }
+
+    @Test
+    fun `it should merge the provided properties into target entity`() {
+
+        val uri = "urn:diat:Beekeeper:Pascal"
+        val expectedMergeStatement = """
+            MERGE \(a \{ uri: "$uri"}\) 
+            ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP", displayName: "display name"} 
+            return a
+        """.trimIndent()
+
+        val payload = """
+            { "name": "A famous beekeeper", "displayName": "display name" }
+        """.trimIndent()
+        val parsingResult = ngsiLdParserService.ngsiLdToUpdateEntityQuery(payload, uri)
+
+        assertThat(parsingResult, ktMatches(expectedMergeStatement))
+    }
+
     @Test
     fun `check NS resource match`() {
         assertFalse(ngsiLdParserService.checkResourceNSmatch("diat__Beehive"))

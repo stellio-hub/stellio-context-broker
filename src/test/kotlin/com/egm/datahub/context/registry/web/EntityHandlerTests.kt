@@ -337,11 +337,12 @@ class EntityHandlerTests {
                 .expectStatus().isOk
                 .expectBody().json(content)
     }
-    @Test
-    fun `update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
 
-        every { neo4jRepository.updateEntity(any(), any()) } returns emptyMap()
+    @Test
+    fun `entity attribute update should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/sensor_update_attribute.json")
+
+        every { neo4jRepository.updateEntity(any()) } returns emptyMap()
         val entityId = "urn:sosa:Sensor:0022CCC"
         val attrId = "name"
 
@@ -352,5 +353,61 @@ class EntityHandlerTests {
             .syncBody(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
+
+        verify { neo4jRepository.updateEntity(any()) }
+        confirmVerified(neo4jRepository)
+    }
+
+    @Test
+    fun `entity update should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
+
+        every { neo4jRepository.updateEntity(any()) } returns emptyMap()
+        val entityId = "urn:sosa:Sensor:0022CCC"
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify { neo4jRepository.updateEntity(any()) }
+        confirmVerified(neo4jRepository)
+    }
+
+    @Test
+    fun `entity update should return a 400 if JSON-LD context is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
+
+        val entityId = "urn:sosa:Sensor:0022CCC"
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        verify { neo4jRepository wasNot Called }
+    }
+
+    @Test
+    fun `entity update should return a 400 if entity type is unknown`() {
+        val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
+
+        val entityId = "urn:sosa:UnknownType:0022CCC"
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .syncBody(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        verify { neo4jRepository wasNot Called }
     }
 }

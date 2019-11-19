@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -53,9 +52,14 @@ class NgsiLdParserService {
             )
         )
         fun expandObjToMap(obj: Any?): Map<String, Any> {
-            return when (obj) {
-                is Map<*, *> -> obj as Map<String, Any>
-                else -> emptyMap()
+            try {
+                if (obj is String) {
+                    return gson.fromJson(obj.toString(), object : TypeToken<Map<String, Any>>() {}.type)
+                } else {
+                    return obj as Map<String, Any>
+                }
+            } catch (e: Exception) {
+                return emptyMap()
             }
         }
         fun formatAttributes(attributes: Map<String, Any>): String {
@@ -66,7 +70,6 @@ class NgsiLdParserService {
             return attrs
         }
     }
-
     fun checkResourceNSmatch(t: String): Boolean {
         if (t.split("__").size <2) {
             return false
@@ -262,13 +265,39 @@ class NgsiLdParserService {
         return Pair(accEntityStatements, accRelationshipStatements)
     }
 
-    fun ngsiLdToUpdateQuery(payload: String, uri: String, attr: String): String {
+    fun ngsiLdToUpdateEntityQuery(payload: String, uri: String): String {
         val expandedPayload = expandObjToMap(payload)
-        val value = expandedPayload[attr].toString()
-        val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now()).toString()
+        val timestamp = getFormattedTimestamp()
         val attrsUriMatch = formatAttributes(mapOf("uri" to uri))
-        val attrsUriSubj = formatAttributes(mapOf("uri" to uri, "modifiedAt" to timestamp, attr to value))
 
+        var out = hashMapOf("uri" to uri, "modifiedAt" to timestamp)
+        expandedPayload.filter {
+            it.key != "type" && it.key != "object"
+        }.map {
+            out.put(it.key, it.value.toString())
+        }
+
+        expandedPayload.filter {
+            it.key != "type" && it.key != "object"
+        }.map {
+            // activate the parser to update nested entities TODO
+        }
+
+        val attrsUriSubj = formatAttributes(out)
+        return "MERGE (a $attrsUriMatch) ON  MATCH  SET a += $attrsUriSubj return a"
+    }
+
+    fun ngsiLdToUpdateEntityAttributeQuery(payload: String, uri: String, attr: String): String {
+        val expandedPayload = expandObjToMap(payload)
+        val attrsUriMatch = formatAttributes(mapOf("uri" to uri))
+        val timestamp = getFormattedTimestamp()
+        var out = hashMapOf("uri" to uri, "modifiedAt" to timestamp)
+        expandedPayload.filter {
+            it.key != "type" && it.key != "object" && it.key == attr
+        }.map {
+            out.put(it.key, it.value.toString())
+        }
+        val attrsUriSubj = formatAttributes(out)
         return "MERGE (a $attrsUriMatch) ON  MATCH  SET a += $attrsUriSubj return a"
     }
 
@@ -320,7 +349,7 @@ class NgsiLdParserService {
             val uri = subject.getUri()
             val attrsUriSubj = formatAttributes(hashMapOf("uri" to uri))
 
-            val timeStamp = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
+            val timeStamp = getFormattedTimestamp()
             if (!subject.attrs.containsKey("createdAt")) {
                 subject.attrs.put("createdAt", timeStamp)
             }
@@ -361,5 +390,9 @@ class NgsiLdParserService {
         // fallback to default core NGSI-LD namespace
         // TODO : we should instead raise a 400-like exception
         return "ngsild"
+    }
+
+    private fun getFormattedTimestamp(): String {
+        return ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT)
     }
 }

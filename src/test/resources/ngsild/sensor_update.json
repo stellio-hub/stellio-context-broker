@@ -1,14 +1,4 @@
 {
-  "@context": [
-    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-    "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
-  ],
-  "id": "urn:sosa:Sensor:0022CCC",
-  "type": "Sensor",
-  "connectsTo": {
-    "type": "Relationship",
-    "object": "urn:diat:SmartDoor:0021"
-
-  },
-  "name" : "My precious sensor Updated"
+  "name" : "My precious sensor Updated",
+  "trigger" : "on"
 }

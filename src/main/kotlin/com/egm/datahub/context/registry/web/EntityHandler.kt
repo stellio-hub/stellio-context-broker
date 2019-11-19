@@ -127,22 +127,49 @@ class EntityHandler(
             }
     }
 
+    fun updateEntity(req: ServerRequest): Mono<ServerResponse> {
+        val uri = req.pathVariable("entityId")
+        val type = getTypeFromURI(uri)
+        val ns = getNSFromLinkHeader(req)
+
+        return req.bodyToMono<String>()
+            .map {
+                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
+                }
+                ngsiLdParserService.ngsiLdToUpdateEntityQuery(it, uri)
+            }
+            .map {
+                neo4JRepository.updateEntity(it)
+            }
+            .flatMap {
+                status(HttpStatus.NO_CONTENT).build()
+            }
+            .onErrorResume {
+                when (it) {
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                }
+            }
+    }
+
     fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {
         val attr = req.pathVariable("attrId")
         val uri = req.pathVariable("entityId")
+        val type = getTypeFromURI(uri)
 
         val ns = getNSFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-                val type = ngsiLdParserService.extractEntityType(it)
+
                 if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
                     throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
                 }
-                ngsiLdParserService.ngsiLdToUpdateQuery(it, uri, attr)
+                ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(it, uri, attr)
             }
             .map {
-                neo4JRepository.updateEntity(it, uri)
+                neo4JRepository.updateEntity(it)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).build()
@@ -169,5 +196,9 @@ class EntityHandler(
             .split("/")
             .last()
             .replace(".jsonld", "")
+    }
+
+    fun getTypeFromURI(uri: String): String {
+        return uri.split(":")[2]
     }
 }

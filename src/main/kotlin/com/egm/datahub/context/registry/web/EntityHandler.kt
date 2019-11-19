@@ -182,6 +182,24 @@ class EntityHandler(
             }
     }
 
+    fun delete(req: ServerRequest): Mono<ServerResponse> {
+        val entityId = req.pathVariable("entityId")
+
+        return entityId.toMono()
+            .map {
+                neo4JRepository.deleteEntity(entityId)
+            }
+            .flatMap {
+                if (it.first >= 1)
+                    noContent().build()
+                else
+                    notFound().build()
+            }
+            .onErrorResume {
+                status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.localizedMessage))))
+            }
+    }
+
     fun getLinkContextFromLinkHeader(req: ServerRequest): List<String> {
         var link: String = "<https://uri.etsi.org/ngsi-ld/v1/ngsild.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
         if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)

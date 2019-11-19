@@ -78,6 +78,26 @@ class Neo4jRepository(
         else nodes.first()
     }
 
+    fun deleteEntity(uri: String): Pair<Int, Int> {
+        /**
+         * 1. delete the entity node
+         * 2. delete the properties persisted as nodes
+         * 3. delete the relationships
+         * 4. delete the relationships on relationships persisted as nodes
+         */
+        val query = """
+            MATCH (n { uri: '$uri' }) 
+            OPTIONAL MATCH (n)-[rp:ngsild__hasValue]->(p)
+            OPTIONAL MATCH (n)-[rr]-() WHERE type(rr) <> 'ngsild__hasValue'
+            OPTIONAL MATCH (nr { uri: rr.uri })
+            DETACH DELETE n,rp,p,rr,nr
+        """.trimIndent()
+
+        val queryStatistics = sessionFactory.openSession().query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted entity $uri : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
     fun getNodeByURI(uri: String): Map<String, Any> {
         val query = """
             MATCH (n { uri: '$uri' }) 

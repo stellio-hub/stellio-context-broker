@@ -15,10 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.kafka.test.EmbeddedKafkaBroker
 import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.lang.RuntimeException
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EmbeddedKafka(topics = ["entities"])
@@ -409,5 +411,44 @@ class EntityHandlerTests {
             .expectStatus().isBadRequest
 
         verify { neo4jRepository wasNot Called }
+    }
+
+    @Test
+    fun `it should return a 204 if an entity has been successfully deleted`() {
+        every { neo4jRepository.deleteEntity(any()) } returns Pair(1, 1)
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { neo4jRepository.deleteEntity(eq("urn:sosa:Sensor:0022CCC")) }
+        confirmVerified(neo4jRepository)
+    }
+
+    @Test
+    fun `it should return a 404 if entity to be deleted has not been found`() {
+        every { neo4jRepository.deleteEntity(any()) } returns Pair(0, 0)
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().isEmpty
+    }
+
+    @Test
+    fun `it should return a 500 if entity could not be deleted`() {
+        every { neo4jRepository.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json("{\"ProblemDetails\":[\"Unexpected server error\"]}")
     }
 }

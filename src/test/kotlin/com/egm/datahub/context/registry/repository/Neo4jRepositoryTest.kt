@@ -162,6 +162,75 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         assertNotNull(entityAfter.propertyList.find { it.key == "modifiedAt" })
     }
 
+    @Test
+    fun `it should delete properties and relationships when deleting an entity`() {
+        val entity = """
+            {
+              "id": "urn:example:Vehicle:ToBeDeleted",
+              "type": "Vehicle",
+              "brandName": {
+                "type": "Property",
+                "value": "Mercedes"
+              },
+              "name": "name of vehicle 1",
+              "remainingEnergy": {
+                "type": "Property",
+                "value": 70,
+                "observedAt": "2017-07-29T12:05:02Z",
+                "reliability": {
+                  "type": "Property",
+                  "value": 0.9
+                },
+                "providedBy": {
+                  "type": "Relationship",
+                  "object": "urn:example:EnergyCounter:EC1"
+                }
+              },
+              "location": {
+                "type": "GeoProperty",
+                "value": {
+                  "type": "Point",
+                  "coordinates": [-8.5, 41.2]
+                }
+              },
+              "isParked": {
+                "type": "Relationship",
+                "object": "urn:example:OffStreetParking:Downtown1",
+                "observedAt": "2017-07-29T12:00:04Z",
+                "providedBy": {
+                  "type": "Relationship",
+                  "object": "urn:example:Person:Bob"
+                }
+              },
+              "@context": [
+                "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                "http://example.org/ngsi-ld/commonTerms.jsonld",
+                "http://example.org/ngsi-ld/vehicle.jsonld",
+                "http://example.org/ngsi-ld/parking.jsonld"
+              ]
+            }
+        """.trimIndent()
+
+        val isParkedEntitiesNb = neo4jRepository.getEntitiesByLabel("example__isParked").size
+
+        val ngsiLdParsedResult = ngsiLdParserService.parseEntity(entity)
+        neo4jRepository.createEntity(ngsiLdParsedResult.entityUrn, ngsiLdParsedResult.entityStatements,
+            ngsiLdParsedResult.relationshipStatements)
+
+        val deleteResult = neo4jRepository.deleteEntity("urn:example:Vehicle:ToBeDeleted")
+
+        assertEquals(3, deleteResult.first)
+        assertEquals(4, deleteResult.second)
+
+        assertTrue(neo4jRepository.getNodeByURI("urn:example:Vehicle:ToBeDeleted").isEmpty())
+        assertTrue(neo4jRepository.getEntitiesByLabel("ngsild__remainingEnergy").isEmpty())
+        assertEquals(isParkedEntitiesNb, neo4jRepository.getEntitiesByLabel("example__isParked").size)
+
+        assertTrue(neo4jRepository.getNodeByURI("urn:example:EnergyCounter:EC1").isNotEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1").isNotEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:example:Person:Bob").isNotEmpty())
+    }
+
     fun addNamespaces() {
         val addNamespaces = "CREATE (:NamespacePrefixDefinition {\n" +
                 "  `https://diatomic.eglobalmark.com/ontology#`: 'diat',\n" +

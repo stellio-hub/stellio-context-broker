@@ -1,0 +1,26 @@
+{
+  "@context": {
+
+  },
+  "id": "urn:ngsi-ld:feeder:018z5",
+  "type": "Feeder",
+  "brandName": {
+    "type": "property",
+    "value": "AquaSE"
+  },
+  "ConnectsTo": {
+    "type": "relationship",
+    "object": "urn:ngsi-ld:FishContainment:0012"
+  },
+  "createdAt": "2018-11-26T21:32:52+02:00",
+  "location": {
+    "type": "GeoProperty",
+    "value": {
+      "type": "point",
+      "coordinates": [
+        -8.5,
+        41.2
+      ]
+    }
+  }
+}

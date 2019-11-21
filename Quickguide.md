@@ -73,35 +73,42 @@ Multiple namespaces are allowed (es. ngsild is the 'core' context, diatomic, sos
 * Create a new entity
 
 ```
-http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json 
+http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get entities by type: a Link header is optionally provided to avoid NS collisions (6.3.5 JSON-LD @context resolution), this Link will be omitted in next examples for clarity but should be provided otherwise the default NS will be considered ngsild
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=BeeHive Link:"<http://easyglobalmarket.com/contexts/beehive.jsonld>; rel=http://www.w3.org/ns/json-ld#diat; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get an entity by URI
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC  Content-Type:application/json
 ```
 
 * Get entities by relationships
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=BeeHive&q=connectsTo==urn:diat:Beekeeper:Pascal Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:diat:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:example:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get entities by property
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities?type=BeeHive&q=name==ParisBeehive12 Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Update the property of an entity
 
 ```
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC/attrs/name name=BiotBeehive
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+```
+
+* Update an entity
+
+```
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```

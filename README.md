@@ -83,55 +83,57 @@ docker run easyglobalmarket/context-registry:latest
 * Create a new entity
 
 ```
-http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json
+http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Eventually, create a second one
 
 ```
-http POST http://localhost:8080/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive_2.json
+http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive_2.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get entities by type
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get an entity by URI
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC  Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC  Content-Type:application/json
 
 ```
 
 * Get entities by relationships
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:diat:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-http http://localhost:8080/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:example:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:diat:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:example:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 
 ```
 
 * Get entities by property
 
 ```
-http http://localhost:8080/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Update the property of an entity
 
 ```
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs/name name="My precious sensor Updated" Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
 * Update an entity
 
 ```
-http PATCH http://localhost:8080/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs trigger="On" name="My precious sensor Updated" Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
 ## Cypher queries
+
+to access the Neo4j interface navigate to $DOCKERHOST:7474
 
 * Get all URIs for beekeepers
 
@@ -148,7 +150,7 @@ MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r
 * Let's play with relations
 
 ```
-MATCH (s:Resource)-[:ngsild__connectsTo]-(o:Resource) RETURN s,o
-MATCH ()-[r:ngsild__connectsTo]-(n:diat__Beekeeper{foaf__name:'TEST1'} ) RETURN n
-MATCH (s:diat__Beekeeper{foaf__name: 'TEST1'})-[r:ngsild__connectsTo]-(o ) RETURN s
+MATCH (s:Resource)-[:connectsTo]-(o:Resource) RETURN s,o
+MATCH ()-[r:connectsTo]-(n:Beekeeper{name:'TEST1'} ) RETURN n
+MATCH (s:Beekeeper{name: 'TEST1'})-[r:connectsTo]-(o ) RETURN s
 ```

@@ -35,7 +35,7 @@ class EntityHandler(
     }
 
     fun create(req: ServerRequest): Mono<ServerResponse> {
-        val ns = getNSFromLinkHeader(req)
+        val contextLink = extractLinkContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
@@ -44,7 +44,7 @@ class EntityHandler(
                     throw AlreadyExistsException("Already Exists")
                 }
                 val type = ngsiLdParserService.extractEntityType(it)
-                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
                     throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
                 }
                 ngsiLdParserService.parseEntity(it)
@@ -70,28 +70,26 @@ class EntityHandler(
     }
 
     fun getEntities(req: ServerRequest): Mono<ServerResponse> {
-        var type = req.queryParam("type").orElse("")
+        val type = req.queryParam("type").orElse("")
         var q = req.queryParams()["q"].orEmpty()
 
-        val ns = getNSFromLinkHeader(req)
+        val contextLink = extractLinkContextFromLinkHeader(req)
 
         if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
             return badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
         }
         if (!q.isNullOrEmpty()) {
-            q = ngsiLdParserService.prependNsToQuery(q, ns)
+            q = ngsiLdParserService.prependNsToQuery(q, contextLink)
         }
-        type = ngsiLdParserService.prependNsToType(type, ns)
-        if (!ngsiLdParserService.checkResourceNSmatch(type)) {
+
+        if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
             return badRequest().body(BodyInserters.fromObject("th NS provided in the Link Header is not correct or you're trying to access an undefined entity type"))
         }
 
         return "".toMono()
             .map {
-                if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-                    throw InvalidRequestException("Bad Request")
-                }
-                neo4JRepository.getEntities(q, type)
+                val prefixedType = ngsiLdParserService.addPrefixToType(contextLink, type)
+                neo4JRepository.getEntities(q, prefixedType)
             }
             .map {
                 it.map {
@@ -130,11 +128,11 @@ class EntityHandler(
     fun updateEntity(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
         val type = getTypeFromURI(uri)
-        val ns = getNSFromLinkHeader(req)
+        val contextLink = extractLinkContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
                     throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
                 }
                 ngsiLdParserService.ngsiLdToUpdateEntityQuery(it, uri)
@@ -158,12 +156,12 @@ class EntityHandler(
         val uri = req.pathVariable("entityId")
         val type = getTypeFromURI(uri)
 
-        val ns = getNSFromLinkHeader(req)
+        val contextLink = extractLinkContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
 
-                if (!ngsiLdParserService.checkResourceNSmatch(ns+"__"+type)) {
+                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
                     throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
                 }
                 ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(it, uri, attr)
@@ -200,20 +198,11 @@ class EntityHandler(
             }
     }
 
-    fun getLinkContextFromLinkHeader(req: ServerRequest): List<String> {
-        var link: String = "<https://uri.etsi.org/ngsi-ld/v1/ngsild.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-        if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
-            link = req.headers().header("Link").get(0)
-        return link.split(";")
-    }
-
-    fun getNSFromLinkHeader(req: ServerRequest): String {
-        return getLinkContextFromLinkHeader(req).get(0)
-            .replace("<", "")
-            .replace(">", "")
-            .split("/")
-            .last()
-            .replace(".jsonld", "")
+    fun extractLinkContextFromLinkHeader(req: ServerRequest): String {
+        return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
+            req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
+        else
+            "https://uri.etsi.org/ngsi-ld/v1/ngsild.jsonld"
     }
 
     fun getTypeFromURI(uri: String): String {

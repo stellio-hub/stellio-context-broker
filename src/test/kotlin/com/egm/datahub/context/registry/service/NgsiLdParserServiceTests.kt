@@ -190,10 +190,10 @@ class NgsiLdParserServiceTests {
 
     @Test
     fun `check NS resource match`() {
-        assertFalse(ngsiLdParserService.checkResourceNSmatch("diat__Beehive"))
-        assertFalse(ngsiLdParserService.checkResourceNSmatch("example__BeeHive"))
-        assertTrue(ngsiLdParserService.checkResourceNSmatch("diat__BeeHive"))
-        assertFalse(ngsiLdParserService.checkResourceNSmatch("notexistingns__BeeHive"))
-        assertFalse(ngsiLdParserService.checkResourceNSmatch("BeeHive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("http://easyglobalmarket.com/contexts/diat.jsonld", "Beehive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld", "BeeHive"))
+        assertTrue(ngsiLdParserService.checkResourceNSmatch("http://easyglobalmarket.com/contexts/diat.jsonld", "BeeHive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("http://example.org/unknown-context.jsonld", "BeeHive"))
+        assertFalse(ngsiLdParserService.checkResourceNSmatch("", "BeeHive"))
     }
 }

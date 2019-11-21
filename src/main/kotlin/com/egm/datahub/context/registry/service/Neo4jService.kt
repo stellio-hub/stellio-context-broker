@@ -114,7 +114,7 @@ class Neo4jService(
         val rr = iterateOverRelationships(nodeModel)
         val pp = iterateOverProperties(nodeModel)
 
-        return idAndType.plus(rr).plus(pp).plus(properties).plus(NgsiLdParserService.contextsMap)
+        return idAndType.plus(rr).plus(pp).plus(properties).plus(mapOf("@context" to NgsiLdParserService.contextLinksToNamespace.keys))
     }
 
     fun updateEntityLastMeasure(observation: Observation) {

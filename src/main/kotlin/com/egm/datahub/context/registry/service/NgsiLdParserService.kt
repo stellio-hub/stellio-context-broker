@@ -42,15 +42,23 @@ class NgsiLdParserService {
             "ngsild" to listOf("hasValue", "observedAt", "createdAt", "modifiedAt", "datasetId", "instanceId", "GeoProperty", "Point", "Property", "Relationship"),
             "sosa" to listOf("Sensor", "Observation"),
             "diat" to listOf("Beekeeper", "BeeHive", "Door", "DoorNumber", "SmartDoor", "ObservedBy", "ManagedBy", "hasMeasure", "connectsTo"),
+            "fiware" to listOf("Building", "BuildingOperation"),
             "example" to listOf("availableSpotNumber", "OffStreetParking", "Vehicle", "isParked", "providedBy", "hasSensor", "Camera", "Person") // this is property of property in order to allow nested property we need to add it to model
         )
-        val contextsMap = mapOf(
-            "@context" to listOf(
-                "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
-            )
+
+        /**
+         * Temporary map to have an error-prone mapping between linked JSON-LD contexts and internal label prefixing
+         *
+         * Later on, we'll have to dynamically resolve linked JSON-LD contexts so we'll have to find another way.
+         * Maybe store the context along entities, properties and relationships ?
+         */
+        val contextLinksToNamespace = mapOf(
+            "http://easyglobalmarket.com/contexts/diat.jsonld" to "diat",
+            "https://fiware.github.io/data-models/context.jsonld" to "fiware",
+            "http://easyglobalmarket.com/contexts/sosa.jsonld" to "sosa",
+            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld" to "ngsild"
         )
+
         fun expandObjToMap(obj: Any?): Map<String, Any> {
             try {
                 if (obj is String) {
@@ -70,19 +78,21 @@ class NgsiLdParserService {
             return attrs
         }
     }
-    fun checkResourceNSmatch(t: String): Boolean {
-        if (t.split("__").size <2) {
-            return false
-        }
-        val ns = t.split("__")[0]
-        val type = t.split("__")[1]
-        return if (namespacesMapping[ns] == null) {
+
+    fun checkResourceNSmatch(contextLink: String, type: String): Boolean {
+        return if (contextLinksToNamespace[contextLink] == null) {
             false
         } else {
-            namespacesMapping[ns]!!.contains(type)
+            namespacesMapping[contextLinksToNamespace[contextLink]]!!.contains(type)
         }
     }
-    fun prependNsToQuery(q: List<String>, ns: String): List<String> {
+
+    fun addPrefixToType(contextLink: String, type: String): String {
+        return contextLinksToNamespace[contextLink] + "__" + type
+    }
+
+    fun prependNsToQuery(q: List<String>, contextLink: String): List<String> {
+        val ns = contextLinksToNamespace[contextLink]
         return q.map {
             if (it.split("==")[1].startsWith("urn:")) {
                 // is a relationship
@@ -94,9 +104,7 @@ class NgsiLdParserService {
             }
         }.toList()
     }
-    fun prependNsToType(type: String, ns: String): String {
-        return ns + "__" + type
-    }
+
     fun parseEntity(ngsiLdPayload: String): NgsiLdParsedResult {
         val entityUrn = extractEntityUrn(ngsiLdPayload)
         val entityMap: Map<String, Any> = gson.fromJson(ngsiLdPayload, object : TypeToken<Map<String, Any>>() {}.type)

@@ -177,7 +177,7 @@ class NgsiLdParserService {
                 val rel = item.key
                 val nsPredicate = getLabelNamespace(rel)
                 // add materialized relationship NODE
-                val urnRel = "urn:$nsPredicate:$rel:${UUID.randomUUID()}"
+                val urnRel = "urn:ngsi-ld:$rel:${UUID.randomUUID()}"
                 val relObject = content["object"].toString()
 
                 val typeObj = relObject.split(":")[2]
@@ -240,7 +240,7 @@ class NgsiLdParserService {
                     val nsObj = getLabelNamespace(labelObj)
 
                     // create uri for object
-                    val urn = "urn:$nsObj:$labelObj:${UUID.randomUUID()}"
+                    val urn = "urn:ngsi-ld:$labelObj:${UUID.randomUUID()}"
                     // add to statement list SUBJECT -- RELATION [:hasObject] -- OBJECT
 
                     // object attributes will be set in the next travestPropertiesIteration with a match on URI

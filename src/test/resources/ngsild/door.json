@@ -3,11 +3,11 @@
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
     "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
   ],
-  "id": "urn:diat:Door:0015",
+  "id": "urn:ngsi-ld:Door:0015",
   "type": "Door",
   "doorNumber": "15",
   "connectsTo": {
     "type": "Relationship",
-    "object": "urn:diat:SmartDoor:0021"
+    "object": "urn:ngsi-ld:SmartDoor:0021"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "id": "urn:example:Vehicle:A4567",
+  "id": "urn:ngsi-ld:Vehicle:A4567",
   "type": "Vehicle",
   "brandName": {
     "type": "Property",
@@ -8,11 +8,11 @@
   "name": "name of vehicle 1",
   "isParked": {
     "type": "Relationship",
-    "object": "urn:example:OffStreetParking:Downtown1",
+    "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
     "observedAt": "2017-07-29T12:00:04Z",
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:example:Person:Bob"
+      "object": "urn:ngsi-ld:Person:Bob"
     }
   },
   "@context": [

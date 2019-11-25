@@ -1,10 +1,10 @@
 [
   {
-    "id": "urn:diat:Door:0015",
+    "id": "urn:ngsi-ld:Door:0015",
     "type": "Door",
     "connectsTo": {
       "type": "Relationship",
-      "object": "urn:diat:SmartDoor:0021"
+      "object": "urn:ngsi-ld:SmartDoor:0021"
     },
     "createdAt": "2019.10.09.11.53.05",
     "doorNumber": "15",

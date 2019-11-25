@@ -29,7 +29,7 @@ The NGSI-LD format is JSON with reserved keyword @context to add links to the on
 
 ```
 {
-  "id": "urn:example:Vehicle:A1234",
+  "id": "urn:ngsi-ld:Vehicle:A1234",
   "type": "Vehicle",
   "brandName": {
     "type": "Property",
@@ -38,16 +38,16 @@ The NGSI-LD format is JSON with reserved keyword @context to add links to the on
   "name":  "name of vehicle 2",
   "isParked": {
     "type": "Relationship",
-    "object": "urn:example:OffStreetParking:Downtown2",
+    "object": "urn:ngsi-ld:OffStreetParking:Downtown2",
     "observedAt": "2019-10-22T12:00:04Z",
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:example:Person:Bob"
+      "object": "urn:ngsi-ld:Person:Bob"
     }
   },
   "hasSensor": {
     "type": "Relationship",
-    "object": "urn:sosa:Sensor:1234567890"
+    "object": "urn:ngsi-ld:Sensor:1234567890"
   },
   "@context": [
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
@@ -85,14 +85,14 @@ http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easy
 * Get an entity by URI
 
 ```
-http http://localhost:8082/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC  Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC  Content-Type:application/json
 ```
 
 * Get entities by relationships
 
 ```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:diat:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:example:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:ngsi-ld:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:ngsi-ld:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
 * Get entities by property
@@ -104,11 +104,11 @@ http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBee
 * Update the property of an entity
 
 ```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
 * Update an entity
 
 ```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```

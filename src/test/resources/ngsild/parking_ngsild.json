@@ -1,5 +1,5 @@
 {
-  "id": "urn:example:OffStreetParking:Downtown1",
+  "id": "urn:ngsi-ld:OffStreetParking:Downtown1",
   "type": "OffStreetParking",
   "name": {
     "type": "Property",
@@ -15,7 +15,7 @@
     },
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:example:Camera:C1"
+      "object": "urn:ngsi-ld:Camera:C1"
     }
   },
   "totalSpotNumber": {

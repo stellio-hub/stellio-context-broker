@@ -59,11 +59,11 @@ class EntityHandlerTests {
                 .syncBody(jsonLdFile)
                 .exchange()
                 .expectStatus().isCreated
-                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC"))
+                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
 
         verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "BeeHive" &&
-                    entityEvent.entityUrn == "urn:diat:BeeHive:TESTC" &&
+                    entityEvent.entityUrn == "urn:ngsi-ld:BeeHive:TESTC" &&
                     entityEvent.operation == EventType.POST
         }) }
         confirmVerified(repositoryEventsListener)
@@ -132,7 +132,7 @@ class EntityHandlerTests {
         val resp1: Map<String, Any> = gson.fromJson(contentJson, object : TypeToken<Map<String, Any>>() {}.type)
         every { neo4jService.queryResultToNgsiLd(node1) } returns resp1
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:diat:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
             .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
@@ -146,7 +146,7 @@ class EntityHandlerTests {
         every { neo4jRepository.checkExistingUrn(any()) } returns false
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:diat:BeeHive:TEST")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
             .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
@@ -183,13 +183,13 @@ class EntityHandlerTests {
                 "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"name\": \"Bucarest\",\n" +
-                "  \"uri\": \"urn:diat:BeeHive:HiveRomania\"\n" +
+                "  \"uri\": \"urn:ngsi-ld:BeeHive:HiveRomania\"\n" +
                 "}"
         val map2 = "{\n" +
                 "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"name\": \"ParisBeehive12\",\n" +
-                "  \"uri\": \"urn:diat:BeeHive:TESTC\"\n" +
+                "  \"uri\": \"urn:ngsi-ld:BeeHive:TESTC\"\n" +
                 "}"
         val entityMap1: Map<String, Any> = gson.fromJson(map1, object : TypeToken<Map<String, Any>>() {}.type)
         var node1: NodeModel = NodeModel(27647624)
@@ -203,11 +203,11 @@ class EntityHandlerTests {
         every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node1), mapOf("n" to node2))
 
         val ngsild2 = "{\n" +
-                "    \"id\": \"urn:diat:BeeHive:TESTC\",\n" +
+                "    \"id\": \"urn:ngsi-ld:BeeHive:TESTC\",\n" +
                 "    \"type\": \"BeeHive\",\n" +
                 "    \"connectsTo\": {\n" +
                 "      \"type\": \"Relationship\",\n" +
-                "      \"object\": \"urn:diat:Beekeeper:Pascal\",\n" +
+                "      \"object\": \"urn:ngsi-ld:Beekeeper:Pascal\",\n" +
                 "      \"createdAt\": \"2010-10-26T21:32:52+02:00\",\n" +
                 "      \"modifiedAt\": \"2019.10.09.11.53.05\"\n" +
                 "    },\n" +
@@ -221,7 +221,7 @@ class EntityHandlerTests {
                 "    ]\n" +
                 "  }"
         val ngsild1 = "{\n" +
-                "    \"id\": \"urn:diat:BeeHive:HiveRomania\",\n" +
+                "    \"id\": \"urn:ngsi-ld:BeeHive:HiveRomania\",\n" +
                 "    \"type\": \"BeeHive\",\n" +
                 "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "    \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
@@ -257,7 +257,7 @@ class EntityHandlerTests {
                 "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"name\": \"ParisBeehive12\",\n" +
-                "  \"uri\": \"urn:diat:BeeHive:TESTC\"\n" +
+                "  \"uri\": \"urn:ngsi-ld:BeeHive:TESTC\"\n" +
                 "}"
         val entityMap: Map<String, Any> = gson.fromJson(map, object : TypeToken<Map<String, Any>>() {}.type)
         var node: NodeModel = NodeModel(27647624)
@@ -266,11 +266,11 @@ class EntityHandlerTests {
         every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node))
 
         val ngsild = "{\n" +
-                "    \"id\": \"urn:diat:BeeHive:TESTC\",\n" +
+                "    \"id\": \"urn:ngsi-ld:BeeHive:TESTC\",\n" +
                 "    \"type\": \"BeeHive\",\n" +
                 "    \"connectsTo\": {\n" +
                 "      \"type\": \"Relationship\",\n" +
-                "      \"object\": \"urn:diat:Beekeeper:Pascal\",\n" +
+                "      \"object\": \"urn:ngsi-ld:Beekeeper:Pascal\",\n" +
                 "      \"createdAt\": \"2010-10-26T21:32:52+02:00\",\n" +
                 "      \"modifiedAt\": \"2019.10.09.11.53.05\"\n" +
                 "    },\n" +
@@ -303,7 +303,7 @@ class EntityHandlerTests {
                 "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"doorNumber\": \"15\",\n" +
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
-                "  \"uri\": \"urn:diat:Door:0015\"\n" +
+                "  \"uri\": \"urn:ngsi-ld:Door:0015\"\n" +
                 "}"
         val entityMap: Map<String, Any> = gson.fromJson(map, object : TypeToken<Map<String, Any>>() {}.type)
         var node: NodeModel = NodeModel(576576)
@@ -312,11 +312,11 @@ class EntityHandlerTests {
         every { neo4jRepository.getEntities(any(), any()) } returns arrayListOf(mapOf("n" to node))
 
         val ngsild = "{\n" +
-                "    \"id\": \"urn:diat:Door:0015\",\n" +
+                "    \"id\": \"urn:ngsi-ld:Door:0015\",\n" +
                 "    \"type\": \"Door\",\n" +
                 "    \"connectsTo\": {\n" +
                 "      \"type\": \"Relationship\",\n" +
-                "      \"object\": \"urn:diat:SmartDoor:0021\"\n" +
+                "      \"object\": \"urn:ngsi-ld:SmartDoor:0021\"\n" +
                 "    },\n" +
                 "    \"createdAt\": \"2019.10.09.11.53.05\",\n" +
                 "    \"doorNumber\": \"15\",\n" +
@@ -331,7 +331,7 @@ class EntityHandlerTests {
         every { neo4jService.queryResultToNgsiLd(node) } returns resp
 
         webClient.get()
-                .uri("/ngsi-ld/v1/entities?type=Door&q=connectsTo==urn:ngsild:SmartDoor:0021")
+                .uri("/ngsi-ld/v1/entities?type=Door&q=connectsTo==urn:ngsi-ld:SmartDoor:0021")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -345,7 +345,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update_attribute.json")
 
         every { neo4jRepository.updateEntity(any()) } returns emptyMap()
-        val entityId = "urn:sosa:Sensor:0022CCC"
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
         val attrId = "name"
 
         webClient.patch()
@@ -365,7 +365,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
 
         every { neo4jRepository.updateEntity(any()) } returns emptyMap()
-        val entityId = "urn:sosa:Sensor:0022CCC"
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -383,7 +383,7 @@ class EntityHandlerTests {
     fun `entity update should return a 400 if JSON-LD context is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
 
-        val entityId = "urn:sosa:Sensor:0022CCC"
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -400,7 +400,7 @@ class EntityHandlerTests {
     fun `entity update should return a 400 if entity type is unknown`() {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
 
-        val entityId = "urn:sosa:UnknownType:0022CCC"
+        val entityId = "urn:ngsi-ld:UnknownType:0022CCC"
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -418,13 +418,13 @@ class EntityHandlerTests {
         every { neo4jRepository.deleteEntity(any()) } returns Pair(1, 1)
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        verify { neo4jRepository.deleteEntity(eq("urn:sosa:Sensor:0022CCC")) }
+        verify { neo4jRepository.deleteEntity(eq("urn:ngsi-ld:Sensor:0022CCC")) }
         confirmVerified(neo4jRepository)
     }
 
@@ -433,7 +433,7 @@ class EntityHandlerTests {
         every { neo4jRepository.deleteEntity(any()) } returns Pair(0, 0)
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isNotFound
@@ -445,7 +445,7 @@ class EntityHandlerTests {
         every { neo4jRepository.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:sosa:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)

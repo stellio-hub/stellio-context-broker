@@ -58,7 +58,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     @Test
     fun `query ngsild parking entity by URI`() {
 
-        val result = neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1")
+        val result = neo4jRepository.getNodeByURI("urn:ngsi-ld:OffStreetParking:Downtown1")
         val ngsild = neo4jService.queryResultToNgsiLd(result["n"] as NodeModel)
         println(gson.toJson(ngsild))
         val nestedProperty = ngsild.get("availableSpotNumber") as Map<String, Any>
@@ -66,7 +66,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         assertNotNull(nestedProperty.get("value"))
         val nestedRelationshipInProperty = nestedProperty.get("providedBy") as Map<String, Any>
         assertEquals("Relationship", nestedRelationshipInProperty.get("type"))
-        assertEquals("urn:example:Camera:C1", nestedRelationshipInProperty.get("object"))
+        assertEquals("urn:ngsi-ld:Camera:C1", nestedRelationshipInProperty.get("object"))
         val location = ngsild.get("location") as Map<String, Any>
         assertNotNull(ngsild.get("location"))
         val value = location.get("value") as Map<String, Any>
@@ -77,15 +77,15 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     @Test
     fun `query ngsild vehicle entity by URI`() {
 
-        val result = neo4jRepository.getNodeByURI("urn:example:Vehicle:A4567")
+        val result = neo4jRepository.getNodeByURI("urn:ngsi-ld:Vehicle:A4567")
         val ngsild = neo4jService.queryResultToNgsiLd(result["n"] as NodeModel)
         println(gson.toJson(ngsild))
         val relationship = ngsild.get("isParked") as Map<String, Any>
         assertEquals("Relationship", relationship.get("type"))
         assertNotNull(relationship.get("object"))
-        assertEquals("urn:example:OffStreetParking:Downtown1", relationship.get("object"))
+        assertEquals("urn:ngsi-ld:OffStreetParking:Downtown1", relationship.get("object"))
         val relationshipDepeer = relationship.get("providedBy") as Map<String, Any>
-        assertEquals("urn:example:Person:Bob", relationshipDepeer.get("object"))
+        assertEquals("urn:ngsi-ld:Person:Bob", relationshipDepeer.get("object"))
         assertEquals("Relationship", relationshipDepeer.get("type"))
     }
 
@@ -110,7 +110,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     @Test
     fun `query results parking ngsild`() {
 
-        val entityUri = "urn:example:OffStreetParking:Downtown1"
+        val entityUri = "urn:ngsi-ld:OffStreetParking:Downtown1"
         // check has one nested properties
         val nestedProperties = neo4jRepository.getNestedPropertiesByURI(entityUri)
         assertEquals(1, nestedProperties.size)
@@ -128,7 +128,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     @Test
     fun `query results vehicle ngsild`() {
 
-        val entityUri = "urn:example:Vehicle:A4567"
+        val entityUri = "urn:ngsi-ld:Vehicle:A4567"
         // check No nested properties
         val nestedProperties = neo4jRepository.getNestedPropertiesByURI(entityUri)
         assertEquals(0, nestedProperties.size)
@@ -141,7 +141,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val materializedRel = neo4jRepository.getNodeByURI(matRelUri.toString())
         assertNotNull(materializedRel)
         val matrel = materializedRel.get("n") as NodeModel
-        assertTrue(matrel.property("uri").toString().startsWith("urn:example:isParked:"))
+        assertTrue(matrel.property("uri").toString().startsWith("urn:ngsi-ld:isParked:"))
         // check nested relationship has a nested relationship isProvidedBy
         val relationshipsDepeer = neo4jRepository.getRelationshipByURI(matRelUri.toString())
         assertEquals(1, relationshipsDepeer.size)
@@ -153,7 +153,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `update on cypherOnRdf by payload, URI and attribute`() {
         val file = ClassPathResource("/ngsild/sensor_update.json")
         val content = file.inputStream.readBytes().toString(Charsets.UTF_8)
-        val uri: String = "urn:diat:Sensor:0022CCC"
+        val uri: String = "urn:ngsi-ld:Sensor:0022CCC"
         val entityBefore = neo4jRepository.getNodeByURI(uri).get("n") as NodeModel
         val updateQuery = ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(content, uri, "name")
         this.neo4jRepository.updateEntity(updateQuery, uri)
@@ -166,7 +166,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     fun `it should delete properties and relationships when deleting an entity`() {
         val entity = """
             {
-              "id": "urn:example:Vehicle:ToBeDeleted",
+              "id": "urn:ngsi-ld:Vehicle:ToBeDeleted",
               "type": "Vehicle",
               "brandName": {
                 "type": "Property",
@@ -183,7 +183,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
                 },
                 "providedBy": {
                   "type": "Relationship",
-                  "object": "urn:example:EnergyCounter:EC1"
+                  "object": "urn:ngsi-ld:EnergyCounter:EC1"
                 }
               },
               "location": {
@@ -195,11 +195,11 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
               },
               "isParked": {
                 "type": "Relationship",
-                "object": "urn:example:OffStreetParking:Downtown1",
+                "object": "urn:ngsi-ld:OffStreetParking:Downtown1",
                 "observedAt": "2017-07-29T12:00:04Z",
                 "providedBy": {
                   "type": "Relationship",
-                  "object": "urn:example:Person:Bob"
+                  "object": "urn:ngsi-ld:Person:Bob"
                 }
               },
               "@context": [
@@ -217,18 +217,18 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         neo4jRepository.createEntity(ngsiLdParsedResult.entityUrn, ngsiLdParsedResult.entityStatements,
             ngsiLdParsedResult.relationshipStatements)
 
-        val deleteResult = neo4jRepository.deleteEntity("urn:example:Vehicle:ToBeDeleted")
+        val deleteResult = neo4jRepository.deleteEntity("urn:ngsi-ld:Vehicle:ToBeDeleted")
 
         assertEquals(3, deleteResult.first)
         assertEquals(4, deleteResult.second)
 
-        assertTrue(neo4jRepository.getNodeByURI("urn:example:Vehicle:ToBeDeleted").isEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:ngsi-ld:Vehicle:ToBeDeleted").isEmpty())
         assertTrue(neo4jRepository.getEntitiesByLabel("ngsild__remainingEnergy").isEmpty())
         assertEquals(isParkedEntitiesNb, neo4jRepository.getEntitiesByLabel("example__isParked").size)
 
-        assertTrue(neo4jRepository.getNodeByURI("urn:example:EnergyCounter:EC1").isNotEmpty())
-        assertTrue(neo4jRepository.getNodeByURI("urn:example:OffStreetParking:Downtown1").isNotEmpty())
-        assertTrue(neo4jRepository.getNodeByURI("urn:example:Person:Bob").isNotEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:ngsi-ld:EnergyCounter:EC1").isNotEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:ngsi-ld:OffStreetParking:Downtown1").isNotEmpty())
+        assertTrue(neo4jRepository.getNodeByURI("urn:ngsi-ld:Person:Bob").isNotEmpty())
     }
 
     fun addNamespaces() {

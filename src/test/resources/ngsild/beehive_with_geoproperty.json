@@ -3,7 +3,7 @@
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
     "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
   ],
-  "id": "urn:diat:BeeHive:TESTC",
+  "id": "urn:ngsi-ld:BeeHive:TESTC",
   "type": "BeeHive",
   "name": "ParisBeehive12",
   "location": {

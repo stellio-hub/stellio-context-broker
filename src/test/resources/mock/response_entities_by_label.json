@@ -1,6 +1,6 @@
 [
   {
-    "id": "urn:diat:BeeHive:HiveRomania",
+    "id": "urn:ngsi-ld:BeeHive:HiveRomania",
     "type": "BeeHive",
     "createdAt": "2019.10.09.11.53.05",
     "modifiedAt": "2019.10.09.11.53.05",
@@ -12,11 +12,11 @@
     ]
   },
   {
-    "id": "urn:diat:BeeHive:TESTC",
+    "id": "urn:ngsi-ld:BeeHive:TESTC",
     "type": "BeeHive",
     "connectsTo": {
       "type": "Relationship",
-      "object": "urn:diat:Beekeeper:Pascal",
+      "object": "urn:ngsi-ld:Beekeeper:Pascal",
       "createdAt": "2010-10-26T21:32:52+02:00",
       "modifiedAt": "2019.10.09.11.53.05"
     },

@@ -3,7 +3,7 @@
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
     "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
   ],
-  "id": "urn:sosa:Observation:001112",
+  "id": "urn:ngsi-ld:Observation:001112",
   "type": "Observation",
   "hasMeasure": {
     "type": "Property",

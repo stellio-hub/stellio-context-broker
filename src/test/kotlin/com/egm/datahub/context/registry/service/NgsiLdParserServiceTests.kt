@@ -26,15 +26,15 @@ class NgsiLdParserServiceTests {
     fun `it should create a simple node with simple properties`() {
         val expectedCreateStatement =
             """
-                MERGE \(a : diat__Beekeeper \{ uri: "urn:diat:Beekeeper:Pascal" }\)
-                ON CREATE SET a = \{ name: "Scalpa", uri: "urn:diat:Beekeeper:Pascal", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP" }
-                ON MATCH SET a \+= \{ name: "Scalpa", uri: "urn:diat:Beekeeper:Pascal", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP" }
+                MERGE \(a : diat__Beekeeper \{ uri: "urn:ngsi-ld:Beekeeper:Pascal" }\)
+                ON CREATE SET a = \{ name: "Scalpa", uri: "urn:ngsi-ld:Beekeeper:Pascal", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP" }
+                ON MATCH SET a \+= \{ name: "Scalpa", uri: "urn:ngsi-ld:Beekeeper:Pascal", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP" }
                 return a
             """.trimIndent()
 
         val beekeeper = ClassPathResource("/ngsild/beekeeper.json")
         val parsingResult = ngsiLdParserService.parseEntity(beekeeper.inputStream.readBytes().toString(Charsets.UTF_8))
-        assertThat(parsingResult.entityUrn, equalTo("urn:diat:Beekeeper:Pascal"))
+        assertThat(parsingResult.entityUrn, equalTo("urn:ngsi-ld:Beekeeper:Pascal"))
         assertThat(parsingResult.entityType, equalTo("Beekeeper"))
         assertThat(parsingResult.entityStatements.size, equalTo(1))
         assertThat(parsingResult.relationshipStatements.size, equalTo(0))
@@ -45,17 +45,17 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with a geo property`() {
         val expectedCreateStatement =
             """
-                MERGE \(a : diat__BeeHive \{ uri: "urn:diat:BeeHive:TESTC"}\)
+                MERGE \(a : diat__BeeHive \{ uri: "urn:ngsi-ld:BeeHive:TESTC"}\)
                 ON CREATE SET a = \{ name: "ParisBeehive12", location: "point\(\{ x: 13.3986 , y: 52.5547, crs: \\u0027WGS-84\\u0027 }\)",  
-                    uri: "urn:diat:BeeHive:TESTC", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                    uri: "urn:ngsi-ld:BeeHive:TESTC", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
                 ON MATCH  SET a \+= \{ name: "ParisBeehive12", location: "point\(\{ x: 13.3986 , y: 52.5547, crs: \\u0027WGS-84\\u0027 }\)", 
-                    uri: "urn:diat:BeeHive:TESTC", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                    uri: "urn:ngsi-ld:BeeHive:TESTC", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
                 return a
             """.trimIndent()
         val beekeeper = ClassPathResource("/ngsild/beehive_with_geoproperty.json")
         val parsingResult = ngsiLdParserService.parseEntity(beekeeper.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat(parsingResult.entityUrn, equalTo("urn:diat:BeeHive:TESTC"))
+        assertThat(parsingResult.entityUrn, equalTo("urn:ngsi-ld:BeeHive:TESTC"))
         assertThat(parsingResult.entityStatements.size, equalTo(1))
         assertThat(parsingResult.relationshipStatements.size, equalTo(0))
         assertThat(parsingResult.entityStatements[0], ktMatches(expectedCreateStatement))
@@ -65,15 +65,15 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with a relationship`() {
         val expectedMatchStatement =
             """
-                MATCH \(a : diat__Door \{ uri: "urn:diat:Door:0015" }\), 
-                      \(b : diat__SmartDoor \{ uri: "urn:diat:SmartDoor:0021" }\) 
-                MERGE \(a\)-\[r:diat__connectsTo \{ uri:"urn:diat:connectsTo:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
+                MATCH \(a : diat__Door \{ uri: "urn:ngsi-ld:Door:0015" }\), 
+                      \(b : diat__SmartDoor \{ uri: "urn:ngsi-ld:SmartDoor:0021" }\) 
+                MERGE \(a\)-\[r:diat__connectsTo \{ uri:"urn:ngsi-ld:connectsTo:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
             """.trimIndent()
         val door = ClassPathResource("/ngsild/door.json")
         val parsingResult = ngsiLdParserService.parseEntity(door.inputStream.readBytes().toString(Charsets.UTF_8))
 
         logger.debug("Cypher queries are $parsingResult")
-        assertThat("urn:diat:Door:0015", equalTo(parsingResult.entityUrn))
+        assertThat("urn:ngsi-ld:Door:0015", equalTo(parsingResult.entityUrn))
         assertThat(parsingResult.entityStatements.size, equalTo(2))
         assertThat(parsingResult.relationshipStatements.size, equalTo(1))
         assertThat(parsingResult.relationshipStatements[0], ktMatches(expectedMatchStatement))
@@ -83,30 +83,30 @@ class NgsiLdParserServiceTests {
     fun `it should create a node with an externalized property`() {
         val expectedHasMeasureCreateStatement =
             """
-                MERGE \(a:diat__hasMeasure \{ uri:"urn:diat:hasMeasure:[a-zA-Z\-0-9]+"}\)
-                ON CREATE SET a = \{ value:"45", unitCode:"C", observedAt:"2019-09-26T21:32:52\+02:00", uri:"urn:diat:hasMeasure:[a-zA-Z\-0-9]+",
+                MERGE \(a:diat__hasMeasure \{ uri:"urn:ngsi-ld:hasMeasure:[a-zA-Z\-0-9]+"}\)
+                ON CREATE SET a = \{ value:"45", unitCode:"C", observedAt:"2019-09-26T21:32:52\+02:00", uri:"urn:ngsi-ld:hasMeasure:[a-zA-Z\-0-9]+",
                                     createdAt:"$ISO8601_REGEXP", modifiedAt:"$ISO8601_REGEXP"}
-                ON MATCH SET a \+= \{ value:"45", unitCode:"C", observedAt:"2019-09-26T21:32:52\+02:00", uri:"urn:diat:hasMeasure:[a-zA-Z\-0-9]+",
+                ON MATCH SET a \+= \{ value:"45", unitCode:"C", observedAt:"2019-09-26T21:32:52\+02:00", uri:"urn:ngsi-ld:hasMeasure:[a-zA-Z\-0-9]+",
                                     createdAt:"$ISO8601_REGEXP", modifiedAt:"$ISO8601_REGEXP"}
                 return a        
             """.trimIndent()
         val expectedObservationCreateStatement =
             """
-                MERGE \(a : sosa__Observation \{  uri: "urn:sosa:Observation:001112"}\)
-                ON CREATE SET a = \{  uri: "urn:sosa:Observation:001112", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
-                ON MATCH SET a \+= \{  uri: "urn:sosa:Observation:001112",  createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                MERGE \(a : sosa__Observation \{  uri: "urn:ngsi-ld:Observation:001112"}\)
+                ON CREATE SET a = \{  uri: "urn:ngsi-ld:Observation:001112", createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
+                ON MATCH SET a \+= \{  uri: "urn:ngsi-ld:Observation:001112",  createdAt: "$ISO8601_REGEXP", modifiedAt: "$ISO8601_REGEXP"}
                 return a
             """.trimIndent()
         val expectedMatchStatement =
             """
-                MATCH \(a : sosa__Observation \{ uri: "urn:sosa:Observation:001112" }\), 
-                      \(b : diat__hasMeasure \{ uri: "urn:diat:hasMeasure:[a-zA-Z\-0-9]+" }\) 
+                MATCH \(a : sosa__Observation \{ uri: "urn:ngsi-ld:Observation:001112" }\), 
+                      \(b : diat__hasMeasure \{ uri: "urn:ngsi-ld:hasMeasure:[a-zA-Z\-0-9]+" }\) 
                 MERGE \(a\)-\[r:ngsild__hasValue \{ uri:"urn:ngsild:hasValue:[a-zA-Z\-0-9]+" }]->\(b\) return a,b
              """.trimIndent()
         val observationSensor = ClassPathResource("/ngsild/observation_sensor_prop_only.json")
         val parsingResult = ngsiLdParserService.parseEntity(observationSensor.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        assertThat("urn:sosa:Observation:001112", equalTo(parsingResult.entityUrn))
+        assertThat("urn:ngsi-ld:Observation:001112", equalTo(parsingResult.entityUrn))
         assertThat(parsingResult.entityStatements.size, equalTo(2))
         assertThat(parsingResult.relationshipStatements.size, equalTo(1))
         assertThat(parsingResult.entityStatements, hasItem(ktMatches(expectedHasMeasureCreateStatement)))
@@ -137,7 +137,7 @@ class NgsiLdParserServiceTests {
     @Test
     fun `it should merge the updated property into target entity`() {
 
-        val uri = "urn:diat:Beekeeper:Pascal"
+        val uri = "urn:ngsi-ld:Beekeeper:Pascal"
         val expectedMergeStatement = """
             MERGE \(a \{ uri: "$uri"}\) 
             ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP"} 
@@ -155,7 +155,7 @@ class NgsiLdParserServiceTests {
     @Test
     fun `it should ignore extra properties when updating a specific property of an entity`() {
 
-        val uri = "urn:diat:Beekeeper:Pascal"
+        val uri = "urn:ngsi-ld:Beekeeper:Pascal"
         val expectedMergeStatement = """
             MERGE \(a \{ uri: "$uri"}\) 
             ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP"} 
@@ -173,7 +173,7 @@ class NgsiLdParserServiceTests {
     @Test
     fun `it should merge the provided properties into target entity`() {
 
-        val uri = "urn:diat:Beekeeper:Pascal"
+        val uri = "urn:ngsi-ld:Beekeeper:Pascal"
         val expectedMergeStatement = """
             MERGE \(a \{ uri: "$uri"}\) 
             ON MATCH SET a \+= \{ name: "A famous beekeeper", uri: "$uri", modifiedAt: "$ISO8601_REGEXP", displayName: "display name"} 

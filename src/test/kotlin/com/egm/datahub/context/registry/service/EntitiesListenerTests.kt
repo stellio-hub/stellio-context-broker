@@ -31,13 +31,13 @@ class EntitiesListenerTests {
         entitiesListener.processMessage(consumerRecord)
 
         verify { neo4jService.updateEntityLastMeasure(match { observation ->
-            observation.id == "urn:sosa:Observation:111122223333" &&
+            observation.id == "urn:ngsi-ld:Observation:111122223333" &&
                 observation.type == "Observation" &&
                 observation.unitCode == "CEL" &&
                 observation.value == 20.7 &&
                 observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
                 observation.observedBy.type == "Relationship" &&
-                observation.observedBy.target == "urn:sosa:Sensor:10e2073a01080065" &&
+                observation.observedBy.target == "urn:ngsi-ld:Sensor:10e2073a01080065" &&
                 observation.location.type == "GeoProperty" &&
                 observation.location.value.type == "Point" &&
                 observation.location.value.coordinates == listOf(24.30623, 60.07966)

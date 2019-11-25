@@ -25,11 +25,11 @@ class EntitiesListener(
      * Measures are received under the following format
      *
      * {
-     *   "id": "urn:sosa:Observation:1234",
+     *   "id": "urn:ngsi-ld:Observation:1234",
      *   "type": "Observation",
      *   "observedBy": {
      *     "type": "Relationship",
-     *     "object": "urn:sosa:Sensor:10e2073a01080065"
+     *     "object": "urn:ngsi-ld:Sensor:10e2073a01080065"
      *   },
      *   "location": {
      *     "type": "GeoProperty",

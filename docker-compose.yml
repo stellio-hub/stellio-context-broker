@@ -1,7 +1,7 @@
 version: '3.2'
 services:
   neo4j:
-    image: neo4j
+    image: neo4j:3.5
     container_name: neo4j
     volumes:
       - ./data/neo4j/data:/data

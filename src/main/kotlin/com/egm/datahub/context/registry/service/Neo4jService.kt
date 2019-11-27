@@ -2,9 +2,7 @@ package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.model.Observation
 import com.egm.datahub.context.registry.repository.Neo4jRepository
-import com.google.gson.GsonBuilder
 import org.neo4j.ogm.response.model.NodeModel
-import org.neo4j.ogm.response.model.RelationshipModel
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -12,18 +10,15 @@ import org.springframework.stereotype.Component
 class Neo4jService(
     private val neo4jRepository: Neo4jRepository
 ) {
-    private val gson = GsonBuilder().setPrettyPrinting().create()
     private val logger = LoggerFactory.getLogger(Neo4jService::class.java)
+
     private fun iterateOverRelationships(nodeModel: NodeModel): Map<String, Any> {
         val uriProperty = nodeModel.propertyList.find { it.key == "uri" }!!
         var inneroutput = mutableMapOf<String, Any>()
-        // get relationships
         val relationships = neo4jRepository.getRelationshipByURI(uriProperty.value.toString())
-        // logger.info("relationships to be mocked for " + uriProperty.value.toString())
-        // logger.info(gson.toJson(relationships))
-        // add relationships
+
         relationships.map {
-            val target = it.get("t") as NodeModel
+            val target = it["t"] as NodeModel
             var relMapProperties = mutableMapOf<String, Any>("type" to "Relationship")
             target.propertyList.filter {
                 it.key == "uri"
@@ -32,8 +27,7 @@ class Neo4jService(
             }
             // add relationships properties stored in materialized node
             // 1. get relationship URI
-            val relmodel = relationships.first().get("r") as RelationshipModel
-            val matRelUri = relmodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0).toString()
+            val matRelUri = it["relUri"] as String
             // 2. find materialized rel node
             val matRelNode = neo4jRepository.getNodeByURI(matRelUri)
             // logger.info("matRelNode to be mocked for " + matRelUri)

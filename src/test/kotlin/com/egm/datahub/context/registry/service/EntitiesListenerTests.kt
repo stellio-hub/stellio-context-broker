@@ -2,7 +2,6 @@ package com.egm.datahub.context.registry.service
 
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,12 +22,10 @@ class EntitiesListenerTests {
     @Test
     fun `it should parse and transmit observations`() {
         val observation = ClassPathResource("/ngsild/observation.json")
-        val consumerRecord = ConsumerRecord<Any, Any>("cim.observations", 1, 0L,
-            "key", observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { neo4jService.updateEntityLastMeasure(any()) } just Runs
 
-        entitiesListener.processMessage(consumerRecord)
+        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { neo4jService.updateEntityLastMeasure(match { observation ->
             observation.id == "urn:ngsi-ld:Observation:111122223333" &&
@@ -48,10 +45,8 @@ class EntitiesListenerTests {
     @Test
     fun `it should ignore badly formed observations`() {
         val measure = ClassPathResource("/ngsild/observation_door.json")
-        val consumerRecord = ConsumerRecord<Any, Any>("cim.observations", 1, 0L,
-            "key", measure.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        entitiesListener.processMessage(consumerRecord)
+        entitiesListener.processMessage(measure.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { neo4jService wasNot Called }
     }

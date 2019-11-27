@@ -14,12 +14,12 @@
         </encoder>
     </appender>
 
-    <logger name="com.intuit.karate" level="DEBUG"/>
     <logger name="com.egm.datahub.context.registry" level="DEBUG"/>
     <logger name="org.apache.zookeeper" level="WARN"/>
     <logger name="kafka" level="WARN"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.neo4j.driver" level="DEBUG"/>
+    <logger name="org.neo4j.ogm" level="DEBUG"/>
 
     <root level="info">
         <appender-ref ref="STDOUT" />

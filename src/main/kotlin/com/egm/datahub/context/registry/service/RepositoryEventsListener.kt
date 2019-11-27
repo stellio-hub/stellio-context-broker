@@ -2,15 +2,16 @@ package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.model.EntityEvent
 import org.slf4j.LoggerFactory
+import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.context.event.EventListener
-import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.messaging.MessageHeaders
+import org.springframework.messaging.support.MessageBuilder
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
-import reactor.core.publisher.toMono
 
 @Component
 class RepositoryEventsListener(
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val resolver: BinderAwareChannelResolver
 ) {
 
     private val logger = LoggerFactory.getLogger(RepositoryEventsListener::class.java)
@@ -18,14 +19,16 @@ class RepositoryEventsListener(
     @Async
     @EventListener
     fun handleRepositoryEvent(entityEvent: EntityEvent) {
-        kafkaTemplate.send(
-            "cim.entity.${entityEvent.entityType}",
-            entityEvent.entityUrn, entityEvent.payload
-        )
-        .completable()
-        .toMono()
-        .subscribe {
-            logger.debug("Sent event $entityEvent to topic cim.entity.${entityEvent.entityType}")
-        }
+        val channelName = "cim.entity.${entityEvent.entityType}"
+        // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
+        val result = resolver.resolveDestination(channelName)
+            .send(MessageBuilder.createMessage(entityEvent.payload,
+                MessageHeaders(mapOf(MessageHeaders.ID to entityEvent.entityUrn))
+            ))
+
+        if (result)
+            logger.debug("Entity ${entityEvent.entityUrn} sent to $channelName")
+        else
+            logger.warn("Unable to send entity ${entityEvent.entityUrn} to $channelName")
     }
 }

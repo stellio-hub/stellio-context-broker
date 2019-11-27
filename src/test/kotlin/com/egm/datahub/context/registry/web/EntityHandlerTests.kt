@@ -17,19 +17,13 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.kafka.test.EmbeddedKafkaBroker
-import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.RuntimeException
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@EmbeddedKafka(topics = ["entities"])
 class EntityHandlerTests {
 
     companion object {
-        init {
-            System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
-        }
         private val gson = GsonBuilder().setPrettyPrinting().create()
     }
 
@@ -56,7 +50,7 @@ class EntityHandlerTests {
                 .uri("/ngsi-ld/v1/entities")
                 .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
-                .syncBody(jsonLdFile)
+                .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isCreated
                 .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
@@ -78,7 +72,7 @@ class EntityHandlerTests {
                 .uri("/ngsi-ld/v1/entities")
                 .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
-                .syncBody(jsonLdFile)
+                .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(409)
 
@@ -95,7 +89,7 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
-            .syncBody(jsonLdFile)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(500)
 
@@ -110,7 +104,7 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
-            .syncBody(jsonLdFile)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
     }
@@ -170,7 +164,7 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
-            .syncBody(jsonLdFile)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
     }
@@ -184,12 +178,6 @@ class EntityHandlerTests {
                 "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
                 "  \"name\": \"Bucarest\",\n" +
                 "  \"uri\": \"urn:ngsi-ld:BeeHive:HiveRomania\"\n" +
-                "}"
-        val map2 = "{\n" +
-                "  \"createdAt\": \"2019.10.09.11.53.05\",\n" +
-                "  \"modifiedAt\": \"2019.10.09.11.53.05\",\n" +
-                "  \"name\": \"ParisBeehive12\",\n" +
-                "  \"uri\": \"urn:ngsi-ld:BeeHive:TESTC\"\n" +
                 "}"
         val entityMap1: Map<String, Any> = gson.fromJson(map1, object : TypeToken<Map<String, Any>>() {}.type)
         var node1: NodeModel = NodeModel(27647624)
@@ -352,7 +340,7 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
             .header("Link", "<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
-            .syncBody(jsonLdFile)
+            .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
 

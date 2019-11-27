@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    id("org.springframework.boot") version "2.1.9.RELEASE"
+    id("org.springframework.boot") version "2.2.1.RELEASE"
     id("io.spring.dependency-management") version "1.0.8.RELEASE"
-    kotlin("jvm") version "1.3.11"
-    kotlin("plugin.spring") version "1.3.11"
-    kotlin("plugin.noarg") version "1.3.11"
+    kotlin("jvm") version "1.3.50"
+    kotlin("plugin.spring") version "1.3.50"
+    kotlin("plugin.noarg") version "1.3.50"
     id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
     id("com.google.cloud.tools.jib") version "1.6.1"
 }
@@ -27,51 +27,49 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://repo.spring.io/milestone") }
     jcenter()
 }
 
+extra["springCloudVersion"] = "Hoxton.RC2"
+
 dependencyManagement {
     imports {
-        mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES) {
-            bomProperty("kotlin.version", "1.3.11")
-        }
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
     }
 }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    // implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-    // implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    // implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.springframework.cloud:spring-cloud-stream")
+    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.kafka:spring-kafka")
     implementation("com.google.code.gson:gson:2.8.5")
-    implementation("org.neo4j:neo4j-ogm-core:3.1.14")
-    implementation("org.neo4j:neo4j-ogm-api:3.1.14")
-    implementation("org.neo4j:neo4j-ogm-bolt-driver:3.1.14")
+    implementation("org.neo4j:neo4j-ogm-bolt-native-types")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
-        exclude(module = "junit")
+        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
         exclude(module = "mockito-core")
         exclude(group = "org.hamcrest")
     }
-    testImplementation("org.junit.jupiter:junit-jupiter-api")
-    testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation("org.hamcrest:hamcrest:2.1")
     testImplementation("com.ninja-squad:springmockk:1.1.3")
     testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
-    testImplementation("org.neo4j:neo4j-ogm-embedded-driver:3.1.14")
-    testImplementation("org.neo4j:neo4j-bolt:3.4.15")
-    // testImplementation("org.springframework.security:spring-security-test")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
+
+    testRuntime("org.neo4j:neo4j-ogm-embedded-driver")
+    testRuntime("org.neo4j:neo4j-ogm-embedded-native-types")
+    testRuntime("org.neo4j:neo4j:3.5.12")
 }
 
 defaultTasks("bootRun")

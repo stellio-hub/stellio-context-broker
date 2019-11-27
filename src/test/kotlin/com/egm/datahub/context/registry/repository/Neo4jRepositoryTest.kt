@@ -1,6 +1,6 @@
 package com.egm.datahub.context.registry.repository
 
-import com.egm.datahub.context.registry.IntegrationTestsBase
+import com.egm.datahub.context.registry.Neo4jEmbeddedConfiguration
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.service.NgsiLdParserService
 import com.egm.datahub.context.registry.web.AlreadyExistsException
@@ -10,14 +10,16 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.neo4j.ogm.response.model.NodeModel
-import org.neo4j.ogm.response.model.RelationshipModel
+import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-class Neo4jRepositoryTest : IntegrationTestsBase() {
+@Import(Neo4jEmbeddedConfiguration::class)
+class Neo4jRepositoryTest {
 
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
@@ -28,6 +30,9 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
     @Autowired
     private lateinit var ngsiLdParserService: NgsiLdParserService
 
+    @Autowired
+    private lateinit var session: Session
+
     private val logger = LoggerFactory.getLogger(Neo4jRepositoryTest::class.java)
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -36,7 +41,6 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         logger.info("Initializing fixtures for test")
         cleanDb()
         addURIindex()
-        addNamespaces()
         insertFixtures()
     }
 
@@ -136,8 +140,7 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         val relationships = neo4jRepository.getRelationshipByURI(entityUri)
         assertEquals(1, relationships.size)
         // check nested relationship has been materialized in a node and the uri is equal to telationship uri
-        val nodemodel = relationships.first().get("r") as RelationshipModel
-        val matRelUri = nodemodel.propertyList.filter { it.key == "uri" }.map { it.value }.get(0)
+        val matRelUri = relationships.first()["relUri"]
         val materializedRel = neo4jRepository.getNodeByURI(matRelUri.toString())
         assertNotNull(materializedRel)
         val matrel = materializedRel.get("n") as NodeModel
@@ -231,23 +234,14 @@ class Neo4jRepositoryTest : IntegrationTestsBase() {
         assertTrue(neo4jRepository.getNodeByURI("urn:ngsi-ld:Person:Bob").isNotEmpty())
     }
 
-    fun addNamespaces() {
-        val addNamespaces = "CREATE (:NamespacePrefixDefinition {\n" +
-                "  `https://diatomic.eglobalmark.com/ontology#`: 'diat',\n" +
-                "  `http://xmlns.com/foaf/0.1/`: 'foaf',\n" +
-                "  `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})"
-        val resultSummary = driver().session().run(addNamespaces, emptyMap()).consume()
-        logger.debug("Nodes created ${resultSummary.counters().nodesCreated()}")
-    }
-
     fun addURIindex() {
-        val resultSummary = driver().session().run("CREATE INDEX ON :Resource(uri)").consume()
-        logger.debug("Indexes added : ${resultSummary.counters().indexesAdded()}")
+        val resultSummary = session.query("CREATE INDEX ON :Resource(uri)", HashMap<String, Any>())
+        logger.debug("Indexes added : ${resultSummary.queryStatistics().indexesAdded}")
     }
 
     fun cleanDb() {
-        val resultSummary = driver().session().run("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r").consume()
-        logger.debug("Node deleted ${resultSummary.counters().nodesDeleted()}")
+        val resultSummary = session.query("MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r", HashMap<String, Any>())
+        logger.debug("Node deleted ${resultSummary.queryStatistics().nodesDeleted}")
     }
 
     fun insertFixtures() {

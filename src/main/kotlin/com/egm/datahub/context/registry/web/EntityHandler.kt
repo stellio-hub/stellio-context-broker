@@ -63,8 +63,8 @@ class EntityHandler(
                 when (it) {
                     is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
                     is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromObject(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
+                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                 }
             }
     }
@@ -76,14 +76,14 @@ class EntityHandler(
         val contextLink = extractLinkContextFromLinkHeader(req)
 
         if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-            return badRequest().body(BodyInserters.fromObject("query or type have to be specified: generic query on entities NOT yet supported"))
+            return badRequest().body(BodyInserters.fromValue("query or type have to be specified: generic query on entities NOT yet supported"))
         }
         if (!q.isNullOrEmpty()) {
             q = ngsiLdParserService.prependNsToQuery(q, contextLink)
         }
 
         if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
-            return badRequest().body(BodyInserters.fromObject("th NS provided in the Link Header is not correct or you're trying to access an undefined entity type"))
+            return badRequest().body(BodyInserters.fromValue("th NS provided in the Link Header is not correct or you're trying to access an undefined entity type"))
         }
 
         return "".toMono()
@@ -97,10 +97,10 @@ class EntityHandler(
                 }
             }
             .flatMap {
-                ok().body(BodyInserters.fromObject(it))
+                ok().body(BodyInserters.fromValue(it))
             }
             .onErrorResume {
-                badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
+                badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
             }
     }
 
@@ -115,12 +115,12 @@ class EntityHandler(
                 neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
             }
             .flatMap {
-                ok().body(BodyInserters.fromObject(it))
+                ok().body(BodyInserters.fromValue(it))
             }
             .onErrorResume {
                 when (it) {
                     is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                    else -> badRequest().body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.message.toString()))))
+                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                 }
             }
     }
@@ -174,8 +174,8 @@ class EntityHandler(
             }
             .onErrorResume {
                 when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
                 }
             }
     }

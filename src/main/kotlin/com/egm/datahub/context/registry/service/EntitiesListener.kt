@@ -2,12 +2,13 @@ package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.model.Observation
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.slf4j.LoggerFactory
-import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.cloud.stream.annotation.EnableBinding
+import org.springframework.cloud.stream.annotation.StreamListener
 import org.springframework.stereotype.Component
 
 @Component
+@EnableBinding(ObservationsSink::class)
 class EntitiesListener(
     private val neo4jService: Neo4jService
 ) {
@@ -46,14 +47,14 @@ class EntitiesListener(
      *   "observedAt": "2019-10-18T07:31:39.77Z"
      * }
      */
-    @KafkaListener(topics = ["cim.observations"])
-    fun processMessage(content: ConsumerRecord<Any, Any>) {
+    @StreamListener("cim.observations")
+    fun processMessage(content: String) {
         try {
-            val observation: Observation = mapper.readValue(content.value() as String, Observation::class.java)
+            val observation: Observation = mapper.readValue(content, Observation::class.java)
             logger.debug("Parsed observation: $observation")
             neo4jService.updateEntityLastMeasure(observation)
         } catch (e: Exception) {
-            logger.error("Received a non-parseable measure : ${content.value()}", e)
+            logger.error("Received a non-parseable measure : $content", e)
         }
     }
 }

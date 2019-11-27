@@ -1,36 +1,22 @@
 package com.egm.datahub.context.registry.repository
 
-import com.egm.datahub.context.registry.config.properties.Neo4jProperties
 import com.egm.datahub.context.registry.service.EntityStatements
 import com.egm.datahub.context.registry.service.RelationshipStatements
 import com.egm.datahub.context.registry.web.InternalErrorException
 import com.egm.datahub.context.registry.web.ResourceNotFoundException
-import org.neo4j.driver.v1.Config
-import org.neo4j.ogm.config.Configuration
-import org.neo4j.ogm.session.SessionFactory
+import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class Neo4jRepository(
-    private val neo4jProperties: Neo4jProperties
-
+    private val session: Session
 ) {
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
-    private lateinit var sessionFactory: SessionFactory
 
-    init {
-        val configuration = Configuration.Builder()
-            .uri(neo4jProperties.uri)
-            .credentials(neo4jProperties.username, neo4jProperties.password)
-            .encryptionLevel(Config.EncryptionLevel.NONE.name)
-            .build()
-        sessionFactory = SessionFactory(configuration, "com.egm.datahub.context.registry.model.neo4j")
-    }
-
+    @Transactional
     fun createEntity(entityUrn: String, entityStatements: EntityStatements, relationshipStatements: RelationshipStatements): String {
-        val session = sessionFactory.openSession()
-        val tx = session.beginTransaction()
         try {
             // This constraint ensures that each profileId is unique per user node
 
@@ -47,20 +33,16 @@ class Neo4jRepository(
             }
 
             // UPDATE RELATIONSHIP MATERIALIZED NODE with same URI
-
-            tx.commit()
         } catch (ex: Exception) {
             // The constraint is already created or the database is not available
             logger.error("Error while persisting entity $entityUrn", ex)
-            tx.rollback()
             throw InternalErrorException("Error while persisting entity")
-        } finally {
-            tx.close()
         }
+
         return entityUrn
     }
     fun updateEntity(update: String): Map<String, Any> {
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(update, emptyMap<String, Any>()).toMutableList()
+        val nodes: List<Map<String, Any>> = session.query(update, emptyMap<String, Any>()).toMutableList()
         return if (nodes.isEmpty())
             emptyMap()
         else nodes.first()
@@ -72,7 +54,7 @@ class Neo4jRepository(
             throw ResourceNotFoundException("not existing entity!")
         }
 
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, emptyMap<String, Any>()).toMutableList()
+        val nodes: List<Map<String, Any>> = session.query(query, emptyMap<String, Any>()).toMutableList()
         return if (nodes.isEmpty())
             emptyMap()
         else nodes.first()
@@ -93,7 +75,7 @@ class Neo4jRepository(
             DETACH DELETE n,rp,p,rr,nr
         """.trimIndent()
 
-        val queryStatistics = sessionFactory.openSession().query(query, emptyMap<String, Any>()).queryStatistics()
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted entity $uri : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
@@ -103,7 +85,7 @@ class Neo4jRepository(
             MATCH (n { uri: '$uri' }) 
             RETURN n
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
+        val nodes: List<Map<String, Any>> = session.query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyMap()
@@ -114,9 +96,9 @@ class Neo4jRepository(
         val query = """
             MATCH (n { uri: '$uri' })-[r]->(t) 
             WHERE NOT (n)-[r:ngsild__hasValue]->(t) 
-            RETURN n,type(r) as rel,t,r
+            RETURN n,type(r) as rel,t,r.uri as relUri
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
+        val nodes: List<Map<String, Any>> = session.query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyList()
@@ -128,7 +110,7 @@ class Neo4jRepository(
             MATCH (n { uri: '$uri' })-[r:ngsild__hasValue]->(t) 
             RETURN n,type(r) as rel,t,r
         """.trimIndent()
-        val nodes: List<Map<String, Any>> = sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
+        val nodes: List<Map<String, Any>> = session.query(query, HashMap<String, Any>(), true).toMutableList()
 
         return if (nodes.isEmpty())
             emptyList()
@@ -140,7 +122,7 @@ class Neo4jRepository(
             MATCH (n:$label) 
             RETURN n
         """.trimIndent()
-        return sessionFactory.openSession().query(query, HashMap<String, Any>(), true).toMutableList()
+        return session.query(query, HashMap<String, Any>(), true).toMutableList()
     }
 
     fun getEntitiesByLabelAndQuery(query: List<String>, label: String?): MutableList<Map<String, Any>> {
@@ -184,7 +166,7 @@ class Neo4jRepository(
             RETURN n    
         """
 
-        return sessionFactory.openSession().query(finalQuery,
+        return session.query(finalQuery,
             emptyMap<String, Any>(), true).toMutableList()
     }
 
@@ -197,10 +179,5 @@ class Neo4jRepository(
 
     fun checkExistingUrn(entityUrn: String): Boolean {
         return getNodeByURI(entityUrn).isNotEmpty()
-    }
-
-    fun addNamespaceDefinition(url: String, prefix: String) {
-        val addNamespacesStatement = "CREATE (:NamespacePrefixDefinition { `$url`: '$prefix'})"
-        sessionFactory.openSession().query(addNamespacesStatement, emptyMap<String, Any>())
     }
 }

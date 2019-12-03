@@ -1,48 +1,49 @@
 # Quick start
 
-### Context Registry
+## API Summary
 
-This module is in charge of store, update and retrieve the NGSI-LD entities to/from a NEO4J database.  These are the API endpoint implemented:
+The API currently exposes the following endpoints:
 
-| POST   | /v2/entities                                     |
-| ------ | ------------------------------------------------ |
-| POST   | /v2/entities                                     |
-| PATCH  | /v2/entities/{entityId}/attrs/                   |
-| POST   | /v2/entities/{entityId}/attrs/ (ONGOING)         |
-| PATCH  | /v2/entities/{entityId}/attrs/{attrId}           |
-| DELETE | /v2/entities/{entityId}/attrs/{attrId} (ONGOING) |
-| DELETE | /v2/entities/{entityId} (ONGOING)                |
-| GET    | /v2/entities                                     |
-| GET    | /v2/entities/{entityId}                          |
+| Object                                        | Method | Path                                             |
+| --------------------------------------------- | ------ | ------------------------------------------------ | 
+| Create an entity                              | POST   | /v2/entities                                     |
+| Update values of an entity                    | PATCH  | /v2/entities/{entityId}/attrs/                   |
+| Add properties and relationships to an entity | POST   | /v2/entities/{entityId}/attrs/ (Soon)            |
+| Update value of a property or relationship    | PATCH  | /v2/entities/{entityId}/attrs/{attrId}           |
+| Delete value of a property                    | DELETE | /v2/entities/{entityId}/attrs/{attrId} (Soon)    |
+| Delete an entity                              | DELETE | /v2/entities/{entityId}                          |
+| Search among entities                         | GET    | /v2/entities                                     |
+| Retrieve a specific entity                    | GET    | /v2/entities/{entityId}                          |
 
-  
+## NGSI-LD Entity structure
 
-#### NGSILD Entity structure
+An NGSI-LD entity is serialized in JSON-LD format. The structure has to comply with some requirements amongst them:
 
-The NGSI-LD format is JSON with reserved keyword @context to add links to the ontologies of reference. The structure have to comply with certains requirements amongst them:
-
-- an entity must have an id (represented by uri:namespace:EntityType:uuid) 
+- an entity must have an id (represented by `uri:ngsi-ld:<EntityType>:<UUID>`) 
 - an entity must have a type
-- Relationship and Property are reserved types (they both ar Properties in the ngsild ontology)
-- a Relationship must have an 'object' field that point to another Entity or Relationship
-- 'Relationship of Relationship', 'Property of Property' , 'Property of Relationship' , 'Relationship of Property' are allowed
+- an entity may have properties
+- an entity may have relationships to other entities
+- a property may have relationships to other entities
+- a relationship may have relationships to other entities
 
-```
+For instance, here is an example of a Vehicle entity :
+
+```json
 {
   "id": "urn:ngsi-ld:Vehicle:A1234",
   "type": "Vehicle",
   "brandName": {
     "type": "Property",
-    "value": "Mercedes"
+    "value": "Tesla"
   },
-  "name":  "name of vehicle 2",
+  "name": "a sample name",
   "isParked": {
     "type": "Relationship",
     "object": "urn:ngsi-ld:OffStreetParking:Downtown2",
     "observedAt": "2019-10-22T12:00:04Z",
     "providedBy": {
       "type": "Relationship",
-      "object": "urn:ngsi-ld:Person:Bob"
+      "object": "urn:ngsi-ld:Org:Bob"
     }
   },
   "hasSensor": {
@@ -50,65 +51,63 @@ The NGSI-LD format is JSON with reserved keyword @context to add links to the on
     "object": "urn:ngsi-ld:Sensor:1234567890"
   },
   "@context": [
-    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-    "http://example.org/ngsi-ld/commonTerms.jsonld",
-    "http://example.org/ngsi-ld/vehicle.jsonld",
-    "http://example.org/ngsi-ld/parking.jsonld"
+      "https://schema.lab.fiware.org/ld/context",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
   ]
 }
 ```
 
-#### Create Entity
+## API usage examples
 
-To persist the entity in the Neo4j Context Registry database we need to perform a POST to /v2/entities with the ngsild entity as payload. 
+### Notes on `@context` resolution
 
-##### context resolution
+Multiple namespaces are allowed (`ngsild` is the mandatory core context, fiware is a frequently used namespace, others are considered).
 
-Multiple namespaces are allowed (es. ngsild is the 'core' context, diatomic, sosa and fiware are other namespaces considered). Most of the http requests operations need to specify to wich context is referred. This to prevent Entities NS collisions (es. a Parking entity described both in fiware NS and diatomic NS)
-
-
+Most of the HTTP requests need to specify to which contexts they are referring. This to prevent namespaces collisions 
+(e.g. a Vehicle entity definition that would exist in two different contexts).
 
 ## API queries examples
 
-* Create a new entity
+The provided examples make use of the [HTTPie](https://httpie.org/) command line tool
+
+* Create an entity (with the above Vehicle example)
 
 ```
-http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-```
-
-* Get entities by type: a Link header is optionally provided to avoid NS collisions (6.3.5 JSON-LD @context resolution), this Link will be omitted in next examples for clarity but should be provided otherwise the default NS will be considered ngsild
-
-```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < vehicle.jsonld
 ```
 
 * Get an entity by URI
 
 ```
-http http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC  Content-Type:application/json
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:A1234 Content-Type:application/json
 ```
 
-* Get entities by relationships
+* Search entities of type Vehicle
 
 ```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:ngsi-ld:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:ngsi-ld:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==Vehicle Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* Get entities by property
+* Search entities of type Vehicle having a given relationship
 
 ```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==Vehicle q==isParked==urn:ngsi-ld:OffStreetParking:Downtown1 Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* Update the property of an entity
+* Search entities of type Vehicle having a given property
 
 ```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==Vehicle q==brandName==Tesla Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* Update an entity
+* Update a property of an entity
 
 ```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:A1234/attrs/brandName brandName=Toyota Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+```
+
+* Update some properties of an entity
+
+```
+http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:A1234/attrs brandName=Toyota name=NewName Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```

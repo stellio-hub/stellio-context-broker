@@ -54,7 +54,6 @@ class ObservationListener(
             logger.debug("Parsed observation: $ngsiLdObservation")
             observationService.create(ngsiLdObservation)
         } catch (e: Exception) {
-            logger.error("Received a non-parseable measure : ${content.value()}", e)
-        }
+            logger.error("Received a non-parseable measure : ${content.value()}", e) }
     }
 }

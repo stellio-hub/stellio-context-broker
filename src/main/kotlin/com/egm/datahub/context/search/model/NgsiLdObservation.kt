@@ -7,7 +7,7 @@ data class NgsiLdObservation(
     val id: String,
     val type: String,
     val observedBy: ObservedBy,
-    val location: GeoProperty,
+    val location: GeoProperty?,
     val unitCode: String,
     val value: Double,
     val observedAt: OffsetDateTime

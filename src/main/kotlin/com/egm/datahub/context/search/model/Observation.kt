@@ -8,6 +8,6 @@ data class Observation(
     @NotNull val observedAt: OffsetDateTime,
     @NotNull val value: Double,
     @NotNull val unitCode: String,
-    val latitude: Double,
-    val longitude: Double
+    val latitude: Double?,
+    val longitude: Double?
 )

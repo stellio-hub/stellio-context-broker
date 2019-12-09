@@ -94,7 +94,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is "between" and no endTime provided`() {
+    fun `it should raise a 400 if timerel is between and no endTime provided`() {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=startTime")
@@ -127,7 +127,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is "between" and endTime is not parseable`() {
+    fun `it should raise a 400 if timerel is between and endTime is not parseable`() {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=endTime")

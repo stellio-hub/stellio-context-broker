@@ -21,8 +21,8 @@ class ObservationService(
             observedAt = ngsiLdObservation.observedAt,
             value = ngsiLdObservation.value,
             unitCode = ngsiLdObservation.unitCode,
-            latitude = ngsiLdObservation.location.value.coordinates[0],
-            longitude = ngsiLdObservation.location.value.coordinates[1]
+            latitude = ngsiLdObservation.location?.value?.coordinates?.get(0),
+            longitude = ngsiLdObservation.location?.value?.coordinates?.get(1)
         )
 
         return databaseClient.insert()

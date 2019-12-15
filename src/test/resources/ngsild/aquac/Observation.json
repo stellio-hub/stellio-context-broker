@@ -1,0 +1,25 @@
+{
+   "id":"urn:ngsi-ld:Observation:00YFZF",
+   "type":"Observation",
+   "observedAt":"2018-11-26T21:32:52+02:00",
+   "value":50,
+   "unitCode":"%",
+   "observedBy":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:Sensor:013YFZ"
+   },
+   "location":{
+      "type":"GeoProperty",
+      "value":{
+         "type":"Point",
+         "coordinates":[
+            -8.5,
+            41.2
+         ]
+      }
+   },
+   "@context": [
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

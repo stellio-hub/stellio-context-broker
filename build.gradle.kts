@@ -47,11 +47,12 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.0.1.RELEASE")
     implementation("org.springframework.cloud:spring-cloud-stream")
     implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.kafka:spring-kafka")
-    implementation("com.google.code.gson:gson:2.8.5")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
+    implementation("com.github.jsonld-java:jsonld-java:0.13.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

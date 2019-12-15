@@ -1,0 +1,20 @@
+{"@context": {
+    "fishNumber": "https://ontology.eglobalmark.com/aquac#fishNumber",
+    "fishName": "https://ontology.eglobalmark.com/aquac#fishName",
+    "foodType": "https://ontology.eglobalmark.com/aquac#foodType",
+    "BreedingService": "https://ontology.eglobalmark.com/aquac#BreedingService",
+    "fishAge": "https://ontology.eglobalmark.com/aquac#fishAge",
+    "Specie": "https://ontology.eglobalmark.com/aquac#Specie",
+    "FeedingService": "https://ontology.eglobalmark.com/aquac#FeedingService",
+    "foodQuantity": "https://ontology.eglobalmark.com/aquac#foodQuantity",
+    "target": "https://ontology.eglobalmark.com/aquac#target",
+    "FishContainment": "https://ontology.eglobalmark.com/aquac#FishContainment",
+    "MarkerBuoy": "https://ontology.eglobalmark.com/aquac#MarkerBuoy",
+    "MortalityRemovalService": "https://ontology.eglobalmark.com/aquac#MortalityRemovalService",
+    "foodName": "https://ontology.eglobalmark.com/aquac#foodName",
+    "filledIn": "https://ontology.eglobalmark.com/aquac#filledIn",
+    "removedFrom": "https://ontology.eglobalmark.com/aquac#removedFrom",
+    "DeadFishes": "https://ontology.eglobalmark.com/aquac#DeadFishes",
+    "Feeder": "https://ontology.eglobalmark.com/aquac#Feeder",
+    "fishSize": "https://ontology.eglobalmark.com/aquac#fishSize"
+}}

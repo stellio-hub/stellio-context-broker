@@ -1,25 +1,27 @@
 package com.egm.datahub.context.registry.service
 
-import com.egm.datahub.context.registry.model.GeoProperty
-import com.egm.datahub.context.registry.model.Observation
-import com.egm.datahub.context.registry.model.ObservedBy
-import com.egm.datahub.context.registry.model.Value
+import com.egm.datahub.context.registry.model.*
+import com.egm.datahub.context.registry.repository.EntityRepository
 import com.egm.datahub.context.registry.repository.Neo4jRepository
+import com.egm.datahub.context.registry.repository.PropertyRepository
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.Test
-import org.neo4j.ogm.response.model.NodeModel
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import java.time.OffsetDateTime
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ Neo4jService::class ])
 @ActiveProfiles("test")
 class Neo4jServiceTests {
+
+    @Value("\${application.jsonld.aquac_context}")
+    val aquacContext: String? = null
 
     @Autowired
     private lateinit var neo4jService: Neo4jService
@@ -27,38 +29,63 @@ class Neo4jServiceTests {
     @MockkBean
     private lateinit var neo4jRepository: Neo4jRepository
 
+    @MockkBean
+    private lateinit var entityRepository: EntityRepository
+
+    @MockkBean
+    private lateinit var propertyRepository: PropertyRepository
+
+    @MockkBean
+    private lateinit var repositoryEventsListener: RepositoryEventsListener
+
+    // TODO https://redmine.eglobalmark.com/issues/851
+//    @Test
+    fun `it should notify of a new entity`() {
+
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+
+        neo4jService.createEntity(emptyMap(), emptyList())
+
+        verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+            entityEvent.entityType == "BreedingService" &&
+                    entityEvent.entityUrn == "breedingServiceId" &&
+                    entityEvent.operation == EventType.POST
+        }) }
+        confirmVerified(repositoryEventsListener)
+    }
+
     @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 
-        every { neo4jRepository.getNodeByURI(any()) } returns emptyMap()
+        every { entityRepository.findById(any()) } returns Optional.empty()
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { neo4jRepository.getNodeByURI("urn:ngsi-ld:Sensor:10e2073a01080065") }
+        verify { entityRepository.findById("urn:ngsi-ld:Sensor:013YFZ") }
 
-        confirmVerified(neo4jRepository)
+        confirmVerified(entityRepository)
     }
 
     @Test
-    fun `it should create a new measure`() {
+    fun `it should do nothing if temporal property is not found`() {
         val observation = gimmeAnObservation()
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
 
-        val mockkedNodeModel = mockkClass(NodeModel::class)
+        val mockkedSensor = mockkClass(Entity::class)
+        val mockkedObservation = mockkClass(Property::class)
+        val mockkedObservationId = "urn:ngsi-ld:Property:${UUID.randomUUID()}"
 
-        every { neo4jRepository.getNodeByURI(any()) } returns mapOf("n" to mockkedNodeModel)
-        every { neo4jRepository.getEntitiesByLabelAndQuery(any(), any()) } returns mutableListOf()
-        every { mockkedNodeModel.property("uri") } returns "urn:ngsi-ld:Sensor:10e2073a01080065"
-        every { mockkedNodeModel.labels } returns arrayOf("Sensor")
-        every { neo4jRepository.createEntity(any(), any(), any()) } returns "urn:ngsi-ld:Measure:12345678909876"
+        every { mockkedSensor.id } returns sensorId
+        every { mockkedObservation.id } returns mockkedObservationId
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { neo4jRepository.getObservedProperty(any(), any()) } returns null
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { neo4jRepository.getNodeByURI("urn:ngsi-ld:Sensor:10e2073a01080065") }
-        verify { neo4jRepository.getEntitiesByLabelAndQuery(
-            listOf("observedBy==urn:ngsi-ld:Sensor:10e2073a01080065", "unitCode==CEL"), "Measure")
-        }
-        verify { neo4jRepository.createEntity("urn:ngsi-ld:Measure:12345678909876", match { it.size == 1 }, match { it.size == 1 }) }
+        verify { entityRepository.findById(sensorId) }
+        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { propertyRepository wasNot Called }
 
         confirmVerified()
     }
@@ -66,31 +93,104 @@ class Neo4jServiceTests {
     @Test
     fun `it should update an existing measure`() {
         val observation = gimmeAnObservation()
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
 
-        val mockkedSensorNode = mockkClass(NodeModel::class)
-        val mockkedMeasureNode = mockkClass(NodeModel::class)
+        val mockkedSensor = mockkClass(Entity::class)
+        val mockkedObservation = mockkClass(Property::class)
 
-        every { neo4jRepository.getNodeByURI(any()) } returns mapOf("n" to mockkedSensorNode)
-        every { neo4jRepository.getEntitiesByLabelAndQuery(any(), any()) } returns mutableListOf(mapOf("n" to mockkedMeasureNode))
-        every { mockkedMeasureNode.property("uri") } returns "urn:ngsi-ld:Measure:12345678909876"
-
-        every { neo4jRepository.updateEntity(any(), any()) } returns emptyMap()
+        every { mockkedSensor.id } returns sensorId
+        every { mockkedObservation setProperty "value" value any<Double>() } answers { value }
+        every { mockkedObservation setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
+        every { propertyRepository.save(any<Property>()) } returns mockkedObservation
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { neo4jRepository.getNodeByURI("urn:ngsi-ld:Sensor:10e2073a01080065") }
-        verify { neo4jRepository.getEntitiesByLabelAndQuery(
-            listOf("observedBy==urn:ngsi-ld:Sensor:10e2073a01080065", "unitCode==CEL"), "Measure")
-        }
-        verify { neo4jRepository.updateEntity(any(), "urn:ngsi-ld:Measure:12345678909876") }
+        verify { entityRepository.findById(sensorId) }
+        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { propertyRepository.save(any<Property>()) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace an existing relationship`() {
+
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val relationshipId = UUID.randomUUID().toString()
+        val payload = """
+            {
+              "filledIn": {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:FishContainment:1234"
+              }
+            }
+        """.trimIndent()
+
+        val mockkedSensor = mockkClass(Entity::class)
+        val mockkedRelationshipEntity = mockkClass(Entity::class)
+
+        every { mockkedSensor.relationships } returns mutableListOf()
+        every { mockkedRelationshipEntity.id } returns relationshipId
+
+        every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { entityRepository.save(any<Entity>()) } returns mockkedRelationshipEntity
+        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+
+        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+
+        verify { neo4jRepository.deleteRelationshipFromEntity(eq(sensorId), "FILLED_IN") }
+        verify { entityRepository.findById(eq(sensorId)) }
+        verify(exactly = 2) { entityRepository.save(any<Entity>()) }
+        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "FILLED_IN", "urn:ngsi-ld:FishContainment:1234") }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace an existing property`() {
+
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val payload = """
+            {
+              "fishAge": {
+                "type": "Property",
+                "value": 5,
+                "unitCode": "months"
+              }
+            }
+        """.trimIndent()
+
+        val mockkedSensor = mockkClass(Entity::class)
+        val mockkedPropertyEntity = mockkClass(Property::class)
+
+        every { mockkedSensor.properties } returns mutableListOf()
+
+        every { neo4jRepository.deletePropertyFromEntity(any(), any()) } returns 1
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
+        every { entityRepository.save(any<Entity>()) } returns mockkedSensor
+
+        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+
+        verify { neo4jRepository.deletePropertyFromEntity(eq(sensorId), "https://ontology.eglobalmark.com/aquac#fishAge") }
+        verify { entityRepository.findById(eq(sensorId)) }
+        verify { propertyRepository.save(match<Property> {
+            it.name == "https://ontology.eglobalmark.com/aquac#fishAge" &&
+                it.value == 5 &&
+                it.unitCode == "months"
+        }) }
+        verify { entityRepository.save(any<Entity>()) }
 
         confirmVerified()
     }
 
     private fun gimmeAnObservation(): Observation {
-        return Observation(id = "urn:ngsi-ld:Measure:12345678909876", type = "Measure",
-            observedBy = ObservedBy(type = "Relationship", target = "urn:ngsi-ld:Sensor:10e2073a01080065"),
-            value = 20.4, unitCode = "CEL", observedAt = OffsetDateTime.now(),
-            location = GeoProperty(type = "GeoProperty", value = Value(type = "Point", coordinates = listOf(43.43, 54.54))))
+        val observation = ClassPathResource("/ngsild/aquac/Observation.json")
+        val mapper = jacksonObjectMapper()
+        mapper.findAndRegisterModules()
+        return mapper.readValue(observation.inputStream, Observation::class.java)
     }
 }

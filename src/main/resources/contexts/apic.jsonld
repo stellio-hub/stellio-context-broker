@@ -1,0 +1,12 @@
+{
+  "@context": {
+    "Apiary": "https://ontology.eglobalmark.com/apic#Apiary",
+    "BeeHive": "https://ontology.eglobalmark.com/apic#BeeHive",
+    "Beekeeper": "https://ontology.eglobalmark.com/apic#Beekeeper",
+    "Door": "https://ontology.eglobalmark.com/apic#Door",
+    "SmartDoor": "https://ontology.eglobalmark.com/apic#SmartDoor",
+    "doorNumber": "https://ontology.eglobalmark.com/apic#doorNumber",
+    "outgoingRate": "https://ontology.eglobalmark.com/apic#outgoingRate",
+    "incomingRate": "https://ontology.eglobalmark.com/apic#incomingRate"
+  }
+}

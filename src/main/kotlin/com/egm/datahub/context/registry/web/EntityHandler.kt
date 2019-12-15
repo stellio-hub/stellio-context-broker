@@ -1,14 +1,12 @@
 package com.egm.datahub.context.registry.web
 
-import com.egm.datahub.context.registry.model.EntityEvent
-import com.egm.datahub.context.registry.model.EventType
-import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.service.Neo4jService
-import com.egm.datahub.context.registry.service.NgsiLdParserService
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getTypeFromURI
+import com.github.jsonldjava.core.JsonLdOptions
+import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
-import org.neo4j.ogm.response.model.NodeModel
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
@@ -17,83 +15,80 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
-import reactor.core.publisher.toMono
+import reactor.kotlin.core.publisher.toMono
+import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
 
 @Component
 class EntityHandler(
-    private val ngsiLdParserService: NgsiLdParserService,
-    private val neo4JRepository: Neo4jRepository,
-    private val neo4jService: Neo4jService,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val neo4jService: Neo4jService
 ) {
 
-    private val logger = LoggerFactory.getLogger(EntityHandler::class.java)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun generatesProblemDetails(list: List<String>): String {
         return objectMapper().writeValueAsString(mapOf("ProblemDetails" to list))
     }
 
+    /**
+     * Implements 6.4.3.1 - Create Entity
+     */
     fun create(req: ServerRequest): Mono<ServerResponse> {
-        val contextLink = extractLinkContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-                val urn = ngsiLdParserService.run { extractEntityUrn(it) }
-                if (neo4JRepository.checkExistingUrn(urn)) {
-                    throw AlreadyExistsException("Already Exists")
-                }
-                val type = ngsiLdParserService.extractEntityType(it)
-                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
-                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
-                }
-                ngsiLdParserService.parseEntity(it)
+                NgsiLdParsingUtils.parseEntity(it)
             }
             .map {
-                neo4JRepository.createEntity(it.entityUrn, it.entityStatements, it.relationshipStatements)
+                // TODO validation (https://redmine.eglobalmark.com/issues/853)
+                val urn = it.first.getOrElse("@id") { "" } as String
+                if (neo4jService.exists(urn)) {
+                    throw AlreadyExistsException("Already Exists")
+                }
+
                 it
-            }.map {
-                val entityEvent = EntityEvent(it.entityType, it.entityUrn, EventType.POST, it.ngsiLdPayload)
-                applicationEventPublisher.publishEvent(entityEvent)
-                it.entityUrn
+            }
+            .map {
+                neo4jService.createEntity(it.first, it.second)
             }
             .flatMap {
-                created(URI("/ngsi-ld/v1/entities/$it")).build()
+                created(URI("/ngsi-ld/v1/entities/${it.id}")).build()
             }.onErrorResume {
                 when (it) {
                     is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
                     is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.localizedMessage))
+                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
+                    is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.undeclaredThrowable.message.toString()))))
                     else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                 }
             }
     }
 
+    /**
+     * Implements 6.4.3.2 - Query Entities
+     */
     fun getEntities(req: ServerRequest): Mono<ServerResponse> {
         val type = req.queryParam("type").orElse("")
-        var q = req.queryParams()["q"].orEmpty()
+        val q = req.queryParams()["q"].orEmpty()
 
-        val contextLink = extractLinkContextFromLinkHeader(req)
+        val contextLink = extractContextFromLinkHeader(req)
 
+        // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-            return badRequest().body(BodyInserters.fromValue("query or type have to be specified: generic query on entities NOT yet supported"))
-        }
-        if (!q.isNullOrEmpty()) {
-            q = ngsiLdParserService.prependNsToQuery(q, contextLink)
+            return badRequest().body(BodyInserters.fromValue("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
         }
 
-        if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
-            return badRequest().body(BodyInserters.fromValue("th NS provided in the Link Header is not correct or you're trying to access an undefined entity type"))
+        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
+            return badRequest().body(BodyInserters.fromValue("Unable to resolve 'type' parameter from the provided Link header"))
         }
 
         return "".toMono()
             .map {
-                val prefixedType = ngsiLdParserService.addPrefixToType(contextLink, type)
-                neo4JRepository.getEntities(q, prefixedType)
+                neo4jService.searchEntities(type, q, contextLink)
             }
             .map {
                 it.map {
-                    neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
+                    JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
                 }
             }
             .flatMap {
@@ -104,15 +99,18 @@ class EntityHandler(
             }
     }
 
+    /**
+     * Implements 6.5.3.1 - Retrieve Entity
+     */
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
         return uri.toMono()
             .map {
-                if (!neo4JRepository.checkExistingUrn(uri)) throw ResourceNotFoundException("Entity Not Found")
-                neo4JRepository.getNodeByURI(it)
+                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity Not Found")
+                neo4jService.getFullEntityById(it)
             }
             .map {
-                neo4jService.queryResultToNgsiLd(it.get("n") as NodeModel)
+                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(it))
@@ -125,49 +123,51 @@ class EntityHandler(
             }
     }
 
-    fun updateEntity(req: ServerRequest): Mono<ServerResponse> {
+    /**
+     * Implements 6.6.3.2 - Update Entity Attributes
+     *
+     * Current implementation is basic and only update values of properties.
+     */
+    fun updateEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
         val type = getTypeFromURI(uri)
-        val contextLink = extractLinkContextFromLinkHeader(req)
+        val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
-                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
+                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
+                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
                 }
-                ngsiLdParserService.ngsiLdToUpdateEntityQuery(it, uri)
-            }
-            .map {
-                neo4JRepository.updateEntity(it)
+                neo4jService.updateEntityAttributes(uri, it, contextLink)
             }
             .flatMap {
+                logger.debug("Updated ${it.size} attributes on entity $uri")
                 status(HttpStatus.NO_CONTENT).build()
             }
             .onErrorResume {
                 when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromObject(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromObject(it.localizedMessage))
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
                 }
             }
     }
 
-    fun updateAttribute(req: ServerRequest): Mono<ServerResponse> {
+    /**
+     * Implements 6.7.3.1 - Partial Attribute Update
+     */
+    fun partialAttributeUpdate(req: ServerRequest): Mono<ServerResponse> {
         val attr = req.pathVariable("attrId")
         val uri = req.pathVariable("entityId")
         val type = getTypeFromURI(uri)
 
-        val contextLink = extractLinkContextFromLinkHeader(req)
+        val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-
-                if (!ngsiLdParserService.checkResourceNSmatch(contextLink, type)) {
-                    throw BadRequestDataException("the NS provided in the Link Header is not correct or you're trying to access an undefined entity type")
+                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
+                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
                 }
-                ngsiLdParserService.ngsiLdToUpdateEntityAttributeQuery(it, uri, attr)
-            }
-            .map {
-                neo4JRepository.updateEntity(it)
+                neo4jService.updateEntityAttribute(uri, attr, it, contextLink)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).build()
@@ -180,12 +180,15 @@ class EntityHandler(
             }
     }
 
+    /**
+     * Implements 6.5.3.2 - Delete Entity
+     */
     fun delete(req: ServerRequest): Mono<ServerResponse> {
         val entityId = req.pathVariable("entityId")
 
         return entityId.toMono()
             .map {
-                neo4JRepository.deleteEntity(entityId)
+                neo4jService.deleteEntity(entityId)
             }
             .flatMap {
                 if (it.first >= 1)
@@ -194,18 +197,18 @@ class EntityHandler(
                     notFound().build()
             }
             .onErrorResume {
-                status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject(generatesProblemDetails(listOf(it.localizedMessage))))
+                status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
             }
     }
 
-    fun extractLinkContextFromLinkHeader(req: ServerRequest): String {
+    /**
+     * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
+     * JSON-LD @context.
+     */
+    fun extractContextFromLinkHeader(req: ServerRequest): String {
         return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
             req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
         else
-            "https://uri.etsi.org/ngsi-ld/v1/ngsild.jsonld"
-    }
-
-    fun getTypeFromURI(uri: String): String {
-        return uri.split(":")[2]
+            NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
     }
 }

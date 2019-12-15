@@ -18,7 +18,8 @@ class EntitiesListener(
     private var mapper = jacksonObjectMapper()
 
     init {
-        // TODO check if this registration is still required
+        // needed because it register the module necessary to parse dates
+        // TODO make it an injectable bean to avoid local definitions everywhere
         mapper.findAndRegisterModules()
     }
 

@@ -1,0 +1,13 @@
+{
+  "id":"urn:ngsi-ld:Beekeeper:Pascal",
+  "type":"Beekeeper",
+  "name":{
+    "type":"Property",
+    "value":"Scalpa"
+  },
+  "@context":[
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/1b6bbf9be3a7f4478727aa8d19ff0793f558d5ab/apic.jsonld",
+    "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/82fba02005f3fc572d60744e38f6591bbaa09d6d/egm.jsonld"
+  ]
+}

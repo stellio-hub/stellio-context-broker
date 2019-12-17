@@ -51,27 +51,27 @@
          "object":"urn:ngsi-ld:Sensor:0021"
       }
    },
-   "outgoing":{
+   "outgoing": {
+      "type": "Property",
+      "value": 200,
+      "unitCode": "count",
+      "timeInterval": 1,
+      "timeIntervalUnit": "minute",
+      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:002XIO52"
+      }
+   },
+   "batteryLevel":{
       "type":"Property",
-      "value":200,
-      "unitCode":"count",
-      "timeInterval":1,
-      "timeIntervalUnit":"minute",
-      "observedAt":"2019-10-26T21:32:52+02:00",
+      "value":50,
+      "unitCode":"%",
+       "observedAt":"2019-10-26T21:32:52+02:00",
       "observedBy":{
          "type":"Relationship",
-         "object":"urn:ngsi-ld:Sensor:002XIO52"
-      },
-
-      "batteryLevel":{
-         "type":"Property",
-         "value":50,
-         "unitCode":"%",
-          "observedAt":"2019-10-26T21:32:52+02:00",
-         "observedBy":{
-            "type":"Relationship",
-            "object":"urn:ngsi-ld:Sensor:016352"
-         }
+         "object":"urn:ngsi-ld:Sensor:016352"
+      }
    },
    "@context":[
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",

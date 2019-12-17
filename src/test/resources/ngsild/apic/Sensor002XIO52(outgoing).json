@@ -1,9 +1,21 @@
 {
-   "id":"urn:ngsi-ld:SmartDoor:00YHG",
-   "type":"SmartDoor",
-   "connectsTo":{
+   "id":"urn:ngsi-ld:Sensor:002XIO52",
+   "type":"Sensor",
+   "isContainedIn":{
       "type":"Relationship",
-      "object":"urn:ngsi-ld:BeeHive:TESTC"
+      "object":"urn:ngsi-ld:SmartDoor:00YHG"
+   },
+   "brandName":{
+      "type":"Property",
+      "value":"sony"
+   },
+   "calibrationDate":{
+      "type":"Property",
+      "value":"2018-10-26T21:32:52+02:00"
+   },
+   "deviceParameter":{
+      "type":"Property",
+      "value":"outgoing"
    },
    "@context":[
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",

@@ -12,6 +12,8 @@ object NgsiLdParsingUtils {
 
     const val NGSILD_PROPERTY_TYPE = "https://uri.etsi.org/ngsi-ld/Property"
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
+    const val NGSILD_GEOPROPERTY_TYPE = "https://uri.etsi.org/ngsi-ld/GeoProperty"
+    const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
     const val NGSILD_RELATIONSHIP_TYPE = "https://uri.etsi.org/ngsi-ld/Relationship"
     const val NGSILD_RELATIONSHIP_HAS_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
 
@@ -22,6 +24,8 @@ object NgsiLdParsingUtils {
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/observedAt"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
+    const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
+    const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
 
@@ -76,6 +80,8 @@ object NgsiLdParsingUtils {
      *      https://uri.etsi.org/ngsi-ld/Relationship
      *    ]
      *  }]
+     *
+     *  @return the raw value of the #propertyKey (typically a map or a string)
      */
     fun getRawPropertyValueFromList(value: Any, propertyKey: String): Any =
         (expandValueAsMap(value)[propertyKey]!!)[0]

@@ -43,6 +43,18 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().relationshipsCreated
     }
 
+    /**
+     * Add a spatial property to an entity.
+     */
+    fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
+        val query = """
+            MERGE (subject:Entity { id: "$subjectId" })
+            ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
+        """
+
+        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
+    }
+
     @Transactional
     fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
         val query = """

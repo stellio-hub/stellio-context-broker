@@ -5,6 +5,9 @@ import com.egm.datahub.context.registry.repository.EntityRepository
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.repository.PropertyRepository
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
@@ -85,6 +88,18 @@ class Neo4jService(
             createOutgoingRelationship(propertyEntity, propertyValues)
         }
 
+        expandedPayload.filterKeys {
+            !listOf("@id", "@type", "@context").contains(it)
+        }.filter { entry ->
+            val valuesMap = expandValueAsMap(entry.value)
+            isOfKind(valuesMap, NGSILD_GEOPROPERTY_TYPE)
+        }.forEach { entry ->
+            val propertyKey = entry.key
+            val propertyValues = expandValueAsMap(entry.value)
+
+            createLocationProperty(entity, propertyKey, propertyValues)
+        }
+
         val entityType = extractShortTypeFromPayload(expandedPayload)
         val entityEvent = EntityEvent(entityType, entity.id, EventType.POST, JsonUtils.toString(expandedPayload))
         applicationEventPublisher.publishEvent(entityEvent)
@@ -119,6 +134,25 @@ class Neo4jService(
         neo4jRepository.createRelationshipFromEntity(relationshipEntity.id, relationshipType.toRelationshipTypeName(), targetEntityId)
 
         return relationshipEntity
+    }
+
+    internal fun createLocationProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Int {
+
+        logger.debug("Geo property $propertyKey has values $propertyValues")
+        val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
+        val geoPropertyType = geoPropertyValue["@type"]!![0] as String
+        // TODO : point is not part of the NGSI-LD core context
+        return if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/point") {
+            val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
+            val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
+            val latitude = (geoPropertyCoordinates[1] as Map<String, Double>)["@value"]
+            logger.debug("Point has coordinates $latitude, $longitude")
+
+            neo4jRepository.addLocationPropertyToEntity(entity.id, Pair(longitude!!, latitude!!))
+        } else {
+            logger.warn("Unsupported geometry type : $geoPropertyType")
+            0
+        }
     }
 
     fun exists(entityId: String): Boolean = entityRepository.existsById(entityId)

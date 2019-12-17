@@ -1,11 +1,14 @@
 package com.egm.datahub.context.registry.model
 
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.fasterxml.jackson.annotation.*
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
+import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import java.time.OffsetDateTime
 
 @NodeEntity
@@ -24,6 +27,9 @@ class Entity(
 
     @JsonIgnore
     var modifiedAt: OffsetDateTime? = null,
+
+    @JsonIgnore
+    var location: GeographicPoint2d? = null,
 
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
@@ -50,6 +56,16 @@ class Entity(
                 "@type" to "https://uri.etsi.org/ngsi-ld/DateTime",
                 "@value" to modifiedAt!!
             )
+
+        location?.run {
+            resultEntity[NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY] = mutableMapOf(
+                "@type" to NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE,
+                NGSILD_GEOPROPERTY_VALUE to mapOf(
+                    "@type" to "Point",
+                    NGSILD_COORDINATES_PROPERTY to listOf(this.longitude, this.latitude)
+                )
+            )
+        }
 
         return resultEntity
     }

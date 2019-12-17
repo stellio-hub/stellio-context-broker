@@ -4,6 +4,7 @@ import com.egm.datahub.context.registry.model.*
 import com.egm.datahub.context.registry.repository.EntityRepository
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.repository.PropertyRepository
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -183,6 +184,34 @@ class Neo4jServiceTests {
                 it.unitCode == "months"
         }) }
         verify { entityRepository.save(any<Entity>()) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should correctly parse a location property`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val geoPropertyMap = mapOf(
+            NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    "@type" to listOf("https://uri.etsi.org/ngsi-ld/default-context/point"),
+                    NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
+                        mapOf("@value" to 23.45),
+                        mapOf("@value" to 67.87)
+                    )
+
+                )
+            )
+        )
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
+
+        neo4jService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
+
+        verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
 
         confirmVerified()
     }

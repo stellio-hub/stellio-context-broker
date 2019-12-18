@@ -1,54 +1,54 @@
 {
-   "id":"urn:ngsi-ld:BeeHive:TESTC",
-   "type":"BeeHive",
-   "belongs":{
-      "type":"Relationship",
-      "object":"urn:ngsi-ld:Apiary:XYZ01"
+   "id": "urn:ngsi-ld:BeeHive:TESTC",
+   "type": "BeeHive",
+   "belongs": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Apiary:XYZ01"
    },
-   "location":{
-      "type":"GeoProperty",
-      "value":{
-         "type":"Point",
-         "coordinates":[
+   "location": {
+      "type": "GeoProperty",
+      "value": {
+         "type": "Point",
+         "coordinates": [
             24.30623,
             60.07966
          ]
       }
    },
-   "managedBy":{
-      "type":"Relationship",
-      "object":"urn:ngsi-ld:Beekeeper:1230"
+   "managedBy": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Beekeeper:1230"
    },
-   "temperature":{
-      "type":"Property",
-      "value":22.2,
-      "unitCode":"CEL",
-      "observedAt":"2019-10-26T21:32:52+02:00",
-      "observedBy":{
-         "type":"Relationship",
-         "object":"urn:ngsi-ld:Sensor:01XYZ"
+   "temperature": {
+      "type": "Property",
+      "value": 22.2,
+      "unitCode": "CEL",
+      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:01XYZ"
       }
    },
-   "humidity":{
-      "type":"Property",
-      "value":60,
-      "unitCode":"%",
-      "observedAt":"2019-10-26T21:32:52+02:00",
-      "observedBy":{
-         "type":"Relationship",
-         "object":"urn:ngsi-ld:Sensor:1541jdh"
+   "humidity": {
+      "type": "Property",
+      "value": 60,
+      "unitCode": "%",
+      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:1541jdh"
       }
    },
-   "incoming":{
-      "type":"Property",
-      "value":100,
-      "unitCode":"count",
-      "timeInterval":1,
-      "timeIntervalUnit":"minute",
-      "observedAt":"2019-10-26T21:32:52+02:00",
-      "observedBy":{
-         "type":"Relationship",
-         "object":"urn:ngsi-ld:Sensor:0021"
+   "incoming": {
+      "type": "Property",
+      "value": 100,
+      "unitCode": "count",
+      "timeInterval": 1,
+      "timeIntervalUnit": "minute",
+      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Sensor:0021"
       }
    },
    "outgoing": {
@@ -61,21 +61,21 @@
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:002XIO52"
-      }
-   },
-   "batteryLevel":{
-      "type":"Property",
-      "value":50,
-      "unitCode":"%",
-       "observedAt":"2019-10-26T21:32:52+02:00",
-      "observedBy":{
-         "type":"Relationship",
-         "object":"urn:ngsi-ld:Sensor:016352"
-      }
-   },
-   "@context":[
-      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ba8f8e027e91d65176a316bede3a9781e918b86a/apic.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld"
-   ]
+      },
+      "batteryLevel": {
+         "type": "Property",
+         "value": 50,
+         "unitCode": "%",
+         "observedAt": "2019-10-26T21:32:52+02:00",
+         "observedBy": {
+            "type": "Relationship",
+            "object": "urn:ngsi-ld:Sensor:016352"
+         }
+      },
+      "@context": [
+         "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+         "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ba8f8e027e91d65176a316bede3a9781e918b86a/apic.jsonld",
+         "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld"
+      ]
+   }
 }

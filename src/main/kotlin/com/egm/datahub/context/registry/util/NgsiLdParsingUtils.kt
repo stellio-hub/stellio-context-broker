@@ -86,10 +86,32 @@ object NgsiLdParsingUtils {
     fun getRawPropertyValueFromList(value: Any, propertyKey: String): Any =
         (expandValueAsMap(value)[propertyKey]!!)[0]
 
+    /**
+     * Extract the actual value (@value) of a given property from the properties map of an expanded property.
+     *
+     * @param value a map similar to:
+     * {
+     *   https://uri.etsi.org/ngsi-ld/hasValue=[{
+     *     @type=[https://uri.etsi.org/ngsi-ld/Property],
+     *     @value=250
+     *   }],
+     *   https://uri.etsi.org/ngsi-ld/unitCode=[{
+     *     @value=kg
+     *   }],
+     *   https://uri.etsi.org/ngsi-ld/observedAt=[{
+     *     @value=2019-12-18T10:45:44.248755+01:00
+     *   }]
+     * }
+     *
+     * @return the actual value, e.g. "kg" if provided #propertyKey is https://uri.etsi.org/ngsi-ld/unitCode
+     */
     fun getPropertyValueFromMap(value: Map<String, List<Any>>, propertyKey: String): Any? =
-        if (value[propertyKey] != null)
-            ((value[propertyKey] as List<Map<String, Any>>)[0])["@value"]
-        else
+        if (value[propertyKey] != null) {
+            val intermediateList = value[propertyKey] as List<Map<String, Any>>
+            val firstListEntry = intermediateList[0]
+            val finalValue = firstListEntry["@value"]
+            finalValue
+        } else
             null
 
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =

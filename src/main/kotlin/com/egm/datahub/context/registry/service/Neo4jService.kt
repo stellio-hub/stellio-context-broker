@@ -107,15 +107,18 @@ class Neo4jService(
         return entity
     }
 
-    private fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
+    internal fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)!!
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
         val unitCode = String::class.safeCast(getPropertyValueFromMap(propertyValues, NGSILD_UNIT_CODE_PROPERTY))
-        val observedAt = OffsetDateTime::class.safeCast(getPropertyValueFromMap(propertyValues, NGSILD_OBSERVED_AT_PROPERTY))
+        val observedAt = String::class.safeCast(getPropertyValueFromMap(propertyValues, NGSILD_OBSERVED_AT_PROPERTY))
+        val parsedObservedAt = observedAt?.run {
+            OffsetDateTime.parse(this)
+        }
         val property = Property(
             name = propertyKey, value = propertyValue,
-            unitCode = unitCode, observedAt = observedAt
+            unitCode = unitCode, observedAt = parsedObservedAt
         )
         val propertyEntity = propertyRepository.save(property)
         entity.properties.add(propertyEntity)

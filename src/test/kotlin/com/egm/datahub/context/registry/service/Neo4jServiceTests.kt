@@ -5,6 +5,10 @@ import com.egm.datahub.context.registry.repository.EntityRepository
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.repository.PropertyRepository
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -193,7 +197,7 @@ class Neo4jServiceTests {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
         val geoPropertyMap = mapOf(
-            NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE to listOf(
+            NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
                     "@type" to listOf("https://uri.etsi.org/ngsi-ld/default-context/point"),
                     NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
@@ -212,6 +216,46 @@ class Neo4jServiceTests {
         neo4jService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
 
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a temporal property with all provided attributes`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val temperatureMap = mapOf(
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    "@type" to listOf(NGSILD_PROPERTY_TYPE),
+                    "@value" to 250
+                )
+            ),
+            NGSILD_UNIT_CODE_PROPERTY to listOf(
+                mapOf("@value" to "kg")
+            ),
+            NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                mapOf("@value" to "2019-12-18T10:45:44.248755+01:00")
+            )
+        )
+
+        val mockkedEntity = mockkClass(Entity::class)
+        val mockkedProperty = mockkClass(Property::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
+        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
+
+        neo4jService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
+
+        verify { propertyRepository.save(match<Property> {
+            it.name == "temperature" &&
+                it.value == 250 &&
+                it.unitCode == "kg" &&
+                it.observedAt.toString() == "2019-12-18T10:45:44.248755+01:00"
+        }) }
+        verify { entityRepository.save(any<Entity>()) }
 
         confirmVerified()
     }

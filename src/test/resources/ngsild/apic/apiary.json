@@ -5,31 +5,13 @@
       "type":"Property",
       "value":"ApiarySophia"
    },
-   "location":{
-      "type":"GeoProperty",
-      "value":{
-         "type":"Polygon",
-         "coordinates":[
-            [
-               100.0,
-               0.0
-            ],
-            [
-               101.0,
-               0.0
-            ],
-            [
-               101.0,
-               1.0
-            ],
-            [
-               100.0,
-               1.0
-            ],
-            [
-               100.0,
-               0.0
-            ]
+   "location": {
+      "type": "GeoProperty",
+      "value": {
+         "type": "Point",
+         "coordinates": [
+            24.30623,
+            60.07966
          ]
       }
    },

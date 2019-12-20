@@ -32,7 +32,7 @@
    "humidity": {
       "type": "Property",
       "value": 60,
-      "unitCode": "%",
+      "unitCode": "P1",
       "observedAt": "2019-10-26T21:32:52+02:00",
       "observedBy": {
          "type": "Relationship",
@@ -42,9 +42,9 @@
    "incoming": {
       "type": "Property",
       "value": 100,
-      "unitCode": "count",
+      "unitCode": "E54",
       "timeInterval": 1,
-      "timeIntervalUnit": "minute",
+      "timeIntervalUnit": "MIN",
       "observedAt": "2019-10-26T21:32:52+02:00",
       "observedBy": {
          "type": "Relationship",
@@ -54,28 +54,28 @@
    "outgoing": {
       "type": "Property",
       "value": 200,
-      "unitCode": "count",
+      "unitCode": "E54",
       "timeInterval": 1,
-      "timeIntervalUnit": "minute",
+      "timeIntervalUnit": "MIN",
       "observedAt": "2019-10-26T21:32:52+02:00",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:002XIO52"
-      },
-      "batteryLevel": {
-         "type": "Property",
-         "value": 50,
-         "unitCode": "%",
-         "observedAt": "2019-10-26T21:32:52+02:00",
-         "observedBy": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Sensor:016352"
-         }
-      },
+      }
+	  },
+  "batteryLevel": {
+	 "type": "Property",
+	 "value": 50,
+	 "unitCode": "VLT",
+	 "observedAt": "2019-10-26T21:32:52+02:00",
+	 "observedBy": {
+		"type": "Relationship",
+		"object": "urn:ngsi-ld:Sensor:016352"
+	 }
+  },
       "@context": [
          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
          "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ba8f8e027e91d65176a316bede3a9781e918b86a/apic.jsonld",
          "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld"
       ]
-   }
 }

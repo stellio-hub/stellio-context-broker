@@ -5,17 +5,9 @@
       "type":"Relationship",
       "object":"urn:ngsi-ld:SmartDoor:00YHG"
    },
-   "brandName":{
-      "type":"Property",
-      "value":"sony"
-   },
-   "calibrationDate":{
-      "type":"Property",
-      "value":"2018-10-26T21:32:52+02:00"
-   },
    "deviceParameter":{
       "type":"Property",
-      "value":"battery Level"
+      "value":"battery level"
    },
    "@context":[
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",

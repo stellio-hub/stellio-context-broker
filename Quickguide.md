@@ -111,3 +111,9 @@ http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Vehi
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Vehicle:A1234/attrs brandName=Toyota name=NewName Link:"<https://schema.lab.fiware.org/ld/context>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
+
+* Add a relationship to an entity
+
+```
+http POST http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:BreedingService:0214/attrs Content-Type:application/json Link:"<https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < src/test/resources/ngsild/aquac/fragments/BreedingService_newRelationshipWithFeeder.json
+```

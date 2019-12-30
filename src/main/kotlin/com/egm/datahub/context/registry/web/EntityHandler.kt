@@ -124,6 +124,44 @@ class EntityHandler(
     }
 
     /**
+     * Implements 6.6.3.1 - Append Entity Attributes
+     *
+     */
+    fun appendEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
+        val entityId = req.pathVariable("entityId")
+        val disallowOverwrite = req.queryParam("options").map { it == "noOverwrite" }.orElse(false)
+        val type = getTypeFromURI(entityId)
+        val contextLink = extractContextFromLinkHeader(req)
+
+        return req.bodyToMono<String>()
+            .map {
+                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
+                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
+                }
+
+                if (!neo4jService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+
+                NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
+            }
+            .map {
+                neo4jService.appendEntityAttributes(entityId, it, disallowOverwrite)
+            }
+            .flatMap {
+                logger.debug("Appended $it attributes on entity $entityId")
+                if (it.notUpdated.isEmpty())
+                    status(HttpStatus.NO_CONTENT).build()
+                else
+                    status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
+            }
+            .onErrorResume {
+                when (it) {
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
+                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
+                }
+            }
+    }
+
+    /**
      * Implements 6.6.3.2 - Update Entity Attributes
      *
      * Current implementation is basic and only update values of properties.

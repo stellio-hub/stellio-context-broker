@@ -145,7 +145,7 @@ class Neo4jService(
         val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
         val geoPropertyType = geoPropertyValue["@type"]!![0] as String
         // TODO : point is not part of the NGSI-LD core context
-        return if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/point") {
+        return if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/Point") {
             val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
             val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
             val latitude = (geoPropertyCoordinates[1] as Map<String, Double>)["@value"]
@@ -269,6 +269,54 @@ class Neo4jService(
 
         return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
             .map { getFullEntityById(it) }
+    }
+
+    fun appendEntityAttributes(entityId: String, attributes: Map<String, Any>, disallowOverwrite: Boolean): UpdateResult {
+        val updateStatuses = attributes.map {
+            val attributeValue = expandValueAsMap(it.value)
+            val attributeType = attributeValue["@type"]!![0]
+            logger.debug("Fragment is of type $attributeType")
+            if (attributeType == NGSILD_RELATIONSHIP_TYPE) {
+                val relationshipTypeName = it.key.extractShortTypeFromExpanded()
+                if (!neo4jRepository.hasRelationshipOfType(entityId, relationshipTypeName.toRelationshipTypeName())) {
+                    createEntityRelationship(
+                        entityRepository.findById(entityId).get(), it.key,
+                        (getRawPropertyValueFromList(it.value, NGSILD_RELATIONSHIP_HAS_OBJECT) as Map<String, Any>)["@id"] as String
+                    )
+                    Triple(it.key, true, null)
+                } else if (disallowOverwrite) {
+                    logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
+                    Triple(it.key, false, "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
+                } else {
+                    neo4jRepository.deleteRelationshipFromEntity(entityId, relationshipTypeName.toRelationshipTypeName())
+                    createEntityRelationship(
+                        entityRepository.findById(entityId).get(), it.key,
+                        (getRawPropertyValueFromList(it.value, NGSILD_RELATIONSHIP_HAS_OBJECT) as Map<String, Any>)["@id"] as String
+                    )
+                    Triple(it.key, true, null)
+                }
+            } else if (attributeType == NGSILD_PROPERTY_TYPE) {
+                if (!neo4jRepository.hasPropertyOfName(entityId, it.key)) {
+                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
+                    Triple(it.key, true, null)
+                } else if (disallowOverwrite) {
+                    logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                    Triple(it.key, false, "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                } else {
+                    neo4jRepository.deletePropertyFromEntity(entityId, it.key)
+                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
+                    Triple(it.key, true, null)
+                }
+            } else {
+                Triple(it.key, false, "Unkown attribute type $attributeType")
+            }
+        }
+        .toList()
+
+        val updated = updateStatuses.filter { it.second }.map { it.first }
+        val notUpdated = updateStatuses.filter { !it.second }.map { NotUpdatedDetails(it.first, it.third!!) }
+
+        return UpdateResult(updated, notUpdated)
     }
 
     fun updateEntityAttribute(id: String, attribute: String, payload: String, contextLink: String): Int {

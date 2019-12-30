@@ -75,6 +75,24 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
+    fun hasRelationshipOfType(entityId: String, relationshipType: String): Boolean {
+        val query = """
+            MATCH (n:Entity { id: '$entityId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            RETURN n.id
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, String>()).toList().isNotEmpty()
+    }
+
+    fun hasPropertyOfName(entityId: String, propertyName: String): Boolean {
+        val query = """
+            MATCH (n:Entity { id: '$entityId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
+            RETURN n.id
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, String>()).toList().isNotEmpty()
+    }
+
     @Transactional
     fun deleteRelationshipFromEntity(entityId: String, relationshipType: String): Int {
         val query = """

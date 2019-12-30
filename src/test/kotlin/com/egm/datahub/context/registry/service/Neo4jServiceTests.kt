@@ -1,6 +1,9 @@
 package com.egm.datahub.context.registry.service
 
-import com.egm.datahub.context.registry.model.*
+import com.egm.datahub.context.registry.model.Entity
+import com.egm.datahub.context.registry.model.EventType
+import com.egm.datahub.context.registry.model.Observation
+import com.egm.datahub.context.registry.model.Property
 import com.egm.datahub.context.registry.repository.EntityRepository
 import com.egm.datahub.context.registry.repository.Neo4jRepository
 import com.egm.datahub.context.registry.repository.PropertyRepository
@@ -199,7 +202,7 @@ class Neo4jServiceTests {
         val geoPropertyMap = mapOf(
             NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    "@type" to listOf("https://uri.etsi.org/ngsi-ld/default-context/point"),
+                    "@type" to listOf("https://uri.etsi.org/ngsi-ld/default-context/Point"),
                     NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
                         mapOf("@value" to 23.45),
                         mapOf("@value" to 67.87)
@@ -256,6 +259,144 @@ class Neo4jServiceTests {
                 it.observedAt.toString() == "2019-12-18T10:45:44.248755+01:00"
         }) }
         verify { entityRepository.save(any<Entity>()) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a new relationship`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321"
+        val relationshipId = UUID.randomUUID().toString()
+        val newRelationship = """
+            {
+                "connectsTo": {
+                    "type":"Relationship",
+                    "object":"$targetEntityId"
+                }
+            }
+        """.trimIndent()
+        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+
+        val mockkedEntity = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Entity::class)
+
+        every { mockkedEntity.relationships } returns mutableListOf()
+        every { mockkedEntity.id } returns entityId
+        every { mockkedRelationship.id } returns relationshipId
+
+        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { entityRepository.save(match<Entity> {
+            it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
+        }) } returns mockkedRelationship
+        every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
+        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
+
+        verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
+        verify { entityRepository.findById(eq(entityId)) }
+        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not replace a relationship if overwrite is disallowed`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newRelationship = """
+            {
+                "connectsTo": {
+                    "type":"Relationship",
+                    "object":"urn:ngsi-ld:Beekeeper:654321"
+                }
+            }
+        """.trimIndent()
+        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+
+        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, true)
+
+        verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace a relationship if overwrite is allowed`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321"
+        val relationshipId = UUID.randomUUID().toString()
+        val newRelationship = """
+            {
+                "connectsTo": {
+                    "type":"Relationship",
+                    "object":"$targetEntityId"
+                }
+            }
+        """.trimIndent()
+        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+
+        val mockkedEntity = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Entity::class)
+
+        every { mockkedEntity.relationships } returns mutableListOf()
+        every { mockkedEntity.id } returns entityId
+        every { mockkedRelationship.id } returns relationshipId
+
+        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
+        every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { entityRepository.save(match<Entity> {
+            it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
+        }) } returns mockkedRelationship
+        every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
+        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
+
+        verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
+        verify { neo4jRepository.deleteRelationshipFromEntity(eq(entityId), "CONNECTS_TO") }
+        verify { entityRepository.findById(eq(entityId)) }
+        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a new property`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newProperty = """
+            {
+              "fishNumber": {
+                "type": "Property",
+                "value": 500
+              }
+            }
+        """.trimIndent()
+        val expandedNewProperty = NgsiLdParsingUtils.expandJsonLdFragment(newProperty, aquacContext!!)
+
+        val mockkedEntity = mockkClass(Entity::class)
+        val mockkedProperty = mockkClass(Property::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
+        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewProperty, false)
+
+        verify { neo4jRepository.hasPropertyOfName(eq(entityId), "https://ontology.eglobalmark.com/aquac#fishNumber") }
+        verify { entityRepository.findById(eq(entityId)) }
 
         confirmVerified()
     }

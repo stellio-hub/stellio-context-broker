@@ -20,6 +20,7 @@ class Routes(
                         GET("/{entityId}", entityHandler::getByURI)
                         PATCH("/{entityId}/attrs/{attrId}", entityHandler::partialAttributeUpdate)
                         PATCH("/{entityId}/attrs", entityHandler::updateEntityAttributes)
+                        POST("/{entityId}/attrs", entityHandler::appendEntityAttributes)
                         DELETE("/{entityId}", entityHandler::delete)
                     }
         }

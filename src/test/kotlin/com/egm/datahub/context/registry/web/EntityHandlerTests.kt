@@ -1,6 +1,8 @@
 package com.egm.datahub.context.registry.web
 
 import com.egm.datahub.context.registry.model.Entity
+import com.egm.datahub.context.registry.model.NotUpdatedDetails
+import com.egm.datahub.context.registry.model.UpdateResult
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -140,6 +142,72 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `append entity attribute should return a 204 if all attributes were appended`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(listOf("fishNumber"), emptyList())
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+        verify { neo4jService.appendEntityAttributes(eq("urn:ngsi-ld:BreedingService:0214"), any(), eq(false)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `append entity attribute should return a 207 if some attributes could not be appended`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.appendEntityAttributes(any(), any(), any()) }
+            .returns(UpdateResult(listOf("fishNumber"), listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))))
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json("{\"updated\":[\"fishNumber\"],\"notUpdated\":[{\"attributeName\":\"wrongAttribute\",\"reason\":\"overwrite disallowed\"}]}")
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+        verify { neo4jService.appendEntityAttributes(eq("urn:ngsi-ld:BreedingService:0214"), any(), eq(false)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `append entity attribute should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns false
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+
+        confirmVerified()
     }
 
     @Test

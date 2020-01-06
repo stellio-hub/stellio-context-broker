@@ -1,8 +1,15 @@
 package com.egm.datahub.context.registry.model
 
-import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.fasterxml.jackson.annotation.*
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
@@ -35,33 +42,33 @@ class Entity(
     val properties: MutableList<Property> = mutableListOf(),
 
     @Relationship(type = "HAS_OBJECT")
-    val relationships: MutableList<RelationshipTarget> = mutableListOf(),
+    val relationships: MutableList<com.egm.datahub.context.registry.model.Relationship> = mutableListOf(),
 
     var contexts: List<String> = mutableListOf()
 
-) : RelationshipTarget {
+) {
 
     fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        // TODO add other core NGSI-LD properties
-        resultEntity[NgsiLdParsingUtils.NGSILD_ENTITY_ID] = id
-        resultEntity[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE] = type
-        resultEntity[NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY] = mutableMapOf(
-            "@type" to "https://uri.etsi.org/ngsi-ld/DateTime",
-            "@value" to createdAt
+        resultEntity[NGSILD_ENTITY_ID] = id
+        resultEntity[NGSILD_ENTITY_TYPE] = type
+        resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
+            NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+            JSONLD_VALUE_KW to createdAt
         )
 
-        if (modifiedAt != null)
-            resultEntity[NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY] = mutableMapOf(
-                "@type" to "https://uri.etsi.org/ngsi-ld/DateTime",
-                "@value" to modifiedAt!!
+        modifiedAt?.run {
+            resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                JSONLD_VALUE_KW to this
             )
+        }
 
         location?.run {
-            resultEntity[NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY] = mutableMapOf(
-                "@type" to NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE,
+            resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
+                NGSILD_ENTITY_TYPE to NGSILD_GEOPROPERTY_TYPE,
                 NGSILD_GEOPROPERTY_VALUE to mapOf(
-                    "@type" to "Point",
+                    NGSILD_ENTITY_TYPE to "Point",
                     NGSILD_COORDINATES_PROPERTY to listOf(this.longitude, this.latitude)
                 )
             )

@@ -13,29 +13,16 @@ class Neo4jRepository(
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
 
     /**
-     * Create a relationship from a property (persisted as an entity) to an entity.
-     *
-     */
-    fun createRelationshipFromProperty(subjectId: String, relationshipType: String, targetId: String): Int {
-        val query = """
-            MATCH (subject:Property { id: "$subjectId" }), (target:Entity { id: "$targetId" })
-            MERGE (subject)-[:$relationshipType]->(target)
-            MERGE (subject)-[:HAS_OBJECT]->(target)
-        """
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().relationshipsCreated
-    }
-
-    /**
-     * Create a relationship from an entity to another entity.
+     * Create the concrete relationship from a relationship to an entity.
      *
      * It is used for :
-     *   - outgoing relationships between entities
-     *   - outgoing relationships on relationships (stored as entities).
+     *   - relationships of relationships
+     *   - relationships of properties
      */
-    fun createRelationshipFromEntity(subjectId: String, relationshipType: String, targetId: String): Int {
+    @Transactional
+    fun createRelationshipToEntity(relationshipId: String, relationshipType: String, entityId: String): Int {
         val query = """
-            MATCH (subject:Entity { id: "$subjectId" }), (target:Entity { id: "$targetId" })
+            MATCH (subject:Attribute { id: "$relationshipId" }), (target:Entity { id: "$entityId" })
             MERGE (subject)-[:$relationshipType]->(target)
             MERGE (subject)-[:HAS_OBJECT]->(target)
         """
@@ -46,6 +33,7 @@ class Neo4jRepository(
     /**
      * Add a spatial property to an entity.
      */
+    @Transactional
     fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
         val query = """
             MERGE (subject:Entity { id: "$subjectId" })
@@ -60,16 +48,6 @@ class Neo4jRepository(
         val query = """
             MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
             ON MATCH SET property.value = $propertyValue
-        """.trimIndent()
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
-    }
-
-    @Transactional
-    fun replaceEntityAttribute(entityId: String, propertyName: String, value: Any): Int {
-        val query = """
-            MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
-            ON MATCH SET property.value = $value
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
@@ -113,18 +91,26 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
     }
 
+    @Transactional
     fun deleteEntity(entityId: String): Pair<Int, Int> {
         /**
-         * 1. delete the entity node
-         * 2. delete the properties (persisted as nodes)
-         * 3. delete the relationships
-         * 4. delete the relationships on relationships persisted as nodes
+         * Delete :
+         *
+         * 1. the entity node
+         * 2. the properties
+         * 3. the properties of properties
+         * 4. the relationships of properties
+         * 5. the relationships
+         * 6. the relationships of relationships
          */
         val query = """
             MATCH (n:Entity { id: '$entityId' }) 
             OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop)
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
             OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel)
-            DETACH DELETE n,prop,rel
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel)
+            DETACH DELETE n,prop,relOfProp,propOfProp,rel,relOfRel
         """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
@@ -175,7 +161,7 @@ class Neo4jRepository(
 
     fun getObservedProperty(observerId: String, relationshipType: String): Property? {
         val query = """
-            MATCH (p:Property)-[:$relationshipType]->(e:Entity { id: '$observerId' })
+            MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
             RETURN p
         """.trimIndent()
 

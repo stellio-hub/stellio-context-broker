@@ -1,24 +1,32 @@
 package com.egm.datahub.context.registry.util
 
+import com.egm.datahub.context.registry.web.BadRequestDataException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
+import java.time.OffsetDateTime
+import kotlin.reflect.full.safeCast
+
+data class AttributeType(val uri: String)
 
 object NgsiLdParsingUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
 
-    const val NGSILD_PROPERTY_TYPE = "https://uri.etsi.org/ngsi-ld/Property"
+    val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
-    const val NGSILD_GEOPROPERTY_TYPE = "https://uri.etsi.org/ngsi-ld/GeoProperty"
+    val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
     const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
-    const val NGSILD_RELATIONSHIP_TYPE = "https://uri.etsi.org/ngsi-ld/Relationship"
+    val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
     const val NGSILD_RELATIONSHIP_HAS_OBJECT = "https://uri.etsi.org/ngsi-ld/hasObject"
 
+    // TODO they are actually JSON-LD keywords, not specific to NGSI_LD, rename them
     const val NGSILD_ENTITY_ID = "@id"
     const val NGSILD_ENTITY_TYPE = "@type"
+
+    const val JSONLD_VALUE_KW = "@value"
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
@@ -26,6 +34,23 @@ object NgsiLdParsingUtils {
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
+
+    const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
+
+    val NGSILD_ATTRIBUTES_CORE_MEMBERS = listOf(
+        NGSILD_CREATED_AT_PROPERTY,
+        NGSILD_MODIFIED_AT_PROPERTY,
+        NGSILD_OBSERVED_AT_PROPERTY
+    )
+
+    val NGSILD_PROPERTIES_CORE_MEMBERS = listOf(
+        NGSILD_PROPERTY_VALUE,
+        NGSILD_UNIT_CODE_PROPERTY
+    ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
+
+    val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
+        NGSILD_RELATIONSHIP_HAS_OBJECT
+    ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
 
@@ -108,21 +133,56 @@ object NgsiLdParsingUtils {
     fun getPropertyValueFromMap(value: Map<String, List<Any>>, propertyKey: String): Any? =
         if (value[propertyKey] != null) {
             val intermediateList = value[propertyKey] as List<Map<String, Any>>
-            val firstListEntry = intermediateList[0]
-            val finalValue = firstListEntry["@value"]
-            finalValue
+            if (intermediateList.size == 1) {
+                val firstListEntry = intermediateList[0]
+                val finalValue = firstListEntry["@value"]
+                finalValue
+            } else {
+                intermediateList.map {
+                    it["@value"]
+                }
+            }
         } else
             null
+
+    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): OffsetDateTime? {
+        val observedAt = String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+        return observedAt?.run {
+            OffsetDateTime.parse(this)
+        }
+    }
+
+    fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =
+        String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+
+    fun getRelationshipObjectId(relationshipValues: Map<String, List<Any>>): String {
+        if (!relationshipValues.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
+            throw BadRequestDataException("Key $NGSILD_RELATIONSHIP_HAS_OBJECT not found in $relationshipValues")
+
+        val hasObjectEntry = relationshipValues[NGSILD_RELATIONSHIP_HAS_OBJECT]!![0]
+        if (hasObjectEntry !is Map<*, *>)
+            throw BadRequestDataException("hasObject entry is not a map as expected : $hasObjectEntry")
+
+        val objectId = hasObjectEntry[NGSILD_ENTITY_ID]
+        if (objectId !is String)
+            throw BadRequestDataException("Expected objectId to be a string but it is instead $objectId")
+
+        return objectId
+    }
 
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
         // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
         // TODO do a clean implementation using info from @context
         (payload["@type"] as List<String>)[0].substringAfterLast("/").substringAfterLast("#")
 
-    fun isOfKind(values: Map<String, List<Any>>, kind: String): Boolean =
-        values.containsKey("@type") &&
-            values["@type"] is List<*> &&
-            values.getOrElse("@type") { emptyList() }[0] == kind
+    /**
+     * Given an entity's attribute, returns whether it is of the given attribute type
+     * (i.e. property, geo property or relationship)
+     */
+    fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
+        values.containsKey(NGSILD_ENTITY_TYPE) &&
+            values[NGSILD_ENTITY_TYPE] is List<*> &&
+            values.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == type.uri
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()

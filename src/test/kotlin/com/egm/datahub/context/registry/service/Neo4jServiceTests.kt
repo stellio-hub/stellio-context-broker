@@ -1,12 +1,7 @@
 package com.egm.datahub.context.registry.service
 
-import com.egm.datahub.context.registry.model.Entity
-import com.egm.datahub.context.registry.model.EventType
-import com.egm.datahub.context.registry.model.Observation
-import com.egm.datahub.context.registry.model.Property
-import com.egm.datahub.context.registry.repository.EntityRepository
-import com.egm.datahub.context.registry.repository.Neo4jRepository
-import com.egm.datahub.context.registry.repository.PropertyRepository
+import com.egm.datahub.context.registry.model.*
+import com.egm.datahub.context.registry.repository.*
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
@@ -44,6 +39,12 @@ class Neo4jServiceTests {
     private lateinit var propertyRepository: PropertyRepository
 
     @MockkBean
+    private lateinit var relationshipRepository: RelationshipRepository
+
+    @MockkBean
+    private lateinit var attributeRepository: AttributeRepository
+
+    @MockkBean
     private lateinit var repositoryEventsListener: RepositoryEventsListener
 
     // TODO https://redmine.eglobalmark.com/issues/851
@@ -60,6 +61,40 @@ class Neo4jServiceTests {
                     entityEvent.operation == EventType.POST
         }) }
         confirmVerified(repositoryEventsListener)
+    }
+
+    @Test
+    fun `it should create an entity with a property having a property`() {
+
+        val sampleDataWithContext = loadAndParseSampleData("BreedingService_propWithProp.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        val mockedProperty = mockkClass(Property::class)
+
+        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
+        every { propertyRepository.save<Property>(any()) } returns mockedProperty
+        every { mockedBreedingService.properties } returns mutableListOf()
+        every { mockedProperty.properties } returns mutableListOf()
+        every { attributeRepository.save<Attribute>(any()) } returns mockedProperty
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp"
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+
+        neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
+
+        verifyAll {
+            propertyRepository.save<Property>(match {
+                it.name == "https://ontology.eglobalmark.com/aquac#fishName"
+            })
+            propertyRepository.save<Property>(match {
+                it.name == "https://ontology.eglobalmark.com/aquac#foodName" &&
+                    it.unitCode == "slice"
+            })
+            propertyRepository.save<Property>(match {
+                it.name == "https://ontology.eglobalmark.com/aquac#fishSize"
+            })
+        }
+
+        verify(exactly = 2) { attributeRepository.save<Attribute>(any()) }
     }
 
     @Test
@@ -137,22 +172,26 @@ class Neo4jServiceTests {
         """.trimIndent()
 
         val mockkedSensor = mockkClass(Entity::class)
-        val mockkedRelationshipEntity = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
 
+        every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.relationships } returns mutableListOf()
-        every { mockkedRelationshipEntity.id } returns relationshipId
+        every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
-        every { entityRepository.save(any<Entity>()) } returns mockkedRelationshipEntity
-        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+        every { relationshipRepository.save(match<Relationship> {
+            it.type == listOf("https://ontology.eglobalmark.com/aquac#filledIn")
+        }) } returns mockkedRelationship
+        every { entityRepository.save(match<Entity> { it.id == sensorId }) } returns mockkedSensor
+
+        every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { neo4jRepository.deleteRelationshipFromEntity(eq(sensorId), "FILLED_IN") }
         verify { entityRepository.findById(eq(sensorId)) }
-        verify(exactly = 2) { entityRepository.save(any<Entity>()) }
-        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "FILLED_IN", "urn:ngsi-ld:FishContainment:1234") }
+        verify { neo4jRepository.createRelationshipToEntity(eq(relationshipId), "FILLED_IN", "urn:ngsi-ld:FishContainment:1234") }
 
         confirmVerified()
     }
@@ -280,7 +319,7 @@ class Neo4jServiceTests {
         val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
 
         val mockkedEntity = mockkClass(Entity::class)
-        val mockkedRelationship = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedEntity.relationships } returns mutableListOf()
         every { mockkedEntity.id } returns entityId
@@ -288,17 +327,17 @@ class Neo4jServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
-        every { entityRepository.save(match<Entity> {
+        every { relationshipRepository.save(match<Relationship> {
             it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
         }) } returns mockkedRelationship
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
-        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+        every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
         neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
         verify { entityRepository.findById(eq(entityId)) }
-        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
+        verify { neo4jRepository.createRelationshipToEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
 
         confirmVerified()
     }
@@ -343,7 +382,7 @@ class Neo4jServiceTests {
         val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
 
         val mockkedEntity = mockkClass(Entity::class)
-        val mockkedRelationship = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedEntity.relationships } returns mutableListOf()
         every { mockkedEntity.id } returns entityId
@@ -352,18 +391,18 @@ class Neo4jServiceTests {
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
-        every { entityRepository.save(match<Entity> {
+        every { relationshipRepository.save(match<Relationship> {
             it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
         }) } returns mockkedRelationship
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
-        every { neo4jRepository.createRelationshipFromEntity(any(), any(), any()) } returns 1
+        every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
         neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
         verify { neo4jRepository.deleteRelationshipFromEntity(eq(entityId), "CONNECTS_TO") }
         verify { entityRepository.findById(eq(entityId)) }
-        verify { neo4jRepository.createRelationshipFromEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
+        verify { neo4jRepository.createRelationshipToEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
 
         confirmVerified()
     }
@@ -406,5 +445,10 @@ class Neo4jServiceTests {
         val mapper = jacksonObjectMapper()
         mapper.findAndRegisterModules()
         return mapper.readValue(observation.inputStream, Observation::class.java)
+    }
+
+    private fun loadAndParseSampleData(filename: String): Pair<Map<String, Any>, List<String>> {
+        val sampleData = ClassPathResource("/ngsild/aquac/$filename")
+        return NgsiLdParsingUtils.parseEntity(String(sampleData.inputStream.readAllBytes()))
     }
 }

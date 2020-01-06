@@ -1,18 +1,30 @@
 package com.egm.datahub.context.registry.model
 
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
 import com.fasterxml.jackson.annotation.JsonRawValue
-import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
 import java.time.OffsetDateTime
-import java.util.*
 
 @NodeEntity
 class Property(
-    @Id
-    var id: String = "urn:ngsi-ld:Property:${UUID.randomUUID()}",
     val name: String,
     var unitCode: String? = null,
-    var observedAt: OffsetDateTime? = null,
+
     @JsonRawValue
-    var value: Any
-) : RelationshipTarget
+    var value: Any,
+
+    observedAt: OffsetDateTime? = null
+) : Attribute(attributeType = "Property", observedAt = observedAt) {
+
+    override fun serializeCoreProperties(): MutableMap<String, Any> {
+        val resultEntity = super.serializeCoreProperties()
+
+        resultEntity[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE] = NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE.uri
+        resultEntity[NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE] = value
+        unitCode?.run {
+            resultEntity[NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY] = this
+        }
+
+        return resultEntity
+    }
+}

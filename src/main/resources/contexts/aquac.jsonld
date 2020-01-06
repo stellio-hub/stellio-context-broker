@@ -18,8 +18,6 @@
     "DeadFishes": "https://ontology.eglobalmark.com/aquac#DeadFishes",
     "Feeder": "https://ontology.eglobalmark.com/aquac#Feeder",
     "fishSize": "https://ontology.eglobalmark.com/aquac#fishSize",
-    "Feeder": "https://ontology.eglobalmark.com/aquac#Feeder",
-    "fishSize": "https://ontology.eglobalmark.com/aquac#fishSize",
     "ammonium": "https://ontology.eglobalmark.com/aquac#ammonium",
     "calcium": "https://ontology.eglobalmark.com/aquac#calcium",
     "carbonDioxide": "https://ontology.eglobalmark.com/aquac#carbonDioxide",

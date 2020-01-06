@@ -1,16 +1,18 @@
 package com.egm.datahub.context.registry.service
 
 import com.egm.datahub.context.registry.model.*
-import com.egm.datahub.context.registry.repository.EntityRepository
-import com.egm.datahub.context.registry.repository.Neo4jRepository
-import com.egm.datahub.context.registry.repository.PropertyRepository
+import com.egm.datahub.context.registry.repository.*
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTIES_CORE_MEMBERS
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIPS_CORE_MEMBERS
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
@@ -20,8 +22,10 @@ import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.expandRelationsh
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.extractShortTypeFromPayload
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMap
-import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getRawPropertyValueFromList
-import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.isOfKind
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getRelationshipObjectId
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
 import com.egm.datahub.context.registry.util.toNgsiLdRelationshipKey
@@ -33,16 +37,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.OffsetDateTime
-import java.util.*
-import kotlin.collections.HashMap
-import kotlin.reflect.full.safeCast
 
 @Component
 class Neo4jService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
     private val propertyRepository: PropertyRepository,
+    private val relationshipRepository: RelationshipRepository,
+    private val attributeRepository: AttributeRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -55,49 +57,36 @@ class Neo4jService(
         rawEntity.contexts = contexts
         val entity = entityRepository.save(rawEntity)
 
-        expandedPayload.filterKeys {
-            !listOf("@id", "@type", "@context").contains(it)
-        }.filter { entry ->
-            val valuesMap = expandValueAsMap(entry.value)
-            isOfKind(valuesMap, NGSILD_RELATIONSHIP_TYPE)
+        // filter the unwanted entries and expand all attributes for easier later processing
+        val propertiesAndRelationshipsMap = expandedPayload.filterKeys {
+            !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
+        }.mapValues {
+            expandValueAsMap(it.value)
+        }
+
+        propertiesAndRelationshipsMap.filter { entry ->
+            isAttributeOfType(entry.value, NGSILD_RELATIONSHIP_TYPE)
         }.forEach { entry ->
             val relationshipType = entry.key
-            val relationshipValues = expandValueAsMap(entry.value)
-            val objectId = ((relationshipValues[NGSILD_RELATIONSHIP_HAS_OBJECT] as List<Any>)[0] as Map<String, String>)["@id"]
-            val objectEntity = entityRepository.findById(objectId!!)
+            val objectId = getRelationshipObjectId(entry.value)
+            val objectEntity = entityRepository.findById(objectId)
 
             if (!objectEntity.isPresent)
                 throw BadRequestDataException("Target entity $objectId in relationship $relationshipType does not exist, create it first")
 
-            val relationshipEntity = createEntityRelationship(entity, relationshipType, objectEntity.get().id)
-
-            createOutgoingRelationship(relationshipEntity, relationshipValues)
+            createEntityRelationship(entity, relationshipType, entry.value, objectEntity.get().id)
         }
 
-        expandedPayload.filterKeys {
-            !listOf("@id", "@type", "@context").contains(it)
-        }.filter { entry ->
-            val valuesMap = expandValueAsMap(entry.value)
-            isOfKind(valuesMap, NGSILD_PROPERTY_TYPE)
+        propertiesAndRelationshipsMap.filter { entry ->
+            isAttributeOfType(entry.value, NGSILD_PROPERTY_TYPE)
         }.forEach { entry ->
-            val propertyKey = entry.key
-            val propertyValues = expandValueAsMap(entry.value)
-
-            val propertyEntity = createEntityProperty(entity, propertyKey, propertyValues)
-
-            createOutgoingRelationship(propertyEntity, propertyValues)
+            createEntityProperty(entity, entry.key, entry.value)
         }
 
-        expandedPayload.filterKeys {
-            !listOf("@id", "@type", "@context").contains(it)
-        }.filter { entry ->
-            val valuesMap = expandValueAsMap(entry.value)
-            isOfKind(valuesMap, NGSILD_GEOPROPERTY_TYPE)
+        propertiesAndRelationshipsMap.filter { entry ->
+            isAttributeOfType(entry.value, NGSILD_GEOPROPERTY_TYPE)
         }.forEach { entry ->
-            val propertyKey = entry.key
-            val propertyValues = expandValueAsMap(entry.value)
-
-            createLocationProperty(entity, propertyKey, propertyValues)
+            createLocationProperty(entity, entry.key, entry.value)
         }
 
         val entityType = extractShortTypeFromPayload(expandedPayload)
@@ -111,32 +100,102 @@ class Neo4jService(
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)!!
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
-        val unitCode = String::class.safeCast(getPropertyValueFromMap(propertyValues, NGSILD_UNIT_CODE_PROPERTY))
-        val observedAt = String::class.safeCast(getPropertyValueFromMap(propertyValues, NGSILD_OBSERVED_AT_PROPERTY))
-        val parsedObservedAt = observedAt?.run {
-            OffsetDateTime.parse(this)
-        }
-        val property = Property(
+        val rawProperty = Property(
             name = propertyKey, value = propertyValue,
-            unitCode = unitCode, observedAt = parsedObservedAt
+            unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
+            observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
         )
-        val propertyEntity = propertyRepository.save(property)
-        entity.properties.add(propertyEntity)
+        val property = propertyRepository.save(rawProperty)
+        entity.properties.add(property)
         entityRepository.save(entity)
 
-        return propertyEntity
+        createAttributeProperties(property, propertyValues)
+        createAttributeRelationships(property, propertyValues)
+
+        return property
     }
 
-    private fun createEntityRelationship(entity: Entity, relationshipType: String, targetEntityId: String): Entity {
+    /**
+     * Create the relationship between two entities, as two relationships : a generic one from source entity to a relationship node,
+     * and a typed one (with the relationship type) from the relationship node to the target entity.
+     *
+     * @return the created Relationship object
+     */
+    private fun createEntityRelationship(
+        entity: Entity,
+        relationshipType: String,
+        relationshipValues: Map<String, List<Any>>,
+        targetEntityId: String
+    ): Relationship {
+
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
-        val rawRelationshipEntity = Entity(type = listOf(relationshipType), id = UUID.randomUUID().toString(), contexts = emptyList())
-        val relationshipEntity = entityRepository.save(rawRelationshipEntity)
-        entity.relationships.add(relationshipEntity)
+        val rawRelationship = Relationship(type = listOf(relationshipType),
+            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY))
+        val relationship = relationshipRepository.save(rawRelationship)
+        entity.relationships.add(relationship)
         entityRepository.save(entity)
 
-        neo4jRepository.createRelationshipFromEntity(relationshipEntity.id, relationshipType.toRelationshipTypeName(), targetEntityId)
+        neo4jRepository.createRelationshipToEntity(relationship.id, relationshipType.toRelationshipTypeName(), targetEntityId)
 
-        return relationshipEntity
+        createAttributeProperties(relationship, relationshipValues)
+        createAttributeRelationships(relationship, relationshipValues)
+
+        return relationship
+    }
+
+    private fun createAttributeProperties(subject: Attribute, values: Map<String, List<Any>>) {
+        values.filterValues {
+            it[0] is Map<*, *>
+        }
+        .mapValues {
+            expandValueAsMap(it.value)
+        }
+        .filter {
+            !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
+                    isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
+        }
+        .forEach { entry ->
+            logger.debug("Creating property ${entry.key} with values ${entry.value}")
+
+            // for short-handed properties, the value is directly accessible from the map under the @value key
+            val propertyValue = getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
+
+            val rawProperty = Property(
+                name = entry.key, value = propertyValue,
+                unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
+                observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
+            )
+
+            val property = propertyRepository.save(rawProperty)
+            subject.properties.add(property)
+            attributeRepository.save(subject)
+        }
+    }
+
+    private fun createAttributeRelationships(subject: Attribute, values: Map<String, List<Any>>) {
+        values.forEach { propEntry ->
+            val propEntryValue = propEntry.value[0]
+            logger.debug("Looking at prop entry ${propEntry.key} with value $propEntryValue")
+            if (propEntryValue is Map<*, *>) {
+                val propEntryValueMap = propEntryValue as Map<String, List<Any>>
+                if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
+                    val objectId = getRelationshipObjectId(propEntryValueMap)
+                    val objectEntity = entityRepository.findById(objectId)
+                    if (!objectEntity.isPresent)
+                        throw BadRequestDataException("Target entity $objectId in property $subject does not exist, create it first")
+
+                    val rawRelationship = Relationship(type = listOf(propEntry.key),
+                        observedAt = getPropertyValueFromMapAsDateTime(propEntryValueMap, NGSILD_OBSERVED_AT_PROPERTY))
+                    val relationship = relationshipRepository.save(rawRelationship)
+                    subject.relationships.add(relationship)
+                    attributeRepository.save(subject)
+
+                    neo4jRepository.createRelationshipToEntity(relationship.id, propEntry.key.toRelationshipTypeName(), objectEntity.get().id)
+                }
+            } else {
+                logger.debug("Ignoring ${propEntry.key} entry as it can't be a relationship ($propEntryValue)")
+            }
+        }
     }
 
     internal fun createLocationProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Int {
@@ -144,7 +203,7 @@ class Neo4jService(
         logger.debug("Geo property $propertyKey has values $propertyValues")
         val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
         val geoPropertyType = geoPropertyValue["@type"]!![0] as String
-        // TODO : point is not part of the NGSI-LD core context
+        // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
         return if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/Point") {
             val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
             val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
@@ -170,22 +229,28 @@ class Neo4jService(
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId)
+            .groupBy {
+                (it["property"] as Property).id
+            }
+            .values
             .forEach {
-                val property = it["property"]!! as Property
+                val property = it[0]["property"]!! as Property
                 val propertyKey = property.name
-                val propertyValues = mutableMapOf(
-                    "@type" to NGSILD_PROPERTY_TYPE,
-                    NGSILD_PROPERTY_VALUE to property.value
-                )
+                val propertyValues = property.serializeCoreProperties()
 
-                if (it["relOfProp"] != null) {
-                    val targetEntity = it["relOfProp"] as Entity
+                it.filter { relEntry -> relEntry["propValue"] != null }.forEach {
+                    val propertyOfProperty = it["propValue"] as Property
+                    propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
+                }
+
+                it.filter { relEntry -> relEntry["relOfProp"] != null }.forEach {
+                    val targetEntity = it["relOfPropObject"] as Entity
                     val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
                     logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
 
                     val relationshipValue = mapOf(
-                        "@type" to NGSILD_RELATIONSHIP_TYPE,
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf("@id" to targetEntity.id)
+                        NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
                     )
                     val relationship = mapOf(relationshipKey to relationshipValue)
                     val expandedRelationshipKey = expandRelationshipType(relationship, entity.contexts)
@@ -196,16 +261,16 @@ class Neo4jService(
 
         entityRepository.getEntityRelationships(entityId)
             .groupBy {
-                (it["relEntity"] as Entity).id
+                (it["rel"] as Relationship).id
             }.values
             .forEach {
-                val primaryRelType = (it[0]["relEntity"] as Entity).type[0]
+                val primaryRelType = (it[0]["rel"] as Relationship).type[0]
                 val primaryRelation =
                     it.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-                val relationshipTargetId = (primaryRelation["relTarget"] as Entity).id
+                val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
                 val relationship = mapOf(
-                    "@type" to NGSILD_RELATIONSHIP_TYPE,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf("@id" to relationshipTargetId)
+                    NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to relationshipTargetId)
                 )
 
                 val relationshipValues = mutableMapOf<String, Any>()
@@ -216,13 +281,13 @@ class Neo4jService(
                         entity.contexts
                     )
 
-                it.filter { relEntry -> relEntry["relType"] != primaryRelType.toRelationshipTypeName() }?.forEach {
-                    val innerRelType = (it["relType"] as String).toNgsiLdRelationshipKey()
-                    val innerTargetEntityId = (it["relTarget"] as Entity).id
+                it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
+                    val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
+                    val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
 
                     val innerRelationship = mapOf(
-                        "@type" to NGSILD_RELATIONSHIP_TYPE,
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf("@id" to innerTargetEntityId)
+                        NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to innerTargetEntityId)
                     )
 
                     val innerRelationshipValues = mutableMapOf<String, Any>()
@@ -249,7 +314,7 @@ class Neo4jService(
      * @param query the list of raw query parameters (e.g "name==test")
      * @param contexts the list of contexts to consider
      *
-     * @return a list of entities reprensented as per #getFullEntityById result
+     * @return a list of entities represented as per #getFullEntityById result
      */
     fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<Pair<Map<String, Any>, List<String>>> {
         val expandedType = expandJsonLdKey(type, contexts)!!
@@ -276,13 +341,12 @@ class Neo4jService(
             val attributeValue = expandValueAsMap(it.value)
             val attributeType = attributeValue["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
-            if (attributeType == NGSILD_RELATIONSHIP_TYPE) {
+            if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
                 if (!neo4jRepository.hasRelationshipOfType(entityId, relationshipTypeName.toRelationshipTypeName())) {
                     createEntityRelationship(
-                        entityRepository.findById(entityId).get(), it.key,
-                        (getRawPropertyValueFromList(it.value, NGSILD_RELATIONSHIP_HAS_OBJECT) as Map<String, Any>)["@id"] as String
-                    )
+                        entityRepository.findById(entityId).get(), it.key, attributeValue,
+                        getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
@@ -290,12 +354,11 @@ class Neo4jService(
                 } else {
                     neo4jRepository.deleteRelationshipFromEntity(entityId, relationshipTypeName.toRelationshipTypeName())
                     createEntityRelationship(
-                        entityRepository.findById(entityId).get(), it.key,
-                        (getRawPropertyValueFromList(it.value, NGSILD_RELATIONSHIP_HAS_OBJECT) as Map<String, Any>)["@id"] as String
-                    )
+                        entityRepository.findById(entityId).get(), it.key, attributeValue,
+                        getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 }
-            } else if (attributeType == NGSILD_PROPERTY_TYPE) {
+            } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
                 if (!neo4jRepository.hasPropertyOfName(entityId, it.key)) {
                     createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
@@ -308,7 +371,7 @@ class Neo4jService(
                     Triple(it.key, true, null)
                 }
             } else {
-                Triple(it.key, false, "Unkown attribute type $attributeType")
+                Triple(it.key, false, "Unknown attribute type $attributeType")
             }
         }
         .toList()
@@ -333,71 +396,18 @@ class Neo4jService(
             val attributeValue = expandValueAsMap(it.value)
             val attributeType = attributeValue["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
-            if (attributeType == NGSILD_RELATIONSHIP_TYPE) {
+            if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
                 neo4jRepository.deleteRelationshipFromEntity(id, relationshipTypeName.toRelationshipTypeName())
                 createEntityRelationship(
-                    entityRepository.findById(id).get(), it.key,
-                    (getRawPropertyValueFromList(it.value, NGSILD_RELATIONSHIP_HAS_OBJECT) as Map<String, Any>)["@id"] as String
-                )
-            } else if (attributeType == NGSILD_PROPERTY_TYPE) {
+                    entityRepository.findById(id).get(), it.key, attributeValue,
+                    getRelationshipObjectId(expandValueAsMap(it.value)))
+            } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
                 neo4jRepository.deletePropertyFromEntity(id, it.key)
                 createEntityProperty(entityRepository.findById(id).get(), it.key, attributeValue)
             }
             1
         }.toList()
-    }
-
-    fun parseEntityProperties(rawProperties: Map<String, List<Any>>): List<Property> {
-        // Filter core NGSI-LD properties (observedAt, createdAt, datasetId, ...)
-        // Filter @type, hasObject / hasValue
-        // Filter relationships (they are created elsewhere)
-        return rawProperties.filter {
-            !listOf("@id", "@type", "@context").contains(it.key)
-        }.filter {
-            val entryValue = it.value[0]
-            if (entryValue is HashMap<*, *>) {
-                val entryValueAsMap = entryValue as HashMap<String, Any>
-                entryValueAsMap.containsKey("@type") &&
-                    entryValueAsMap["@type"] is List<*> &&
-                    (entryValueAsMap as List<String>)[0] == NGSILD_PROPERTY_TYPE
-            } else {
-                false
-            }
-        }.map {
-            val entryValueAsMap = it.value[0] as HashMap<String, Any>
-            val propertyValue = (entryValueAsMap[NGSILD_PROPERTY_VALUE] as List<Any>)[0] as HashMap<String, Any>
-            val extractedPropertyValue = propertyValue["@value"]
-            logger.debug("Adding a property with value $extractedPropertyValue")
-
-            Property(name = it.key, value = propertyValue["@value"]!!)
-        }
-    }
-
-    private fun createOutgoingRelationship(subject: RelationshipTarget, values: Map<String, List<Any>>) {
-        values.forEach { propEntry ->
-            val propEntryValue = propEntry.value[0]
-            if (propEntryValue is Map<*, *>) {
-                val propEntryValueMap = propEntryValue as Map<String, Any>
-                if (propEntryValueMap.containsKey("@type") &&
-                    propEntryValueMap["@type"] is List<*> &&
-                    (propEntryValueMap["@type"] as List<String>)[0] == NGSILD_RELATIONSHIP_TYPE) {
-                    val objectId = ((propEntryValueMap[NGSILD_RELATIONSHIP_HAS_OBJECT] as List<Any>)[0] as Map<String, String>)["@id"]
-                    val objectEntity = entityRepository.findById(objectId!!)
-                    if (!objectEntity.isPresent)
-                        throw BadRequestDataException("Target entity $objectId in property $subject does not exist, create it first")
-
-                    // TODO there should be a way to have same code for both cases
-                    if (subject is Property) {
-                        neo4jRepository.createRelationshipFromProperty(subject.id,
-                            propEntry.key.toRelationshipTypeName(), objectEntity.get().id)
-                    } else if (subject is Entity) {
-                        neo4jRepository.createRelationshipFromEntity(subject.id,
-                            propEntry.key.toRelationshipTypeName(), objectEntity.get().id)
-                    }
-                }
-            }
-        }
     }
 
     fun deleteEntity(entityId: String): Pair<Int, Int> {

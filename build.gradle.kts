@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
-    id("org.springframework.boot") version "2.2.0.RELEASE"
+    id("org.springframework.boot") version "2.2.1.RELEASE"
     id("io.spring.dependency-management") version "1.0.8.RELEASE"
     kotlin("jvm") version "1.3.50"
     kotlin("plugin.spring") version "1.3.50"
@@ -29,6 +29,7 @@ repositories {
     maven { url = uri("https://repo.spring.io/milestone") }
     jcenter()
 }
+extra["springCloudVersion"] = "Hoxton.RC2"
 
 dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -43,6 +44,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("com.beust:klaxon:5.0.1")
+    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
+    implementation("org.springframework.cloud:spring-cloud-stream")
 
     runtimeOnly("io.r2dbc:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
@@ -53,16 +56,18 @@ dependencies {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
     testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("com.ninja-squad:springmockk:1.1.3")
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
     testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
     testRuntimeOnly("io.r2dbc:r2dbc-h2")
+    testRuntimeOnly("com.h2database:h2")
 }
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.boot.experimental:spring-boot-bom-r2dbc:0.1.0.M2")
+        mavenBom("org.springframework.boot.experimental:spring-boot-bom-r2dbc:0.1.0.M3")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:${property("springCloudVersion")}")
     }
 }
 

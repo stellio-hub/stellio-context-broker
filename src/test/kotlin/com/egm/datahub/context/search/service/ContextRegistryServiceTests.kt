@@ -12,15 +12,14 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.kafka.test.EmbeddedKafkaBroker
-import org.springframework.kafka.test.context.EmbeddedKafka
+
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 
 // TODO : it should be possible to have this test not depend on the whole application
 //        (ie to only load the target service)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@EmbeddedKafka(topics = ["entities"])
+
 @ActiveProfiles("test")
 class ContextRegistryServiceTests {
 
@@ -31,12 +30,6 @@ class ContextRegistryServiceTests {
     private lateinit var ngsiLdParsingService: NgsiLdParsingService
 
     private lateinit var wireMockServer: WireMockServer
-
-    companion object {
-        init {
-            System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
-        }
-    }
 
     @BeforeAll
     fun beforeAll() {

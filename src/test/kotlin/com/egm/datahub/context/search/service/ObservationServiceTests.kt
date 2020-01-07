@@ -12,15 +12,13 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Flux
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.kafka.test.EmbeddedKafkaBroker
-import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 @SpringBootTest
-@EmbeddedKafka(topics = ["entities"])
 @ActiveProfiles("test")
 class ObservationServiceTests {
 
@@ -34,12 +32,6 @@ class ObservationServiceTests {
     private lateinit var observationService: ObservationService
 
     private val sensorId = "urn:sosa:Sensor:111222"
-
-    companion object {
-        init {
-            System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
-        }
-    }
 
     private lateinit var observationDateTime: OffsetDateTime
 
@@ -94,13 +86,12 @@ class ObservationServiceTests {
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 val values = (it.getPropertyValue("measures") as Map<*, *>)["values"]
-
                 it.getPropertyValue("type") is String &&
-                    (it.getPropertyValue("type") as String) == "Sensor" &&
-                    it.getPropertyValue("measures") is Map<*, *> &&
-                    values is List<*> &&
-                    (values[0] as List<*>)[0] == 12.0 &&
-                    (values[0] as List<*>)[1] == observationDateTime
+                (it.getPropertyValue("type") as String) == "Sensor" &&
+                it.getPropertyValue("measures") is Map<*, *> &&
+                values is List<*> &&
+                (values[0] as List<*>)[0] == 12.0 &&
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format((values[0] as List<*>)[1] as OffsetDateTime) == observationDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
             }
             .expectComplete()
             .verify()

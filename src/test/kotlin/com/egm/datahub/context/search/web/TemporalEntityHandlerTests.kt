@@ -13,8 +13,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
-import org.springframework.kafka.test.EmbeddedKafkaBroker
-import org.springframework.kafka.test.context.EmbeddedKafka
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.*
 import org.springframework.web.reactive.function.BodyInserters
@@ -22,14 +20,7 @@ import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@EmbeddedKafka(topics = ["entities"])
 class TemporalEntityHandlerTests {
-
-    companion object {
-        init {
-            System.setProperty(EmbeddedKafkaBroker.BROKER_LIST_PROPERTY, "spring.kafka.bootstrap-servers")
-        }
-    }
 
     @Autowired
     private lateinit var webClient: WebTestClient

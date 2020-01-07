@@ -1,4 +1,4 @@
-package com.egm.datahub.contextsubscription
+package com.egm.datahub.context.subscription
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

@@ -1,0 +1,6 @@
+{
+   "connectsTo":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:BeeHive:TESTC"
+   }
+}

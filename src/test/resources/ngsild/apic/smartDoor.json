@@ -1,10 +1,6 @@
 {
    "id":"urn:ngsi-ld:SmartDoor:00YHG",
    "type":"SmartDoor",
-   "connectsTo":{
-      "type":"Relationship",
-      "object":"urn:ngsi-ld:BeeHive:TESTC"
-   },
    "@context":[
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
       "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",

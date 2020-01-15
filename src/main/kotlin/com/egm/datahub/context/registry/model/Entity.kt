@@ -6,7 +6,6 @@ import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_CREATED_A
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
@@ -66,7 +65,7 @@ class Entity(
 
         location?.run {
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
-                NGSILD_ENTITY_TYPE to NGSILD_GEOPROPERTY_TYPE,
+                NGSILD_ENTITY_TYPE to "GeoProperty",
                 NGSILD_GEOPROPERTY_VALUE to mapOf(
                     NGSILD_ENTITY_TYPE to "Point",
                     NGSILD_COORDINATES_PROPERTY to listOf(this.longitude, this.latitude)

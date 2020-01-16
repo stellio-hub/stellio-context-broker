@@ -1,9 +1,6 @@
 package com.egm.datahub.context.search.service
 
-import com.egm.datahub.context.search.model.Entity
-import com.egm.datahub.context.search.model.NgsiLdObservation
-import com.egm.datahub.context.search.model.Observation
-import com.egm.datahub.context.search.model.TemporalQuery
+import com.egm.datahub.context.search.model.*
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.query.Criteria.where
 import org.springframework.stereotype.Service

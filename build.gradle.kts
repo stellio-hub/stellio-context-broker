@@ -46,6 +46,9 @@ dependencies {
     implementation("com.beust:klaxon:5.0.1")
     implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.cloud:spring-cloud-stream")
+    implementation("org.flywaydb:flyway-core")
+    // required for Flyway's direct access to the DB to apply migration scripts
+    implementation("org.springframework:spring-jdbc")
 
     runtimeOnly("io.r2dbc:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
@@ -60,8 +63,8 @@ dependencies {
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
-    testRuntimeOnly("io.r2dbc:r2dbc-h2")
-    testRuntimeOnly("com.h2database:h2")
+    testImplementation("org.testcontainers:testcontainers:1.12.3")
+    testImplementation("org.testcontainers:postgresql:1.12.3")
 }
 
 dependencyManagement {

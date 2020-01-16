@@ -10,9 +10,6 @@ services:
       - 5432:5432
     volumes:
       - postgres-storage:/var/lib/postgresql/data
-      # this currently conflicts with Timescale own scripts,
-      # create DB structure manually unit https://redmine.eglobalmark.com/issues/726
-      # - ./src/main/resources/db/migration/V1__init.sql:/docker-entrypoint-initdb.d/V1__init.sql
     networks:
       - default
 

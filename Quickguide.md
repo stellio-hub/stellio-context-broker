@@ -4,16 +4,16 @@
 
 The API currently exposes the following endpoints:
 
-| Object                                        | Method | Path                                             |
-| --------------------------------------------- | ------ | ------------------------------------------------ | 
-| Create an entity                              | POST   | /v2/entities                                     |
-| Update values of an entity                    | PATCH  | /v2/entities/{entityId}/attrs/                   |
-| Add properties and relationships to an entity | POST   | /v2/entities/{entityId}/attrs/ (Soon)            |
-| Update value of a property or relationship    | PATCH  | /v2/entities/{entityId}/attrs/{attrId}           |
-| Delete value of a property                    | DELETE | /v2/entities/{entityId}/attrs/{attrId} (Soon)    |
-| Delete an entity                              | DELETE | /v2/entities/{entityId}                          |
-| Search among entities                         | GET    | /v2/entities                                     |
-| Retrieve a specific entity                    | GET    | /v2/entities/{entityId}                          |
+| Object                                        | Method | Path                                                     |
+| --------------------------------------------- | ------ | -------------------------------------------------------- | 
+| Create an entity                              | POST   | /ngsi-ld/v1/entities                                     |
+| Update values of an entity                    | PATCH  | /ngsi-ld/v1/entities/{entityId}/attrs/                   |
+| Add properties and relationships to an entity | POST   | /ngsi-ld/v1/entities/{entityId}/attrs/ (Soon)            |
+| Update value of a property or relationship    | PATCH  | /ngsi-ld/v1/entities/{entityId}/attrs/{attrId}           |
+| Delete value of a property                    | DELETE | /ngsi-ld/v1/entities/{entityId}/attrs/{attrId} (Soon)    |
+| Delete an entity                              | DELETE | /ngsi-ld/v1/entities/{entityId}                          |
+| Search among entities                         | GET    | /ngsi-ld/v1/entities                                     |
+| Retrieve a specific entity                    | GET    | /ngsi-ld/v1/entities/{entityId}                          |
 
 ## NGSI-LD Entity structure
 

@@ -1,6 +1,7 @@
 package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.model.Property
+import com.egm.datahub.context.registry.util.isFloat
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -119,10 +120,14 @@ class Neo4jRepository(
     }
 
     fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Pair<String, String>>, List<Pair<String, String>>>): List<String> {
+
         val propertiesFilter =
             if (query.second.isNotEmpty())
                 query.second.joinToString(" AND ") {
-                    "(n)-[:HAS_VALUE]->({ name: '${it.first}', value: '${it.second}' })"
+                    if (it.second.isFloat())
+                        "(n)-[:HAS_VALUE]->({ name: '${it.first}', value: toFloat('${it.second}') })"
+                    else
+                        "(n)-[:HAS_VALUE]->({ name: '${it.first}', value: '${it.second}' })"
                 }
             else
                 ""

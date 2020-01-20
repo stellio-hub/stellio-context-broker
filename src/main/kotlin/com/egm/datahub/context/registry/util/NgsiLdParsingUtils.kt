@@ -240,3 +240,6 @@ fun String.toNgsiLdRelationshipKey(): String =
         else if (c == '_') ""
         else "${c.toLowerCase()}"
     }.joinToString("")
+
+fun String.isFloat(): Boolean =
+    this.matches("-?\\d+(\\.\\d+)?".toRegex())

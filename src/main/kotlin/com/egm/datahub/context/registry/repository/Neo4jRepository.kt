@@ -2,6 +2,7 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.model.Property
 import com.egm.datahub.context.registry.util.isFloat
+import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -119,15 +120,22 @@ class Neo4jRepository(
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
-    fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Pair<String, String>>, List<Pair<String, String>>>): List<String> {
-
+    fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>): List<String> {
         val propertiesFilter =
             if (query.second.isNotEmpty())
                 query.second.joinToString(" AND ") {
-                    if (it.second.isFloat())
-                        "(n)-[:HAS_VALUE]->({ name: '${it.first}', value: toFloat('${it.second}') })"
+                    if (it.third.isFloat())
+                        "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} toFloat('${it.third}')"
                     else
-                        "(n)-[:HAS_VALUE]->({ name: '${it.first}', value: '${it.second}' })"
+                        "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} '${it.third}'"
+                }
+            else
+                ""
+
+        val propertiesVariables =
+            if (query.second.isNotEmpty())
+                query.second.joinToString(", ") {
+                    "(${it.first.extractShortTypeFromExpanded()})"
                 }
             else
                 ""
@@ -135,7 +143,7 @@ class Neo4jRepository(
         val relationshipsFilter =
             if (query.first.isNotEmpty())
                 query.first.joinToString(" AND ") {
-                    "(n)-[:HAS_OBJECT]-()-[:${it.first}]->({ id: '${it.second}' })"
+                    "(n)-[:HAS_OBJECT]-()-[:${it.first}]->({ id: '${it.third}' })"
                 }
             else
                 ""
@@ -143,9 +151,12 @@ class Neo4jRepository(
         val matchClause =
             if (type.isEmpty())
                 "MATCH (n)"
-            else
-                "MATCH (n:`$type`)"
-
+            else {
+                if (propertiesVariables.isEmpty())
+                    "MATCH (n:`$type`)"
+                else
+                    "MATCH (n:`$type`), $propertiesVariables"
+            }
         val whereClause =
             if (propertiesFilter.isNotEmpty() || relationshipsFilter.isNotEmpty()) " WHERE "
             else ""

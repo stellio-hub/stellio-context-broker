@@ -27,6 +27,7 @@ import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValue
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.parseJsonLdFragment
+import com.egm.datahub.context.registry.util.extractComparaisonParametersFromQuery
 import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
 import com.egm.datahub.context.registry.util.toNgsiLdRelationshipKey
 import com.egm.datahub.context.registry.util.toRelationshipTypeName
@@ -318,20 +319,20 @@ class Neo4jService(
      */
     fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<Pair<Map<String, Any>, List<String>>> {
         val expandedType = expandJsonLdKey(type, contexts)!!
+
         val queryCriteria = query
             .map {
-                val splitted = it.split("==")
+                val splitted = extractComparaisonParametersFromQuery(it)
                 val expandedParam =
-                    if (splitted[1].startsWith("urn:"))
+                    if (splitted[2].startsWith("urn:"))
                         splitted[0].toRelationshipTypeName()
                     else
                         expandJsonLdKey(splitted[0], contexts)!!
-                Pair(expandedParam, splitted[1])
+                Triple(expandedParam, splitted[1], splitted[2])
             }
             .partition {
                 it.second.startsWith("urn:")
             }
-
         return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
             .map { getFullEntityById(it) }
     }

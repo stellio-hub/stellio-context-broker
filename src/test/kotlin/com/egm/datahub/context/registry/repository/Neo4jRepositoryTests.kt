@@ -20,54 +20,87 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should return an entity if type and string properties are correct`() {
-        createEntity("urn:ngsi-ld:Beekeeper:1230", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Pair("name", "Scalpa"))))
-        assertEquals(1, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:Beekeeper:1230")
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1230", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "=", "Scalpa"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return an empty list if string properties are wrong`() {
-        createEntity("urn:ngsi-ld:Beekeeper:1231", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Pair("name", "ScalpaXYZ"))))
-        assertEquals(0, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:Beekeeper:1231")
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1231", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "=", "ScalpaXYZ"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return an entity if type and integer properties are correct`() {
-        createEntity("urn:ngsi-ld:DeadFishes:019BN", listOf("DeadFishes"), mutableListOf(Property(name = "fishNumber", value = 500)))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Pair("fishNumber", "500"))))
-        assertEquals(1, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:DeadFishes:019BN")
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BN", listOf("DeadFishes"), mutableListOf(Property(name = "fishNumber", value = 500)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishNumber", "=", "500"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return an empty list if integer properties are wrong`() {
-        createEntity("urn:ngsi-ld:DeadFishes:019BO", listOf("DeadFishes"), mutableListOf(Property(name = "fishNumber", value = 500)))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Pair("fishNumber", "499"))))
-        assertEquals(0, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:DeadFishes:019BO")
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BO", listOf("DeadFishes"), mutableListOf(Property(name = "fishNumber", value = 500)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishNumber", "=", "499"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return an entity if type and float properties are correct`() {
-        createEntity("urn:ngsi-ld:DeadFishes:019BP", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = 120.50)))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Pair("fishWeight", "120.50"))))
-        assertEquals(1, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:DeadFishes:019BP")
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BP", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = 120.50)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishWeight", "=", "120.50"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return an empty list if float properties are wrong`() {
-        createEntity("urn:ngsi-ld:DeadFishes:019BQ", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = -120.50)))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Pair("fishWeight", "-120"))))
-        assertEquals(0, entities.size)
-        neo4jRepository.deleteEntity("urn:ngsi-ld:DeadFishes:019BQ")
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BQ", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = -120.50)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishWeight", "=", "-120"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
-    fun createEntity(id: String, type: List<String>, properties: MutableList<Property>) {
+    @Test
+    fun `it should return an empty list if given weight equals to entity weight and comparaison parameter is wrong`() {
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BR", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = 180.9)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishWeight", ">", "180.9"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an entity if given weight equals to entity weight and comparaison parameter is correct`() {
+        val entity = createEntity("urn:ngsi-ld:DeadFishes:019BS", listOf("DeadFishes"), mutableListOf(Property(name = "fishWeight", value = 255)))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("DeadFishes", Pair(listOf(), listOf(Triple("fishWeight", ">=", "255"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an empty list if given name equals to entity name and comparaison parameter is wrong`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1232", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "ScalpaXYZ")))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "<>", "ScalpaXYZ"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an entity if given name not equals to entity name and comparaison parameter is correct`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "<>", "ScalpaXYZ"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         entityRepository.save(entity)
+        return entity
     }
 }

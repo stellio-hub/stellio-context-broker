@@ -43,8 +43,14 @@
       "type": "Property",
       "value": 100,
       "unitCode": "E54",
-      "timeInterval": 1,
-      "timeIntervalUnit": "MIN",
+      "timeInterval": {
+         "type": "Property",
+         "value": 1
+      },
+      "timeIntervalUnit": {
+         "type": "Property",
+         "value": "MIN"
+      },
       "observedAt": "2019-10-26T21:32:52+02:00",
       "observedBy": {
          "type": "Relationship",
@@ -55,15 +61,21 @@
       "type": "Property",
       "value": 200,
       "unitCode": "E54",
-      "timeInterval": 1,
-      "timeIntervalUnit": "MIN",
+      "timeInterval": {
+         "type": "Property",
+         "value": 1
+      },
+      "timeIntervalUnit": {
+         "type": "Property",
+         "value": "MIN"
+      },
       "observedAt": "2019-10-26T21:32:52+02:00",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:002XIO52"
       }
-	  },
-  "batteryLevel": {
+   },
+   "batteryLevel": {
 	 "type": "Property",
 	 "value": 50,
 	 "unitCode": "VLT",
@@ -73,9 +85,9 @@
 		"object": "urn:ngsi-ld:Sensor:016352"
 	 }
   },
-      "@context": [
-         "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-         "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",
-         "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld"
-      ]
+   "@context": [
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld"
+   ]
 }

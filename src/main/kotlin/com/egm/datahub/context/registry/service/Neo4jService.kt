@@ -331,7 +331,7 @@ class Neo4jService(
                 Triple(expandedParam, splitted[1], splitted[2])
             }
             .partition {
-                it.second.startsWith("urn:")
+                it.third.startsWith("urn:")
             }
         return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
             .map { getFullEntityById(it) }

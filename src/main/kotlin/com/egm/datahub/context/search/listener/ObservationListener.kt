@@ -58,6 +58,7 @@ class ObservationListener(
                 .doOnNext {
                     logger.debug("Created observation ($it)")
                 }
+                .subscribe()
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e) }
     }

@@ -52,6 +52,12 @@ class ObservationListener(
             val ngsiLdObservation: NgsiLdObservation = mapper.readValue(content, NgsiLdObservation::class.java)
             logger.debug("Parsed observation: $ngsiLdObservation")
             observationService.create(ngsiLdObservation)
+                .doOnError {
+                    logger.error("Failed to persist observation, ignoring it", it)
+                }
+                .doOnNext {
+                    logger.debug("Created observation ($it)")
+                }
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e) }
     }

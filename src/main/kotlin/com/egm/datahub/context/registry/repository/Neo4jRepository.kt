@@ -1,5 +1,6 @@
 package com.egm.datahub.context.registry.repository
 
+import com.egm.datahub.context.registry.model.Entity
 import com.egm.datahub.context.registry.model.Property
 import com.egm.datahub.context.registry.util.isFloat
 import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
@@ -41,7 +42,6 @@ class Neo4jRepository(
             MERGE (subject:Entity { id: "$subjectId" })
             ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
         """
-
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
@@ -185,5 +185,17 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["p"] as Property }
             .firstOrNull()
+    }
+
+    fun getEntityByProperty(property: Property): Entity {
+        val query = """
+            MATCH (n:Entity)-[:HAS_VALUE]->(p:Property { id: '${property.id}' })
+            RETURN n
+        """.trimIndent()
+
+        logger.debug("Issuing query $query")
+        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
+            .map { it["n"] as Entity }
+            .first()
     }
 }

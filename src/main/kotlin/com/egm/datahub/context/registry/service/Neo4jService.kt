@@ -34,6 +34,7 @@ import com.egm.datahub.context.registry.util.toRelationshipTypeName
 import com.egm.datahub.context.registry.web.BadRequestDataException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.utils.JsonUtils
+import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
@@ -99,6 +100,7 @@ class Neo4jService(
 
     internal fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)!!
+
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
         val rawProperty = Property(
@@ -106,7 +108,9 @@ class Neo4jService(
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
             observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
         )
+
         val property = propertyRepository.save(rawProperty)
+
         entity.properties.add(property)
         entityRepository.save(entity)
 
@@ -429,9 +433,14 @@ class Neo4jService(
         if (observedProperty == null) {
             logger.warn("Found no property observed by ${observation.observedBy.target}, ignoring it")
         } else {
-            // TODO add location into Property model (https://redmine.eglobalmark.com/issues/845)
+            val observedEntity = neo4jRepository.getEntityByProperty(observedProperty)
+
             observedProperty.value = observation.value
             observedProperty.observedAt = observation.observedAt
+            observation.location?.let {
+                observedEntity.location = GeographicPoint2d(observation.location.value.coordinates[0], observation.location.value.coordinates[1])
+                entityRepository.save(observedEntity)
+            }
             propertyRepository.save(observedProperty)
         }
     }

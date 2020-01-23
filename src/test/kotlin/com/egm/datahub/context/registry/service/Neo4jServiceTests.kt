@@ -11,6 +11,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
+import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -138,21 +139,28 @@ class Neo4jServiceTests {
         val observation = gimmeAnObservation()
         val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
 
+        val mockkedEntity = mockkClass(Entity::class)
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedObservation = mockkClass(Property::class)
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation setProperty "value" value any<Double>() } answers { value }
         every { mockkedObservation setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
+        every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
+
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
+        every { neo4jRepository.getEntityByProperty(any()) } returns mockkedEntity
         every { propertyRepository.save(any<Property>()) } returns mockkedObservation
+        every { entityRepository.save(any<Entity>()) } returns mockkedEntity
 
         neo4jService.updateEntityLastMeasure(observation)
 
         verify { entityRepository.findById(sensorId) }
         verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }
+        verify { entityRepository.save(any<Entity>()) }
 
         confirmVerified()
     }
@@ -235,7 +243,7 @@ class Neo4jServiceTests {
     }
 
     @Test
-    fun `it should correctly parse a location property`() {
+    fun `it should correctly parse location property for an entity`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
         val geoPropertyMap = mapOf(

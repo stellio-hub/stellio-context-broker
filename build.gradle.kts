@@ -41,17 +41,31 @@ dependencies {
 	implementation("org.springframework.cloud:spring-cloud-stream")
 	implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
 	implementation("org.springframework.kafka:spring-kafka")
+	implementation("org.flywaydb:flyway-core")
+	// required for Flyway's direct access to the DB to apply migration scripts
+	implementation("org.springframework:spring-jdbc")
+	implementation("com.github.jsonld-java:jsonld-java:0.13.0")
+
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
+
 	runtimeOnly("io.r2dbc:r2dbc-postgresql")
 	runtimeOnly("org.postgresql:postgresql")
+
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
 	testImplementation("org.springframework.boot:spring-boot-starter-test") {
 		exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+		// to ensure we are using mocks and spies from springmockk lib instead
+		exclude(module = "mockito-core")
 	}
+	testImplementation("com.ninja-squad:springmockk:2.0.0")
 	testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
 	testImplementation("org.springframework.kafka:spring-kafka-test")
+	testImplementation("org.testcontainers:testcontainers:1.12.3")
+	testImplementation("org.testcontainers:postgresql:1.12.3")
+	testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
 }
 
 dependencyManagement {
@@ -61,13 +75,23 @@ dependencyManagement {
 	}
 }
 
-tasks.withType<Test> {
-	useJUnitPlatform()
-}
+defaultTasks("bootRun")
 
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
 		freeCompilerArgs = listOf("-Xjsr305=strict")
 		jvmTarget = "1.8"
+	}
+}
+
+tasks.bootRun {
+	environment("SPRING_PROFILES_ACTIVE", "dev")
+}
+
+tasks.withType<Test> {
+	environment("SPRING_PROFILES_ACTIVE", "test")
+	useJUnitPlatform()
+	testLogging {
+		events("passed", "skipped", "failed")
 	}
 }

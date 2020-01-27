@@ -1,0 +1,27 @@
+{
+  "id":"urn:ngsi-ld:FeedingService:018z59",
+  "type":"FeedingService",
+  "executes":{
+    "type":"Relationship",
+    "object":"urn:ngsi-ld:Feeder:018z5",
+    "createdAt":"2018-11-26T21:32:52+02:00"
+  },
+  "foodQuantity":{
+    "type":"Property",
+    "value":"100",
+    "unitCode":"kg"
+  },
+  "foodName":{
+    "type":"Property",
+    "value":"dietary fibres"
+  },
+  "target":{
+    "type":"Relationship",
+    "object":"urn:ngsi-ld:FishContainment:0012"
+  },
+  "@context": [
+    "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+    "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+  ]
+}

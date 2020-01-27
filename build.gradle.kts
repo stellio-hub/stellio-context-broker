@@ -103,7 +103,7 @@ tasks.withType<Test> {
 
 jib {
     from {
-        image = "openjdk:alpine"
+        image = "adoptopenjdk/openjdk11:alpine-jre"
     }
     to {
         image = "easyglobalmarket/context-registry"

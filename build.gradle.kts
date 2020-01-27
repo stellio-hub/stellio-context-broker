@@ -5,6 +5,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.0.8.RELEASE"
 	kotlin("jvm") version "1.3.61"
 	kotlin("plugin.spring") version "1.3.61"
+	id("com.google.cloud.tools.jib") version "1.6.1"
 }
 
 group = "com.egm.datahub"
@@ -93,5 +94,19 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 	testLogging {
 		events("passed", "skipped", "failed")
+	}
+}
+
+jib {
+	from {
+		image = "adoptopenjdk/openjdk11:alpine-jre"
+	}
+	to {
+		image = "easyglobalmarket/context-subscription"
+	}
+	container {
+		jvmFlags = listOf("-Xms512m")
+		ports = listOf("8084")
+		creationTime = "USE_CURRENT_TIMESTAMP"
 	}
 }

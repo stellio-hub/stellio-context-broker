@@ -10,9 +10,7 @@ data class Observation(
     val location: GeoProperty? = null,
     val unitCode: String,
     val value: Double,
-    val observedAt: OffsetDateTime,
-    @JsonProperty("@context")
-    val contexts: List<String>
+    val observedAt: OffsetDateTime
 )
 
 data class ObservedBy(

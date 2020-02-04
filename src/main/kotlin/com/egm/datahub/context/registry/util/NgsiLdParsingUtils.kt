@@ -84,6 +84,13 @@ object NgsiLdParsingUtils {
         return Pair(expandedEntity as Map<String, Any>, parsedInput["@context"] as List<String>)
     }
 
+    fun parseEntities(entities: List<Map<String, Any>>): List<Pair<Map<String, Any>, List<String>>> {
+        val mapper = jacksonObjectMapper()
+        return entities.map {
+            parseEntity(mapper.writeValueAsString(it))
+        }
+    }
+
     fun parseJsonLdFragment(input: String): Map<String, Any> {
         val mapper = jacksonObjectMapper()
         return mapper.readValue(input, mapper.typeFactory.constructMapLikeType(

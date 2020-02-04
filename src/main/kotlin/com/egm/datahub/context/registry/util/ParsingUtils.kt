@@ -1,5 +1,8 @@
 package com.egm.datahub.context.registry.util
 
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.parseEntities
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
 fun extractComparaisonParametersFromQuery(query: String): ArrayList<String> {
     val splitted = ArrayList<String>()
     if (query.contains("==")) {
@@ -28,4 +31,14 @@ fun extractComparaisonParametersFromQuery(query: String): ArrayList<String> {
         splitted.add(query.split("<")[1])
     }
     return splitted
+}
+
+fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {
+    val mapper = jacksonObjectMapper()
+    return mapper.readValue(payload, mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java))
+}
+
+fun extractAndParseBatchOfEntities(payload: String): List<Pair<Map<String, Any>, List<String>>> {
+    val extractedEntities = extractEntitiesFromJsonPayload(payload)
+    return parseEntities(extractedEntities)
 }

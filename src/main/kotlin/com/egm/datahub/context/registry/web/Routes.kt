@@ -7,7 +7,8 @@ import org.springframework.web.reactive.function.server.router
 
 @Configuration
 class Routes(
-    private val entityHandler: EntityHandler
+    private val entityHandler: EntityHandler,
+    private val entityOperationHandler: EntityOperationHandler
 ) {
 
     @Bean
@@ -22,6 +23,7 @@ class Routes(
                         PATCH("/{entityId}/attrs", entityHandler::updateEntityAttributes)
                         POST("/{entityId}/attrs", entityHandler::appendEntityAttributes)
                         DELETE("/{entityId}", entityHandler::delete)
+                        POST("/entityOperations/create", entityOperationHandler::create)
                     }
         }
     }

@@ -1,0 +1,383 @@
+[
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "temperature"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "dissolvedOxygen"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygenMG",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "dissolvedOxygenMG"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygenPPM",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "dissolvedOxygenPPM"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1pH",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "pH"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1redoxPotential",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "redoxPotential"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1pHmV",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "pHmV"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1conductivity",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "conductivity"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1salinity",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "salinity"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1totalDissolvedSolids",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "totalDissolvedSolids"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidity",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "turbidity"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidityFNU",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "turbidityFNU"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidityMG",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "turbidityMG"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:FishContainment:HCMR-TANK1",
+    "type": "FishContainment",
+    "temperature": {
+      "type": "Property",
+      "value": 28.98,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+      }
+    },
+    "dissolvedOxygen": {
+      "type": "Property",
+      "value": 128.69,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
+      }
+    },
+    "dissolvedOxygenMG": {
+      "type": "Property",
+      "value": 9.86,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygenMG"
+      }
+    },
+    "dissolvedOxygenPPM": {
+      "type": "Property",
+      "value": 9.86,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygenPPM"
+      }
+    },
+    "pH": {
+      "type": "Property",
+      "value": 6.99,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1pH"
+      }
+    },
+    "redoxPotential": {
+      "type": "Property",
+      "value": 320.89,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1redoxPotential"
+      }
+    },
+    "pHmV": {
+      "type": "Property",
+      "value": 0,
+      "unitCode": "2Z",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1pHmV"
+      }
+    },
+    "conductivity": {
+      "type": "Property",
+      "value": 48537,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1conductivity"
+      }
+    },
+    "salinity": {
+      "type": "Property",
+      "value": 31.66,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1salinity"
+      }
+    },
+    "totalDissolvedSolids": {
+      "type": "Property",
+      "value": 31651,
+      "unitCode": "N/A",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1totalDissolvedSolids"
+      }
+    },
+    "turbidity": {
+      "type": "Property",
+      "value": 7,
+      "unitCode": "NTU",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidity"
+      }
+    },
+    "turbidityFNU": {
+      "type": "Property",
+      "value": 7,
+      "unitCode": "FNU",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidityFNU"
+      }
+    },
+    "turbidityMG": {
+      "type": "Property",
+      "value": 165,
+      "unitCode": "M1",
+      "observedAt": "2020-01-16T13:44:38.000Z",
+      "observedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1turbidityMG"
+      }
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+    "type": "Device",
+    "brandName": {
+      "type": "Property",
+      "value": "BIOCEANOR"
+    },
+    "monitors": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:FishContainment:HCMR-TANK1"
+    },
+    "calibrationDate": {
+      "type": "Property",
+      "value": "2020-01-13T10:00:00+02:00"
+    },
+    "@context": [
+      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
+      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  }
+]

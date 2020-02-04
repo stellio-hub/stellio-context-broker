@@ -12,16 +12,7 @@ class ObservationService(
     private val contextRegistryService: ContextRegistryService
 ) {
 
-    fun create(ngsiLdObservation: NgsiLdObservation): Mono<Int> {
-        val observation = Observation(
-            observedBy = ngsiLdObservation.observedBy.target,
-            observedAt = ngsiLdObservation.observedAt,
-            value = ngsiLdObservation.value,
-            unitCode = ngsiLdObservation.unitCode,
-            latitude = ngsiLdObservation.location?.value?.coordinates?.get(0),
-            longitude = ngsiLdObservation.location?.value?.coordinates?.get(1)
-        )
-
+    fun create(observation: Observation): Mono<Int> {
         return databaseClient.insert()
             .into(Observation::class.java)
             .using(observation)

@@ -2,18 +2,24 @@ package com.egm.datahub.context.search.service
 
 import com.beust.klaxon.JsonReader
 import com.egm.datahub.context.search.exception.InvalidNgsiLdPayloadException
-import com.egm.datahub.context.search.model.Entity
-import com.egm.datahub.context.search.model.NgsiLdObservation
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.egm.datahub.context.search.model.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.io.StringReader
+import java.time.OffsetDateTime
 
 @Component
 class NgsiLdParsingService {
 
     private val logger = LoggerFactory.getLogger(NgsiLdParsingService::class.java)
+
+    private var mapper = jacksonObjectMapper()
+
+    init {
+        // TODO check if this registration is still required
+        mapper.findAndRegisterModules()
+    }
 
     data class JsonLdContext(
         val name: String,
@@ -60,14 +66,35 @@ class NgsiLdParsingService {
         return false
     }
 
-    fun parseObservation(observationPayload: String): NgsiLdObservation {
-        val mapper = jacksonObjectMapper()
-        mapper.registerModule(JavaTimeModule())
-        try {
-            return mapper.readValue(observationPayload, NgsiLdObservation::class.java)
-        } catch (e: Exception) {
-            throw InvalidNgsiLdPayloadException("Unable to parse received observation: ${e.message}")
-        }
+    fun parseTemporalPropertyUpdate(content: String): Observation {
+        val rawParsedData = mapper.readTree(content)
+        val propertyName = rawParsedData.fieldNames().next()
+        val propertyValues = rawParsedData[propertyName]
+
+        logger.debug("Received property $rawParsedData (values: $propertyValues)")
+        val isContentValid = listOf("type", "value", "unitCode", "observedAt", "observedBy")
+            .map { propertyValues.has(it) }
+            .all { it }
+        if (!isContentValid)
+            throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
+
+        val location =
+            if (propertyValues["location"] != null) {
+                val coordinates = propertyValues["location"]["value"]["coordinates"].asIterable()
+                Pair(coordinates.first().asDouble(), coordinates.last().asDouble())
+            } else {
+                null
+            }
+
+        return Observation(
+            attributeName = propertyName,
+            observedBy = propertyValues["observedBy"]["object"].asText(),
+            observedAt = OffsetDateTime.parse(propertyValues["observedAt"].asText()),
+            value = propertyValues["value"].asDouble(),
+            unitCode = propertyValues["unitCode"].asText(),
+            latitude = location?.first,
+            longitude = location?.second
+        )
     }
 
     // TODO : it is a basic yet enough parsing logic for current needs

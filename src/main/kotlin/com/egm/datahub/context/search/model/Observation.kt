@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import javax.validation.constraints.NotNull
 
 data class Observation(
+    @NotNull val attributeName: String,
     @NotNull val observedBy: String,
     @NotNull val observedAt: OffsetDateTime,
     @NotNull val value: Double,

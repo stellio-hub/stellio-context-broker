@@ -22,7 +22,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
-import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -79,12 +78,12 @@ class ObservationServiceTests {
         confirmVerified(contextRegistryService)
     }
 
-    private fun gimmeObservation(): NgsiLdObservation {
-        return NgsiLdObservation(
-            id = UUID.randomUUID().toString(),
-            type = "Observation",
-            location = GeoProperty(type = "GeoProperty", value = Value(type = "Point", coordinates = listOf(43.12, 65.43))),
-            observedBy = ObservedBy(type = "Relationship", target = sensorId),
+    private fun gimmeObservation(): Observation {
+        return Observation(
+            attributeName = "incoming",
+            latitude = 43.12,
+            longitude = 65.43,
+            observedBy = sensorId,
             unitCode = "CEL",
             value = 12.4,
             observedAt = observationDateTime

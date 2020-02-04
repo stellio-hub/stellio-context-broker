@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.*
 import org.springframework.web.reactive.function.BodyInserters
@@ -20,6 +21,7 @@ import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 class TemporalEntityHandlerTests {
 
     @Autowired
@@ -44,7 +46,7 @@ class TemporalEntityHandlerTests {
                 .expectStatus().isNoContent
 
         verify { observationService.create(match {
-            it.observedBy.target == "urn:sosa:Sensor:10e2073a01080065"
+            it.observedBy == "urn:sosa:Sensor:10e2073a01080065"
         }) }
         confirmVerified(observationService)
     }
@@ -54,7 +56,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-                .body(BodyInserters.fromValue("{ 'id': 'bad' }"))
+                .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
                 .accept(MediaType.valueOf("application/ld+json"))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()

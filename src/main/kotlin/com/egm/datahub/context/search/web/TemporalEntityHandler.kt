@@ -32,7 +32,7 @@ class TemporalEntityHandler(
     fun addAttrs(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono(String::class.java)
                 .map {
-                    ngsiLdParsingService.parseObservation(it)
+                    ngsiLdParsingService.parseTemporalPropertyUpdate(it)
                 }
                 .flatMap {
                     observationService.create(it)

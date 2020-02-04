@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntitiesListener::class ])
 @ActiveProfiles("test")
@@ -27,17 +26,15 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
+        val coordinatesExpected = mapOf("type" to "Point", "coordinates" to listOf(40, 40))
+        val locationExpected = mapOf("type" to "GeoProperty", "value" to coordinatesExpected)
+        val observedByExpected = mapOf("type" to "Relationship", "object" to "urn:ngsi-ld:Sensor:01XYZ")
+        val valuesExpected = mapOf("type" to "Property", "value" to 1, "unitCode" to "CEL", "observedAt" to "2000-11-26T19:32:52Z",
+                                    "observedBy" to observedByExpected, "location" to locationExpected)
+
         verify { neo4jService.updateEntityLastMeasure(match { observation ->
-                observation.id == "urn:ngsi-ld:Observation:00YFZF" &&
-                observation.type == "Observation" &&
-                observation.unitCode == "%" &&
-                observation.value == 50.0 &&
-                observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2018-11-26T19:32:52Z" &&
-                observation.observedBy.type == "Relationship" &&
-                observation.observedBy.target == "urn:ngsi-ld:Sensor:013YFZ" &&
-                observation.location!!.type == "GeoProperty" &&
-                observation.location!!.value.type == "Point" &&
-                observation.location!!.value.coordinates == listOf(-8.5, 41.2)
+                observation.key == "temperature" &&
+                observation.value as Map<String, Any> == valuesExpected
         }) }
         confirmVerified(neo4jService)
     }

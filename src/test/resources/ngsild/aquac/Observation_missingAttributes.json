@@ -1,17 +1,7 @@
 {
-   "id":"urn:ngsi-ld:Observation:00YFZF",
-   "type":"Observation",
-   "observedAt":"2018-11-26T21:32:52+02:00",
-   "value":50,
-   "unitCode":"%",
-   "location":{
-      "type":"GeoProperty",
-      "value":{
-         "type":"Point",
-         "coordinates":[
-            -8.5,
-            41.2
-         ]
-      }
+   "temperature": {
+      "type": "Property",
+      "value": ,
+      "unitCode": "CEL"
    }
 }

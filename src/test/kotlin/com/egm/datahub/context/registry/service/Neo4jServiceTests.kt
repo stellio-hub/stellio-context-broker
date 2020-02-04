@@ -106,7 +106,7 @@ class Neo4jServiceTests {
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { entityRepository.findById("urn:ngsi-ld:Sensor:013YFZ") }
+        verify { entityRepository.findById("urn:ngsi-ld:Sensor:01XYZ") }
 
         confirmVerified(entityRepository)
     }
@@ -114,7 +114,7 @@ class Neo4jServiceTests {
     @Test
     fun `it should do nothing if temporal property is not found`() {
         val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
 
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedObservation = mockkClass(Property::class)
@@ -137,7 +137,8 @@ class Neo4jServiceTests {
     @Test
     fun `it should update an existing measure`() {
         val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
+        val observationName = "temperature"
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedSensor = mockkClass(Entity::class)
@@ -146,6 +147,7 @@ class Neo4jServiceTests {
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation setProperty "value" value any<Double>() } answers { value }
         every { mockkedObservation setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
+        every { mockkedObservation getProperty "name" } returns observationName
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
 
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
@@ -448,11 +450,13 @@ class Neo4jServiceTests {
         confirmVerified()
     }
 
-    private fun gimmeAnObservation(): Observation {
-        val observation = ClassPathResource("/ngsild/aquac/Observation.json")
+    private fun gimmeAnObservation(): Map.Entry<String, Any> {
+        val observationFile = ClassPathResource("/ngsild/aquac/Observation.json")
         val mapper = jacksonObjectMapper()
         mapper.findAndRegisterModules()
-        return mapper.readValue(observation.inputStream, Observation::class.java)
+        val observation: Map<String, Any> = mapper.readValue(observationFile.inputStream, mapper.typeFactory.constructMapLikeType(
+            Map::class.java, String::class.java, Any::class.java))
+        return observation.entries.iterator().next()
     }
 
     private fun loadAndParseSampleData(filename: String): Pair<Map<String, Any>, List<String>> {

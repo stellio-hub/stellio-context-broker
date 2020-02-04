@@ -1,6 +1,5 @@
 package com.egm.datahub.context.registry.service
 
-import com.egm.datahub.context.registry.model.Observation
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -51,9 +50,10 @@ class EntitiesListener(
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
         try {
-            val observation: Observation = mapper.readValue(content, Observation::class.java)
+            val observation: Map<String, Any> = mapper.readValue(content, mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java))
             logger.debug("Parsed observation: $observation")
-            neo4jService.updateEntityLastMeasure(observation)
+            neo4jService.updateEntityLastMeasure(observation.entries.iterator().next())
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e)
         }

@@ -27,4 +27,16 @@ class Property(
 
         return resultEntity
     }
+
+    fun updateValues(unitCode: String?, value: Any?, observedAt: OffsetDateTime?) {
+        unitCode?.let {
+            this.unitCode = unitCode
+        }
+        value?.let {
+            this.value = value
+        }
+        observedAt?.let {
+            this.observedAt = observedAt
+        }
+    }
 }

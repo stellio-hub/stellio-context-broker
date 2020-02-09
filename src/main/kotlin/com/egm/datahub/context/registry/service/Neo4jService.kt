@@ -432,26 +432,125 @@ class Neo4jService(
         return neo4jRepository.updateEntityAttribute(id, expandedAttributeName, attributeValue)
     }
 
-    fun updateEntityAttributes(id: String, payload: String, contextLink: String): List<Int> {
+    fun updateEntityAttributes(id: String, payload: String, contextLink: String): UpdateResult {
+        val updatedAttributes = mutableListOf<String>()
+        val notUpdatedAttributes = mutableListOf<NotUpdatedDetails>()
+        val entity = entityRepository.findById(id).get()
+
         val expandedPayload = expandJsonLdFragment(payload, contextLink)
         logger.debug("Expanded entity fragment to $expandedPayload (in $contextLink context)")
-        return expandedPayload.map {
-            // TODO check existence before eventually replacing (https://redmine.eglobalmark.com/issues/849)
-            val attributeValue = expandValueAsMap(it.value)
-            val attributeType = attributeValue["@type"]!![0]
-            logger.debug("Fragment is of type $attributeType")
-            if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
-                val relationshipTypeName = it.key.extractShortTypeFromExpanded()
-                neo4jRepository.deleteRelationshipFromEntity(id, relationshipTypeName.toRelationshipTypeName())
-                createEntityRelationship(
-                    entityRepository.findById(id).get(), it.key, attributeValue,
-                    getRelationshipObjectId(expandValueAsMap(it.value)))
-            } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                neo4jRepository.deletePropertyFromEntity(id, it.key)
-                createEntityProperty(entityRepository.findById(id).get(), it.key, attributeValue)
+        expandedPayload.forEach {
+            val shortAttributeName = it.key.extractShortTypeFromExpanded()
+            try {
+                val attributeValue = expandValueAsMap(it.value)
+                val attributeType = attributeValue["@type"]!![0]
+                logger.debug("Trying to update attribute $shortAttributeName of type $attributeType")
+                if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
+                    if (neo4jRepository.hasRelationshipOfType(id, it.key.toRelationshipTypeName())) {
+                        updateRelationshipOfEntity(entity, it.key, attributeValue, getRelationshipObjectId(expandValueAsMap(it.value)))
+                        updatedAttributes.add(shortAttributeName)
+                    } else
+                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
+                } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
+                    if (neo4jRepository.hasPropertyOfName(id, it.key)) {
+                        updatePropertyOfEntity(entity, it.key, attributeValue)
+                        updatedAttributes.add(shortAttributeName)
+                    } else
+                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
+                }
+            } catch (e: BadRequestDataException) {
+                notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName,
+                    e.message ?: "Unexpected error while updating property $shortAttributeName"))
             }
-            1
-        }.toList()
+        }
+        return UpdateResult(updatedAttributes, notUpdatedAttributes)
+    }
+
+    private fun updatePropertyOfEntity(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
+        val property = updatePropertyValues(entity.id, propertyKey, propertyValues)
+        updatePropertiesOfAttribute(property, propertyValues)
+        updateRelationshipsOfAttribute(property, propertyValues)
+
+        return property
+    }
+
+    private fun updatePropertyValues(subjectId: String, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
+        val unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY)
+        val value = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE) ?: propertyValues["@value"]!!
+        val observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
+
+        val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey)
+        property.updateValues(unitCode, value, observedAt)
+
+        return propertyRepository.save(property)
+    }
+
+    private fun updateRelationshipOfEntity(
+        entity: Entity,
+        relationshipType: String,
+        relationshipValues: Map<String, List<Any>>,
+        targetEntityId: String
+    ): Relationship {
+        val relationship = updateRelationshipValues(entity.id, relationshipType, relationshipValues, targetEntityId)
+        updatePropertiesOfAttribute(relationship, relationshipValues)
+        updateRelationshipsOfAttribute(relationship, relationshipValues)
+
+        return relationship
+    }
+
+    private fun updateRelationshipValues(
+        subjectId: String,
+        relationshipType: String,
+        relationshipValues: Map<String, List<Any>>,
+        targetEntityId: String
+    ): Relationship {
+
+        if (!entityRepository.findById(targetEntityId).isPresent)
+            throw BadRequestDataException("Target entity $targetEntityId does not exist, create it first")
+
+        val relationship = neo4jRepository.getRelationshipOfSubject(subjectId, relationshipType.toRelationshipTypeName())
+        val oldRelationshipTarget = neo4jRepository.getRelationshipTargetOfSubject(subjectId, relationshipType.toRelationshipTypeName())
+        relationship.observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
+        neo4jRepository.updateRelationshipTargetOfAttribute(relationship.id, relationshipType.toRelationshipTypeName(),
+            oldRelationshipTarget.id, targetEntityId)
+
+        return relationshipRepository.save(relationship)
+    }
+
+    private fun updatePropertiesOfAttribute(subject: Attribute, values: Map<String, List<Any>>) {
+        values.filterValues {
+            it[0] is Map<*, *>
+        }
+        .mapValues {
+            expandValueAsMap(it.value)
+        }
+        .filter {
+            !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
+                    isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
+        }
+        .forEach { entry ->
+            if (!neo4jRepository.hasPropertyOfName(subject.id, entry.key))
+                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} does not exist")
+            updatePropertyValues(subject.id, entry.key, entry.value)
+        }
+    }
+
+    private fun updateRelationshipsOfAttribute(subject: Attribute, values: Map<String, List<Any>>) {
+        values.forEach { propEntry ->
+            val propEntryValue = propEntry.value[0]
+            logger.debug("Looking at prop entry ${propEntry.key} with value $propEntryValue")
+            if (propEntryValue is Map<*, *>) {
+                val propEntryValueMap = propEntryValue as Map<String, List<Any>>
+                if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
+                    if (!neo4jRepository.hasRelationshipOfType(subject.id, propEntry.key.toRelationshipTypeName()))
+                        throw BadRequestDataException("Relationship ${propEntry.key.toRelationshipTypeName()} does not exist")
+                    val objectId = getRelationshipObjectId(propEntryValueMap)
+                    updateRelationshipValues(subject.id, propEntry.key, propEntryValueMap, objectId)
+                }
+            } else {
+                logger.debug("Ignoring ${propEntry.key} entry as it can't be a relationship ($propEntryValue)")
+            }
+        }
     }
 
     fun deleteEntity(entityId: String): Pair<Int, Int> {

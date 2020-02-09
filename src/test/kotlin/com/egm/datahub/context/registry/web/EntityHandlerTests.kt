@@ -233,9 +233,10 @@ class EntityHandlerTests {
     @Test
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
-        val entityId = "urn:ngsi-ld:Specie:021XA"
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
 
-        every { neo4jService.updateEntityAttributes(any(), any(), any()) } returns listOf(1)
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf())
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -245,6 +246,50 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
+        verify { neo4jService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { neo4jService.updateEntityAttributes(eq(entityId), any(), eq(aquacContext!!)) }
+        confirmVerified(neo4jService)
+    }
+
+    @Test
+    fun `entity attributes update should return a 207 if some attributes are not found`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_attributeNotFound.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        val notUpdatedAttribute = NotUpdatedDetails("unknownAttribute", "Property Not Found")
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(207)
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { neo4jService.updateEntityAttributes(eq(entityId), any(), eq(aquacContext!!)) }
+        confirmVerified(neo4jService)
+    }
+
+    @Test
+    fun `entity attributes update should return a 207 if some relationships objects are not found`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        val notUpdatedAttribute = NotUpdatedDetails("removedFrom",
+            "Target entity unknownObject in property does not exist, create it first")
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify { neo4jService.updateEntityAttributes(eq(entityId), any(), eq(aquacContext!!)) }
         confirmVerified(neo4jService)
     }
@@ -261,14 +306,14 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-
-        verify { neo4jService wasNot Called }
     }
 
     @Test
-    fun `entity attributes update should return a 400 if entity type is unknown`() {
+    fun `entity attributes update should return a 404 if entity type is unknown`() {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
         val entityId = "urn:ngsi-ld:UnknownType:0022CCC"
+
+        every { neo4jService.exists(any()) } returns false
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -276,9 +321,9 @@ class EntityHandlerTests {
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isNotFound
 
-        verify { neo4jService wasNot Called }
+        verify { neo4jService.exists(eq("urn:ngsi-ld:UnknownType:0022CCC")) }
     }
 
     @Test

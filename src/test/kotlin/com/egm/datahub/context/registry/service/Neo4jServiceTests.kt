@@ -171,7 +171,9 @@ class Neo4jServiceTests {
     fun `it should replace an existing relationship`() {
 
         val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
-        val relationshipId = UUID.randomUUID().toString()
+        val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac"
+        val relationshipTargetId = "urn:ngsi-ld:FishContainment:8792"
+
         val payload = """
             {
               "filledIn": {
@@ -182,26 +184,30 @@ class Neo4jServiceTests {
         """.trimIndent()
 
         val mockkedSensor = mockkClass(Entity::class)
+        val mockkedRelationshipTarget = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.relationships } returns mutableListOf()
+        every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
+        every { mockkedRelationshipTarget.id } returns relationshipTargetId
+        every { mockkedRelationship setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
 
-        every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
+        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
+        every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
+        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedRelationshipTarget
+        every { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) } returns Pair(1, 1)
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
-        every { relationshipRepository.save(match<Relationship> {
-            it.type == listOf("https://ontology.eglobalmark.com/aquac#filledIn")
-        }) } returns mockkedRelationship
-        every { entityRepository.save(match<Entity> { it.id == sensorId }) } returns mockkedSensor
-
-        every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
+        every { relationshipRepository.save(any<Relationship>()) } returns mockkedRelationship
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
-        verify { neo4jRepository.deleteRelationshipFromEntity(eq(sensorId), "FILLED_IN") }
+        verify { neo4jRepository.hasRelationshipOfType(any(), any()) }
+        verify { neo4jRepository.getRelationshipOfSubject(any(), any()) }
+        verify { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) }
+        verify { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) }
         verify { entityRepository.findById(eq(sensorId)) }
-        verify { neo4jRepository.createRelationshipToEntity(eq(relationshipId), "FILLED_IN", "urn:ngsi-ld:FishContainment:1234") }
+        verify { relationshipRepository.save(mockkedRelationship) }
 
         confirmVerified()
     }
@@ -210,7 +216,7 @@ class Neo4jServiceTests {
     fun `it should replace an existing property`() {
 
         val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
-        val payload = """
+            val payload = """
             {
               "fishAge": {
                 "type": "Property",
@@ -223,23 +229,24 @@ class Neo4jServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedPropertyEntity = mockkClass(Property::class)
 
-        every { mockkedSensor.properties } returns mutableListOf()
+        every { mockkedSensor.id } returns sensorId
+        every { mockkedPropertyEntity setProperty "value" value any<Double>() } answers { value }
+        every { mockkedPropertyEntity setProperty "unitCode" value any<String>() } answers { value }
+        every { mockkedPropertyEntity setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
 
-        every { neo4jRepository.deletePropertyFromEntity(any(), any()) } returns 1
+        every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
+        every { neo4jRepository.getPropertyOfSubject(any(), any()) } returns mockkedPropertyEntity
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
-        every { entityRepository.save(any<Entity>()) } returns mockkedSensor
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
-        verify { neo4jRepository.deletePropertyFromEntity(eq(sensorId), "https://ontology.eglobalmark.com/aquac#fishAge") }
+        verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
+        verify { neo4jRepository.hasPropertyOfName(any(), any()) }
+        verify { neo4jRepository.getPropertyOfSubject(any(), any()) }
         verify { entityRepository.findById(eq(sensorId)) }
-        verify { propertyRepository.save(match<Property> {
-            it.name == "https://ontology.eglobalmark.com/aquac#fishAge" &&
-                it.value == 5 &&
-                it.unitCode == "months"
-        }) }
-        verify { entityRepository.save(any<Entity>()) }
+        verify { propertyRepository.save(mockkedPropertyEntity) }
 
         confirmVerified()
     }

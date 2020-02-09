@@ -2,6 +2,7 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.model.Entity
 import com.egm.datahub.context.registry.model.Property
+import com.egm.datahub.context.registry.model.Relationship
 import com.egm.datahub.context.registry.util.isFloat
 import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.session.Session
@@ -55,22 +56,22 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
-    fun hasRelationshipOfType(entityId: String, relationshipType: String): Boolean {
+    fun hasRelationshipOfType(attributeId: String, relationshipType: String): Boolean {
         val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
-            RETURN n.id
+            MATCH (a { id: '$attributeId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            RETURN a.id
         """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>()).toList().isNotEmpty()
+        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
 
-    fun hasPropertyOfName(entityId: String, propertyName: String): Boolean {
+    fun hasPropertyOfName(attributeId: String, propertyName: String): Boolean {
         val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
-            RETURN n.id
+            MATCH (a { id: '$attributeId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
+            RETURN a.id
         """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>()).toList().isNotEmpty()
+        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
 
     @Transactional
@@ -91,6 +92,33 @@ class Neo4jRepository(
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
+    }
+
+    @Transactional
+    fun updateRelationshipTargetOfAttribute(
+        attributeId: String,
+        relationshipType: String,
+        oldRelationshipObjectId: String,
+        newRelationshipObjectId: String
+    ): Pair<Int, Int> {
+        val hasObjectQuery = """
+            MATCH (a:Attribute { id: "$attributeId" })-[v:HAS_OBJECT]->(e:Entity { id: '$oldRelationshipObjectId' }),
+                  (target:Entity { id: "$newRelationshipObjectId" })
+            DETACH DELETE v
+            MERGE (a)-[:HAS_OBJECT]->(target)
+        """.trimIndent()
+
+        val relationshipTypeQuery = """
+            MATCH (a:Attribute { id: "$attributeId" })-[v:$relationshipType]->(e:Entity { id: '$oldRelationshipObjectId' }),
+                  (target:Entity { id: "$newRelationshipObjectId" })
+            DETACH DELETE v
+            MERGE (a)-[:$relationshipType]->(target)
+        """.trimIndent()
+
+        val objectQueryStatistics = session.query(hasObjectQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
+        val relationshipTypeQueryStatistics = session.query(relationshipTypeQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
+
+        return Pair(objectQueryStatistics, relationshipTypeQueryStatistics)
     }
 
     @Transactional
@@ -196,6 +224,39 @@ class Neo4jRepository(
         logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["n"] as Entity }
+            .first()
+    }
+
+    fun getPropertyOfSubject(subjectId: String, propertyName: String): Property {
+        val query = """
+            MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
+            RETURN p
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
+            .map { it["p"] as Property }
+            .first()
+    }
+
+    fun getRelationshipOfSubject(subjectId: String, relationshipType: String): Relationship {
+        val query = """
+            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
+            RETURN r
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
+            .map { it["r"] as Relationship }
+            .first()
+    }
+
+    fun getRelationshipTargetOfSubject(subjectId: String, relationshipType: String): Entity {
+        val query = """
+            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
+            RETURN e
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
+            .map { it["e"] as Entity }
             .first()
     }
 }

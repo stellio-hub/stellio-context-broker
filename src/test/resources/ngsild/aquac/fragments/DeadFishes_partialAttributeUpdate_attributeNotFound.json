@@ -1,0 +1,10 @@
+{
+  "fishNumber":{
+    "type":"Property",
+    "value":600
+  },
+  "unknownAttribute":{
+    "type":"Property",
+    "value":"unkwnow"
+  }
+}

@@ -134,13 +134,14 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
-            .map {
+            .doOnNext {
                 if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
                     throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
                 }
 
                 if (!neo4jService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-
+            }
+            .map {
                 NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
             }
             .map {
@@ -172,15 +173,22 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
-            .map {
+            .doOnNext {
+                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity $uri does not exist")
+
                 if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
                     throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
                 }
+            }
+            .map {
                 neo4jService.updateEntityAttributes(uri, it, contextLink)
             }
             .flatMap {
-                logger.debug("Updated ${it.size} attributes on entity $uri")
-                status(HttpStatus.NO_CONTENT).build()
+                logger.debug("Update $it attributes on entity $uri")
+                if (it.notUpdated.isEmpty())
+                    status(HttpStatus.NO_CONTENT).build()
+                else
+                    status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
             }
             .onErrorResume {
                 when (it) {

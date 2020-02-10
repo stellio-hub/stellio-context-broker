@@ -15,12 +15,15 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.RuntimeException
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@WithMockUser
 class EntityHandlerTests {
 
     @Value("\${application.jsonld.aquac_context}")
@@ -363,5 +366,16 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
             .expectBody().json("{\"ProblemDetails\":[\"Unexpected server error\"]}")
+    }
+
+    @Test
+    @WithAnonymousUser
+    fun `it should not authorize an anonymous to call the API`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isForbidden
     }
 }

@@ -36,7 +36,7 @@ class EntityOperationHandlerTests {
         every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
-                .uri("/ngsi-ld/v1/entities/entityOperations/create")
+                .uri("/ngsi-ld/v1/entityOperations/create")
                 .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
@@ -61,7 +61,7 @@ class EntityOperationHandlerTests {
         every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities/entityOperations/create")
+            .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
@@ -87,7 +87,7 @@ class EntityOperationHandlerTests {
         every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities/entityOperations/create")
+            .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
@@ -119,7 +119,7 @@ class EntityOperationHandlerTests {
         every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities/entityOperations/create")
+            .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
@@ -146,7 +146,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entities/entityOperations/create")
+            .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)

@@ -23,7 +23,9 @@ class Routes(
                         PATCH("/{entityId}/attrs", entityHandler::updateEntityAttributes)
                         POST("/{entityId}/attrs", entityHandler::appendEntityAttributes)
                         DELETE("/{entityId}", entityHandler::delete)
-                        POST("/entityOperations/create", entityOperationHandler::create)
+                    }
+                    "/entityOperations".nest {
+                        POST("/create", entityOperationHandler::create)
                     }
         }
     }

@@ -13,6 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.security.test.context.support.WithAnonymousUser
+import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.*
@@ -22,6 +24,7 @@ import java.time.OffsetDateTime
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@WithMockUser
 class TemporalEntityHandlerTests {
 
     @Autowired
@@ -133,7 +136,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if parameters are valid`() {
 
-        every { observationService.search(any()) } returns Mono.just(Entity())
+        every { observationService.search(any(), any()) } returns Mono.just(Entity())
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -145,7 +148,7 @@ class TemporalEntityHandlerTests {
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                 temporalQuery.entityId == "entityId" &&
                 temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }) }
+        }, any()) }
         confirmVerified(observationService)
     }
 
@@ -168,7 +171,7 @@ class TemporalEntityHandlerTests {
             }
         """.trimIndent().replace("\n", "").replace(" ", "")
 
-        every { observationService.search(any()) } returns Mono.just(entity)
+        every { observationService.search(any(), any()) } returns Mono.just(entity)
 
         webClient.get()
                 .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -181,7 +184,17 @@ class TemporalEntityHandlerTests {
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                     temporalQuery.entityId == "entityId" &&
                     temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }) }
+        }, any()) }
         confirmVerified(observationService)
+    }
+
+    @Test
+    @WithAnonymousUser
+    fun `it should not authorize an anonymous to call the API`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:0022CCC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isForbidden
     }
 }

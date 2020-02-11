@@ -55,7 +55,14 @@ class TemporalEntityHandler(
             .map {
                 buildTemporalQuery(req.queryParams(), req.pathVariable("entityId"))
             }.map {
-                observationService.search(it)
+                // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
+                //        there should be a way to do it more transparently
+                val bearerToken =
+                    if (req.headers().asHttpHeaders().containsKey("Authorization"))
+                        req.headers().header("Authorization").first()
+                    else
+                        ""
+                observationService.search(it, bearerToken)
             }.flatMap {
                 ok().body(it)
             }.onErrorResume {

@@ -55,11 +55,11 @@ class ObservationServiceTests {
 
         observationService.create(gimmeObservation()).block()
 
-        every { contextRegistryService.getEntityById(any()) } returns Mono.just(entity)
+        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(entity)
 
         val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, sensorId)
-        val enrichedEntity = observationService.search(temporalQuery)
+        val enrichedEntity = observationService.search(temporalQuery, "Bearer 1234")
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -74,7 +74,7 @@ class ObservationServiceTests {
             .expectComplete()
             .verify()
 
-        verify { contextRegistryService.getEntityById(eq(sensorId)) }
+        verify { contextRegistryService.getEntityById(eq(sensorId), any()) }
         confirmVerified(contextRegistryService)
     }
 

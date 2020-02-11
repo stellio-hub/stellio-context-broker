@@ -46,6 +46,10 @@ dependencies {
     implementation("com.beust:klaxon:5.0.1")
     implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.cloud:spring-cloud-stream")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    // it provides support for JWT decoding and verification
+    implementation("org.springframework.security:spring-security-oauth2-jose")
     implementation("org.flywaydb:flyway-core")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
@@ -63,6 +67,7 @@ dependencies {
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:testcontainers:1.12.3")
     testImplementation("org.testcontainers:postgresql:1.12.3")
 }

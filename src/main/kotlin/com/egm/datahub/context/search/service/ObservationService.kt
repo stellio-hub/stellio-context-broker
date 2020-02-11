@@ -20,7 +20,7 @@ class ObservationService(
             .rowsUpdated()
     }
 
-    fun search(temporalQuery: TemporalQuery): Mono<Entity> {
+    fun search(temporalQuery: TemporalQuery, bearerToken: String): Mono<Entity> {
 
         val fromSelectSpec = databaseClient
             .select()
@@ -40,7 +40,7 @@ class ObservationService(
             fromSelectSpec.matching(timeCriteriaStep).fetch().all()
 
         return results.collectList()
-            .zipWith(contextRegistryService.getEntityById(temporalQuery.entityId!!))
+            .zipWith(contextRegistryService.getEntityById(temporalQuery.entityId!!, bearerToken))
             .map {
                 val entity = it.t2
                 entity.addTemporalValues("measures", it.t1)

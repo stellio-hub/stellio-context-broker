@@ -68,7 +68,7 @@ class ContextRegistryServiceTests {
             .willReturn(okJson(beehive)))
         every { ngsiLdParsingService.parse(any()) } returns Entity().also { it.addProperty("id", "urn:diat:BeeHive:TESTC") }
 
-        val entity = contextRegistryService.getEntityById("entityId")
+        val entity = contextRegistryService.getEntityById("entityId", "Bearer 1234")
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)
@@ -77,7 +77,8 @@ class ContextRegistryServiceTests {
             .verify()
 
         // ensure external components and services have been called as expected
-        verify(getRequestedFor(urlPathEqualTo("/ngsi-ld/v1/entities/entityId")))
+        verify(getRequestedFor(urlPathEqualTo("/ngsi-ld/v1/entities/entityId"))
+            .withHeader("Authorization", equalTo("Bearer 1234")))
         io.mockk.verify { ngsiLdParsingService.parse(eq(beehive)) }
         confirmVerified(ngsiLdParsingService)
     }

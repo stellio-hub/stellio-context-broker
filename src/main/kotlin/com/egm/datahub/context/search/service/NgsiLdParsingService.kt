@@ -100,6 +100,7 @@ class NgsiLdParsingService {
     // TODO : it is a basic yet enough parsing logic for current needs
     //        switch to a more typesafe way to do it
     fun parse(ngsiLdPayload: String): Entity {
+        logger.debug("Received entity: $ngsiLdPayload")
         val entity = Entity()
         JsonReader(StringReader(ngsiLdPayload)).use { reader ->
             reader.beginObject {

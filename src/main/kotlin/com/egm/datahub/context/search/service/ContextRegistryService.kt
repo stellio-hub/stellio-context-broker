@@ -1,7 +1,7 @@
 package com.egm.datahub.context.search.service
 
 import com.egm.datahub.context.search.config.ContextRegistryProperties
-import com.egm.datahub.context.search.model.Entity
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
@@ -10,7 +10,6 @@ import reactor.core.publisher.Mono
 
 @Component
 class ContextRegistryService(
-    private val ngsiLdParsingService: NgsiLdParsingService,
     contextRegistryProperties: ContextRegistryProperties
 ) {
 
@@ -21,12 +20,12 @@ class ContextRegistryService(
         .baseUrl(contextRegistryProperties.url)
         .build()
 
-    fun getEntityById(entityId: String, bearerToken: String): Mono<Entity> {
+    fun getEntityById(entityId: String, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> {
         return webClient.get()
             .uri("/entities/$entityId")
             .header("Authorization", bearerToken)
             .retrieve()
             .bodyToMono(String::class.java)
-            .map { ngsiLdParsingService.parse(it) }
+            .map { NgsiLdParsingUtils.parseEntity(it) }
     }
 }

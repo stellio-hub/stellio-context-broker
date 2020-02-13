@@ -1,17 +1,14 @@
 package com.egm.datahub.context.search.service
 
-import com.egm.datahub.context.search.model.Entity
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.core.io.ClassPathResource
 
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
@@ -25,9 +22,6 @@ class ContextRegistryServiceTests {
 
     @Autowired
     private lateinit var contextRegistryService: ContextRegistryService
-
-    @MockkBean
-    private lateinit var ngsiLdParsingService: NgsiLdParsingService
 
     private lateinit var wireMockServer: WireMockServer
 
@@ -46,40 +40,26 @@ class ContextRegistryServiceTests {
 
     @Test
     fun `it should call the context registry with the correct entityId`() {
-        val beehive = """
-            {
-              "@context": [
-                "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                "https://diatomic.eglobalmark.com/diatomic-context.jsonld"
-              ],
-              "id": "urn:diat:BeeHive:TESTC",
-              "type": "BeeHive",
-              "name": "ParisBeehive12",
-              "connectsTo": {
-                "type": "Relationship",
-                "createdAt": "2010-10-26T21:32:52+02:00",
-                "object": "urn:diat:Beekeeper:Pascal"
-              }
-            }
-        """
 
-        // prepare our stub and mock
+        // prepare our stub
         stubFor(get(urlMatching("/ngsi-ld/v1/entities/entityId"))
-            .willReturn(okJson(beehive)))
-        every { ngsiLdParsingService.parse(any()) } returns Entity().also { it.addProperty("id", "urn:diat:BeeHive:TESTC") }
+            .willReturn(okJson(loadSampleData("beehive.jsonld"))))
 
         val entity = contextRegistryService.getEntityById("entityId", "Bearer 1234")
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)
-            .expectNextMatches { it.getPropertyValue("id") == "urn:diat:BeeHive:TESTC" }
+            .expectNextMatches { it.first["@id"] == "urn:diat:BeeHive:TESTC" }
             .expectComplete()
             .verify()
 
         // ensure external components and services have been called as expected
         verify(getRequestedFor(urlPathEqualTo("/ngsi-ld/v1/entities/entityId"))
             .withHeader("Authorization", equalTo("Bearer 1234")))
-        io.mockk.verify { ngsiLdParsingService.parse(eq(beehive)) }
-        confirmVerified(ngsiLdParsingService)
+    }
+
+    private fun loadSampleData(filename: String): String {
+        val sampleData = ClassPathResource("/ngsild/$filename")
+        return String(sampleData.inputStream.readAllBytes())
     }
 }

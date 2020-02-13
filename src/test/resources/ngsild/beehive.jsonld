@@ -1,0 +1,25 @@
+{
+  "id": "urn:diat:BeeHive:TESTC",
+  "type": "BeeHive",
+  "createdAt": "2020-01-24T13:01:21.938Z",
+  "name": {
+    "type": "Property",
+    "value": "ParisBeehive12",
+    "createdAt": "2020-01-24T13:01:22.066Z"
+  },
+  "incoming": {
+    "type": "Property",
+    "value": 1543,
+    "observedAt": "2020-01-24T13:01:22.066Z"
+  },
+  "connectsTo": {
+    "type": "Relationship",
+    "createdAt": "2010-10-26T21:32:52+02:00",
+    "object": "urn:diat:Beekeeper:Pascal"
+  },
+  "@context": [
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/egm.jsonld",
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic.jsonld"
+  ]
+}

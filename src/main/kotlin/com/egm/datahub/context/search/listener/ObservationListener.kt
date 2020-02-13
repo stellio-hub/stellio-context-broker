@@ -1,6 +1,6 @@
 package com.egm.datahub.context.search.listener
 
-import com.egm.datahub.context.search.service.NgsiLdParsingService
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.service.ObservationService
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component
 @Component
 @EnableBinding(ObservationsSink::class)
 class ObservationListener(
-    private val observationService: ObservationService,
-    private val ngsiLdParsingService: NgsiLdParsingService
+    private val observationService: ObservationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -35,7 +34,7 @@ class ObservationListener(
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
         try {
-            val observation = ngsiLdParsingService.parseTemporalPropertyUpdate(content)
+            val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
             logger.debug("Parsed observation: $observation")
             observationService.create(observation)
                 .doOnError {

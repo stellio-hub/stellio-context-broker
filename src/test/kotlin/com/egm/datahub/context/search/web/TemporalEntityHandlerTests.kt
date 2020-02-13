@@ -1,6 +1,5 @@
 package com.egm.datahub.context.search.web
 
-import com.egm.datahub.context.search.model.Entity
 import com.egm.datahub.context.search.model.TemporalQuery
 import com.egm.datahub.context.search.service.ObservationService
 import com.ninjasquad.springmockk.MockkBean
@@ -136,7 +135,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if parameters are valid`() {
 
-        every { observationService.search(any(), any()) } returns Mono.just(Entity())
+        every { observationService.search(any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -155,30 +154,13 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a NGSI-LD entity if an entity matches the parameters`() {
 
-        val entity = Entity()
-        entity.addProperty("id", "urn:sosa:Sensor:1234")
-        entity.addProperty("type", "Sensor")
-        entity.addProperty("name", "MySensor")
-        entity.addTemporalValues("measures",
-                listOf(mapOf("VALUE" to "12.0", "OBSERVED_AT" to "2019-11-07T08:00:00Z")))
-
-        val expectedResultPayload = """
-            {
-                "id":"urn:sosa:Sensor:1234",
-                "type":"Sensor",
-                "name":"MySensor",
-                "measures":{"values":[["12.0","2019-11-07T08:00:00Z"]]}
-            }
-        """.trimIndent().replace("\n", "").replace(" ", "")
-
-        every { observationService.search(any(), any()) } returns Mono.just(entity)
+        every { observationService.search(any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
 
         webClient.get()
                 .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
                 .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isOk
-                .expectBody<String>().isEqualTo(expectedResultPayload)
 
         verify { observationService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&

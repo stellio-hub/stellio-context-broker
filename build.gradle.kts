@@ -43,7 +43,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("com.beust:klaxon:5.0.1")
     implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.cloud:spring-cloud-stream")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
@@ -53,6 +52,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
+    implementation("com.github.jsonld-java:jsonld-java:0.13.0")
 
     runtimeOnly("io.r2dbc:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")

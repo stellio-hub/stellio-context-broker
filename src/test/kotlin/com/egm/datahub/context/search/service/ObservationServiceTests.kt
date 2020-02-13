@@ -3,6 +3,7 @@ package com.egm.datahub.context.search.service
 import com.egm.datahub.context.search.model.*
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_PASSWORD
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_USER
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -17,11 +18,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.PostgreSQLContainer
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
+import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -48,14 +51,13 @@ class ObservationServiceTests {
     @Test
     fun `it should retrieve an observation and return the filled entity`() {
 
-        val entity = Entity()
-        entity.addProperty("type", "Sensor")
-        entity.addProperty("id", "urn:sosa:Sensor:1234")
-        entity.addProperty("measures", mapOf("type" to "Property", "unitCode" to "CEL"))
+        val observation = gimmeObservation().copy(
+            observedAt = observationDateTime,
+            value = 12.4
+        )
+        observationService.create(observation).block()
 
-        observationService.create(gimmeObservation()).block()
-
-        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(entity)
+        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
 
         val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, sensorId)
@@ -63,13 +65,34 @@ class ObservationServiceTests {
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                val values = (it.getPropertyValue("measures") as Map<*, *>)["values"]
-                it.getPropertyValue("type") is String &&
-                (it.getPropertyValue("type") as String) == "Sensor" &&
-                it.getPropertyValue("measures") is Map<*, *> &&
-                values is List<*> &&
-                (values[0] as List<*>)[0] == 12.4 &&
-                (values[0] as List<*>)[1] == observationDateTime
+                val values = ((it.first["https://ontology.eglobalmark.com/apic#incoming"] as List<*>)[0] as Map<*, *>)["https://uri.etsi.org/ngsi-ld/hasValues"]
+                it.first["@id"] is String &&
+                (it.first["@id"] as String) == "urn:diat:BeeHive:TESTC" &&
+                ((values as List<*>)[0] as List<*>)[0] == 12.4
+                ((values as List<*>)[0] as List<*>)[1] == observationDateTime
+            }
+            .expectComplete()
+            .verify()
+
+        verify { contextRegistryService.getEntityById(eq(sensorId), any()) }
+        confirmVerified(contextRegistryService)
+    }
+
+    @Test
+    fun `it should aggregate all known observations and return the filled entity`() {
+
+        (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
+
+        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
+
+        val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+            null, sensorId)
+        val enrichedEntity = observationService.search(temporalQuery, "Bearer 1234")
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                val values = ((it.first["https://ontology.eglobalmark.com/apic#incoming"] as List<*>)[0] as Map<*, *>)["https://uri.etsi.org/ngsi-ld/hasValues"]
+                (values as List<*>).size == 10
             }
             .expectComplete()
             .verify()
@@ -85,9 +108,14 @@ class ObservationServiceTests {
             longitude = 65.43,
             observedBy = sensorId,
             unitCode = "CEL",
-            value = 12.4,
-            observedAt = observationDateTime
+            value = Random.nextDouble(),
+            observedAt = OffsetDateTime.now()
         )
+    }
+
+    private fun loadAndParseSampleData(filename: String = "beehive.jsonld"): Pair<Map<String, Any>, List<String>> {
+        val sampleData = ClassPathResource("/ngsild/$filename")
+        return NgsiLdParsingUtils.parseEntity(String(sampleData.inputStream.readAllBytes()))
     }
 }
 

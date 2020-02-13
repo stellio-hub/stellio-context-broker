@@ -2,8 +2,10 @@ package com.egm.datahub.context.search.web
 
 import com.egm.datahub.context.search.exception.InvalidNgsiLdPayloadException
 import com.egm.datahub.context.search.model.TemporalQuery
-import com.egm.datahub.context.search.service.NgsiLdParsingService
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.service.ObservationService
+import com.github.jsonldjava.core.JsonLdOptions
+import com.github.jsonldjava.core.JsonLdProcessor
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
@@ -11,7 +13,6 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
-import org.springframework.web.reactive.function.server.body
 import reactor.core.publisher.Mono
 import java.lang.IllegalArgumentException
 import java.lang.RuntimeException
@@ -20,8 +21,7 @@ import java.time.format.DateTimeParseException
 
 @Component
 class TemporalEntityHandler(
-    private val observationService: ObservationService,
-    private val ngsiLdParsingService: NgsiLdParsingService
+    private val observationService: ObservationService
 ) {
 
     /**
@@ -32,7 +32,7 @@ class TemporalEntityHandler(
     fun addAttrs(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono(String::class.java)
                 .map {
-                    ngsiLdParsingService.parseTemporalPropertyUpdate(it)
+                    NgsiLdParsingUtils.parseTemporalPropertyUpdate(it)
                 }
                 .flatMap {
                     observationService.create(it)
@@ -54,7 +54,7 @@ class TemporalEntityHandler(
         return Mono.just("")
             .map {
                 buildTemporalQuery(req.queryParams(), req.pathVariable("entityId"))
-            }.map {
+            }.flatMap {
                 // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
                 //        there should be a way to do it more transparently
                 val bearerToken =
@@ -63,8 +63,11 @@ class TemporalEntityHandler(
                     else
                         ""
                 observationService.search(it, bearerToken)
+            }
+            .map {
+                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }.flatMap {
-                ok().body(it)
+                ok().body(BodyInserters.fromValue(it))
             }.onErrorResume {
                 when (it) {
                     is BadQueryParametersException -> badRequest().body(BodyInserters.fromValue(it.message.orEmpty()))

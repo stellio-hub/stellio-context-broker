@@ -1,7 +1,7 @@
 package com.egm.datahub.context.search.listener
 
 import com.egm.datahub.context.search.model.Observation
-import com.egm.datahub.context.search.service.NgsiLdParsingService
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.service.ObservationService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -16,7 +16,6 @@ import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ ObservationListener::class ])
 @ActiveProfiles("test")
-
 class ObservationListenerTest {
 
     @Autowired
@@ -26,7 +25,7 @@ class ObservationListenerTest {
     private lateinit var observationService: ObservationService
 
     @MockkBean
-    private lateinit var ngsiLdParsingService: NgsiLdParsingService
+    private lateinit var ngsiLdParsingService: NgsiLdParsingUtils
 
     @Test
     fun `it should not raise an exception with a correct ngsild observation`() {

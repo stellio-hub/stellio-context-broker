@@ -1,6 +1,8 @@
 package com.egm.datahub.context.search.web
 
+import com.egm.datahub.context.search.model.EntityTemporalProperty
 import com.egm.datahub.context.search.model.TemporalQuery
+import com.egm.datahub.context.search.service.EntityService
 import com.egm.datahub.context.search.service.ObservationService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -18,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.*
 import org.springframework.web.reactive.function.BodyInserters
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 
@@ -31,6 +34,9 @@ class TemporalEntityHandlerTests {
 
     @MockkBean
     private lateinit var observationService: ObservationService
+
+    @MockkBean
+    private lateinit var entityService: EntityService
 
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
@@ -135,7 +141,14 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if parameters are valid`() {
 
-        every { observationService.search(any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
+        val entityTemporalProperty = EntityTemporalProperty(
+            entityId = "entityId",
+            type = "BeeHive",
+            attributeName = "incoming",
+            observedBy = "sensorId"
+        )
+        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty)
+        every { observationService.search(any(), any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -145,16 +158,22 @@ class TemporalEntityHandlerTests {
 
         verify { observationService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                temporalQuery.entityId == "entityId" &&
                 temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }, any()) }
+        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }, any()) }
         confirmVerified(observationService)
     }
 
     @Test
     fun `it should return a NGSI-LD entity if an entity matches the parameters`() {
 
-        every { observationService.search(any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
+        val entityTemporalProperty = EntityTemporalProperty(
+            entityId = "entityId",
+            type = "BeeHive",
+            attributeName = "incoming",
+            observedBy = "sensorId"
+        )
+        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty)
+        every { observationService.search(any(), any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
 
         webClient.get()
                 .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -164,9 +183,8 @@ class TemporalEntityHandlerTests {
 
         verify { observationService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                    temporalQuery.entityId == "entityId" &&
                     temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }, any()) }
+        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }, any()) }
         confirmVerified(observationService)
     }
 

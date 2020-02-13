@@ -1,9 +1,9 @@
 package com.egm.datahub.context.search.service
 
+import com.egm.datahub.context.search.loadAndParseSampleData
 import com.egm.datahub.context.search.model.*
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_PASSWORD
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_USER
-import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.PostgreSQLContainer
 import reactor.core.publisher.Mono
@@ -59,9 +58,15 @@ class ObservationServiceTests {
 
         every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
 
+        val entityTemporalProperty = EntityTemporalProperty(
+            entityId = "urn:ngsi-ld:BeeHive:TESTC",
+            type = "BeeHive",
+            attributeName = "incoming",
+            observedBy = sensorId
+        )
         val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null, sensorId)
-        val enrichedEntity = observationService.search(temporalQuery, "Bearer 1234")
+            null)
+        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty, "Bearer 1234")
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -74,7 +79,7 @@ class ObservationServiceTests {
             .expectComplete()
             .verify()
 
-        verify { contextRegistryService.getEntityById(eq(sensorId), any()) }
+        verify { contextRegistryService.getEntityById(eq("urn:ngsi-ld:BeeHive:TESTC"), any()) }
         confirmVerified(contextRegistryService)
     }
 
@@ -85,9 +90,15 @@ class ObservationServiceTests {
 
         every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
 
+        val entityTemporalProperty = EntityTemporalProperty(
+            entityId = "urn:ngsi-ld:BeeHive:TESTC",
+            type = "BeeHive",
+            attributeName = "incoming",
+            observedBy = sensorId
+        )
         val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null, sensorId)
-        val enrichedEntity = observationService.search(temporalQuery, "Bearer 1234")
+            null)
+        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty, "Bearer 1234")
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -97,7 +108,7 @@ class ObservationServiceTests {
             .expectComplete()
             .verify()
 
-        verify { contextRegistryService.getEntityById(eq(sensorId), any()) }
+        verify { contextRegistryService.getEntityById(eq("urn:ngsi-ld:BeeHive:TESTC"), any()) }
         confirmVerified(contextRegistryService)
     }
 
@@ -111,11 +122,6 @@ class ObservationServiceTests {
             value = Random.nextDouble(),
             observedAt = OffsetDateTime.now()
         )
-    }
-
-    private fun loadAndParseSampleData(filename: String = "beehive.jsonld"): Pair<Map<String, Any>, List<String>> {
-        val sampleData = ClassPathResource("/ngsild/$filename")
-        return NgsiLdParsingUtils.parseEntity(String(sampleData.inputStream.readAllBytes()))
     }
 }
 

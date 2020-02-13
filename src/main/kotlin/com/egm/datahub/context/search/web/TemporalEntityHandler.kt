@@ -2,6 +2,7 @@ package com.egm.datahub.context.search.web
 
 import com.egm.datahub.context.search.exception.InvalidNgsiLdPayloadException
 import com.egm.datahub.context.search.model.TemporalQuery
+import com.egm.datahub.context.search.service.EntityService
 import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.service.ObservationService
 import com.github.jsonldjava.core.JsonLdOptions
@@ -21,7 +22,8 @@ import java.time.format.DateTimeParseException
 
 @Component
 class TemporalEntityHandler(
-    private val observationService: ObservationService
+    private val observationService: ObservationService,
+    private val entityService: EntityService
 ) {
 
     /**
@@ -53,8 +55,14 @@ class TemporalEntityHandler(
     fun getForEntity(req: ServerRequest): Mono<ServerResponse> {
         return Mono.just("")
             .map {
-                buildTemporalQuery(req.queryParams(), req.pathVariable("entityId"))
-            }.flatMap {
+                buildTemporalQuery(req.queryParams())
+            }
+            .flatMapMany {
+                entityService.getForEntity(req.pathVariable("entityId")).map { entityTemporalProperty ->
+                    Pair(entityTemporalProperty, it)
+                }
+            }
+            .flatMap {
                 // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
                 //        there should be a way to do it more transparently
                 val bearerToken =
@@ -62,11 +70,13 @@ class TemporalEntityHandler(
                         req.headers().header("Authorization").first()
                     else
                         ""
-                observationService.search(it, bearerToken)
+                observationService.search(it.second, it.first, bearerToken)
             }
             .map {
                 JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
-            }.flatMap {
+            }
+            .collectList()
+            .flatMap {
                 ok().body(BodyInserters.fromValue(it))
             }.onErrorResume {
                 when (it) {
@@ -78,7 +88,7 @@ class TemporalEntityHandler(
 
     class BadQueryParametersException(message: String) : RuntimeException(message)
 
-    private fun buildTemporalQuery(params: MultiValueMap<String, String>, entityId: String): TemporalQuery {
+    private fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
         if (!params.containsKey("timerel") || !params.containsKey("time"))
             throw BadQueryParametersException("'timerel and 'time' request parameters are mandatory")
 
@@ -93,7 +103,7 @@ class TemporalEntityHandler(
         val time = parseTimeParameter(params.getFirst("time")!!, "'time' parameter is not a valid date")
         val endTime = params.getFirst("endTime")?.let { parseTimeParameter(it, "'endTime' parameter is not a valid date") }
 
-        return TemporalQuery(timerel, time, endTime, entityId)
+        return TemporalQuery(timerel, time, endTime)
     }
 
     private fun parseTimeParameter(param: String, errorMsg: String) =

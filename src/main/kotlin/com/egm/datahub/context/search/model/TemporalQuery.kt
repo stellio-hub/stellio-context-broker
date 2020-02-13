@@ -5,8 +5,7 @@ import java.time.OffsetDateTime
 data class TemporalQuery(
     val timerel: Timerel,
     val time: OffsetDateTime,
-    val endTime: OffsetDateTime?,
-    val entityId: String?
+    val endTime: OffsetDateTime?
 ) {
     enum class Timerel {
         BEFORE,

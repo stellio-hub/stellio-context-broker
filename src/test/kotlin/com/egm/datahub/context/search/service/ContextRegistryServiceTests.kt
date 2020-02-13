@@ -49,7 +49,7 @@ class ContextRegistryServiceTests {
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)
-            .expectNextMatches { it.first["@id"] == "urn:diat:BeeHive:TESTC" }
+            .expectNextMatches { it.first["@id"] == "urn:ngsi-ld:BeeHive:TESTC" }
             .expectComplete()
             .verify()
 

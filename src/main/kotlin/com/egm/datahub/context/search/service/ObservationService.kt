@@ -21,7 +21,7 @@ class ObservationService(
             .rowsUpdated()
     }
 
-    fun search(temporalQuery: TemporalQuery, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> {
+    fun search(temporalQuery: TemporalQuery, entityTemporalProperty: EntityTemporalProperty, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> {
 
         val fromSelectSpec = databaseClient
             .select()
@@ -36,13 +36,13 @@ class ObservationService(
         }
 
         // TODO we actually only support queries providing an entity id
-        val results = if (temporalQuery.entityId != null)
-            fromSelectSpec.matching(timeCriteriaStep.and("observed_by").`is`(temporalQuery.entityId)).fetch().all()
+        val results = if (entityTemporalProperty.observedBy != null)
+            fromSelectSpec.matching(timeCriteriaStep.and("observed_by").`is`(entityTemporalProperty.observedBy)).fetch().all()
         else
             fromSelectSpec.matching(timeCriteriaStep).fetch().all()
 
         return results.collectList()
-            .zipWith(contextRegistryService.getEntityById(temporalQuery.entityId!!, bearerToken))
+            .zipWith(contextRegistryService.getEntityById(entityTemporalProperty.entityId, bearerToken))
             .map {
                 val entity = it.t2.first.toMutableMap()
 

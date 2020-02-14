@@ -1,7 +1,6 @@
 package com.egm.datahub.context.search.service
 
 import com.egm.datahub.context.search.model.*
-import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.query.Criteria.where
 import org.springframework.stereotype.Service
@@ -9,8 +8,7 @@ import reactor.core.publisher.Mono
 
 @Service
 class ObservationService(
-    private val databaseClient: DatabaseClient,
-    private val contextRegistryService: ContextRegistryService
+    private val databaseClient: DatabaseClient
 ) {
 
     fun create(observation: Observation): Mono<Int> {
@@ -21,7 +19,7 @@ class ObservationService(
             .rowsUpdated()
     }
 
-    fun search(temporalQuery: TemporalQuery, entityTemporalProperty: EntityTemporalProperty, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> {
+    fun search(temporalQuery: TemporalQuery, entityTemporalProperty: EntityTemporalProperty): Mono<List<Map<String, Any>>> {
 
         val fromSelectSpec = databaseClient
             .select()
@@ -42,28 +40,5 @@ class ObservationService(
             fromSelectSpec.matching(timeCriteriaStep).fetch().all()
 
         return results.collectList()
-            .zipWith(contextRegistryService.getEntityById(entityTemporalProperty.entityId, bearerToken))
-            .map {
-                val entity = it.t2.first.toMutableMap()
-
-                // attribute_name is the name of the temporal property we want to update
-                val attributeName = it.t1.first()["attribute_name"]!!
-                val expandedAttributeName = NgsiLdParsingUtils.expandJsonLdKey(attributeName as String, it.t2.second)
-
-                // extract the temporal property from the raw entity and remove the value property from it
-                val propertyToEnrich = NgsiLdParsingUtils.expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
-                propertyToEnrich.remove(NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE)
-
-                // insert the values property with data retrieved from DB
-                val valuesKey = NgsiLdParsingUtils.expandJsonLdKey("values", it.t2.second)
-                val simplifiedValues = it.t1.map { listOf(it["VALUE"], it["OBSERVED_AT"]) }
-                propertyToEnrich[valuesKey!!] = simplifiedValues
-
-                // and finally update the raw entity with the updated temporal property
-                entity.remove(expandedAttributeName)
-                entity[expandedAttributeName!!] = listOf(propertyToEnrich)
-
-                Pair(entity, it.t2.second)
-            }
     }
 }

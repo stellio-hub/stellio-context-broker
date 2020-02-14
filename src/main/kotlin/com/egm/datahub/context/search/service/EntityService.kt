@@ -1,6 +1,7 @@
 package com.egm.datahub.context.search.service
 
 import com.egm.datahub.context.search.model.EntityTemporalProperty
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.isEquals
 import org.springframework.data.r2dbc.query.Criteria.where
@@ -63,5 +64,31 @@ class EntityService(
             .matching(where("entity_id").isEquals(id))
             .fetch()
             .all()
+    }
+
+    fun injectTemporalValues(rawEntity: Pair<Map<String, Any>, List<String>>, rawResults: List<List<Map<String, Any>>>): Pair<Map<String, Any>, List<String>> {
+
+        val entity = rawEntity.first.toMutableMap()
+
+        rawResults.forEach {
+            // attribute_name is the name of the temporal property we want to update
+            val attributeName = it.first()["attribute_name"]!!
+            val expandedAttributeName = NgsiLdParsingUtils.expandJsonLdKey(attributeName as String, rawEntity.second)
+
+            // extract the temporal property from the raw entity and remove the value property from it
+            val propertyToEnrich = NgsiLdParsingUtils.expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
+            propertyToEnrich.remove(NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE)
+
+            // insert the values property with data retrieved from DB
+            val valuesKey = NgsiLdParsingUtils.expandJsonLdKey("values", rawEntity.second)
+            val simplifiedValues = it.map { listOf(it["VALUE"], it["OBSERVED_AT"]) }
+            propertyToEnrich[valuesKey!!] = simplifiedValues
+
+            // and finally update the raw entity with the updated temporal property
+            entity.remove(expandedAttributeName)
+            entity[expandedAttributeName!!] = listOf(propertyToEnrich)
+        }
+
+        return Pair(entity, rawEntity.second)
     }
 }

@@ -1,13 +1,8 @@
 package com.egm.datahub.context.search.service
 
-import com.egm.datahub.context.search.loadAndParseSampleData
 import com.egm.datahub.context.search.model.*
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_PASSWORD
 import com.egm.datahub.context.search.service.MyPostgresqlContainer.DB_USER
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.verify
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -20,7 +15,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.PostgreSQLContainer
-import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
 import kotlin.random.Random
@@ -30,15 +24,12 @@ import kotlin.random.Random
 @Import(R2DBCConfiguration::class)
 class ObservationServiceTests {
 
-    @MockkBean
-    private lateinit var contextRegistryService: ContextRegistryService
-
     @Autowired
     private lateinit var observationService: ObservationService
 
-    private val sensorId = "urn:ngsi-ld:Sensor:111222"
-
     private val observationDateTime = OffsetDateTime.now()
+
+    private val defaultSensorId = "urn:ngsi-ld:Sensor:111222"
 
     init {
         Flyway.configure()
@@ -50,13 +41,13 @@ class ObservationServiceTests {
     @Test
     fun `it should retrieve an observation and return the filled entity`() {
 
+        val sensorId = "urn:ngsi-ld:Sensor:IncomingSensor"
         val observation = gimmeObservation().copy(
             observedAt = observationDateTime,
-            value = 12.4
+            value = 12.4,
+            observedBy = sensorId
         )
         observationService.create(observation).block()
-
-        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
 
         val entityTemporalProperty = EntityTemporalProperty(
             entityId = "urn:ngsi-ld:BeeHive:TESTC",
@@ -64,23 +55,17 @@ class ObservationServiceTests {
             attributeName = "incoming",
             observedBy = sensorId
         )
-        val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty, "Bearer 1234")
+        val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1), null)
+        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                val values = ((it.first["https://ontology.eglobalmark.com/apic#incoming"] as List<*>)[0] as Map<*, *>)["https://uri.etsi.org/ngsi-ld/hasValues"]
-                it.first["@id"] is String &&
-                (it.first["@id"] as String) == "urn:diat:BeeHive:TESTC" &&
-                ((values as List<*>)[0] as List<*>)[0] == 12.4
-                ((values as List<*>)[0] as List<*>)[1] == observationDateTime
+                it.size == 1 &&
+                    it[0]["VALUE"] == 12.4 &&
+                    it[0]["OBSERVED_AT"] == observationDateTime
             }
             .expectComplete()
             .verify()
-
-        verify { contextRegistryService.getEntityById(eq("urn:ngsi-ld:BeeHive:TESTC"), any()) }
-        confirmVerified(contextRegistryService)
     }
 
     @Test
@@ -88,28 +73,22 @@ class ObservationServiceTests {
 
         (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
 
-        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
-
         val entityTemporalProperty = EntityTemporalProperty(
             entityId = "urn:ngsi-ld:BeeHive:TESTC",
             type = "BeeHive",
             attributeName = "incoming",
-            observedBy = sensorId
+            observedBy = defaultSensorId
         )
         val temporalQuery = TemporalQuery(TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty, "Bearer 1234")
+        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                val values = ((it.first["https://ontology.eglobalmark.com/apic#incoming"] as List<*>)[0] as Map<*, *>)["https://uri.etsi.org/ngsi-ld/hasValues"]
-                (values as List<*>).size == 10
+                it.size == 10
             }
             .expectComplete()
             .verify()
-
-        verify { contextRegistryService.getEntityById(eq("urn:ngsi-ld:BeeHive:TESTC"), any()) }
-        confirmVerified(contextRegistryService)
     }
 
     private fun gimmeObservation(): Observation {
@@ -117,7 +96,7 @@ class ObservationServiceTests {
             attributeName = "incoming",
             latitude = 43.12,
             longitude = 65.43,
-            observedBy = sensorId,
+            observedBy = defaultSensorId,
             unitCode = "CEL",
             value = Random.nextDouble(),
             observedAt = OffsetDateTime.now()

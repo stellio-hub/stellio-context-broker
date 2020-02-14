@@ -1,7 +1,9 @@
 package com.egm.datahub.context.search.web
 
+import com.egm.datahub.context.search.loadAndParseSampleData
 import com.egm.datahub.context.search.model.EntityTemporalProperty
 import com.egm.datahub.context.search.model.TemporalQuery
+import com.egm.datahub.context.search.service.ContextRegistryService
 import com.egm.datahub.context.search.service.EntityService
 import com.egm.datahub.context.search.service.ObservationService
 import com.ninjasquad.springmockk.MockkBean
@@ -37,6 +39,9 @@ class TemporalEntityHandlerTests {
 
     @MockkBean
     private lateinit var entityService: EntityService
+
+    @MockkBean
+    private lateinit var contextRegistryService: ContextRegistryService
 
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
@@ -148,7 +153,9 @@ class TemporalEntityHandlerTests {
             observedBy = "sensorId"
         )
         every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty)
-        every { observationService.search(any(), any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
+        every { observationService.search(any(), any()) } returns Mono.just(emptyList())
+        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
+        every { entityService.injectTemporalValues(any(), any()) } returns Pair(emptyMap(), emptyList())
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -159,32 +166,45 @@ class TemporalEntityHandlerTests {
         verify { observationService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                 temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }, any()) }
+        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
         confirmVerified(observationService)
+
+        verify { contextRegistryService.getEntityById(eq("entityId"), any()) }
+        confirmVerified(contextRegistryService)
     }
 
     @Test
-    fun `it should return a NGSI-LD entity if an entity matches the parameters`() {
+    fun `it should return a single entity if the entity has two temporal properties`() {
 
-        val entityTemporalProperty = EntityTemporalProperty(
+        val entityTemporalProperty1 = EntityTemporalProperty(
             entityId = "entityId",
             type = "BeeHive",
             attributeName = "incoming",
-            observedBy = "sensorId"
+            observedBy = "sensorId1"
         )
-        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty)
-        every { observationService.search(any(), any(), any()) } returns Mono.just(Pair(emptyMap(), emptyList()))
+        val entityTemporalProperty2 = EntityTemporalProperty(
+            entityId = "entityId",
+            type = "BeeHive",
+            attributeName = "outgoing",
+            observedBy = "sensorId2"
+        )
+        val rawEntity = loadAndParseSampleData()
+        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
+        every { observationService.search(any(), any()) } returns Mono.just(emptyList())
+        every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every { entityService.injectTemporalValues(any(), any()) } returns rawEntity
 
         webClient.get()
-                .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
-                .accept(MediaType.valueOf("application/ld+json"))
-                .exchange()
-                .expectStatus().isOk
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
 
         verify { observationService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                     temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
-        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }, any()) }
+        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
         confirmVerified(observationService)
     }
 

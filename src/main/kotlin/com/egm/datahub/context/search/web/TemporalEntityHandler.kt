@@ -2,6 +2,7 @@ package com.egm.datahub.context.search.web
 
 import com.egm.datahub.context.search.exception.InvalidNgsiLdPayloadException
 import com.egm.datahub.context.search.model.TemporalQuery
+import com.egm.datahub.context.search.service.ContextRegistryService
 import com.egm.datahub.context.search.service.EntityService
 import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.service.ObservationService
@@ -23,7 +24,8 @@ import java.time.format.DateTimeParseException
 @Component
 class TemporalEntityHandler(
     private val observationService: ObservationService,
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val contextRegistryService: ContextRegistryService
 ) {
 
     /**
@@ -53,29 +55,38 @@ class TemporalEntityHandler(
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
     fun getForEntity(req: ServerRequest): Mono<ServerResponse> {
-        return Mono.just("")
-            .map {
-                buildTemporalQuery(req.queryParams())
-            }
+        val entityId = req.pathVariable("entityId")
+        // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
+        //        there should be a way to do it more transparently
+        val bearerToken =
+            if (req.headers().asHttpHeaders().containsKey("Authorization"))
+                req.headers().header("Authorization").first()
+            else
+                ""
+
+        val temporalQuery = try {
+            buildTemporalQuery(req.queryParams())
+        } catch (e: BadQueryParametersException) {
+            return badRequest().body(BodyInserters.fromValue(e.message.orEmpty()))
+        }
+
+        return Mono.just(temporalQuery)
             .flatMapMany {
-                entityService.getForEntity(req.pathVariable("entityId")).map { entityTemporalProperty ->
+                entityService.getForEntity(entityId).map { entityTemporalProperty ->
                     Pair(entityTemporalProperty, it)
                 }
             }
             .flatMap {
-                // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
-                //        there should be a way to do it more transparently
-                val bearerToken =
-                    if (req.headers().asHttpHeaders().containsKey("Authorization"))
-                        req.headers().header("Authorization").first()
-                    else
-                        ""
-                observationService.search(it.second, it.first, bearerToken)
+                observationService.search(it.second, it.first)
+            }
+            .collectList()
+            .zipWith(contextRegistryService.getEntityById(entityId, bearerToken))
+            .map {
+                entityService.injectTemporalValues(it.t2, it.t1)
             }
             .map {
                 JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }
-            .collectList()
             .flatMap {
                 ok().body(BodyInserters.fromValue(it))
             }.onErrorResume {

@@ -85,9 +85,7 @@ class TemporalEntityHandler(
                 entityService.injectTemporalValues(it.t2, it.t1)
             }
             .map {
-                val jsonLdOptions = JsonLdOptions()
-                jsonLdOptions.compactArrays = false
-                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), jsonLdOptions)
+                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(it))

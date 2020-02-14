@@ -14,6 +14,7 @@ object NgsiLdParsingUtils {
     private val logger = LoggerFactory.getLogger(NgsiLdParsingUtils::class.java)
 
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
+    const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
 
     private var mapper = jacksonObjectMapper()
 

@@ -2,6 +2,7 @@ package com.egm.datahub.context.search.service
 
 import com.egm.datahub.context.search.model.EntityTemporalProperty
 import com.egm.datahub.context.search.util.NgsiLdParsingUtils
+import com.egm.datahub.context.search.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.isEquals
 import org.springframework.data.r2dbc.query.Criteria.where
@@ -79,13 +80,8 @@ class EntityService(
             val propertyToEnrich = NgsiLdParsingUtils.expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
             propertyToEnrich.remove(NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE)
 
-            // insert the values property with data retrieved from DB
-            val valuesKey = NgsiLdParsingUtils.expandJsonLdKey("values", rawEntity.second)
-
             val valuesMap = it.map { listOf(it["VALUE"], it["OBSERVED_AT"]) }
-            propertyToEnrich[valuesKey!!] = listOf(valuesMap)
-//            val simplifiedValues = it.map { """[${it["VALUE"]}, "${it["OBSERVED_AT"]}"]""" }.joinToString(",")
-//            propertyToEnrich[valuesKey!!] = listOf(simplifiedValues)
+            propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(valuesMap)
 
             // and finally update the raw entity with the updated temporal property
             entity.remove(expandedAttributeName)

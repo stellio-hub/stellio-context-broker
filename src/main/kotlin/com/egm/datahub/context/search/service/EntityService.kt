@@ -81,7 +81,7 @@ class EntityService(
 
             // insert the values property with data retrieved from DB
             val valuesKey = NgsiLdParsingUtils.expandJsonLdKey("values", rawEntity.second)
-            val simplifiedValues = it.map { "[${it["VALUE"]}, \"${it["OBSERVED_AT"]}\"]" }.joinToString(",")
+            val simplifiedValues = it.map { """[${it["VALUE"]}, "${it["OBSERVED_AT"]}"]""" }.joinToString(",")
             propertyToEnrich[valuesKey!!] = listOf(simplifiedValues)
 
             // and finally update the raw entity with the updated temporal property

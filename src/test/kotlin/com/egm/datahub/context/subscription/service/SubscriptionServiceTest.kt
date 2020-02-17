@@ -13,7 +13,6 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.net.URI
 
-
 @SpringBootTest
 @ActiveProfiles("test")
 class SubscriptionServiceTest : TimescaleBasedTests() {
@@ -70,7 +69,7 @@ class SubscriptionServiceTest : TimescaleBasedTests() {
         // TODO this is not totally satisfying but well it's a first check that our inserts are triggered
         verify { databaseClient.execute(match<String> {
             it.startsWith("INSERT INTO subscription")
-        })}
+        }) }
         verify(atLeast = 3) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
     }
 

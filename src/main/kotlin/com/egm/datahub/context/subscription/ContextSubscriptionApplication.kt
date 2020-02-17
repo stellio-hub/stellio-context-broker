@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class ContextSubscriptionApplication
 
 fun main(args: Array<String>) {
-	runApplication<ContextSubscriptionApplication>(*args)
+    runApplication<ContextSubscriptionApplication>(*args)
 }

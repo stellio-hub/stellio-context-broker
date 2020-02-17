@@ -89,7 +89,7 @@ class SubscriptionService(
             .all()
     }
 
-    fun updateSubscriptionNotification(subscription: Subscription, notification: Notification, success: Boolean) : Mono<Int> {
+    fun updateSubscriptionNotification(subscription: Subscription, notification: Notification, success: Boolean): Mono<Int> {
         val subscriptionStatus = if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
         val lastStatusName = if (success) "last_success" else "last_failure"
         val updateStatement = Update.update("status", subscriptionStatus)

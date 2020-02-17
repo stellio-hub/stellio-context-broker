@@ -26,7 +26,7 @@ class NotificationService(
                 callSubscriber(it, listOf(rawEntity))
             }
             .doOnNext {
-                subscriptionService.updateSubscriptionNotification(it.first, it.second,it.third)
+                subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third)
             }
             .collectList()
     }

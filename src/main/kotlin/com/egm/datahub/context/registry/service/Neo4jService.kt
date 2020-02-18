@@ -36,8 +36,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.lang.Exception
-import java.time.OffsetDateTime
 
 @Component
 class Neo4jService(
@@ -594,52 +592,25 @@ class Neo4jService(
         return entity
     }
 
-    fun updateEntityLastMeasure(observation: Map.Entry<String, Any>) {
-        val observationName = observation.key
-        val observationData = observation.value as Map<String, Any>
-        try {
-            val value = observationData.get("value") as Any
-            val observedAt = OffsetDateTime.parse(observationData.get("observedAt") as String)
-            val observedBy = observationData.get("observedBy") as Map<String, String>
-            val observedByObject = observedBy.get("object")
-
-            val observingEntity = entityRepository.findById(observedByObject!!)
-            if (observingEntity.isEmpty) {
-                logger.warn("Unable to find observing entity ${observedBy.get("object")} for measure ${observation.key}")
-                return
-            }
-            // Find the previous observation of the same unit for the given sensor, then create or update it
-            val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded().toRelationshipTypeName()
-            val observedProperty =
-                neo4jRepository.getObservedProperty(observingEntity.get().id, observedByRelationshipType)
-            if (observedProperty == null || observedProperty.name.extractShortTypeFromExpanded() != observationName) {
-                logger.warn("Found no property named ${observation.key} observed by ${observedBy.get("object")}, ignoring it")
-            } else {
-                observedProperty.value = value
-                observedProperty.observedAt = observedAt
-                propertyRepository.save(observedProperty)
-                val locationCoordinates = getLocationOrNull(observationData)
-                locationCoordinates?.let {
-                    val observedEntity = neo4jRepository.getEntityByProperty(observedProperty)
-                    observedEntity.location = GeographicPoint2d(locationCoordinates[0], locationCoordinates[1])
-                    entityRepository.save(observedEntity)
-                }
-            }
-        } catch (e: Exception) {
-            logger.warn("Invalid data, ignoring update")
+    fun updateEntityLastMeasure(observation: Observation) {
+        val observingEntity = entityRepository.findById(observation.observedBy)
+        if (!observingEntity.isPresent) {
+            logger.warn("Unable to find observing entity ${observation.observedBy}")
+            return
         }
-    }
-
-    fun getLocationOrNull(observationData: Map<String, Any>): List<Double>? {
-        if (observationData.containsKey("location")) {
-            val location = observationData.get("location") as Map<String, Any>
-            if (location.containsKey("value")) {
-                val locationValue = location.get("value") as Map<String, Any>
-                if (locationValue.containsKey("coordinates")) {
-                    return locationValue.get("coordinates") as List<Double>
-                }
+        // Find the previous observation of the same unit for the given sensor, then create or update it
+        val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded().toRelationshipTypeName()
+        val observedProperty = neo4jRepository.getObservedProperty(observingEntity.get().id, observedByRelationshipType)
+        if (observedProperty == null || observedProperty.name.extractShortTypeFromExpanded() != observation.attributeName) {
+            logger.warn("Found no property named ${observation.attributeName} observed by ${observation.observedBy}, ignoring it")
+        } else {
+            observedProperty.updateValues(observation.unitCode, observation.value, observation.observedAt)
+            if (observation.latitude != null && observation.longitude != null) {
+                val observedEntity = neo4jRepository.getEntityByProperty(observedProperty)
+                observedEntity.location = GeographicPoint2d(observation.latitude, observation.longitude)
+                entityRepository.save(observedEntity)
             }
+            propertyRepository.save(observedProperty)
         }
-        return null
     }
 }

@@ -1,0 +1,12 @@
+{
+   "incoming": {
+      "type": "Property",
+      "value": 20.7,
+      "unitCode": "CEL",
+      "observedAt": "2019-10-18T07:31:39.77Z",
+      "observedBy": {
+         "type": "Relationship",
+         "object": "urn:sosa:Sensor:10e2073a01080065"
+      }
+   }
+}

@@ -7,7 +7,6 @@ import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
@@ -138,16 +137,14 @@ class Neo4jServiceTests {
     fun `it should update an existing measure`() {
         val observation = gimmeAnObservation()
         val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
-        val observationName = "temperature"
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedObservation = mockkClass(Property::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedObservation setProperty "value" value any<Double>() } answers { value }
-        every { mockkedObservation setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
-        every { mockkedObservation getProperty "name" } returns observationName
+        every { mockkedObservation.name } returns observation.attributeName
+        every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
 
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
@@ -333,7 +330,11 @@ class Neo4jServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+        val expandedNewRelationship =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newRelationship,
+                aquacContext!!
+            )
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
@@ -371,7 +372,11 @@ class Neo4jServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+        val expandedNewRelationship =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newRelationship,
+                aquacContext!!
+            )
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
 
@@ -396,7 +401,11 @@ class Neo4jServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship = NgsiLdParsingUtils.expandJsonLdFragment(newRelationship, aquacContext!!)
+        val expandedNewRelationship =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newRelationship,
+                aquacContext!!
+            )
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
@@ -436,7 +445,11 @@ class Neo4jServiceTests {
               }
             }
         """.trimIndent()
-        val expandedNewProperty = NgsiLdParsingUtils.expandJsonLdFragment(newProperty, aquacContext!!)
+        val expandedNewProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newProperty,
+                aquacContext!!
+            )
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedProperty = mockkClass(Property::class)
@@ -457,13 +470,16 @@ class Neo4jServiceTests {
         confirmVerified()
     }
 
-    private fun gimmeAnObservation(): Map.Entry<String, Any> {
-        val observationFile = ClassPathResource("/ngsild/aquac/Observation.json")
-        val mapper = jacksonObjectMapper()
-        mapper.findAndRegisterModules()
-        val observation: Map<String, Any> = mapper.readValue(observationFile.inputStream, mapper.typeFactory.constructMapLikeType(
-            Map::class.java, String::class.java, Any::class.java))
-        return observation.entries.iterator().next()
+    private fun gimmeAnObservation(): Observation {
+        return Observation(
+            attributeName = "incoming",
+            latitude = 43.12,
+            longitude = 65.43,
+            observedBy = "urn:ngsi-ld:Sensor:01XYZ",
+            unitCode = "CEL",
+            value = 12.4,
+            observedAt = OffsetDateTime.now()
+        )
     }
 
     private fun loadAndParseSampleData(filename: String): Pair<Map<String, Any>, List<String>> {

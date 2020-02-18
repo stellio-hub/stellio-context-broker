@@ -1,6 +1,8 @@
 package com.egm.datahub.context.registry.util
 
+import com.egm.datahub.context.registry.model.Observation
 import com.egm.datahub.context.registry.web.BadRequestDataException
+import com.egm.datahub.context.registry.web.InvalidNgsiLdPayloadException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -226,6 +228,39 @@ object NgsiLdParsingUtils {
 
     fun getTypeFromURI(uri: String): String {
         return uri.split(":")[2]
+    }
+
+    fun parseTemporalPropertyUpdate(content: String): Observation {
+        val mapper = jacksonObjectMapper()
+        val rawParsedData = mapper.readTree(content)
+        val propertyName = rawParsedData.fieldNames().next()
+        val propertyValues = rawParsedData[propertyName]
+
+        logger.debug("Received property $rawParsedData (values: $propertyValues)")
+        val isContentValid = listOf("type", "value", "unitCode", "observedAt", "observedBy")
+            .map { propertyValues.has(it) }
+            .all { it }
+        if (!isContentValid)
+            throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
+
+        val location =
+            if (propertyValues["location"] != null) {
+                val coordinates = propertyValues["location"]["value"]["coordinates"].asIterable()
+                // as per https://tools.ietf.org/html/rfc7946#appendix-A.1, first is longitude, second is latitude
+                Pair(coordinates.first().asDouble(), coordinates.last().asDouble())
+            } else {
+                null
+            }
+
+        return Observation(
+            attributeName = propertyName,
+            observedBy = propertyValues["observedBy"]["object"].asText(),
+            observedAt = OffsetDateTime.parse(propertyValues["observedAt"].asText()),
+            value = propertyValues["value"].asDouble(),
+            unitCode = propertyValues["unitCode"].asText(),
+            latitude = location?.second,
+            longitude = location?.first
+        )
     }
 }
 

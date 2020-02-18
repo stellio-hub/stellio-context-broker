@@ -1,20 +1,20 @@
 {
-   "temperature": {
+   "incoming": {
       "type": "Property",
-      "value": 1,
+      "value": 20.7,
       "unitCode": "CEL",
-      "observedAt": "2000-11-26T19:32:52Z",
+      "observedAt": "2019-10-18T07:31:39.77Z",
       "observedBy": {
          "type": "Relationship",
-         "object": "urn:ngsi-ld:Sensor:01XYZ"
+         "object": "urn:sosa:Sensor:10e2073a01080065"
       },
-      "location":{
-         "type":"GeoProperty",
-         "value":{
-            "type":"Point",
-            "coordinates":[
-               40,
-               40
+      "location": {
+         "type": "GeoProperty",
+         "value": {
+            "type": "Point",
+            "coordinates": [
+               24.30623,
+               60.07966
             ]
          }
       }

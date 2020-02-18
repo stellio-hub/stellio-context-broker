@@ -1,6 +1,6 @@
 package com.egm.datahub.context.registry.service
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -14,46 +14,38 @@ class EntitiesListener(
 
     private val logger = LoggerFactory.getLogger(EntitiesListener::class.java)
 
-    private var mapper = jacksonObjectMapper()
-
-    init {
-        // needed because it register the module necessary to parse dates
-        // TODO make it an injectable bean to avoid local definitions everywhere
-        mapper.findAndRegisterModules()
-    }
-
     /**
      * Measures are received under the following format
-     *
      * {
-     *   "id": "urn:ngsi-ld:Observation:1234",
-     *   "type": "Observation",
-     *   "observedBy": {
-     *     "type": "Relationship",
-     *     "object": "urn:ngsi-ld:Sensor:10e2073a01080065"
-     *   },
-     *   "location": {
-     *     "type": "GeoProperty",
-     *     "value": {
-     *       "type": "Point",
-     *       "coordinates": [
-     *         24.30623,
-     *         60.07966
-     *       ]
-     *     }
-     *   },
-     *   "unitCode": "CEL",
-     *   "value": 20.7,
-     *   "observedAt": "2019-10-18T07:31:39.77Z"
+     *   "incoming": {
+     *      "type": "Property",
+     *      "value": 1500,
+     *      "unitCode": "<UN/CEFACT code>",
+     *      "observedAt": "2019-12-30...",
+     *      "observedBy": {
+     *      "type": "Relationship",
+     *      "object": "urn:ngsi-ld:Sensor:0123-3456-..."
+     *      },
+     *      "location": {
+     *          "type": "GeoProperty",
+     *          "value": {
+     *              "type": "Point",
+     *              "coordinates": [
+     *                  24.30623,
+     *                  60.07966
+     *              ]
+     *          }
+     *      }
+     *  }
      * }
      */
+
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
         try {
-            val observation: Map<String, Any> = mapper.readValue(content, mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java))
+            val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
             logger.debug("Parsed observation: $observation")
-            neo4jService.updateEntityLastMeasure(observation.entries.iterator().next())
+            neo4jService.updateEntityLastMeasure(observation)
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e)
         }

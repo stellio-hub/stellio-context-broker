@@ -22,8 +22,8 @@ class NgsiLdParsingUtilsTests {
         assertEquals("CEL", observation.unitCode)
         assertEquals("urn:sosa:Sensor:10e2073a01080065", observation.observedBy)
         assertEquals("2019-10-18T07:31:39.770Z", observation.observedAt.toString())
-        assertEquals(24.30623, observation.latitude)
-        assertEquals(60.07966, observation.longitude)
+        assertEquals(24.30623, observation.longitude)
+        assertEquals(60.07966, observation.latitude)
     }
 
     @Test

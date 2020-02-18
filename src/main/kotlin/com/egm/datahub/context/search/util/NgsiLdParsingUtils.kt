@@ -49,8 +49,8 @@ object NgsiLdParsingUtils {
             observedAt = OffsetDateTime.parse(propertyValues["observedAt"].asText()),
             value = propertyValues["value"].asDouble(),
             unitCode = propertyValues["unitCode"].asText(),
-            latitude = location?.first,
-            longitude = location?.second
+            latitude = location?.second,
+            longitude = location?.first
         )
     }
 

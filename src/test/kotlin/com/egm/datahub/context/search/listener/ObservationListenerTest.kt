@@ -43,8 +43,8 @@ class ObservationListenerTest {
                 observation.value == 20.7 &&
                 observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
                 observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-                observation.latitude == 24.30623 &&
-                observation.longitude == 60.07966
+                observation.longitude == 24.30623 &&
+                observation.latitude == 60.07966
             })
         }
 
@@ -94,8 +94,8 @@ class ObservationListenerTest {
             value = 20.7,
             unitCode = "CEL",
             observedAt = OffsetDateTime.parse("2019-10-18T07:31:39.77Z"),
-            latitude = location?.first,
-            longitude = location?.second,
+            latitude = location?.second,
+            longitude = location?.first,
             observedBy = "urn:sosa:Sensor:10e2073a01080065"
         )
     }

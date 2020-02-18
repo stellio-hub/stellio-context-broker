@@ -24,6 +24,14 @@ class ApiGatewayApplication(
 							.uri("http://context-registry:8082")
 				}
 				.route { p ->
+					p.path("/ngsi-ld/v1/entityOperations/**")
+							.filters {
+								it.filter(filterFactory.apply())
+							}
+							// TODO : configurable version
+							.uri("http://context-registry:8082")
+				}
+				.route { p ->
 					p.path("/ngsi-ld/v1/temporal/entities/**")
 							.filters {
 								it.filter(filterFactory.apply())

@@ -2,6 +2,7 @@ package com.egm.datahub.context.subscription.service
 
 import com.egm.datahub.context.subscription.model.Notification
 import com.egm.datahub.context.subscription.model.Subscription
+import com.egm.datahub.context.subscription.utils.NgsiLdParsingUtils.getLocationFromEntity
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -16,19 +17,18 @@ class NotificationService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun notifyMatchingSubscribers(rawEntity: String, parsedEntity: Pair<Map<String, Any>, List<String>>):
-        Mono<List<Triple<Subscription, Notification, Boolean>>> {
-
+            Mono<List<Triple<Subscription, Notification, Boolean>>> {
         val id = parsedEntity.first["@id"]!! as String
         val type = (parsedEntity.first["@type"]!! as List<String>)[0]
 
         return subscriptionService.getMatchingSubscriptions(id, type)
-            .flatMap {
-                callSubscriber(it, listOf(rawEntity))
-            }
-            .doOnNext {
-                subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third)
-            }
-            .collectList()
+                .filterWhen {
+                    subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(parsedEntity))
+                }
+                .flatMap {
+                    callSubscriber(it, listOf(rawEntity))
+                }
+                .collectList()
     }
 
     private fun callSubscriber(subscription: Subscription, entities: List<String>): Mono<Triple<Subscription, Notification, Boolean>> {
@@ -39,6 +39,9 @@ class NotificationService(
             .exchange()
             .map {
                 Triple(subscription, notification, it.statusCode() == HttpStatus.OK)
+            }
+            .doOnNext {
+                subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third)
             }
     }
 }

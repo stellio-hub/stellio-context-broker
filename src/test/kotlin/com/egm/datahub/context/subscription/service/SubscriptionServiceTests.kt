@@ -25,10 +25,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     private lateinit var databaseClient: DatabaseClient
 
     private lateinit var subscription1Id: String
+    private lateinit var subscription2Id: String
 
     @BeforeAll
     fun bootstrapSubscriptions() {
-        val subscription1 = gimmeRawSubscription().copy(
+        val subscription1 = gimmeRawSubscription(withGeoQuery = false).copy(
             name = "Subscription 1",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive"),
@@ -38,14 +39,15 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         subscriptionService.create(subscription1).block()
         subscription1Id = subscription1.id
 
-        val subscription2 = gimmeRawSubscription().copy(
+        val subscription2 = gimmeRawSubscription(withGeoQuery = true).copy(
             name = "Subscription 2",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890", idPattern = null, type = "Beehive")
-            )
+                )
         )
         subscriptionService.create(subscription2).block()
+        subscription2Id = subscription2.id
 
         val subscription3 = gimmeRawSubscription().copy(
             name = "Subscription 3",
@@ -57,7 +59,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create a subscription and insert the 3 entities info`() {
+    fun `it should create a subscription insert the 3 entities info`() {
         val subscription = gimmeRawSubscription()
 
         val creationResult = subscriptionService.create(subscription)
@@ -71,6 +73,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             it.startsWith("INSERT INTO subscription")
         }) }
         verify(atLeast = 3) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
+        verify(atLeast = 1) { databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)") }
     }
 
     @Test
@@ -81,15 +84,34 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 1" &&
+                it.description == "My beautiful subscription" &&
+                it.notification.attributes == listOf("incoming") &&
+                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.entities.size == 2 &&
+                it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
+                it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
+                it.geoQ == null
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should load and fill a persisted subscription with entities info and geoquery`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription2Id)
+
+        StepVerifier.create(persistedSubscription)
+                .expectNextMatches {
+                    it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
                     it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
                     it.entities.size == 2 &&
-                    it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
-                    it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null }
-            }
-            .verifyComplete()
+                    it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
+                }
+                .verifyComplete()
     }
 
     @Test

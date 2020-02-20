@@ -1,9 +1,6 @@
 package com.egm.datahub.context.subscription.utils
 
-import com.egm.datahub.context.subscription.model.Endpoint
-import com.egm.datahub.context.subscription.model.EntityInfo
-import com.egm.datahub.context.subscription.model.NotificationParams
-import com.egm.datahub.context.subscription.model.Subscription
+import com.egm.datahub.context.subscription.model.*
 import com.egm.datahub.context.subscription.service.SubscriptionService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
@@ -13,6 +10,7 @@ import java.net.URI
 
 @Component
 @Profile("dev")
+
 class SubscriptionBootstrapper(
     private val subscriptionService: SubscriptionService
 ) : CommandLineRunner {
@@ -23,9 +21,14 @@ class SubscriptionBootstrapper(
 
         val subscription = Subscription(name = "My Subscription",
             entities = setOf(
-                EntityInfo(id = null, idPattern = null, type = "Beehive"),
-                EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890", idPattern = null, type = "Beehive"),
-                EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beehive:1234*", type = "Beehive")
+                EntityInfo(id = null, idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
+                EntityInfo(id = "urn:ngsi-ld:FeedingService:018z59", idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
+                EntityInfo(id = null, idPattern = "urn:ngsi-ld:FeedingService:018*", type = "https://ontology.eglobalmark.com/aquac#FeedingService")
+            ),
+            geoQ = GeoQuery(
+                georel = "within",
+                geometry = GeoQuery.GeometryType.Polygon,
+                coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
             ),
             notification = NotificationParams(
                 attributes = listOf("incoming"),
@@ -39,5 +42,11 @@ class SubscriptionBootstrapper(
                 lastFailure = null,
                 lastSuccess = null
             ))
+
+        subscriptionService.create(subscription)
+            .thenEmpty {
+                logger.debug("Created subscription !")
+            }
+            .subscribe()
     }
 }

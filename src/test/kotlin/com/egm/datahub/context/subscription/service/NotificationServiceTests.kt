@@ -78,6 +78,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
         stubFor(post(urlMatching("/notification"))
@@ -96,6 +97,7 @@ class NotificationServiceTests {
             .verify()
 
         verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
 
         confirmVerified(subscriptionService)
@@ -108,6 +110,7 @@ class NotificationServiceTests {
         val subscription2 = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
         stubFor(post(urlMatching("/notification"))
@@ -123,9 +126,41 @@ class NotificationServiceTests {
             .verify()
 
         verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
+        verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
         confirmVerified(subscriptionService)
+    }
 
-        verify(2, postRequestedFor(urlPathEqualTo("/notification")))
+    @Test
+    fun `it should notify the subscriber that matches the geoQuery`() {
+
+        val subscription1 = gimmeRawSubscription()
+        val subscription2 = gimmeRawSubscription()
+
+        every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
+        every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+
+        stubFor(post(urlMatching("/notification"))
+                .willReturn(ok()))
+
+        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity)
+
+        StepVerifier.create(notificationResult)
+                .expectNextMatches {
+                    it.size == 1
+                }
+                .expectComplete()
+                .verify()
+
+        verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
+        verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
+        verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
+        confirmVerified(subscriptionService)
+
+        verify(1, postRequestedFor(urlPathEqualTo("/notification")))
     }
 }

@@ -2,6 +2,7 @@ package com.egm.datahub.context.subscription.service
 
 import com.egm.datahub.context.subscription.model.*
 import com.egm.datahub.context.subscription.repository.SubscriptionRepository
+import com.egm.datahub.context.subscription.utils.QueryUtils.createGeoQueryStatement
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -9,6 +10,7 @@ import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.r2dbc.query.Criteria
 import org.springframework.data.r2dbc.query.Update
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
@@ -21,6 +23,7 @@ class SubscriptionService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    @Transactional
     fun create(subscription: Subscription): Mono<Void> {
         val insertStatement = """
             INSERT INTO subscription (id, type, name, description, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent) 
@@ -38,16 +41,14 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .fetch()
             .rowsUpdated()
+            .flatMap {
+                createGeometryQuery(subscription.geoQ, subscription.id)
+            }
             .flatMapIterable {
                 subscription.entities
             }
             .flatMap {
-                databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)")
-                    .bind("id", it.id)
-                    .bind("id_pattern", it.idPattern)
-                    .bind("type", it.type)
-                    .bind("subscription_id", subscription.id)
-                    .then()
+                createEntityInfo(it, subscription.id)
             }
             .then()
     }
@@ -56,14 +57,37 @@ class SubscriptionService(
         return subscriptionRepository.existsById(subscription.id)
     }
 
+    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: String): Mono<Int> =
+        databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)")
+            .bind("id", entityInfo.id)
+            .bind("id_pattern", entityInfo.idPattern)
+            .bind("type", entityInfo.type)
+            .bind("subscription_id", subscriptionId)
+            .fetch()
+            .rowsUpdated()
+
+    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: String): Mono<Int> =
+        if (geoQuery != null)
+            databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)")
+                .bind("georel", geoQuery.georel)
+                .bind("geometry", geoQuery.geometry.name)
+                .bind("coordinates", geoQuery.coordinates)
+                .bind("subscription_id", subscriptionId)
+                .fetch()
+                .rowsUpdated()
+        else
+            Mono.just(0)
+
     fun getById(id: String): Mono<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept,
                    status, times_sent, last_notification, last_failure, last_success,
-                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type
+                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
+                   georel, geometry, coordinates, geoproperty
             FROM subscription 
-            LEFT JOIN entity_info ON entity_info.subscription_id = :id 
+            LEFT JOIN entity_info ON entity_info.subscription_id = :id
+            LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
             WHERE subscription.id = :id
         """.trimIndent()
 
@@ -89,12 +113,40 @@ class SubscriptionService(
                 AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
             )
         """.trimIndent()
-
         return databaseClient.execute(selectStatement)
             .bind("id", id)
             .bind("type", type)
             .map(rowToRawSubscription)
+
             .all()
+    }
+
+    fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {
+        val selectStatement = """
+            SELECT *
+            FROM geometry_query 
+            WHERE subscription_id = :sub_id
+        """.trimIndent()
+        return databaseClient.execute(selectStatement)
+                .bind("sub_id", subscriptionId)
+                .map(rowToGeoQuery)
+                .first()
+    }
+
+    fun runGeoQueryStatement(geoQueryStatement: String): Mono<Boolean> {
+        return databaseClient.execute(geoQueryStatement.trimIndent())
+                    .map(matchesGeoQuery)
+                    .first()
+        }
+
+    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>): Mono<Boolean> {
+        return getMatchingGeoQuery(subscriptionId)
+            .map {
+                createGeoQueryStatement(it, targetGeometry)
+            }.flatMap {
+                runGeoQueryStatement(it)
+            }
+            .switchIfEmpty(Mono.just(true))
     }
 
     fun updateSubscriptionNotification(subscription: Subscription, notification: Notification, success: Boolean): Mono<Int> {
@@ -115,28 +167,29 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!,
-            type = row.get("sub_type", String::class.java)!!,
-            name = row.get("name", String::class.java),
-            description = row.get("description", String::class.java),
-            entities = setOf(EntityInfo(
-                id = row.get("entity_id", String::class.java),
-                idPattern = row.get("id_pattern", String::class.java),
-                type = row.get("entity_type", String::class.java)!!
-            )),
-            notification = NotificationParams(
-                attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
-                format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
-                endpoint = Endpoint(
-                    uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!)
-                ),
-                status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
-                timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
-                lastNotification = row.get("last_notification", OffsetDateTime::class.java),
-                lastFailure = row.get("last_failure", OffsetDateTime::class.java),
-                lastSuccess = row.get("last_success", OffsetDateTime::class.java)
-            )
+                id = row.get("sub_id", String::class.java)!!,
+                type = row.get("sub_type", String::class.java)!!,
+                name = row.get("name", String::class.java),
+                description = row.get("description", String::class.java),
+                entities = setOf(EntityInfo(
+                        id = row.get("entity_id", String::class.java),
+                        idPattern = row.get("id_pattern", String::class.java),
+                        type = row.get("entity_type", String::class.java)!!
+                )),
+                geoQ = rowToGeoQuery(row),
+                notification = NotificationParams(
+                        attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
+                        format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
+                        endpoint = Endpoint(
+                                uri = URI(row.get("endpoint_uri", String::class.java)!!),
+                                accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!)
+                        ),
+                        status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
+                        timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
+                        lastNotification = row.get("last_notification", OffsetDateTime::class.java),
+                        lastFailure = row.get("last_failure", OffsetDateTime::class.java),
+                        lastSuccess = row.get("last_success", OffsetDateTime::class.java)
+                )
         )
     }
 
@@ -160,5 +213,20 @@ class SubscriptionService(
                 lastSuccess = null
             )
         )
+    }
+
+    private var rowToGeoQuery: ((Row) -> GeoQuery?) = { row ->
+        if (row.get("georel", String::class.java) != null)
+            GeoQuery(
+                    georel = row.get("georel", String::class.java)!!,
+                    geometry = GeoQuery.GeometryType.valueOf(row.get("geometry", String::class.java)!!),
+                    coordinates = row.get("coordinates", String::class.java)!!
+            )
+        else
+            null
+    }
+
+    private var matchesGeoQuery: ((Row) -> Boolean) = { row ->
+        row.get("geoquery_result", Object::class.java).toString() == "true"
     }
 }

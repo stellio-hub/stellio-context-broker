@@ -39,6 +39,14 @@ class ApiGatewayApplication(
 							// TODO : configurable version
 							.uri("http://context-search:8083")
 				}
+				.route { p ->
+					p.path("/ngsi-ld/v1/subscriptions/**")
+							.filters {
+								it.filter(filterFactory.apply())
+							}
+							// TODO : configurable version
+							.uri("http://context-subscription:8084")
+				}
 				.build()
 	}
 }

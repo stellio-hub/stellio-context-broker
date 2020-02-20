@@ -1,5 +1,6 @@
 package com.egm.datahub.context.subscription.model
 
+import com.egm.datahub.context.subscription.utils.NgsiLdParsingUtils
 import org.springframework.data.annotation.Id
 import java.util.*
 
@@ -10,4 +11,13 @@ data class Subscription(
     val description: String? = null,
     val entities: Set<EntityInfo>,
     val notification: NotificationParams
-)
+) {
+    fun expandTypes(context: List<String>) {
+        this.entities.forEach {
+            it.type = NgsiLdParsingUtils.expandJsonLdKey(it.type, context) !!
+        }
+        this.notification.attributes = this.notification.attributes.map {
+            NgsiLdParsingUtils.expandJsonLdKey(it, context) !!
+        }
+    }
+}

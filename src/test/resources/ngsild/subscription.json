@@ -1,0 +1,29 @@
+{
+  "id":"urn:ngsi-ld:Subscription:04",
+  "type":"Subscription",
+  "entities": [
+    {
+      "type": "Beehive"
+    },
+    { "id": "urn:ngsi-ld:Beehive:1234567890",
+      "type": "Beehive"
+    },
+    {
+      "idPattern": "urn:ngsi-ld:Beehive:1234*",
+      "type": "Beehive"
+    }
+  ],
+  "notification": {
+    "attributes": ["incoming"],
+    "format": "normalized",
+    "endpoint": {
+      "uri": "http://localhost:8084",
+      "accept": "application/json"
+    }
+  },
+  "@context":[
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",
+    "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/82fba02005f3fc572d60744e38f6591bbaa09d6d/egm.jsonld"
+  ]
+}

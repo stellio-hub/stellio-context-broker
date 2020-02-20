@@ -1,0 +1,16 @@
+{
+  "id":"urn:ngsi-ld:Subscription:01",
+  "type":"Subscription",
+  "entities": [
+    {
+      "type": "Beehive"
+    },
+    { "id": "urn:ngsi-ld:Beehive:1234567890",
+      "type": "Beehive"
+    },
+    {
+      "idPattern": "urn:ngsi-ld:Beehive:1234*",
+      "type": "Beehive"
+    }
+  ]
+}

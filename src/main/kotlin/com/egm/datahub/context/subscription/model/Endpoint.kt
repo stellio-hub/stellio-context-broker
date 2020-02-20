@@ -1,5 +1,6 @@
 package com.egm.datahub.context.subscription.model
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import java.net.URI
 
 data class Endpoint(
@@ -7,7 +8,9 @@ data class Endpoint(
     val accept: AcceptType
 ) {
     enum class AcceptType(val accept: String) {
+        @JsonProperty("application/json")
         JSON("application/json"),
+        @JsonProperty("application/ld+json")
         JSONLD("application/ld+json")
     }
 }

@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntitiesListener::class ])
 @ActiveProfiles("test")
-class EntitiesListenerTest {
+class EntitiesListenerTests {
 
     @Autowired
     private lateinit var entitiesListener: EntitiesListener

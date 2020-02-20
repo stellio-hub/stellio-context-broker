@@ -21,7 +21,7 @@ import reactor.test.StepVerifier
 
 @SpringBootTest
 @ActiveProfiles("test")
-class NotificationServiceTest {
+class NotificationServiceTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService

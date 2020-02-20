@@ -1,7 +1,9 @@
 package com.egm.datahub.context.subscription.service
 
 import com.egm.datahub.context.subscription.model.*
+import com.egm.datahub.context.subscription.repository.SubscriptionRepository
 import io.r2dbc.spi.Row
+import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.r2dbc.query.Criteria
@@ -14,8 +16,10 @@ import java.time.OffsetDateTime
 
 @Component
 class SubscriptionService(
-    private val databaseClient: DatabaseClient
+    private val databaseClient: DatabaseClient,
+    private val subscriptionRepository: SubscriptionRepository
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun create(subscription: Subscription): Mono<Void> {
         val insertStatement = """
@@ -46,6 +50,10 @@ class SubscriptionService(
                     .then()
             }
             .then()
+    }
+
+    fun exists(subscription: Subscription): Mono<Boolean> {
+        return subscriptionRepository.existsById(subscription.id)
     }
 
     fun getById(id: String): Mono<Subscription> {

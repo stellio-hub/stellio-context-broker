@@ -39,11 +39,5 @@ class SubscriptionBootstrapper(
                 lastFailure = null,
                 lastSuccess = null
             ))
-
-        subscriptionService.create(subscription)
-            .thenEmpty {
-                logger.debug("Created subscription !")
-            }
-            .subscribe()
     }
 }

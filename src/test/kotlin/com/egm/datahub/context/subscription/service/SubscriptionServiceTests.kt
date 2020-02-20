@@ -15,7 +15,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubscriptionServiceTest : TimescaleBasedTests() {
+class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService

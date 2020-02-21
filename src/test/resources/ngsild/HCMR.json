@@ -11,8 +11,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -28,8 +28,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -45,8 +45,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -62,8 +62,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -79,8 +79,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -96,8 +96,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -113,8 +113,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -130,8 +130,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -147,8 +147,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -164,8 +164,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -181,8 +181,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -198,8 +198,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -215,8 +215,8 @@
       "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -354,8 +354,8 @@
       }
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   },
@@ -375,8 +375,8 @@
       "value": "2020-01-13T10:00:00+02:00"
     },
     "@context": [
-      "https://gist.githubusercontent.com/bobeal/292f6ddf453bf3c427fb7206a2b5638a/raw/ae9b947caa0761b22a7c8a4078741d52a1f8c651/aquac.jsonld",
-      "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/6c7b234b76f86eb66ece385bc93c3f139f8e8cad/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     ]
   }

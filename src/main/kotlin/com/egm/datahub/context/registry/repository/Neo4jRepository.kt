@@ -6,13 +6,19 @@ import com.egm.datahub.context.registry.model.Relationship
 import com.egm.datahub.context.registry.util.isFloat
 import com.egm.datahub.context.registry.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.session.Session
+import org.neo4j.ogm.session.SessionFactory
+import org.neo4j.ogm.session.event.Event
+import org.neo4j.ogm.session.event.EventListenerAdapter
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.OffsetDateTime
+import javax.annotation.PostConstruct
 
 @Component
 class Neo4jRepository(
-    private val session: Session
+    private val session: Session,
+    private val sessionFactory: SessionFactory
 ) {
     private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
 
@@ -258,5 +264,30 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .first()
+    }
+    @PostConstruct
+    fun addEventListenerToSessionFactory() {
+        val eventListener = PreSaveEventListener()
+        sessionFactory.register(eventListener)
+    }
+}
+class PreSaveEventListener : EventListenerAdapter() {
+    override fun onPreSave(event: Event) {
+        when (event.getObject()) {
+            is Entity -> {
+                var entity: Entity = event.getObject() as Entity
+                entity.modifiedAt = OffsetDateTime.now()
+            }
+
+            is Property -> {
+                var property: Property = event.getObject() as Property
+                property.modifiedAt = OffsetDateTime.now()
+            }
+
+            is Relationship -> {
+                var relationship: Relationship = event.getObject() as Relationship
+                relationship.modifiedAt = OffsetDateTime.now()
+            }
+        }
     }
 }

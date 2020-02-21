@@ -2,7 +2,9 @@ package com.egm.datahub.context.registry.repository
 
 import com.egm.datahub.context.registry.model.Entity
 import com.egm.datahub.context.registry.model.Property
+import com.egm.datahub.context.registry.model.Relationship
 import junit.framework.TestCase.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -17,6 +19,12 @@ class Neo4jRepositoryTests {
 
     @Autowired
     private lateinit var entityRepository: EntityRepository
+
+    @Autowired
+    private lateinit var propertyRepository: PropertyRepository
+
+    @Autowired
+    private lateinit var relationshipRepository: RelationshipRepository
 
     @Test
     fun `it should return an entity if type and string properties are correct`() {
@@ -102,5 +110,38 @@ class Neo4jRepositoryTests {
         val entity = Entity(id = id, type = type, properties = properties)
         entityRepository.save(entity)
         return entity
+    }
+
+    @Test
+    fun `it should add modifiedAt value when creating new entity`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        assertNotNull(entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should add modifiedAt value when creating a new property`() {
+        val property = Property(name = "name", value = "Scalpa")
+        propertyRepository.save(property)
+        assertNotNull(propertyRepository.findById(property.id).get().modifiedAt)
+        propertyRepository.deleteById(property.id)
+    }
+
+    @Test
+    fun `it should add modifiedAt value when saving a new relationship`() {
+        val relationship = Relationship(type = listOf("connectsTo"))
+        relationshipRepository.save(relationship)
+        assertNotNull(relationshipRepository.findById(relationship.id).get().modifiedAt)
+        relationshipRepository.deleteById(relationship.id)
+    }
+
+    @Test
+    fun `it should update modifiedAt value when updating an entity`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val modifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt
+        createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Demha")))
+        val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt
+        assertThat(updatedModifiedAt).isAfter(modifiedAt)
+        neo4jRepository.deleteEntity(entity.id)
     }
 }

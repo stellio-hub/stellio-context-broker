@@ -303,11 +303,6 @@ class Neo4jService(
 
                 val relationshipValues = mutableMapOf<String, Any>()
                 relationshipValues.putAll(relationship)
-                val expandedRelationshipType =
-                    expandRelationshipType(
-                        mapOf(primaryRelType.extractShortTypeFromExpanded().toNgsiLdRelationshipKey() to relationship),
-                        entity.contexts
-                    )
 
                 it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
                     val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
@@ -326,7 +321,7 @@ class Neo4jService(
                     relationshipValues[expandedInnerRelationshipType] = innerRelationship
                 }
 
-                resultEntity[expandedRelationshipType] = relationshipValues
+                resultEntity[primaryRelType] = relationshipValues
             }
 
         return Pair(resultEntity, entity.contexts)

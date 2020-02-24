@@ -35,7 +35,7 @@ class ValidationUtils(
             val relationshipIds = getRelationshipIds(urn, entitiesIds, entities, ArrayList()).first
             logger.debug("Relationships ids for $urn are $relationshipIds")
             if (entitiesIds.containsAll(relationshipIds)) {
-                result[urn] = NgsiLdParsingUtils.extractShortTypeFromPayload(it.first)
+                result[urn] = NgsiLdParsingUtils.extractTypeFromPayload(it.first)
             }
         }
 

@@ -22,6 +22,7 @@ import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.expandRelationshipType
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.extractShortTypeFromPayload
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.extractTypeFromPayload
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
@@ -565,7 +566,7 @@ class Neo4jService(
 
         entities.forEach {
             val urn = it.first.getOrElse("@id") { "" } as String
-            val type = extractShortTypeFromPayload(it.first)
+            val type = extractTypeFromPayload(it.first)
             val entity = createTempEntityInBatch(urn, type, it.second)
             val propertiesAndRelationshipsMap = it.first.filterKeys {
                 !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)

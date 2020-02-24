@@ -179,6 +179,9 @@ object NgsiLdParsingUtils {
         return objectId
     }
 
+    fun extractTypeFromPayload(payload: Map<String, Any>): String =
+        (payload["@type"] as List<String>)[0]
+
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
         // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
         // TODO do a clean implementation using info from @context

@@ -1,19 +1,24 @@
 package com.egm.datahub.context.subscription.web
 
 import com.egm.datahub.context.subscription.service.SubscriptionService
+import com.egm.datahub.context.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.verify
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import reactor.core.publisher.Mono
+import java.lang.RuntimeException
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -85,6 +90,46 @@ class SubscriptionHandlerTests {
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
+        val subscription = gimmeRawSubscription()
+        every { subscriptionService.deleteSubscription(any()) } returns Mono.just(1)
+
+        webClient.delete()
+                .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .exchange()
+                .expectStatus().isNoContent
+                .expectBody().isEmpty
+
+        verify { subscriptionService.deleteSubscription(eq(subscription.id)) }
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
+        every { subscriptionService.deleteSubscription(any()) } returns Mono.just(0)
+
+        webClient.delete()
+                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .exchange()
+                .expectStatus().isNotFound
+                .expectBody().isEmpty
+    }
+
+    @Test
+    fun `delete subscription should return a 500 if subscription could not be deleted`() {
+        every { subscriptionService.deleteSubscription(any()) } throws RuntimeException("Unexpected server error")
+
+        webClient.delete()
+                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .exchange()
+                .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+                .expectBody().json("{\"ProblemDetails\":[\"Unexpected server error\"]}")
     }
 
     @Test

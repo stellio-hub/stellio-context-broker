@@ -16,6 +16,7 @@ class Routes(
                 .nest {
                     "/subscriptions".nest {
                         POST("", subscriptionHandler::create)
+                        DELETE("/{subscriptionId}", subscriptionHandler::delete)
                     }
                 }
     }

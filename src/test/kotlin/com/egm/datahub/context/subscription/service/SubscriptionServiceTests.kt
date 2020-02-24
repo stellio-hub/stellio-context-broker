@@ -4,6 +4,7 @@ import com.egm.datahub.context.subscription.model.*
 import com.egm.datahub.context.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.verify
+import junit.framework.TestCase.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -112,6 +113,23 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
                 }
                 .verifyComplete()
+    }
+
+    @Test
+    fun `it should delete an existing subscription`() {
+        val subscription = gimmeRawSubscription()
+        subscriptionService.create(subscription).block()
+
+        val deletionResult = subscriptionService.deleteSubscription(subscription.id).block()
+
+        assertEquals(deletionResult, 1)
+    }
+
+    @Test
+    fun `it should not delete an unknown subscription`() {
+        val deletionResult = subscriptionService.deleteSubscription("urn:ngsi-ld:Subscription:UnknownSubscription").block()
+
+        assertEquals(deletionResult, 0)
     }
 
     @Test

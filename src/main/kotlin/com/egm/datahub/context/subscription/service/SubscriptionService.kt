@@ -100,6 +100,18 @@ class SubscriptionService(
             }
     }
 
+    fun deleteSubscription(subscriptionId: String): Mono<Int> {
+        val deleteStatement = """
+            DELETE FROM subscription 
+            WHERE subscription.id = :id
+        """.trimIndent()
+
+        return databaseClient.execute(deleteStatement)
+                .bind("id", subscriptionId)
+                .fetch()
+                .rowsUpdated()
+    }
+
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,

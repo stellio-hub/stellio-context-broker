@@ -3,6 +3,7 @@ package com.egm.datahub.context.subscription.service
 import com.egm.datahub.context.subscription.model.*
 import com.egm.datahub.context.subscription.repository.SubscriptionRepository
 import com.egm.datahub.context.subscription.utils.QueryUtils.createGeoQueryStatement
+import com.egm.datahub.context.subscription.web.ResourceNotFoundException
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -53,8 +54,8 @@ class SubscriptionService(
             .then()
     }
 
-    fun exists(subscription: Subscription): Mono<Boolean> {
-        return subscriptionRepository.existsById(subscription.id)
+    fun exists(subscriptionId: String): Mono<Boolean> {
+        return subscriptionRepository.existsById(subscriptionId)
     }
 
     private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: String): Mono<Int> =
@@ -79,24 +80,31 @@ class SubscriptionService(
             Mono.just(0)
 
     fun getById(id: String): Mono<Subscription> {
-        val selectStatement = """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept,
-                   status, times_sent, last_notification, last_failure, last_success,
-                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, geoproperty
-            FROM subscription 
-            LEFT JOIN entity_info ON entity_info.subscription_id = :id
-            LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
-            WHERE subscription.id = :id
-        """.trimIndent()
+        return exists(id)
+            .map {
+                if (!it)
+                    throw ResourceNotFoundException("Subscription Not Found")
+            }
+            .flatMap {
+                val selectStatement = """
+                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,
+                       notif_attributes, notif_format, endpoint_uri, endpoint_accept,
+                       status, times_sent, last_notification, last_failure, last_success,
+                       entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
+                       georel, geometry, coordinates, geoproperty
+                FROM subscription 
+                LEFT JOIN entity_info ON entity_info.subscription_id = :id
+                LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
+                WHERE subscription.id = :id
+            """.trimIndent()
 
-        return databaseClient.execute(selectStatement)
-            .bind("id", id)
-            .map(rowToSubscription)
-            .all()
-            .reduce { t: Subscription, u: Subscription ->
-                t.copy(entities = t.entities.plus(u.entities))
+                databaseClient.execute(selectStatement)
+                    .bind("id", id)
+                    .map(rowToSubscription)
+                    .all()
+                    .reduce { t: Subscription, u: Subscription ->
+                        t.copy(entities = t.entities.plus(u.entities))
+                    }
             }
     }
 

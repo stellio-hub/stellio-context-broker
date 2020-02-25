@@ -39,7 +39,7 @@ class SubscriptionHandler(
                     NgsiLdParsingUtils.parseSubscription(it, context)
                 }
                 .flatMap { subscription ->
-                    subscriptionService.exists(subscription).flatMap {
+                    subscriptionService.exists(subscription.id).flatMap {
                         Mono.just(Pair(subscription, it))
                     }
                 }
@@ -59,6 +59,26 @@ class SubscriptionHandler(
                         is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
                         is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
                         is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
+                        else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
+                    }
+                }
+    }
+
+    /**
+     * Implements 6.11.3.1 - Retrieve Subscription
+     */
+    fun getByURI(req: ServerRequest): Mono<ServerResponse> {
+        val uri = req.pathVariable("subscriptionId")
+        return uri.toMono()
+                .flatMap {
+                    subscriptionService.getById(uri)
+                }
+                .flatMap {
+                    ok().body(BodyInserters.fromValue(it))
+                }
+                .onErrorResume {
+                    when (it) {
+                        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
                         else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                     }
                 }

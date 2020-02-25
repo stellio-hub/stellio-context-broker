@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -30,6 +31,32 @@ class SubscriptionHandlerTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @Test
+    fun `get subscription by id should return 200 when subscription exists`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
+
+        webClient.get()
+                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .exchange()
+                .expectStatus().isOk
+    }
+
+    @Test
+    fun `get subscription by id should return 404 when subscription does not exist`() {
+        every { subscriptionService.getById(any()) } returns Mono.error(ResourceNotFoundException("Subscription Not Found"))
+
+        webClient.get()
+                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+                .accept(MediaType.valueOf("application/ld+json"))
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .exchange()
+                .expectStatus().isNotFound
+    }
 
     @Test
     fun `create subscription should return a 201 if JSON-LD payload is correct`() {

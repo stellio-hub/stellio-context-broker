@@ -273,6 +273,7 @@ class Neo4jService(
                 }
 
                 it.filter { relEntry -> relEntry["relOfProp"] != null }.forEach {
+                    val relationship = it["relOfProp"] as Relationship
                     val targetEntity = it["relOfPropObject"] as Entity
                     val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
                     logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
@@ -281,9 +282,10 @@ class Neo4jService(
                         NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
                         NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
                     )
-                    val relationship = mapOf(relationshipKey to relationshipValue)
-                    val expandedRelationshipKey = expandRelationshipType(relationship, entity.contexts)
-                    propertyValues[expandedRelationshipKey] = relationshipValue
+                    val relationshipValues = relationship.serializeCoreProperties()
+                    relationshipValues.putAll(relationshipValue)
+                    val expandedRelationshipKey = expandRelationshipType(mapOf(relationshipKey to relationshipValue), entity.contexts)
+                    propertyValues[expandedRelationshipKey] = relationshipValues
                 }
                 resultEntity[propertyKey] = propertyValues
             }
@@ -293,19 +295,21 @@ class Neo4jService(
                 (it["rel"] as Relationship).id
             }.values
             .forEach {
+                val relationship = it[0]["rel"] as Relationship
                 val primaryRelType = (it[0]["rel"] as Relationship).type[0]
                 val primaryRelation =
                     it.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
                 val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
-                val relationship = mapOf(
+                val relationshipValue = mapOf(
                     NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
                     NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to relationshipTargetId)
                 )
 
-                val relationshipValues = mutableMapOf<String, Any>()
-                relationshipValues.putAll(relationship)
+                val relationshipValues = relationship.serializeCoreProperties()
+                relationshipValues.putAll(relationshipValue)
 
                 it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
+                    val relationship = it["relOfRel"] as Relationship
                     val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
                     val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
 
@@ -314,12 +318,12 @@ class Neo4jService(
                         NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to innerTargetEntityId)
                     )
 
-                    val innerRelationshipValues = mutableMapOf<String, Any>()
+                    val innerRelationshipValues = relationship.serializeCoreProperties()
                     innerRelationshipValues.putAll(innerRelationship)
                     val expandedInnerRelationshipType =
-                        expandRelationshipType(mapOf(innerRelType to relationship), entity.contexts)
+                        expandRelationshipType(mapOf(innerRelType to relationshipValue), entity.contexts)
 
-                    relationshipValues[expandedInnerRelationshipType] = innerRelationship
+                    relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
                 }
 
                 resultEntity[primaryRelType] = relationshipValues

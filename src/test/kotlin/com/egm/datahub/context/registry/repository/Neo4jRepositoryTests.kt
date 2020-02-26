@@ -1,8 +1,12 @@
 package com.egm.datahub.context.registry.repository
 
+import com.egm.datahub.context.registry.model.Attribute
 import com.egm.datahub.context.registry.model.Entity
 import com.egm.datahub.context.registry.model.Property
 import com.egm.datahub.context.registry.model.Relationship
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.datahub.context.registry.util.toRelationshipTypeName
 import junit.framework.TestCase.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -25,6 +29,9 @@ class Neo4jRepositoryTests {
 
     @Autowired
     private lateinit var relationshipRepository: RelationshipRepository
+
+    @Autowired
+    private lateinit var attributeRepository: AttributeRepository
 
     @Test
     fun `it should return an entity if type and string properties are correct`() {
@@ -106,12 +113,6 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(entity.id)
     }
 
-    fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
-        val entity = Entity(id = id, type = type, properties = properties)
-        entityRepository.save(entity)
-        return entity
-    }
-
     @Test
     fun `it should add modifiedAt value when creating new entity`() {
         val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
@@ -143,5 +144,82 @@ class Neo4jRepositoryTests {
         val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt
         assertThat(updatedModifiedAt).isAfter(modifiedAt)
         neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should find a sensor by vendor id and measured property`() {
+        val vendorId = "urn:something:9876"
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
+        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
+        assertNotNull(persistedEntity)
+        propertyRepository.delete(property)
+        relationshipRepository.delete(relationship)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not find a sensor by vendor id if measured property does not exist`() {
+        val vendorId = "urn:something:9876"
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
+        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "incoming")
+        assertNull(persistedEntity)
+        propertyRepository.delete(property)
+        relationshipRepository.delete(relationship)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not find a sensor if measured property exists but not the vendor id`() {
+        val vendorId = "urn:something:9876"
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
+        val persistedEntity = neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:Unknown", EGM_VENDOR_ID, "outgoing")
+        assertNull(persistedEntity)
+        propertyRepository.delete(property)
+        relationshipRepository.delete(relationship)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should find a sensor by NGSI-LD id`() {
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf())
+        val persistedEntity = neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:1233", EGM_VENDOR_ID, "anything")
+        assertNotNull(persistedEntity)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not find a sensor if neither NGSI-LD or vendor id matches`() {
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = "urn:something:9876")))
+        val persistedEntity = neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:Unknown", EGM_VENDOR_ID, "unknownMeasure")
+        assertNull(persistedEntity)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
+        val entity = Entity(id = id, type = type, properties = properties)
+        entityRepository.save(entity)
+        return entity
+    }
+
+    fun createProperty(name: String): Property {
+        val property = Property(name = name, value = 1.0)
+        return propertyRepository.save(property)
+    }
+
+    fun createRelationship(subject: Attribute, relationshipType: String, objectId: String): Relationship {
+        val relationship = Relationship(type = listOf(relationshipType))
+        val persistedRelationship = relationshipRepository.save(relationship)
+        subject.relationships.add(persistedRelationship)
+        attributeRepository.save(subject)
+        neo4jRepository.createRelationshipToEntity(persistedRelationship.id,
+            relationshipType.toRelationshipTypeName(), objectId)
+
+        return persistedRelationship
     }
 }

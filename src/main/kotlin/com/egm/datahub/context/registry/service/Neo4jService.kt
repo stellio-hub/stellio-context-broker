@@ -4,6 +4,7 @@ import com.egm.datahub.context.registry.model.*
 import com.egm.datahub.context.registry.repository.*
 import com.egm.datahub.context.registry.util.*
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
@@ -593,14 +594,14 @@ class Neo4jService(
     }
 
     fun updateEntityLastMeasure(observation: Observation) {
-        val observingEntity = entityRepository.findById(observation.observedBy)
-        if (!observingEntity.isPresent) {
+        val observingEntity = neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
+        if (observingEntity == null) {
             logger.warn("Unable to find observing entity ${observation.observedBy}")
             return
         }
         // Find the previous observation of the same unit for the given sensor, then create or update it
         val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded().toRelationshipTypeName()
-        val observedProperty = neo4jRepository.getObservedProperty(observingEntity.get().id, observedByRelationshipType)
+        val observedProperty = neo4jRepository.getObservedProperty(observingEntity.id, observedByRelationshipType)
         if (observedProperty == null || observedProperty.name.extractShortTypeFromExpanded() != observation.attributeName) {
             logger.warn("Found no property named ${observation.attributeName} observed by ${observation.observedBy}, ignoring it")
         } else {

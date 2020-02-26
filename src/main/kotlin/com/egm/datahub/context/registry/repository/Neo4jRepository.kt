@@ -209,6 +209,26 @@ class Neo4jRepository(
             .map { it["id"] as String }
     }
 
+    fun getObservingSensorEntity(observerId: String, propertyName: String, measureName: String): Entity? {
+        // definitely not bullet proof since we are looking for a property whose name ends with the property name
+        // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
+        // TODO : this will have to be resolved with a clean provisioning architecture
+        val query = """
+            MATCH (e:Entity)
+            WHERE e.id = '$observerId'
+            RETURN e
+            UNION ALL
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property)
+            WHERE m.name ENDS WITH '$measureName' AND p.name = '$propertyName' AND p.value = '$observerId'
+            RETURN e
+        """.trimIndent()
+
+        logger.debug("Issuing query $query")
+        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
+            .map { it["e"] as Entity }
+            .firstOrNull()
+    }
+
     fun getObservedProperty(observerId: String, relationshipType: String): Property? {
         val query = """
             MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })

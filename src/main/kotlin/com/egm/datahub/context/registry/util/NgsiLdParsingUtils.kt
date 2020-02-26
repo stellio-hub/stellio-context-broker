@@ -55,6 +55,7 @@ object NgsiLdParsingUtils {
     ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
+    const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 

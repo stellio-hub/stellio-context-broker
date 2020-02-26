@@ -3,6 +3,7 @@ package com.egm.datahub.context.registry.service
 import com.egm.datahub.context.registry.model.*
 import com.egm.datahub.context.registry.repository.*
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
+import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
@@ -101,11 +102,11 @@ class Neo4jServiceTests {
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 
-        every { entityRepository.findById(any()) } returns Optional.empty()
+        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns null
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { entityRepository.findById("urn:ngsi-ld:Sensor:01XYZ") }
+        verify { neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:01XYZ", EGM_VENDOR_ID, "incoming") }
 
         confirmVerified(entityRepository)
     }
@@ -121,12 +122,12 @@ class Neo4jServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation.id } returns mockkedObservationId
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns null
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { entityRepository.findById(sensorId) }
+        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
         verify { propertyRepository wasNot Called }
 
@@ -147,7 +148,7 @@ class Neo4jServiceTests {
         every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
 
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
         every { neo4jRepository.getEntityByProperty(any()) } returns mockkedEntity
         every { propertyRepository.save(any<Property>()) } returns mockkedObservation
@@ -155,7 +156,7 @@ class Neo4jServiceTests {
 
         neo4jService.updateEntityLastMeasure(observation)
 
-        verify { entityRepository.findById(sensorId) }
+        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
         verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }

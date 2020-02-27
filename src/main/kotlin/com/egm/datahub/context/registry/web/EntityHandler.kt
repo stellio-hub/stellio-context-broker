@@ -3,6 +3,7 @@ package com.egm.datahub.context.registry.web
 import com.egm.datahub.context.registry.service.Neo4jService
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.getTypeFromURI
+import com.egm.datahub.context.registry.util.decode
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
@@ -82,9 +83,10 @@ class EntityHandler(
             return badRequest().body(BodyInserters.fromValue("Unable to resolve 'type' parameter from the provided Link header"))
         }
 
+        /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
         return "".toMono()
             .map {
-                neo4jService.searchEntities(type, q, contextLink)
+                neo4jService.searchEntities(type, q.decode(), contextLink)
             }
             .map {
                 it.map {

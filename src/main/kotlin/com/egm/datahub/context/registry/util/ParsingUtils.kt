@@ -2,6 +2,7 @@ package com.egm.datahub.context.registry.util
 
 import com.egm.datahub.context.registry.util.NgsiLdParsingUtils.parseEntities
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import java.net.URLDecoder
 
 fun extractComparaisonParametersFromQuery(query: String): ArrayList<String> {
     val splitted = ArrayList<String>()
@@ -42,3 +43,11 @@ fun extractAndParseBatchOfEntities(payload: String): List<Pair<Map<String, Any>,
     val extractedEntities = extractEntitiesFromJsonPayload(payload)
     return parseEntities(extractedEntities)
 }
+
+fun String.decode(): String =
+    URLDecoder.decode(this, "UTF-8")
+
+fun List<String>.decode(): List<String> =
+    this.map {
+        it.decode()
+    }

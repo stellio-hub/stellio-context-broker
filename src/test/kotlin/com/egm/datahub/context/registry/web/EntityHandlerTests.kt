@@ -214,6 +214,66 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `append entity attribute should return a 400 if the attribute is missing a type`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty_missing_type.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `append entity attribute should return a 400 if the attribute is a property and is missing a value`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty_missing_value.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `append entity attribute should return a 400 if the attribute is a relationship and is missing an object`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newRelationship_missing_object.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { neo4jService.exists(any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+
+        verify { neo4jService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `partial attribute update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"

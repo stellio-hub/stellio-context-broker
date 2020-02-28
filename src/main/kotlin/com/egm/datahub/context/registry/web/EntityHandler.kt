@@ -167,7 +167,6 @@ class EntityHandler(
     /**
      * Implements 6.6.3.2 - Update Entity Attributes
      *
-     * Current implementation is basic and only update values of properties.
      */
     fun updateEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
@@ -202,6 +201,7 @@ class EntityHandler(
 
     /**
      * Implements 6.7.3.1 - Partial Attribute Update
+     * Current implementation is basic and only update the value of a property.
      */
     fun partialAttributeUpdate(req: ServerRequest): Mono<ServerResponse> {
         val attr = req.pathVariable("attrId")

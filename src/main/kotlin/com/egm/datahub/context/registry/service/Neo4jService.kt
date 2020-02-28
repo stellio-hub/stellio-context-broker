@@ -98,7 +98,8 @@ class Neo4jService(
     }
 
     internal fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>, isInBatchContext: Boolean = false, validEntities: Map<String, String> = mutableMapOf()): Property {
-        val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)!!
+        val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)
+            ?: throw BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found in $propertyValues")
 
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
@@ -368,6 +369,8 @@ class Neo4jService(
     fun appendEntityAttributes(entityId: String, attributes: Map<String, Any>, disallowOverwrite: Boolean, isInBatchContext: Boolean = false, validEntities: Map<String, String> = mutableMapOf()): UpdateResult {
         val updateStatuses = attributes.map {
             val attributeValue = expandValueAsMap(it.value)
+            if (!attributeValue.containsKey("@type"))
+                throw BadRequestDataException("@type not found in $attributeValue")
             val attributeType = attributeValue["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {

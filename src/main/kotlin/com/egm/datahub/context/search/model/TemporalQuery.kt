@@ -3,6 +3,7 @@ package com.egm.datahub.context.search.model
 import java.time.OffsetDateTime
 
 data class TemporalQuery(
+    val attrs: List<String> = emptyList(),
     val timerel: Timerel,
     val time: OffsetDateTime,
     val endTime: OffsetDateTime?

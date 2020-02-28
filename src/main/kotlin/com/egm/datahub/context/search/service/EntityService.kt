@@ -58,11 +58,15 @@ class EntityService(
             .map { it.size }
     }
 
-    fun getForEntity(id: String): Flux<EntityTemporalProperty> {
+    fun getForEntity(id: String, attrs: List<String>): Flux<EntityTemporalProperty> {
+        var criteria = where("entity_id").isEquals(id)
+        if (attrs.isNotEmpty())
+            criteria = criteria.and("attribute_name").`in`(attrs)
+
         return databaseClient
             .select()
             .from(EntityTemporalProperty::class.java)
-            .matching(where("entity_id").isEquals(id))
+            .matching(criteria)
             .fetch()
             .all()
     }

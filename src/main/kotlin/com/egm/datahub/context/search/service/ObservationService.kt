@@ -26,18 +26,22 @@ class ObservationService(
             .from("observation")
             .project("value", "observed_at", "attribute_name")
 
-        val timeCriteriaStep = when (temporalQuery.timerel) {
+        var criteriaStep = when (temporalQuery.timerel) {
             TemporalQuery.Timerel.BEFORE -> where("observed_at").lessThan(temporalQuery.time)
             TemporalQuery.Timerel.AFTER -> where("observed_at").greaterThan(temporalQuery.time)
             else -> where("observed_at").greaterThan(temporalQuery.time)
                 .and("observed_at").lessThan(temporalQuery.endTime!!)
         }
 
+        if (temporalQuery.attrs.isNotEmpty()) {
+            criteriaStep = criteriaStep.and("attribute_name").`in`(temporalQuery.attrs)
+        }
+
         // TODO we actually only support queries providing an entity id
         val results = if (entityTemporalProperty.observedBy != null)
-            fromSelectSpec.matching(timeCriteriaStep.and("observed_by").`is`(entityTemporalProperty.observedBy)).fetch().all()
+            fromSelectSpec.matching(criteriaStep.and("observed_by").`is`(entityTemporalProperty.observedBy)).fetch().all()
         else
-            fromSelectSpec.matching(timeCriteriaStep).fetch().all()
+            fromSelectSpec.matching(criteriaStep).fetch().all()
 
         return results.collectList()
     }

@@ -72,7 +72,7 @@ class TemporalEntityHandler(
 
         return Mono.just(temporalQuery)
             .flatMapMany {
-                entityService.getForEntity(entityId).map { entityTemporalProperty ->
+                entityService.getForEntity(entityId, temporalQuery.attrs).map { entityTemporalProperty ->
                     Pair(entityTemporalProperty, it)
                 }
             }
@@ -98,29 +98,29 @@ class TemporalEntityHandler(
     }
 
     class BadQueryParametersException(message: String) : RuntimeException(message)
-
-    private fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
-        if (!params.containsKey("timerel") || !params.containsKey("time"))
-            throw BadQueryParametersException("'timerel and 'time' request parameters are mandatory")
-
-        if (params.getFirst("timerel") == "between" && !params.containsKey("endTime"))
-            throw BadQueryParametersException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
-
-        val timerel = try {
-            TemporalQuery.Timerel.valueOf(params.getFirst("timerel")!!.toUpperCase())
-        } catch (e: IllegalArgumentException) {
-            throw BadQueryParametersException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
-        }
-        val time = parseTimeParameter(params.getFirst("time")!!, "'time' parameter is not a valid date")
-        val endTime = params.getFirst("endTime")?.let { parseTimeParameter(it, "'endTime' parameter is not a valid date") }
-
-        return TemporalQuery(timerel, time, endTime)
-    }
-
-    private fun parseTimeParameter(param: String, errorMsg: String) =
-        try {
-            OffsetDateTime.parse(param)
-        } catch (e: DateTimeParseException) {
-            throw BadQueryParametersException(errorMsg)
-        }
 }
+
+internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
+    if (!params.containsKey("timerel") || !params.containsKey("time"))
+        throw TemporalEntityHandler.BadQueryParametersException("'timerel and 'time' request parameters are mandatory")
+
+    if (params.getFirst("timerel") == "between" && !params.containsKey("endTime"))
+        throw TemporalEntityHandler.BadQueryParametersException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
+
+    val timerel = try {
+        TemporalQuery.Timerel.valueOf(params.getFirst("timerel")!!.toUpperCase())
+    } catch (e: IllegalArgumentException) {
+        throw TemporalEntityHandler.BadQueryParametersException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
+    }
+    val time = parseTimeParameter(params.getFirst("time")!!, "'time' parameter is not a valid date")
+    val endTime = params.getFirst("endTime")?.let { parseTimeParameter(it, "'endTime' parameter is not a valid date") }
+
+    return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime)
+}
+
+private fun parseTimeParameter(param: String, errorMsg: String) =
+    try {
+        OffsetDateTime.parse(param)
+    } catch (e: DateTimeParseException) {
+        throw TemporalEntityHandler.BadQueryParametersException(errorMsg)
+    }

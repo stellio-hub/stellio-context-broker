@@ -10,6 +10,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -21,6 +22,7 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.*
+import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -144,7 +146,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a 200 if parameters are valid`() {
+    fun `it should return a 200 if minimal required parameters are valid`() {
 
         val entityTemporalProperty = EntityTemporalProperty(
             entityId = "entityId",
@@ -152,7 +154,7 @@ class TemporalEntityHandlerTests {
             attributeName = "incoming",
             observedBy = "sensorId"
         )
-        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty)
+        every { entityService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty)
         every { observationService.search(any(), any()) } returns Mono.just(emptyList())
         every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
         every { entityService.injectTemporalValues(any(), any()) } returns Pair(emptyMap(), emptyList())
@@ -189,7 +191,7 @@ class TemporalEntityHandlerTests {
             observedBy = "sensorId2"
         )
         val rawEntity = loadAndParseSampleData()
-        every { entityService.getForEntity(any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
+        every { entityService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
         every { observationService.search(any(), any()) } returns Mono.just(emptyList())
         every { contextRegistryService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every { entityService.injectTemporalValues(any(), any()) } returns rawEntity
@@ -216,5 +218,30 @@ class TemporalEntityHandlerTests {
             .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isForbidden
+    }
+
+    @Test
+    fun `it should parse a query containing one attrs parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("attrs", "outgoing")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs[0] == "outgoing")
+    }
+
+    @Test
+    fun `it should parse a query containing two attrs parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("attrs", "outgoing")
+        queryParams.add("attrs", "incoming")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
     }
 }

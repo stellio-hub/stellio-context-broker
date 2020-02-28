@@ -9,8 +9,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.core.io.ClassPathResource
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import junit.framework.TestCase.*
 import reactor.test.StepVerifier
 import java.net.URI
 
@@ -27,6 +29,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     private lateinit var subscription1Id: String
     private lateinit var subscription2Id: String
+    private lateinit var subscription3Id: String
+
+    private val entity = ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
 
     @BeforeAll
     fun bootstrapSubscriptions() {
@@ -45,18 +50,19 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890", idPattern = null, type = "Beehive")
-                )
+            )
         )
         subscriptionService.create(subscription2).block()
         subscription2Id = subscription2.id
 
-        val subscription3 = gimmeRawSubscription().copy(
+        val subscription3 = gimmeRawSubscription(withQuery = true).copy(
             name = "Subscription 3",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Apiary")
             )
         )
         subscriptionService.create(subscription3).block()
+        subscription3Id = subscription3.id
     }
 
     @Test
@@ -98,21 +104,39 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should load and fill a persisted subscription with entities info and query`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription3Id)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 3" &&
+                it.description == "My beautiful subscription" &&
+                it.q == "speed>50;foodName==dietary fibres" &&
+                it.notification.attributes == listOf("incoming") &&
+                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.entities.size == 1
+            }
+            .verifyComplete()
+    }
+
+    @Test
     fun `it should load and fill a persisted subscription with entities info and geoquery`() {
 
         val persistedSubscription = subscriptionService.getById(subscription2Id)
 
         StepVerifier.create(persistedSubscription)
-                .expectNextMatches {
-                    it.name == "Subscription 2" &&
-                    it.description == "My beautiful subscription" &&
-                    it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                    it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
-                    it.entities.size == 2 &&
-                    it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
-                }
-                .verifyComplete()
+            .expectNextMatches {
+                it.name == "Subscription 2" &&
+                it.description == "My beautiful subscription" &&
+                it.notification.attributes == listOf("incoming") &&
+                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.entities.size == 2 &&
+                it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
+            }
+            .verifyComplete()
     }
 
     @Test
@@ -162,8 +186,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 1" &&
-                    it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
-                    it.entities.isEmpty()
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.entities.isEmpty()
             }
             .verifyComplete()
     }
@@ -209,12 +233,76 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.id == subscription1Id &&
-                    it.notification.status == NotificationParams.StatusType.OK
-                    it.notification.timesSent == 1 &&
-                    it.notification.lastNotification != null &&
-                    it.notification.lastSuccess != null &&
-                    it.notification.lastFailure == null
+                it.notification.status == NotificationParams.StatusType.OK
+                it.notification.timesSent == 1 &&
+                it.notification.lastNotification != null &&
+                it.notification.lastSuccess != null &&
+                it.notification.lastFailure == null
             }
             .verifyComplete()
+    }
+
+    @Test
+    fun `it should return true if query is null`() {
+        val query = null
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, true)
+    }
+
+    @Test
+    fun `it should return false if query is invalid`() {
+        val query = "foodQuantity.invalidAttribute>=150"
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, false)
+    }
+
+    @Test
+    fun `it should return true if entity matches query`() {
+        val query = "foodQuantity<150"
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, true)
+    }
+
+    @Test
+    fun `it should return false if entity don't matches query`() {
+        val query = "foodQuantity>=150"
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, false)
+    }
+
+    @Test
+    fun `it should support multiple predicates query`() {
+        val query = "(foodQuantity<=150;foodName==\"dietary fibres\");executes==\"urn:ngsi-ld:Feeder:018z5\""
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, true)
+    }
+
+    @Test
+    fun `it should support multiple predicates query with logical operator`() {
+        val query = "foodQuantity>150;executes.createdAt==\"2018-11-26T21:32:52+02:00\""
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, false)
+    }
+
+    @Test
+    fun `it should support multiple predicates query with or logical operator`() {
+        val query = "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52+02:00\""
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, true)
+    }
+
+    @Test
+    fun `it should support boolean value type`() {
+        val query = "foodName[isHealthy]!=false"
+        val res = subscriptionService.isMatchingQuery(query, entity)
+
+        assertEquals(res, true)
     }
 }

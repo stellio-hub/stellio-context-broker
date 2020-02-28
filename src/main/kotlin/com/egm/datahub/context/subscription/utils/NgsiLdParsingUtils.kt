@@ -2,6 +2,8 @@ package com.egm.datahub.context.subscription.utils
 
 import com.egm.datahub.context.subscription.model.Subscription
 import com.egm.datahub.context.subscription.web.BadRequestDataException
+import com.egm.datahub.context.subscription.web.InvalidQueryException
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
@@ -98,4 +100,22 @@ object NgsiLdParsingUtils {
     // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
             // TODO do a clean implementation using info from @context
             this.substringAfterLast("/").substringAfterLast("#")
+
+    fun getAttributeType(attribute: String, entity: ObjectNode, separator: String): JsonNode? {
+        var node: JsonNode = entity
+        val attributePath = if (separator == "[")
+            attribute.replace("]", "").split(separator)
+        else
+            attribute.split(separator)
+
+        attributePath.forEach {
+            try {
+                node = node.get(it)
+            } catch (e: Exception) {
+                throw InvalidQueryException(e.message ?: "Unresolved value $it")
+            }
+        }
+
+        return node.get("type")
+    }
 }

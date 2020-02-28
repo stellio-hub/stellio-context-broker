@@ -22,6 +22,9 @@ class NotificationService(
         val type = (parsedEntity.first["@type"]!! as List<String>)[0]
 
         return subscriptionService.getMatchingSubscriptions(id, type)
+                .filter {
+                    subscriptionService.isMatchingQuery(it.q, rawEntity)
+                }
                 .filterWhen {
                     subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(parsedEntity))
                 }

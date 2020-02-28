@@ -10,6 +10,7 @@ data class Subscription(
     val name: String? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
+    val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams
 ) {

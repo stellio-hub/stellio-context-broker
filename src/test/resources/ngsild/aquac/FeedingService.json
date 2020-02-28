@@ -1,6 +1,6 @@
 {
-  "id":"urn:ngsi-ld:FeedingService:018z59",
-  "type":"FeedingService",
+  "id":"urn:ngsi-ld:Beehive:01",
+  "type":"Beehive",
   "executes":{
     "type":"Relationship",
     "object":"urn:ngsi-ld:Feeder:018z5",
@@ -8,12 +8,13 @@
   },
   "foodQuantity":{
     "type":"Property",
-    "value":"100",
+    "value": 20,
     "unitCode":"kg"
   },
   "foodName":{
     "type":"Property",
-    "value":"dietary fibres"
+    "value":"dietary fibres",
+    "isHealthy": true
   },
   "target":{
     "type":"Relationship",

@@ -2,6 +2,7 @@ package com.egm.datahub.context.subscription.service
 
 import com.egm.datahub.context.subscription.model.*
 import com.egm.datahub.context.subscription.repository.SubscriptionRepository
+import com.egm.datahub.context.subscription.utils.QueryUtils
 import com.egm.datahub.context.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.egm.datahub.context.subscription.web.ResourceNotFoundException
 import io.r2dbc.spi.Row
@@ -16,6 +17,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.OffsetDateTime
+import com.jayway.jsonpath.JsonPath.read
 
 @Component
 class SubscriptionService(
@@ -27,14 +29,15 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription): Mono<Void> {
         val insertStatement = """
-            INSERT INTO subscription (id, type, name, description, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent) 
-            VALUES(:id, :type, :name, :description, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :times_sent)
+            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent) 
+            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :times_sent)
         """.trimIndent()
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
             .bind("name", subscription.name)
             .bind("description", subscription.description)
+            .bind("q", subscription.q)
             .bind("notif_attributes", subscription.notification.attributes.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
             .bind("endpoint_uri", subscription.notification.endpoint.uri)
@@ -87,7 +90,7 @@ class SubscriptionService(
             }
             .flatMap {
                 val selectStatement = """
-                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,
+                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                        notif_attributes, notif_format, endpoint_uri, endpoint_accept,
                        status, times_sent, last_notification, last_failure, last_success,
                        entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
@@ -122,7 +125,7 @@ class SubscriptionService(
 
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept
             FROM subscription 
             WHERE id IN (
@@ -141,6 +144,36 @@ class SubscriptionService(
             .all()
     }
 
+    fun isMatchingQuery(query: String?, entity: String): Boolean {
+        // TODO Add support for REGEX
+        return if (query == null)
+            true
+        else {
+            try {
+                runQuery(query, entity)
+            } catch (e: Exception) {
+                logger.warn(e.message)
+                false
+            }
+        }
+    }
+
+    fun runQuery(query: String, entity: String): Boolean {
+        val jsonPathQuery = QueryUtils.createQueryStatement(query, entity)
+        val res: List<String> = read(entity, "$[?($jsonPathQuery)]")
+        return res.isNotEmpty()
+    }
+
+    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>): Mono<Boolean> {
+        return getMatchingGeoQuery(subscriptionId)
+                .map {
+                    createGeoQueryStatement(it, targetGeometry)
+                }.flatMap {
+                    runGeoQueryStatement(it)
+                }
+                .switchIfEmpty(Mono.just(true))
+    }
+
     fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {
         val selectStatement = """
             SELECT *
@@ -157,16 +190,6 @@ class SubscriptionService(
         return databaseClient.execute(geoQueryStatement.trimIndent())
                     .map(matchesGeoQuery)
                     .first()
-        }
-
-    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>): Mono<Boolean> {
-        return getMatchingGeoQuery(subscriptionId)
-            .map {
-                createGeoQueryStatement(it, targetGeometry)
-            }.flatMap {
-                runGeoQueryStatement(it)
-            }
-            .switchIfEmpty(Mono.just(true))
     }
 
     fun updateSubscriptionNotification(subscription: Subscription, notification: Notification, success: Boolean): Mono<Int> {
@@ -191,6 +214,7 @@ class SubscriptionService(
                 type = row.get("sub_type", String::class.java)!!,
                 name = row.get("name", String::class.java),
                 description = row.get("description", String::class.java),
+                q = row.get("q", String::class.java),
                 entities = setOf(EntityInfo(
                         id = row.get("entity_id", String::class.java),
                         idPattern = row.get("id_pattern", String::class.java),
@@ -219,6 +243,7 @@ class SubscriptionService(
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             description = row.get("description", String::class.java),
+            q = row.get("q", String::class.java),
             entities = emptySet(),
             notification = NotificationParams(
                 attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),

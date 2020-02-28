@@ -53,6 +53,8 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     implementation("com.github.jsonld-java:jsonld-java:0.13.0")
 
+    implementation("com.jayway.jsonpath:json-path:2.4.0")
+
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("io.r2dbc:r2dbc-postgresql")

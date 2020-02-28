@@ -6,7 +6,13 @@ import com.egm.datahub.context.subscription.model.NotificationParams
 import com.egm.datahub.context.subscription.model.Subscription
 import java.net.URI
 
-fun gimmeRawSubscription(withGeoQuery: Boolean = true, georel: String = "within"): Subscription {
+fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true, georel: String = "within"): Subscription {
+    val q =
+            if (withQuery)
+                "speed>50;foodName==dietary fibres"
+            else
+                null
+
     val geoQuery =
             if (withGeoQuery)
                 GeoQuery(georel = georel, geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
@@ -15,6 +21,7 @@ fun gimmeRawSubscription(withGeoQuery: Boolean = true, georel: String = "within"
 
     return Subscription(name = "My Subscription",
         description = "My beautiful subscription",
+        q = q,
         entities = emptySet(),
         geoQ = geoQuery,
         notification = NotificationParams(

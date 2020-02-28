@@ -3,6 +3,7 @@ package com.egm.datahub.context.subscription.utils
 import com.egm.datahub.context.subscription.model.GeoQuery
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.egm.datahub.context.subscription.utils.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -13,8 +14,63 @@ object QueryUtils {
     const val DISTANCE_QUERY_CLAUSE = "distance"
     const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
     const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
+    const val PROPERTY_TYPE = "\"Property\""
+    const val RELATIONSHIP_TYPE = "\"Relationship\""
 
     private val logger = LoggerFactory.getLogger(javaClass)
+
+    /**
+     * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.
+     * The query param is subscription related query to be transformed.
+     * the entity param is the used to define the query attributes types (Property, Relationship, other) wich is used to extract the value to be compared as mandated by clause 4.9.
+
+     * Examples of transformations:
+     * foodQuantity>=150 -> @.foodQuantity.value>=150
+     * foodQuantity>150;executes.createdAt=="2018-11-26T21:32:52+02:00" -> @.foodQuantity.value>150&&@.executes.createdAt=="2018-11-26T21:32:52+02:00"
+     * (executes=="urn:ngsi-ld:Feeder:018z5"|executes[createdAt]=="2018-11-26T21:32:52+02:00)" -> (@.executes.object=="urn:ngsi-ld:Feeder:018z5"||@.executes["createdAt"]=="2018-11-26T21:32:52+02:00")
+     */
+
+    fun createQueryStatement(query: String?, entity: String): String {
+        val mapper = jacksonObjectMapper()
+        val parsedEntity = mapper.readTree(entity) as ObjectNode
+
+        var jsonPathQuery = query
+
+        query!!.split(';', '|').forEach { predicate ->
+            val predicateParams = predicate.split("==", "!=", ">", ">=", "<", "<=")
+            val attribute = predicateParams[0]
+                            .replace("(", "")
+                            .replace(")", "")
+
+            val jsonPathAttribute = if ((attribute.isCompoundAttribute())) {
+                when (NgsiLdParsingUtils.getAttributeType(attribute, parsedEntity, "[").toString()) {
+                    PROPERTY_TYPE -> "@.".plus(attribute).plus("[value]").addQuotesToBrackets()
+                    RELATIONSHIP_TYPE -> "@.".plus(attribute).plus("[object]").addQuotesToBrackets()
+                    else
+                    -> "@.".plus(attribute).addQuotesToBrackets()
+                }
+            } else {
+                when (NgsiLdParsingUtils.getAttributeType(attribute, parsedEntity, ".").toString()) {
+                    PROPERTY_TYPE -> "@.".plus(attribute).plus(".value")
+                    RELATIONSHIP_TYPE -> "@.".plus(attribute).plus(".object")
+                    else
+                    -> "@.".plus(attribute)
+                }
+            }
+
+            val jsonPathPredicate = predicate.replace(attribute, jsonPathAttribute)
+
+            jsonPathQuery = jsonPathQuery!!.replace(predicate, jsonPathPredicate)
+        }
+
+        return jsonPathQuery!!.replace(";", "&&").replace("|", "||")
+    }
+
+    fun String.isCompoundAttribute(): Boolean =
+            this.contains("\\[.*?]".toRegex())
+
+    fun String.addQuotesToBrackets(): String =
+            this.replace("[", "['").replace("]", "']")
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, targetGeometry: Map<String, Any>): String {
         val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)

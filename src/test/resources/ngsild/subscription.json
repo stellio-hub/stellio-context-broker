@@ -13,6 +13,7 @@
       "type": "Beehive"
     }
   ],
+  "q": "foodQuantity<150;foodName=='dietary fibres'",
   "notification": {
     "attributes": ["incoming"],
     "format": "normalized",

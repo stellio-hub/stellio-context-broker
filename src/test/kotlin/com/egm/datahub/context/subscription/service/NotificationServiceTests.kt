@@ -78,6 +78,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
@@ -97,6 +98,7 @@ class NotificationServiceTests {
             .verify()
 
         verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingQuery(subscription.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
 
@@ -110,6 +112,7 @@ class NotificationServiceTests {
         val subscription2 = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
@@ -126,6 +129,8 @@ class NotificationServiceTests {
             .verify()
 
         verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -139,6 +144,7 @@ class NotificationServiceTests {
         val subscription2 = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -156,6 +162,8 @@ class NotificationServiceTests {
                 .verify()
 
         verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary") }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
         verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }

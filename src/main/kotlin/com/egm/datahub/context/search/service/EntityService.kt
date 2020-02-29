@@ -1,6 +1,7 @@
 package com.egm.datahub.context.search.service
 
 import com.egm.datahub.context.search.model.EntityTemporalProperty
+import com.egm.datahub.context.search.model.TemporalValue
 import com.egm.datahub.context.search.util.NgsiLdParsingUtils
 import com.egm.datahub.context.search.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -9,6 +10,7 @@ import org.springframework.data.r2dbc.query.Criteria.where
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.OffsetDateTime
 
 @Service
 class EntityService(
@@ -84,8 +86,8 @@ class EntityService(
             val propertyToEnrich = NgsiLdParsingUtils.expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
             propertyToEnrich.remove(NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE)
 
-            val valuesMap = it.map { listOf(it["VALUE"], it["OBSERVED_AT"]) }
-            propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(valuesMap)
+            val valuesMap = it.map { TemporalValue(it["VALUE"] as Double, (it["OBSERVED_AT"] as OffsetDateTime).toString()) }
+            propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
 
             // and finally update the raw entity with the updated temporal property
             entity.remove(expandedAttributeName)

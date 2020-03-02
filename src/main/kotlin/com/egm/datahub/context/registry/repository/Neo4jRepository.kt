@@ -80,6 +80,15 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
 
+    fun hasGeoPropertyOfName(attributeId: String, geoPropertyName: String): Boolean {
+        val query = """
+            MATCH (a { id: '$attributeId' }) WHERE a.$geoPropertyName IS NOT NULL
+            RETURN a.id
+        """.trimIndent()
+
+        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
+    }
+
     @Transactional
     fun deleteRelationshipFromEntity(entityId: String, relationshipType: String): Int {
         val query = """
@@ -125,6 +134,15 @@ class Neo4jRepository(
         val relationshipTypeQueryStatistics = session.query(relationshipTypeQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
 
         return Pair(objectQueryStatistics, relationshipTypeQueryStatistics)
+    }
+
+    @Transactional
+    fun updateLocationPropertyOfEntity(entityId: String, coordinates: Pair<Double, Double>): Int {
+        val query = """
+            MERGE (entity:Entity { id: "$entityId" })
+            ON MATCH SET entity.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
+        """
+        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
     @Transactional

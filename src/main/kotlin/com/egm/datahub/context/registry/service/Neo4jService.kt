@@ -459,6 +459,12 @@ class Neo4jService(
                         updatedAttributes.add(shortAttributeName)
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
+                } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
+                    if (neo4jRepository.hasGeoPropertyOfName(id, shortAttributeName)) {
+                        updateLocationPropertyOfEntity(entity, it.key, attributeValue)
+                        updatedAttributes.add(shortAttributeName)
+                    } else
+                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "GeoProperty does not exist"))
                 }
             } catch (e: BadRequestDataException) {
                 notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName,
@@ -552,6 +558,23 @@ class Neo4jService(
             } else {
                 logger.debug("Ignoring ${propEntry.key} entry as it can't be a relationship ($propEntryValue)")
             }
+        }
+    }
+
+    internal fun updateLocationPropertyOfEntity(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>) {
+        logger.debug("Geo property $propertyKey has values $propertyValues")
+        val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
+        val geoPropertyType = geoPropertyValue["@type"]!![0] as String
+        // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
+        if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/Point") {
+            val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
+            val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
+            val latitude = (geoPropertyCoordinates[1] as Map<String, Double>)["@value"]
+            logger.debug("Point has coordinates $latitude, $longitude")
+
+            neo4jRepository.updateLocationPropertyOfEntity(entity.id, Pair(longitude!!, latitude!!))
+        } else {
+            throw BadRequestDataException("Unsupported geometry type : $geoPropertyType")
         }
     }
 

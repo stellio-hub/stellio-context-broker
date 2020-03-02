@@ -250,6 +250,42 @@ class Neo4jServiceTests {
     }
 
     @Test
+    fun `it should replace an existing geoProperty`() {
+
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val payload = """
+            {
+              "location": {
+                  "type": "GeoProperty",
+                  "value": {
+                    "type": "Point",
+                    "coordinates": [
+                      9.30623,
+                      8.07966
+                    ]
+                  }
+              }
+            }
+        """.trimIndent()
+
+        val mockkedSensor = mockkClass(Entity::class)
+
+        every { mockkedSensor.id } returns sensorId
+
+        every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
+        every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
+
+        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+
+        verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
+        verify { entityRepository.findById(eq(sensorId)) }
+        verify { neo4jRepository.updateLocationPropertyOfEntity(sensorId, Pair(9.30623, 8.07966)) }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should correctly parse location property for an entity`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"

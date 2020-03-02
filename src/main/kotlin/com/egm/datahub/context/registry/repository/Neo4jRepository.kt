@@ -155,7 +155,8 @@ class Neo4jRepository(
          * 3. the properties of properties
          * 4. the relationships of properties
          * 5. the relationships
-         * 6. the relationships of relationships
+         * 6. the properties of relationships
+         * 7. the relationships of relationships
          */
         val query = """
             MATCH (n:Entity { id: '$entityId' }) 
@@ -163,8 +164,9 @@ class Neo4jRepository(
             OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
             OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
             OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel)
-            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel)
-            DETACH DELETE n,prop,relOfProp,propOfProp,rel,relOfRel
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
+            DETACH DELETE n,prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
         """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()

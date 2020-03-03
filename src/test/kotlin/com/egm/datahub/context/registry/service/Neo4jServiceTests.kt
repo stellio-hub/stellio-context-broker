@@ -507,6 +507,92 @@ class Neo4jServiceTests {
         confirmVerified()
     }
 
+    @Test
+    fun `it should create a new geoproperty`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newGeoProperty = """
+            {
+              "location": {
+                  "type": "GeoProperty",
+                  "value": {
+                    "type": "Point",
+                    "coordinates": [
+                      29.30623,
+                      83.07966
+                    ]
+                  }
+              }
+            }
+        """.trimIndent()
+
+        val expandedNewGeoProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newGeoProperty,
+                aquacContext!!
+            )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+
+        every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns false
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
+        every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
+
+        verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
+        verify { entityRepository.findById(eq(entityId)) }
+        verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(29.30623, 83.07966)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace a geoproperty if overwrite is allowed`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newGeoProperty = """
+            {
+              "location": {
+                  "type": "GeoProperty",
+                  "value": {
+                    "type": "Point",
+                    "coordinates": [
+                      29.30623,
+                      83.07966
+                    ]
+                  }
+              }
+            }
+        """.trimIndent()
+
+        val expandedNewGeoProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newGeoProperty,
+                aquacContext!!
+            )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+
+        every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
+        every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
+
+        neo4jService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
+
+        verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
+        verify { entityRepository.findById(eq(entityId)) }
+        verify { neo4jRepository.updateLocationPropertyOfEntity(entityId, Pair(29.30623, 83.07966)) }
+
+        confirmVerified()
+    }
+
     private fun gimmeAnObservation(): Observation {
         return Observation(
             attributeName = "incoming",

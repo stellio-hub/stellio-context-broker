@@ -416,6 +416,17 @@ class Neo4jService(
                     createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue, isInBatchContext, validEntities)
                     Triple(it.key, true, null)
                 }
+            } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
+                if (!neo4jRepository.hasGeoPropertyOfName(entityId, it.key.extractShortTypeFromExpanded())) {
+                    createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
+                    Triple(it.key, true, null)
+                } else if (disallowOverwrite) {
+                    logger.info("GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                    Triple(it.key, false, "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                } else {
+                    updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue)
+                    Triple(it.key, true, null)
+                }
             } else {
                 Triple(it.key, false, "Unknown attribute type $attributeType")
             }

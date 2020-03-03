@@ -23,7 +23,7 @@ class EntitiesListenerTests {
 
     @Test
     fun `it should parse and transmit observations`() {
-        val observation = ClassPathResource("/ngsild/aquac/FeedingService.json")
+        val observation = ClassPathResource("/ngsild/apic/BeekeeperUpdateEvent.json")
 
         val mockedSubscription = mockkClass(Subscription::class)
         val mockedNotification = mockkClass(Notification::class)

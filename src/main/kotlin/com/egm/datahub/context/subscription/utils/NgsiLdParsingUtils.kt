@@ -1,5 +1,6 @@
 package com.egm.datahub.context.subscription.utils
 
+import com.egm.datahub.context.subscription.model.EntityEvent
 import com.egm.datahub.context.subscription.model.Subscription
 import com.egm.datahub.context.subscription.web.BadRequestDataException
 import com.egm.datahub.context.subscription.web.InvalidQueryException
@@ -19,6 +20,11 @@ object NgsiLdParsingUtils {
     const val NGSILD_POINT_PROPERTY = "Point"
 
     private val logger = LoggerFactory.getLogger(javaClass)
+    private val mapper = jacksonObjectMapper()
+
+    fun parseEntityEvent(input: String): EntityEvent {
+        return mapper.readValue<EntityEvent>(input, EntityEvent::class.java)
+    }
 
     fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
@@ -27,7 +33,6 @@ object NgsiLdParsingUtils {
         logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
-        val mapper = jacksonObjectMapper()
         val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
             Map::class.java, String::class.java, Any::class.java
         ))
@@ -47,7 +52,6 @@ object NgsiLdParsingUtils {
     }
 
     fun parseSubscription(input: String, context: List<String>): Subscription {
-        val mapper = jacksonObjectMapper()
         val rawParsedData = mapper.readTree(input) as ObjectNode
         if (rawParsedData.get("@context") != null)
             rawParsedData.remove("@context")
@@ -62,7 +66,6 @@ object NgsiLdParsingUtils {
     }
 
     fun getContextOrThrowError(input: String): List<String> {
-        val mapper = jacksonObjectMapper()
         val rawParsedData = mapper.readTree(input) as ObjectNode
         val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided ")
 

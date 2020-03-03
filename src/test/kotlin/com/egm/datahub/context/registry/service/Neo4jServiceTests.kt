@@ -58,8 +58,8 @@ class Neo4jServiceTests {
 
         verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "BreedingService" &&
-                    entityEvent.entityUrn == "breedingServiceId" &&
-                    entityEvent.operation == EventType.POST
+                    entityEvent.entityId == "breedingServiceId" &&
+                    entityEvent.operationType == EventType.CREATE
         }) }
         confirmVerified(repositoryEventsListener)
     }
@@ -186,6 +186,7 @@ class Neo4jServiceTests {
         val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedSensor.id } returns sensorId
+        every { mockkedSensor.type } returns listOf("Sensor")
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
@@ -197,6 +198,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) } returns Pair(1, 1)
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { relationshipRepository.save(any<Relationship>()) } returns mockkedRelationship
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
@@ -228,6 +230,7 @@ class Neo4jServiceTests {
         val mockkedPropertyEntity = mockkClass(Property::class)
 
         every { mockkedSensor.id } returns sensorId
+        every { mockkedSensor.type } returns listOf("Sensor")
         every { mockkedPropertyEntity setProperty "value" value any<Double>() } answers { value }
         every { mockkedPropertyEntity setProperty "unitCode" value any<String>() } answers { value }
         every { mockkedPropertyEntity setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
@@ -237,6 +240,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.getPropertyOfSubject(any(), any()) } returns mockkedPropertyEntity
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
@@ -271,10 +275,12 @@ class Neo4jServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
+        every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 

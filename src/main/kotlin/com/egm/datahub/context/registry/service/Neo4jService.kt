@@ -91,7 +91,7 @@ class Neo4jService(
         }
 
         val entityType = extractShortTypeFromPayload(expandedPayload)
-        val entityEvent = EntityEvent(entityType, entity.id, EventType.POST, JsonUtils.toString(expandedPayload))
+        val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, JsonUtils.toString(expandedPayload), null)
         applicationEventPublisher.publishEvent(entityEvent)
 
         return entity
@@ -482,6 +482,13 @@ class Neo4jService(
                     e.message ?: "Unexpected error while updating property $shortAttributeName"))
             }
         }
+
+        if (!updatedAttributes.isEmpty()) {
+            val entityType = entity.type[0].extractShortTypeFromExpanded()
+            val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entityType, payload, null)
+            applicationEventPublisher.publishEvent(entityEvent)
+        }
+
         return UpdateResult(updatedAttributes, notUpdatedAttributes)
     }
 
@@ -616,6 +623,10 @@ class Neo4jService(
             try {
                 appendEntityAttributes(entity.id, propertiesAndRelationshipsMap, false, true, validEntities)
                 createdEntities.add(urn)
+
+                val entityType = type.extractShortTypeFromExpanded()
+                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, JsonUtils.toString(it.first), null)
+                applicationEventPublisher.publishEvent(entityEvent)
             } catch (e: BadRequestDataException) {
                 deleteEntity(urn)
                 failedEntities.add(BatchEntityError(urn, arrayListOf(e.message ?: "Unexpected error while creating entity $urn")))

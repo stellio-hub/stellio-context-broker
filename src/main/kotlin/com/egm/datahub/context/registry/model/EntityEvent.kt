@@ -1,15 +1,16 @@
 package com.egm.datahub.context.registry.model
 
 data class EntityEvent(
+    val operationType: EventType,
+    val entityId: String,
     val entityType: String,
-    val entityUrn: String,
-    val operation: EventType,
-    val payload: String
+    val payload: String? = null,
+    val updatedEntity: String? = null
 )
 
 enum class EventType {
-    POST,
-    PUT,
-    PATCH,
+    CREATE,
+    UPDATE,
+    APPEND,
     DELETE
 }

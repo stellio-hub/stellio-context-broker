@@ -1,0 +1,14 @@
+{
+  "@context": {
+    "connectsTo": "https://uri.etsi.org/ngsi-ld/v1/ontology#connectsTo",
+    "hasObject": "https://uri.etsi.org/ngsi-ld/v1/ontology#hasObject",
+    "createdAt": "https://uri.etsi.org/ngsi-ld/v1/ontology#createdAt"
+  },
+  "@id": "urn:ngsi-ld:BeeHive:TESTC",
+  "@type": "BeeHive",
+  "connectsTo": {
+    "@type": "Beekeeper",
+    "createdAt": "2010-10-26T21:32:52+02:00",
+    "@id": "urn:ngsi-ld:Beekeeper:TEST1"
+  }
+}

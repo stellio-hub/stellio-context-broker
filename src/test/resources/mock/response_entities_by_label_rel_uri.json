@@ -1,0 +1,18 @@
+[
+  {
+    "id": "urn:ngsi-ld:Door:0015",
+    "type": "Door",
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:SmartDoor:0021"
+    },
+    "createdAt": "2019.10.09.11.53.05",
+    "doorNumber": "15",
+    "modifiedAt": "2019.10.09.11.53.05",
+    "@context": [
+      "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
+    ]
+  }
+]

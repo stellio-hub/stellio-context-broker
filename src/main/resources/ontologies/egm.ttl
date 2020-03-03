@@ -1,0 +1,162 @@
+@prefix ngsi-ld: <https://uri.etsi.org/ngsi-ld/v1/ontology#> .
+@prefix diat: <https://diatomic.eglobalmark.com/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix egm: <https://ontology.eglobalmark.com/egm#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@base <https://ontology.eglobalmark.com/egm#> .
+
+###################################
+#Data Type Classes = Entities
+####################################
+egm:Sensor 	rdf:type owl:Class ;
+						rdf:type egm:Sensor;
+            owl:equivalentClass  sosa:Sensor;
+						rdfs:subClassOf ngsi-ld:Entity.
+
+
+egm:SmartCamera rdf:type owl:Class ;
+				rdf:type egm:Sensor;
+				rdfs:subClassOf sosa:Sensor;
+				rdfs:subClassOf ngsi-ld:Entity.
+
+egm:Observation rdf:type owl:Class ;
+				rdf:type egm:Observation;
+                owl:equivalentClass sosa:Observation;
+			    rdfs:subClassOf ngsi-ld:Entity.
+
+
+###################################
+#owl : Object Property
+####################################
+
+egm:belongs 	  rdf:type owl:ObjectProperty ;
+				  
+                  rdfs:subPropertyOf  ngsi-ld:Relationship;
+				  owl:propertyChainAxiom ( egm:belongs
+										   ngsi-ld:hasObject).
+
+egm:manages 	  rdf:type owl:ObjectProperty ;
+				  owl:inverseOf egm:managedBy ;
+                  rdfs:subPropertyOf  ngsi-ld:Relationship;
+				  owl:propertyChainAxiom ( egm:manages
+										   ngsi-ld:hasObject).
+
+
+egm:managedBy     rdf:type owl:ObjectProperty ;
+				  owl:inverseOf egm:manages ;
+                  rdfs:subPropertyOf ngsi-ld:Relationship;
+				  owl:propertyChainAxiom ( egm:managedBy
+										   ngsi-ld:hasObject).
+
+
+egm:observes    rdf:type owl:ObjectProperty ;
+				owl:inverseOf egm:observedBy ;
+                rdfs:subPropertyOf ngsi-ld:Relationship;
+				owl:equivalentProperty  sosa:Observes;
+				owl:propertyChainAxiom ( egm:observes
+										 ngsi-ld:hasObject).
+
+egm:observedBy  rdf:type owl:ObjectProperty ;
+				owl:inverseOf egm:observes ;
+                rdfs:subPropertyOf ngsi-ld:Relationship;
+				owl:equivalentProperty sosa:madeBySensor;
+				owl:propertyChainAxiom ( egm:observedBy
+										 ngsi-ld:hasObject).
+
+
+egm:detects      rdf:type owl:ObjectProperty ;
+				 owl:inverseOf egm:detectedBy ;
+                 rdfs:subPropertyOf ngsi-ld:Relationship;
+				 owl:propertyChainAxiom ( egm:detects
+										 ngsi-ld:hasObject).
+
+egm:detectedBy 	 rdf:type owl:ObjectProperty ;
+				 owl:inverseOf egm:detects ;
+                 rdfs:subPropertyOf ngsi-ld:Relationship;
+				 owl:propertyChainAxiom ( egm:detectedBy
+										 ngsi-ld:hasObject).
+
+egm:executes 	rdf:type owl:ObjectProperty ;
+				owl:inverseOf egm:executedBy ;
+				rdfs:subPropertyOf sosa:madeByActuator;
+                rdfs:subPropertyOf ngsi-ld:Relationship;
+				owl:propertyChainAxiom ( egm:executes
+										 ngsi-ld:hasObject).
+
+egm:executedBy  rdf:type owl:ObjectProperty ;
+				owl:inverseOf egm:executes ;
+				rdfs:subPropertyOf sosa:madeActuation;
+                rdfs:subPropertyOf ngsi-ld:Relationship;
+				owl:propertyChainAxiom ( egm:executedBy
+										 ngsi-ld:hasObject).
+
+egm:monitors 	rdf:type owl:ObjectProperty ;
+				owl:inverseOf egm:monitoredBy ;
+                rdfs:subPropertyOf ngsi-ld:Relationship;
+				owl:propertyChainAxiom ( egm:monitors
+										 ngsi-ld:hasObject).
+
+egm:monitoredBy 	rdf:type owl:ObjectProperty ;
+					owl:inverseOf egm:monitors ;
+					rdfs:subPropertyOf ngsi-ld:Relationship;
+					owl:propertyChainAxiom ( egm:monitoredBy
+											 ngsi-ld:hasObject).
+
+
+#depth
+egm:depth  				rdf:type owl:Class ;
+									rdfs:subClassOf ngsi-ld:Property .
+
+#length
+egm:length  				rdf:type owl:Class ;
+								rdfs:subClassOf ngsi-ld:Property .
+#width
+egm:width  				rdf:type owl:Class ;
+									rdfs:subClassOf ngsi-ld:Property .
+#heigth
+egm:heigth  				rdf:type owl:Class ;
+									rdfs:subClassOf ngsi-ld:Property .
+
+skos:exactMatch   rdf:type skos:exactMatch.
+###################################
+#Data Type Properties
+###################################
+
+#brandName
+egm:brandName rdf:type owl:DatatypeProperty ;
+			  rdfs:domain ngsi-ld:Entity;
+              rdfs:range  xsd:string.
+
+#calibrationDate
+egm:calibrationDate rdf:type owl:DatatypeProperty ;
+					rdfs:domain [ rdf:type owl:Class ;
+                                 owl:unionOf ( egm:Sensor
+                                               egm:SmartCamera
+                                             )] ;
+					rdfs:range  xsd:dateTime .
+
+
+#CalibrationCertif
+egm:calibrationCertif   rdf:type owl:DatatypeProperty ;
+						rdfs:domain  [ rdf:type owl:Class ;
+							                               owl:unionOf ( egm:Sensor
+							                                             egm:SmartCamera
+							                                           )
+							                             ] ;
+						rdfs:range  xsd:string.
+
+
+#deviceParameter
+egm:deviceParameter   rdf:type owl:DatatypeProperty ;
+											rdfs:domain  [ rdf:type owl:Class ;
+					                                 owl:unionOf ( egm:Sensor
+					                                               egm:SmartCamera
+					                                             )
+					                               ] ;
+					  rdfs:range  xsd:string.

@@ -1,0 +1,12 @@
+[
+  {
+    "Content-Location": "https://fiware.github.io/data-models/context.jsonld",
+    "X-Classpath": "contexts/fiware-datamodels-context.jsonld",
+    "Content-Type": "application/ld+json"
+  },
+  {
+    "Content-Location": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "X-Classpath": "contexts/ngsi-ld-core-context.jsonld",
+    "Content-Type": "application/ld+json"
+  }
+]

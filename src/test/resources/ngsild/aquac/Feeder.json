@@ -1,0 +1,27 @@
+{
+   "id":"urn:ngsi-ld:Feeder:018z5",
+   "type":"Feeder",
+   "brandName":{
+      "type":"Property",
+      "value":"AquaSE"
+   },
+   "connectsTo":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:FishContainment:0012"
+   },
+   "location":{
+      "type":"GeoProperty",
+      "value":{
+         "type":"point",
+         "coordinates":[
+            -8.5,
+            41.2
+         ]
+      }
+   },
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

@@ -1,0 +1,19 @@
+{
+   "id":"urn:ngsi-ld:BreedingService:0214",
+   "type":"BreedingService",
+   "location":{
+      "type":"GeoProperty",
+      "value":{
+         "type":"Point",
+         "coordinates":[
+            -8.5,
+            41.2
+         ]
+      }
+   },
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

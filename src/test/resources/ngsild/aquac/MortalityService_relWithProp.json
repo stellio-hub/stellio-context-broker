@@ -1,0 +1,30 @@
+{
+   "id":"urn:ngsi-ld:MortalityService:014YFA9Z",
+   "type":"MortalityService",
+   "foodQuantity":{
+      "type":"Property",
+      "value":"100",
+      "unitCode":"kg",
+      "executedBy":{
+         "type":"Relationship",
+         "object":"urn:ngsi-ld:BreedingService:0214"
+      }
+   },
+   "removedFrom":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:BreedingService:0214",
+      "foodType": {
+         "type": "Property",
+         "value": "some food"
+      },
+      "waterLevel": {
+         "type": "Property",
+         "value": 12
+      }
+   },
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

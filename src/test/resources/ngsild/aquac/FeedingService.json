@@ -1,0 +1,27 @@
+{
+   "id":"urn:ngsi-ld:FeedingService:018z59",
+   "type":"FeedingService",
+   "executes":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:Feeder:018z5",
+      "createdAt":"2018-11-26T21:32:52+02:00"
+   },
+   "foodQuantity":{
+      "type":"Property",
+      "value":"100",
+      "unitCode":"kg"
+   },
+   "foodName":{
+      "type":"Property",
+      "value":"dietary fibres"
+   },
+   "target":{
+      "type":"Relationship",
+      "object":"urn:ngsi-ld:FishContainment:0012"
+   },
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

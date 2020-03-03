@@ -164,14 +164,18 @@ class SubscriptionService(
         return res.isNotEmpty()
     }
 
-    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>): Mono<Boolean> {
-        return getMatchingGeoQuery(subscriptionId)
-                .map {
-                    createGeoQueryStatement(it, targetGeometry)
-                }.flatMap {
-                    runGeoQueryStatement(it)
-                }
-                .switchIfEmpty(Mono.just(true))
+    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>?): Mono<Boolean> {
+        return if (targetGeometry == null)
+            Mono.just(true)
+        else {
+            getMatchingGeoQuery(subscriptionId)
+                    .map {
+                        createGeoQueryStatement(it, targetGeometry)
+                    }.flatMap {
+                        runGeoQueryStatement(it)
+                    }
+                    .switchIfEmpty(Mono.just(true))
+        }
     }
 
     fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {

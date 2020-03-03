@@ -72,27 +72,31 @@ object NgsiLdParsingUtils {
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
             (value as List<Any>)[0] as Map<String, List<Any>>
 
-    fun getLocationFromEntity(parsedEntity: Pair<Map<String, Any>, List<String>>): Map<String, Any> {
-        val location = expandValueAsMap(parsedEntity.first[NGSILD_LOCATION_PROPERTY]!!)
-        val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
-        val geoPropertyType = locationValue["@type"]!![0] as String
-        val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!
-        if (geoPropertyType.extractShortTypeFromExpanded() == NGSILD_POINT_PROPERTY) {
-            val longitude = (geoPropertyValue[0] as Map<String, Double>)["@value"]
-            val latitude = (geoPropertyValue[1] as Map<String, Double>)["@value"]
-            return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to listOf(longitude, latitude))
-        } else {
-            var res = arrayListOf<List<Double?>>()
-            var count = 1
-            geoPropertyValue.forEach {
-                if (count % 2 != 0) {
-                    val longitude = (geoPropertyValue[count - 1] as Map<String, Double>)["@value"]
-                    val latitude = (geoPropertyValue[count] as Map<String, Double>)["@value"]
-                    res.add(listOf(longitude, latitude))
+    fun getLocationFromEntity(parsedEntity: Pair<Map<String, Any>, List<String>>): Map<String, Any>? {
+        try {
+            val location = expandValueAsMap(parsedEntity.first[NGSILD_LOCATION_PROPERTY]!!)
+            val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
+            val geoPropertyType = locationValue["@type"]!![0] as String
+            val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!
+            if (geoPropertyType.extractShortTypeFromExpanded() == NGSILD_POINT_PROPERTY) {
+                val longitude = (geoPropertyValue[0] as Map<String, Double>)["@value"]
+                val latitude = (geoPropertyValue[1] as Map<String, Double>)["@value"]
+                return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to listOf(longitude, latitude))
+            } else {
+                var res = arrayListOf<List<Double?>>()
+                var count = 1
+                geoPropertyValue.forEach {
+                    if (count % 2 != 0) {
+                        val longitude = (geoPropertyValue[count - 1] as Map<String, Double>)["@value"]
+                        val latitude = (geoPropertyValue[count] as Map<String, Double>)["@value"]
+                        res.add(listOf(longitude, latitude))
+                    }
+                    count ++
                 }
-                count ++
+                return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to res)
             }
-            return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to res)
+        } catch (e: Exception) {
+            return null
         }
     }
 

@@ -1,19 +1,15 @@
-dependencies {
-	implementation("org.springframework.cloud:spring-cloud-starter-gateway")
-	implementation("org.springframework.cloud:spring-cloud-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+plugins {
+    id("com.google.cloud.tools.jib")
 }
 
-jib {
-	from {
-		image = "openjdk:alpine"
-	}
-	to {
-		image = "easyglobalmarket/api-gateway"
-	}
-	container {
-		jvmFlags = listOf("-Xms512m")
-		ports = listOf("8080")
-		creationTime = "USE_CURRENT_TIMESTAMP"
-	}
+dependencies {
+    implementation("org.springframework.cloud:spring-cloud-starter-gateway")
+    implementation("org.springframework.cloud:spring-cloud-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 }
+
+jib.from.image = project.ext["jibFromImage"].toString()
+jib.to.image = "easyglobalmarket/api-gateway"
+jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
+jib.container.ports = listOf("8080")
+jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

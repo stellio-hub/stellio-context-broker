@@ -8,6 +8,7 @@ bin/
 /data/graphdb
 /data/neo4j/data
 tmp/
+.gradletasknamecache
 
 ### STS ###
 .apt_generated

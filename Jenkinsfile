@@ -21,8 +21,10 @@ pipeline {
             }
         }
         stage('Build Entity Service') {
+            when {
+                changeset "entity-service/**"
+            }
             steps {
-                sh 'echo $JIB_USERNAME; echo $JIB_SECRET'
                 sh './gradlew build -p entity-service'
             }
         }
@@ -52,6 +54,10 @@ pipeline {
             }
         }
         stage('Deploy Entity Service - Integration') {
+            when {
+                branch 'develop'
+                changeset "entity-service/**"
+            }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p entity-service'
             }

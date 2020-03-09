@@ -9,7 +9,7 @@ dependencies {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
-jib.to.image = "easyglobalmarket/api-gateway"
+jib.to.image = "easyglobalmarket/stellio-api-gateway"
 jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
 jib.container.ports = listOf("8080")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

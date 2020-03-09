@@ -21,7 +21,7 @@ class ApiGatewayApplication(
                         it.filter(filterFactory.apply())
                     }
                     // TODO : configurable version
-                    .uri("http://context-registry:8082")
+                    .uri("http://entity-service:8082")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/entityOperations/**")
@@ -29,7 +29,7 @@ class ApiGatewayApplication(
                         it.filter(filterFactory.apply())
                     }
                     // TODO : configurable version
-                    .uri("http://context-registry:8082")
+                    .uri("http://entity-service:8082")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/temporal/entities/**")
@@ -37,7 +37,7 @@ class ApiGatewayApplication(
                         it.filter(filterFactory.apply())
                     }
                     // TODO : configurable version
-                    .uri("http://context-search:8083")
+                    .uri("http://search-service:8083")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/subscriptions/**")
@@ -45,7 +45,7 @@ class ApiGatewayApplication(
                         it.filter(filterFactory.apply())
                     }
                     // TODO : configurable version
-                    .uri("http://context-subscription:8084")
+                    .uri("http://subscription-service:8084")
             }
             .build()
     }

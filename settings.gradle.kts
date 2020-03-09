@@ -1,2 +1,2 @@
 rootProject.name = "stellio-context-broker"
-include("api-gateway", "context-registry", "context-search", "context-subscription")
+include("api-gateway", "entity-service", "search-service", "subscription-service")

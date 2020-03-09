@@ -1,11 +1,5 @@
 # Quick start
 
-* Clone the repository
-
-```
-git clone git@bitbucket.org:eglobalmark/context-registry.git
-```
-
 * Start Kafka and Neo4j with the provided `docker-compose.yml` file (edit the `.env` file if you need to specify a different host for Kafka) :
 
 ```
@@ -74,61 +68,6 @@ docker load --input build/jib-image.tar
 
 ```
 docker run easyglobalmarket/stellio-entity-service:latest
-```
-
-# Sample queries
-
-## API queries
-
-* Create a new entity
-
-```
-http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-```
-
-* Eventually, create a second one
-
-```
-http POST http://localhost:8082/ngsi-ld/v1/entities Content-Type:application/json < src/test/kotlin/ngsild/beehive_2.json Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-```
-
-* Get entities by type
-
-```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-```
-
-* Get an entity by URI
-
-```
-http http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC  Content-Type:application/json
-
-```
-
-* Get entities by relationships
-
-```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==connectsTo==urn:ngsi-ld:Beekeeper:Pascal Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-http http://localhost:8082/ngsi-ld/v1/entities  type==Vehicle  q==isParked==urn:ngsi-ld:OffStreetParking:Downtown1 Link:"<http://easyglobalmarket.com/contexts/example.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-
-```
-
-* Get entities by property
-
-```
-http http://localhost:8082/ngsi-ld/v1/entities  type==BeeHive  q==name==ParisBeehive12 Link:"<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
-```
-
-* Update the property of an entity
-
-```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs/name Content-Type:application/json < src/resources/ngsild/sensor_update_attribute.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-```
-
-* Update an entity
-
-```
-http PATCH http://localhost:8082/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC/attrs  Content-Type:application/json < src/resources/ngsild/sensor_update.json Link:"<http://easyglobalmarket.com/contexts/sosa.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
 ## Cypher queries

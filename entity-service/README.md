@@ -26,24 +26,6 @@ docker-compose up -d && docker-compose logs -f
 ./gradlew bootRun
 ```
 
-* Connect to the Neo4j browser and create the namespaces :
-
-```
-CREATE (:NamespacePrefixDefinition {
-  `https://diatomic.eglobalmark.com/ontology#`: 'diat',
-  `http://xmlns.com/foaf/0.1/`: 'foaf',
-  `http://example.org/ngsi-ld/`: 'example',
-  `https://uri.etsi.org/ngsi-ld/v1/ontology#`: 'ngsild'})
-
-CREATE INDEX ON :Resource(uri)
-CREATE CONSTRAINT ON (camera:Camera) ASSERT camera:uri IS UNIQUE
-CREATE CONSTRAINT ON (asN:availableSpotNumber) ASSERT asN:uri IS UNIQUE
-CREATE CONSTRAINT ON (offStreetParking:OffStreetParking) ASSERT offStreetParking:uri IS UNIQUE
-CREATE CONSTRAINT ON (vehicle:Vehicle) ASSERT vehicle:uri IS UNIQUE
-CREATE CONSTRAINT ON (person:Person) ASSERT camera:uri IS UNIQUE
-
-```
-
 * Create and publish a Docker image:
 
 ```

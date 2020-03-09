@@ -4,8 +4,7 @@ pipeline {
         jdk 'JDK 11'
     }
     environment {
-        JIB_USERNAME = credentials('jib-username')
-        JIB_SECRET = credentials('jib-secret')
+        JIB_CREDS = credentials('jib-creds')
     }
     stages {
         stage('Pre Build') {
@@ -22,10 +21,8 @@ pipeline {
             }
         }
         stage('Build Entity Service') {
-            when {
-                changeset "entity-service/**"
-            }
             steps {
+                sh 'echo $JIB_USERNAME; echo $JIB_SECRET'
                 sh './gradlew build -p entity-service'
             }
         }
@@ -51,16 +48,12 @@ pipeline {
                 changeset "api-gateway/**"
             }
             steps {
-                sh './gradlew jib -Djib.to.auth.username=$JIB_USERNAME -Djib.to.auth.password=$JIB_SECRET -p api-gateway'
+                sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p api-gateway'
             }
         }
         stage('Deploy Entity Service - Integration') {
-            when {
-                branch 'develop'
-                changeset "entity-service/**"
-            }
             steps {
-                sh './gradlew jib -Djib.to.auth.username=$JIB_USERNAME -Djib.to.auth.password=$JIB_SECRET -p entity-service'
+                sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p entity-service'
             }
         }
         stage('Deploy Subscription Service - Integration') {
@@ -69,7 +62,7 @@ pipeline {
                 changeset "subscription-service/**"
             }
             steps {
-                sh './gradlew jib -Djib.to.auth.username=$JIB_USERNAME -Djib.to.auth.password=$JIB_SECRET -p subscription-service'
+                sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p subscription-service'
             }
         }
         stage('Deploy Search Service - Integration') {
@@ -78,7 +71,7 @@ pipeline {
                 changeset "search-service/**"
             }
             steps {
-                sh './gradlew jib -Djib.to.auth.username=$JIB_USERNAME -Djib.to.auth.password=$JIB_SECRET -p search-service'
+                sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p search-service'
             }
         }
     }

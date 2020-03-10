@@ -80,6 +80,14 @@ pipeline {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p search-service'
             }
         }
+        stage('Build datahub-launcher') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                build job: '../DataHub.Int.Launcher'
+            }
+        }
     }
     post {
         always {

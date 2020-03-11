@@ -14,7 +14,7 @@ class EntityListener(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     // using @KafkaListener instead of @StreamListener as I couldn't find way to specify topic patterns with @StreamListener
-    @KafkaListener(topicPattern = "cim.entities.*", groupId = "context_search")
+    @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
         try {
             val entity = NgsiLdParsingUtils.parseEntity(content)

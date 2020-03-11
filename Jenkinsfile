@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Pre Build') {
             steps {
-                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_TAG}")
+                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_TAG}, See ${env.BUILD_URL} for further details")
             }
         }
         stage('Build Api Gateway') {
@@ -94,10 +94,10 @@ pipeline {
             archiveArtifacts artifacts: '**/build/reports/**', allowEmptyArchive: true
         }
         success {
-            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}, See ${env.BUILD_URL} for further details")
         }
         failure {
-            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}, See ${env.BUILD_URL} for further details")
         }
     }
 }

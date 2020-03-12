@@ -1,9 +1,7 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.exception.InvalidNgsiLdPayloadException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 
@@ -17,7 +15,8 @@ class NgsiLdParsingUtilsTests {
 
         val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
 
-        assertEquals("incoming", observation.attributeName)
+        assertNotNull(observation)
+        assertEquals("incoming", observation!!.attributeName)
         assertEquals(20.7, observation.value)
         assertEquals("CEL", observation.unitCode)
         assertEquals("urn:sosa:Sensor:10e2073a01080065", observation.observedBy)
@@ -31,8 +30,8 @@ class NgsiLdParsingUtilsTests {
         val jsonLdObservation = ClassPathResource("/ngsild/observationWithoutUnitCode.jsonld")
             .inputStream.readBytes().toString(Charsets.UTF_8)
 
-        assertThrows<InvalidNgsiLdPayloadException> {
-            NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
-        }
+        val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
+
+        assertNull(observation)
     }
 }

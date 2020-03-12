@@ -33,8 +33,8 @@ class ObservationListener(
      */
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
-        try {
-            val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
+        val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
+        observation?.let {
             logger.debug("Parsed observation: $observation")
             observationService.create(observation)
                 .doOnError {
@@ -44,7 +44,6 @@ class ObservationListener(
                     logger.debug("Created observation ($it)")
                 }
                 .subscribe()
-        } catch (e: Exception) {
-            logger.error("Received a non-parseable measure : $content", e) }
+        }
     }
 }

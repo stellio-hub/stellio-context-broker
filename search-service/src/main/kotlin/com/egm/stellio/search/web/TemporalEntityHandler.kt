@@ -37,6 +37,7 @@ class TemporalEntityHandler(
         return req.bodyToMono(String::class.java)
                 .map {
                     NgsiLdParsingUtils.parseTemporalPropertyUpdate(it)
+                        ?: throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
                 }
                 .flatMap {
                     observationService.create(it)

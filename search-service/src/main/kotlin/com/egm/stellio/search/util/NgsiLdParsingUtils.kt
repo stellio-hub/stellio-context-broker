@@ -1,6 +1,5 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.search.exception.InvalidNgsiLdPayloadException
 import com.egm.stellio.search.model.*
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
@@ -23,17 +22,23 @@ object NgsiLdParsingUtils {
         mapper.findAndRegisterModules()
     }
 
-    fun parseTemporalPropertyUpdate(content: String): Observation {
+    fun parseEntityEvent(input: String): EntityEvent {
+        return mapper.readValue<EntityEvent>(input, EntityEvent::class.java)
+    }
+
+    fun parseTemporalPropertyUpdate(content: String): Observation? {
         val rawParsedData = mapper.readTree(content)
         val propertyName = rawParsedData.fieldNames().next()
         val propertyValues = rawParsedData[propertyName]
 
-        logger.debug("Received property $rawParsedData (values: $propertyValues)")
+        logger.debug("Received property $propertyName (values: $propertyValues)")
         val isContentValid = listOf("type", "value", "unitCode", "observedAt", "observedBy")
             .map { propertyValues.has(it) }
             .all { it }
-        if (!isContentValid)
-            throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
+        if (!isContentValid) {
+            logger.warn("Received content is not a temporal property, ignoring it")
+            return null
+        }
 
         val location =
             if (propertyValues["location"] != null) {
@@ -66,7 +71,13 @@ object NgsiLdParsingUtils {
             Map::class.java, String::class.java, Any::class.java
         ))
 
-        return Pair(expandedEntity as Map<String, Any>, parsedInput["@context"] as List<String>)
+        val contexts =
+            if (parsedInput["@context"] is List<*>)
+                parsedInput["@context"] as List<String>
+            else
+                listOf(parsedInput["@context"] as String)
+
+        return Pair(expandedEntity as Map<String, Any>, contexts)
     }
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =

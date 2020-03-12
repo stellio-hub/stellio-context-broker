@@ -9,6 +9,7 @@ bin/
 /data/neo4j/data
 tmp/
 .gradletasknamecache
+**/application-dev.properties
 
 ### STS ###
 .apt_generated

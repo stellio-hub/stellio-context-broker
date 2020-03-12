@@ -18,6 +18,7 @@ import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIPS_CORE_
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.entity.util.NgsiLdParsingUtils.compactAndStringifyFragment
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandRelationshipType
@@ -447,6 +448,7 @@ class Neo4jService(
 
     fun updateEntityAttributes(id: String, payload: String, contextLink: String): UpdateResult {
         val updatedAttributes = mutableListOf<String>()
+        val updatedAttributesPayload = mutableListOf<String>()
         val notUpdatedAttributes = mutableListOf<NotUpdatedDetails>()
         val entity = entityRepository.findById(id).get()
 
@@ -462,31 +464,36 @@ class Neo4jService(
                     if (neo4jRepository.hasRelationshipOfType(id, it.key.toRelationshipTypeName())) {
                         updateRelationshipOfEntity(entity, it.key, attributeValue, getRelationshipObjectId(expandValueAsMap(it.value)))
                         updatedAttributes.add(shortAttributeName)
+                        updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
                     if (neo4jRepository.hasPropertyOfName(id, it.key)) {
                         updatePropertyOfEntity(entity, it.key, attributeValue)
                         updatedAttributes.add(shortAttributeName)
+                        updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
                 } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                     if (neo4jRepository.hasGeoPropertyOfName(id, shortAttributeName)) {
                         updateLocationPropertyOfEntity(entity, it.key, attributeValue)
                         updatedAttributes.add(shortAttributeName)
+                        updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "GeoProperty does not exist"))
                 }
             } catch (e: BadRequestDataException) {
                 notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName,
-                    e.message ?: "Unexpected error while updating property $shortAttributeName"))
+                    e.message ?: "Unexpected error while updating attribute $shortAttributeName"))
             }
         }
 
-        if (!updatedAttributes.isEmpty()) {
+        if (updatedAttributesPayload.isNotEmpty()) {
             val entityType = entity.type[0].extractShortTypeFromExpanded()
-            val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entityType, payload, null)
-            applicationEventPublisher.publishEvent(entityEvent)
+            updatedAttributesPayload.forEach {
+                val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entityType, it, null)
+                applicationEventPublisher.publishEvent(entityEvent)
+            }
         }
 
         return UpdateResult(updatedAttributes, notUpdatedAttributes)

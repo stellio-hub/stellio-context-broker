@@ -45,22 +45,85 @@ class Neo4jServiceTests {
     @MockkBean
     private lateinit var attributeRepository: AttributeRepository
 
+    /**
+     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * we are directly mocking the event listener to check it receives what is expected
+     */
     @MockkBean
     private lateinit var repositoryEventsListener: RepositoryEventsListener
 
-    // TODO https://redmine.eglobalmark.com/issues/851
-//    @Test
+    @Test
     fun `it should notify of a new entity`() {
 
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        val sampleDataWithContext = loadAndParseSampleData("MortalityRemovalService_standalone.json")
+        val expectedPayloadInEvent = """
+            {"@id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","@type":["https://ontology.eglobalmark.com/aquac#MortalityRemovalService"]}
+        """.trimIndent()
+        val mockedBreedingService = mockkClass(Entity::class)
 
-        neo4jService.createEntity(emptyMap(), emptyList())
+        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { mockedBreedingService.properties } returns mutableListOf()
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z"
+
+        neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
 
         verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
-            entityEvent.entityType == "BreedingService" &&
-                    entityEvent.entityId == "breedingServiceId" &&
-                    entityEvent.operationType == EventType.CREATE
+            entityEvent.entityType == "MortalityRemovalService" &&
+                    entityEvent.entityId == "urn:ngsi-ld:MortalityRemovalService:014YFA9Z" &&
+                    entityEvent.operationType == EventType.CREATE &&
+                    entityEvent.payload == expectedPayloadInEvent &&
+                    entityEvent.updatedEntity == null
         }) }
+        // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
+        verify { repositoryEventsListener.equals(any()) }
+        confirmVerified(repositoryEventsListener)
+    }
+
+    @Test
+    fun `it should notify of a two attributes update`() {
+
+        val payload = String(ClassPathResource("/ngsild/aquac/fragments/BreedingService_twoNewProperties.json").inputStream.readAllBytes())
+        val expectedFishNumberPayloadInEvent = """
+            {"fishNumber":{"type":"Property","value":500}}
+        """.trimIndent()
+        val expectedFishSizePayloadInEvent = """
+            {"fishSize":{"type":"Property","value":12}}
+        """.trimIndent()
+        val mockedBreedingService = mockkClass(Entity::class)
+        val mockedFishNumberProperty = mockkClass(Property::class)
+        val mockedFishSizeProperty = mockkClass(Property::class)
+
+        every { entityRepository.findById(any()) } returns Optional.of(mockedBreedingService)
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:0214"
+        every { neo4jRepository.getPropertyOfSubject(any(), eq("https://ontology.eglobalmark.com/aquac#fishNumber")) } returns mockedFishNumberProperty
+        every { mockedFishNumberProperty.updateValues(any(), any(), any()) } just Runs
+        every { neo4jRepository.getPropertyOfSubject(any(), eq("https://ontology.eglobalmark.com/aquac#fishSize")) } returns mockedFishSizeProperty
+        every { mockedFishSizeProperty.updateValues(any(), any(), any()) } just Runs
+        every { propertyRepository.save<Property>(any()) } returns mockedFishNumberProperty
+
+        every { mockedBreedingService.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+
+        neo4jService.updateEntityAttributes("urn:ngsi-ld:BreedingService:0214", payload, aquacContext!!)
+
+        verify(timeout = 1000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+            entityEvent.entityType == "BreedingService" &&
+                    entityEvent.entityId == "urn:ngsi-ld:BreedingService:0214" &&
+                    entityEvent.operationType == EventType.UPDATE &&
+                    entityEvent.payload == expectedFishNumberPayloadInEvent &&
+                    entityEvent.updatedEntity == null
+        }) }
+        verify(timeout = 1000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+            entityEvent.entityType == "BreedingService" &&
+                    entityEvent.entityId == "urn:ngsi-ld:BreedingService:0214" &&
+                    entityEvent.operationType == EventType.UPDATE &&
+                    entityEvent.payload == expectedFishSizePayloadInEvent &&
+                    entityEvent.updatedEntity == null
+        }) }
+        // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
+        verify { repositoryEventsListener.equals(any()) }
         confirmVerified(repositoryEventsListener)
     }
 
@@ -389,7 +452,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { relationshipRepository.save(match<Relationship> {
-            it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
+            it.type == listOf("https://ontology.eglobalmark.com/egm#connectsTo")
         }) } returns mockkedRelationship
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
         every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
@@ -461,7 +524,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { relationshipRepository.save(match<Relationship> {
-            it.type == listOf("https://uri.etsi.org/ngsi-ld/default-context/connectsTo")
+            it.type == listOf("https://ontology.eglobalmark.com/egm#connectsTo")
         }) } returns mockkedRelationship
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
         every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1

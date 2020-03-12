@@ -230,6 +230,11 @@ object NgsiLdParsingUtils {
         return expandedFragment[0] as Map<String, Any>
     }
 
+    fun compactAndStringifyFragment(key: String, value: Any, context: String): String {
+        val compactedFragment = JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
+        return JsonUtils.toString(compactedFragment)
+    }
+
     fun getTypeFromURI(uri: String): String {
         return uri.split(":")[2]
     }

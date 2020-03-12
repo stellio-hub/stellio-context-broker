@@ -1,0 +1,10 @@
+{
+  "fishNumber": {
+    "type": "Property",
+    "value": 500
+  },
+  "fishSize": {
+    "type": "Property",
+    "value": 12
+  }
+}

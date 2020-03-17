@@ -1,11 +1,10 @@
 package com.egm.stellio.subscription.web
 
 import com.egm.stellio.subscription.service.SubscriptionService
+import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.*
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -120,9 +119,83 @@ class SubscriptionHandlerTests {
     }
 
     @Test
+    fun `update subscription should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val parsedSubscription = NgsiLdParsingUtils.parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } returns Mono.just(1)
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `update subscription should return a 400 if update in DB failed`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val parsedSubscription = NgsiLdParsingUtils.parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json("{\"ProblemDetails\":[\"Update failed\"]}")
+
+        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `update subscription should return a 404 if subscription to be updated has not been found`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+
+        every { subscriptionService.exists(any()) } returns Mono.just(false)
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+    }
+
+    @Test
+    fun `update subscription should return a 400 if JSON-LD context is not correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update_incorrect_payload.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
         val subscription = gimmeRawSubscription()
-        every { subscriptionService.deleteSubscription(any()) } returns Mono.just(1)
+        every { subscriptionService.delete(any()) } returns Mono.just(1)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -131,13 +204,13 @@ class SubscriptionHandlerTests {
                 .expectStatus().isNoContent
                 .expectBody().isEmpty
 
-        verify { subscriptionService.deleteSubscription(eq(subscription.id)) }
+        verify { subscriptionService.delete(eq(subscription.id)) }
         confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
-        every { subscriptionService.deleteSubscription(any()) } returns Mono.just(0)
+        every { subscriptionService.delete(any()) } returns Mono.just(0)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -149,7 +222,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() {
-        every { subscriptionService.deleteSubscription(any()) } throws RuntimeException("Unexpected server error")
+        every { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")

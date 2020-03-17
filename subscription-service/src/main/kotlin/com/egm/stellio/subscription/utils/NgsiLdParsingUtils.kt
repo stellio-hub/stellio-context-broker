@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.subscription.model.EntityEvent
+import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.web.BadRequestDataException
 import com.egm.stellio.subscription.web.InvalidQueryException
@@ -63,6 +64,20 @@ object NgsiLdParsingUtils {
         } catch (e: Exception) {
             throw BadRequestDataException(e.message ?: "Failed to parse subscription")
         }
+    }
+
+    fun parseSubscriptionUpdate(input: String): Pair<Map<String, Any>, List<String>?> {
+        val parsedSubscription: Map<String, List<Any>> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
+            Map::class.java, String::class.java, Any::class.java
+        ))
+
+        return Pair(parsedSubscription, getContextOrThrowError(input))
+    }
+
+    fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
+        val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
+        entityInfo.type = expandJsonLdKey(entityInfo.type, contexts!!) !!
+        return entityInfo
     }
 
     fun getContextOrThrowError(input: String): List<String> {

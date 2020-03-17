@@ -1,0 +1,22 @@
+{
+  "q": "foodQuantity>=150",
+  "geoQ": {
+    "georel": "within",
+    "geometry": "Polygon",
+    "coordinates": "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
+  },
+  "name": "Beehive_subscription",
+  "notification": {
+    "attributes": ["incoming"],
+    "format": "keyValues",
+    "endpoint": {
+      "uri": "http://localhost:8084",
+      "accept": "application/ld+json"
+    }
+  },
+  "@context":[
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",
+    "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/82fba02005f3fc572d60744e38f6591bbaa09d6d/egm.jsonld"
+  ]
+}

@@ -8,17 +8,20 @@ import junit.framework.TestCase.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
-import junit.framework.TestCase.*
 import reactor.test.StepVerifier
 import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
 class SubscriptionServiceTests : TimescaleBasedTests() {
+
+    @Value("\${application.jsonld.apic_context}")
+    val apicContext: String = ""
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService
@@ -30,6 +33,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     private lateinit var subscription1Id: String
     private lateinit var subscription2Id: String
     private lateinit var subscription3Id: String
+    private lateinit var subscription4Id: String
 
     private val entity = ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
 
@@ -63,11 +67,25 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription3).block()
         subscription3Id = subscription3.id
+
+        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true).copy(
+            name = "Subscription 4",
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Beehive")
+            )
+        )
+        subscriptionService.create(subscription4).block()
+        subscription4Id = subscription4.id
     }
 
     @Test
     fun `it should create a subscription insert the 3 entities info`() {
-        val subscription = gimmeRawSubscription()
+        val subscription = gimmeRawSubscription().copy(
+            entities = setOf(
+                EntityInfo(id = "urn:ngsi-ld:FishContainment:1234567890", idPattern = null, type = "FishContainment"),
+                EntityInfo(id = null, idPattern = "urn:ngsi-ld:FishContainment:*", type = "FishContainment")
+            )
+        )
 
         val creationResult = subscriptionService.create(subscription)
 
@@ -79,7 +97,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         verify { databaseClient.execute(match<String> {
             it.startsWith("INSERT INTO subscription")
         }) }
-        verify(atLeast = 3) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
+        verify(atLeast = 2) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
         verify(atLeast = 1) { databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)") }
     }
 
@@ -144,14 +162,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription = gimmeRawSubscription()
         subscriptionService.create(subscription).block()
 
-        val deletionResult = subscriptionService.deleteSubscription(subscription.id).block()
+        val deletionResult = subscriptionService.delete(subscription.id).block()
 
         assertEquals(deletionResult, 1)
     }
 
     @Test
     fun `it should not delete an unknown subscription`() {
-        val deletionResult = subscriptionService.deleteSubscription("urn:ngsi-ld:Subscription:UnknownSubscription").block()
+        val deletionResult = subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription").block()
 
         assertEquals(deletionResult, 0)
     }
@@ -219,6 +237,72 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(persistedSubscription)
             .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should update a subscription `() {
+
+        val parsedInput = Pair(mapOf("name" to "My Subscription Updated",
+                "description" to "My beautiful subscription has been updated",
+                "q" to "foodQuantity>=150",
+                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")), null)
+
+        subscriptionService.update(subscription4Id, parsedInput).block()
+        val updateResult = subscriptionService.getById(subscription4Id)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                it.name == "My Subscription Updated" &&
+                it.description == "My beautiful subscription has been updated" &&
+                it.q == "foodQuantity>=150" &&
+                it.geoQ!!.georel == "equals" &&
+                it.geoQ!!.geometry.name == "Point" &&
+                it.geoQ!!.coordinates == "[100.0, 0.0]"
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should update a subscription notification`() {
+
+        val parsedInput = mapOf("attributes" to listOf("outgoing"),
+            "format" to "keyValues",
+            "endpoint" to mapOf("accept" to "application/ld+json", "uri" to "http://localhost:8080"))
+
+        subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(apicContext)).block()
+        val updateResult = subscriptionService.getById(subscription4Id)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                it.notification.attributes == listOf("https://ontology.eglobalmark.com/apic#outgoing") &&
+                it.notification.format.name == "KEY_VALUES" &&
+                it.notification.endpoint.accept.name == "JSONLD" &&
+                it.notification.endpoint.uri.toString() == "http://localhost:8080"
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should update a subscription entities`() {
+
+        val parsedInput = listOf(
+            mapOf("id" to "urn:ngsi-ld:Beehive:123",
+                "type" to "Beehive"),
+            mapOf("idPattern" to "urn:ngsi-ld:Beehive:12*",
+                "type" to "Beehive")
+        )
+
+        subscriptionService.updateEntities(subscription4Id, parsedInput, listOf(apicContext)).block()
+        val updateResult = subscriptionService.getById(subscription4Id)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                it.entities.contains(EntityInfo(id = "urn:ngsi-ld:Beehive:123", idPattern = null, type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
+                it.entities.contains(EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beehive:12*", type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
+                it.entities.size == 2
+            }
+            .verifyComplete()
     }
 
     @Test
@@ -233,7 +317,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.id == subscription1Id &&
-                it.notification.status == NotificationParams.StatusType.OK
+                it.notification.status == NotificationParams.StatusType.OK &&
                 it.notification.timesSent == 1 &&
                 it.notification.lastNotification != null &&
                 it.notification.lastSuccess != null &&

@@ -2,9 +2,12 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.repository.SubscriptionRepository
+import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
+import com.egm.stellio.subscription.web.BadRequestDataException
 import com.egm.stellio.subscription.web.ResourceNotFoundException
+import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -15,9 +18,9 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
 import java.time.OffsetDateTime
-import com.jayway.jsonpath.JsonPath.read
 
 @Component
 class SubscriptionService(
@@ -111,7 +114,136 @@ class SubscriptionService(
             }
     }
 
-    fun deleteSubscription(subscriptionId: String): Mono<Int> {
+    @Transactional
+    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>?>): Mono<Int> {
+        val contexts = parsedInput.second
+        val subscriptionUpdateInput = parsedInput.first
+        val updates = mutableListOf<Mono<Int>>()
+
+        subscriptionUpdateInput.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
+            when (it.key) {
+                "geoQ" -> {
+                    val geoQuery = it.value as Map<String, Any>
+                    updates.add(updateGeometryQuery(subscriptionId, geoQuery))
+                }
+                "notification" -> {
+                    val notification = it.value as Map<String, Any>
+                    updates.add(updateNotification(subscriptionId, notification, contexts))
+                }
+                "entities" -> {
+                    val entities = it.value as List<Map<String, Any>>
+                    updates.add(updateEntities(subscriptionId, entities, contexts))
+                }
+                else -> {
+                    val updateStatement = Update.update(it.key, it.value.toString())
+                    updates.add(databaseClient.update()
+                        .table("subscription")
+                        .using(updateStatement)
+                        .matching(Criteria.where("id").`is`(subscriptionId))
+                        .fetch()
+                        .rowsUpdated()
+                        .doOnError { e ->
+                            throw BadRequestDataException(e.message ?: "Could not update attribute ${it.key}")
+                        }
+                    )
+                }
+            }
+        }
+
+        return updates.toFlux().flatMap { updateOperation ->
+            updateOperation.map { it }
+        }
+        .collectList()
+        .map { it.size }
+    }
+
+    fun updateGeometryQuery(subscriptionId: String, geoQuery: Map<String, Any>): Mono<Int> {
+        try {
+            val firstValue = geoQuery.entries.iterator().next()
+            var updateStatement = Update.update(firstValue.key, firstValue.value.toString())
+            geoQuery.filterKeys { it != firstValue.key }.forEach {
+                updateStatement = updateStatement.set(it.key, it.value.toString())
+            }
+
+            return databaseClient.update()
+                .table("geometry_query")
+                .using(updateStatement)
+                .matching(Criteria.where("subscription_id").`is`(subscriptionId))
+                .fetch()
+                .rowsUpdated()
+                .doOnError { e ->
+                    throw BadRequestDataException(e.message ?: "Could not update the Geometry query")
+                }
+        } catch (e: Exception) {
+            throw BadRequestDataException(e.message ?: "No values provided for the Geometry query attribute")
+        }
+    }
+
+    fun updateNotification(subscriptionId: String, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
+        try {
+            val firstValue = notification.entries.iterator().next()
+            val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
+            var updateStatement = Update.update(updateParams[0].first, updateParams[0].second)
+            if (updateParams.size > 1) {
+                updateParams.drop(1).forEach {
+                    updateStatement = updateStatement.set(it.first, it.second)
+                }
+            }
+
+            notification.filterKeys { it != firstValue.key }.forEach {
+                extractParamsFromNotificationAttribute(it, contexts).forEach {
+                    updateStatement = updateStatement.set(it.first, it.second)
+                }
+            }
+
+            return databaseClient.update()
+                .table("subscription")
+                .using(updateStatement)
+                .matching(Criteria.where("id").`is`(subscriptionId))
+                .fetch()
+                .rowsUpdated()
+                .doOnError { e ->
+                    throw BadRequestDataException(e.message ?: "Could not update the Notification")
+                }
+        } catch (e: Exception) {
+            throw BadRequestDataException(e.message ?: "No values provided for the Notification attribute")
+        }
+    }
+
+    private fun extractParamsFromNotificationAttribute(attribute: Map.Entry<String, Any>, contexts: List<String>?): List<Pair<String, String>> {
+        return when (attribute.key) {
+            "attributes" -> {
+                var valueList = attribute.value as List<String>
+                valueList = valueList.map {
+                    NgsiLdParsingUtils.expandJsonLdKey(it, contexts!!) !!
+                }
+                listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
+            }
+            "format" -> {
+                val format = if (attribute.value == "keyValues") NotificationParams.FormatType.KEY_VALUES.name else NotificationParams.FormatType.NORMALIZED.name
+                listOf(Pair("notif_format", format))
+            }
+            "endpoint" -> {
+                val endpoint = attribute.value as Map<String, Any>
+                val accept = if (endpoint["accept"] == "application/json") Endpoint.AcceptType.JSON.name else Endpoint.AcceptType.JSONLD.name
+
+                listOf(Pair("endpoint_uri", endpoint["uri"].toString()), Pair("endpoint_accept", accept))
+            }
+            else -> {
+                throw BadRequestDataException("Could not update attribute ${attribute.key}")
+            }
+        }
+    }
+
+    fun updateEntities(subscriptionId: String, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
+        return deleteEntityInfo(subscriptionId).doOnNext {
+            entities.forEach {
+                createEntityInfo(NgsiLdParsingUtils.parseEntityInfo(it, contexts), subscriptionId).subscribe {}
+            }
+        }
+    }
+
+    fun delete(subscriptionId: String): Mono<Int> {
         val deleteStatement = """
             DELETE FROM subscription 
             WHERE subscription.id = :id
@@ -122,6 +254,13 @@ class SubscriptionService(
                 .fetch()
                 .rowsUpdated()
     }
+
+    fun deleteEntityInfo(subscriptionId: String): Mono<Int> =
+        databaseClient.delete()
+            .from("entity_info")
+            .matching(Criteria.where("subscription_id").`is`(subscriptionId))
+            .fetch()
+            .rowsUpdated()
 
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """

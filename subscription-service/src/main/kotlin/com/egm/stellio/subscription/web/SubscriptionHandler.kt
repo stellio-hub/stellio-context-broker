@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
-import reactor.core.publisher.toMono
+import reactor.kotlin.core.publisher.toMono
 import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
 
@@ -85,6 +85,36 @@ class SubscriptionHandler(
     }
 
     /**
+     * Implements 6.11.3.2 - Update Subscription
+     */
+    fun update(req: ServerRequest): Mono<ServerResponse> {
+        val subscriptionId = req.pathVariable("subscriptionId")
+        return req.bodyToMono<String>()
+            .flatMap { input ->
+                subscriptionService.exists(subscriptionId).flatMap {
+                    Mono.just(Pair(input, it))
+                }
+            }
+            .flatMap {
+                if (!it.second)
+                    throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
+
+                val parsedInput = NgsiLdParsingUtils.parseSubscriptionUpdate(it.first)
+                subscriptionService.update(subscriptionId, parsedInput)
+            }
+            .flatMap {
+                noContent().build()
+            }
+            .onErrorResume {
+                when (it) {
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
+                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
+                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
+                }
+            }
+    }
+
+    /**
      * Implements 6.11.3.3 - Delete Subscription
      */
     fun delete(req: ServerRequest): Mono<ServerResponse> {
@@ -92,7 +122,7 @@ class SubscriptionHandler(
 
         return subscriptionId.toMono()
                 .flatMap {
-                    subscriptionService.deleteSubscription(subscriptionId)
+                    subscriptionService.delete(subscriptionId)
                 }
                 .flatMap {
                     if (it >= 1)

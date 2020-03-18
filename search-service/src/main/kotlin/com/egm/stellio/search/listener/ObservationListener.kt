@@ -1,7 +1,7 @@
 package com.egm.stellio.search.listener
 
-import com.egm.stellio.search.util.NgsiLdParsingUtils
 import com.egm.stellio.search.service.ObservationService
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseTemporalPropertyUpdate
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -33,7 +33,7 @@ class ObservationListener(
      */
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
-        val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
+        val observation = parseTemporalPropertyUpdate(content)
         observation?.let {
             logger.debug("Parsed observation: $observation")
             observationService.create(observation)

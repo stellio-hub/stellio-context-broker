@@ -1,8 +1,8 @@
 package com.egm.stellio.search.listener
 
-import com.egm.stellio.search.model.Observation
-import com.egm.stellio.search.util.NgsiLdParsingUtils
 import com.egm.stellio.search.service.ObservationService
+import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test

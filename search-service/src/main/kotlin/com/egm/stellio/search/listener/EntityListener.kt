@@ -1,9 +1,10 @@
 package com.egm.stellio.search.listener
 
-import com.egm.stellio.search.model.EventType
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.ObservationService
-import com.egm.stellio.search.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseTemporalPropertyUpdate
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -33,7 +34,7 @@ class EntityListener(
                 }
             }
             EventType.UPDATE -> {
-                val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(entityEvent.payload!!)
+                val observation = parseTemporalPropertyUpdate(entityEvent.payload!!)
                 observation?.let {
                     logger.debug("Parsed observation: $observation")
                     observationService.create(observation)

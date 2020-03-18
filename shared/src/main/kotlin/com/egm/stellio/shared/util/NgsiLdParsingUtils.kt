@@ -2,7 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
+import com.egm.stellio.shared.model.EntityEvent
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -19,6 +19,7 @@ object NgsiLdParsingUtils {
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
+    const val NGSILD_PROPERTY_VALUES = "https://uri.etsi.org/ngsi-ld/hasValues"
     val NGSILD_GEOPROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/GeoProperty")
     const val NGSILD_GEOPROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
     val NGSILD_RELATIONSHIP_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Relationship")
@@ -59,6 +60,13 @@ object NgsiLdParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private var mapper = jacksonObjectMapper()
+
+    init {
+        // TODO check if this registration is still required
+        mapper.findAndRegisterModules()
+    }
+
     fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
 
@@ -66,7 +74,6 @@ object NgsiLdParsingUtils {
         logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
-        val mapper = jacksonObjectMapper()
         val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
             Map::class.java, String::class.java, Any::class.java
         ))
@@ -84,18 +91,26 @@ object NgsiLdParsingUtils {
 //            parsedInput["@context"], JsonLdOptions())
 //        logger.debug("Flattened entity is ${JsonUtils.toPrettyString(flattenedEntity)}")
 
-        return Pair(expandedEntity as Map<String, Any>, parsedInput["@context"] as List<String>)
+        val contexts =
+            if (parsedInput["@context"] is List<*>)
+                parsedInput["@context"] as List<String>
+            else
+                listOf(parsedInput["@context"] as String)
+
+        return Pair(expandedEntity as Map<String, Any>, contexts)
     }
 
     fun parseEntities(entities: List<Map<String, Any>>): List<Pair<Map<String, Any>, List<String>>> {
-        val mapper = jacksonObjectMapper()
         return entities.map {
             parseEntity(mapper.writeValueAsString(it))
         }
     }
 
+    fun parseEntityEvent(input: String): EntityEvent {
+        return mapper.readValue<EntityEvent>(input, EntityEvent::class.java)
+    }
+
     fun parseJsonLdFragment(input: String): Map<String, Any> {
-        val mapper = jacksonObjectMapper()
         return mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
             Map::class.java, String::class.java, Any::class.java
         ))
@@ -239,8 +254,7 @@ object NgsiLdParsingUtils {
         return uri.split(":")[2]
     }
 
-    fun parseTemporalPropertyUpdate(content: String): Observation {
-        val mapper = jacksonObjectMapper()
+    fun parseTemporalPropertyUpdate(content: String): Observation? {
         val rawParsedData = mapper.readTree(content)
         val propertyName = rawParsedData.fieldNames().next()
         val propertyValues = rawParsedData[propertyName]
@@ -249,8 +263,10 @@ object NgsiLdParsingUtils {
         val isContentValid = listOf("type", "value", "unitCode", "observedAt", "observedBy")
             .map { propertyValues.has(it) }
             .all { it }
-        if (!isContentValid)
-            throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
+        if (!isContentValid) {
+            logger.warn("Received content is not a temporal property, ignoring it")
+            return null
+        }
 
         val location =
             if (propertyValues["location"] != null) {

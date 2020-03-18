@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.MyPostgresqlContainer.DB_PASSWORD
 import com.egm.stellio.search.service.MyPostgresqlContainer.DB_USER
+import com.egm.stellio.shared.model.Observation
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions

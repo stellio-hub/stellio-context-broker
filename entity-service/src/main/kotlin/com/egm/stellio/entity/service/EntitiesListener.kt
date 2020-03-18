@@ -39,13 +39,14 @@ class EntitiesListener(
      *  }
      * }
      */
-
     @StreamListener("cim.observations")
     fun processMessage(content: String) {
         try {
             val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
-            logger.debug("Parsed observation: $observation")
-            neo4jService.updateEntityLastMeasure(observation)
+            observation?.let {
+                logger.debug("Parsed observation: $observation")
+                neo4jService.updateEntityLastMeasure(observation)
+            }
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e)
         }

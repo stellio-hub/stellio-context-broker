@@ -1,7 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.ContextRegistryProperties
-import com.egm.stellio.search.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies

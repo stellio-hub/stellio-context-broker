@@ -1,9 +1,7 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.core.io.ClassPathResource
 
 class NgsiLdParsingUtilsTests {
@@ -15,7 +13,8 @@ class NgsiLdParsingUtilsTests {
 
         val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
 
-        assertEquals("incoming", observation.attributeName)
+        assertNotNull(observation)
+        assertEquals("incoming", observation!!.attributeName)
         assertEquals(20.7, observation.value)
         assertEquals("CEL", observation.unitCode)
         assertEquals("urn:sosa:Sensor:10e2073a01080065", observation.observedBy)
@@ -25,12 +24,12 @@ class NgsiLdParsingUtilsTests {
     }
 
     @Test
-    fun `it should throw an exception if the incoming payload is invalid`() {
+    fun `it should return a null object if the incoming payload is invalid`() {
         val jsonLdObservation = ClassPathResource("/ngsild/ObservationWithoutUnitCode.json")
             .inputStream.readBytes().toString(Charsets.UTF_8)
 
-        assertThrows<InvalidNgsiLdPayloadException> {
-            NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
-        }
+        val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
+
+        assertNull(observation)
     }
 }

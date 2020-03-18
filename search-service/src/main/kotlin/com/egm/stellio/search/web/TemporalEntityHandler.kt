@@ -1,11 +1,11 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.search.exception.InvalidNgsiLdPayloadException
+import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.ContextRegistryService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.search.util.NgsiLdParsingUtils
 import com.egm.stellio.search.service.ObservationService
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseTemporalPropertyUpdate
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.springframework.http.HttpStatus
@@ -36,7 +36,7 @@ class TemporalEntityHandler(
     fun addAttrs(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono(String::class.java)
                 .map {
-                    NgsiLdParsingUtils.parseTemporalPropertyUpdate(it)
+                    parseTemporalPropertyUpdate(it)
                         ?: throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
                 }
                 .flatMap {

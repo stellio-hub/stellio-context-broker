@@ -2,8 +2,8 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.EntityTemporalProperty
 import com.egm.stellio.search.model.TemporalValue
-import com.egm.stellio.search.util.NgsiLdParsingUtils
-import com.egm.stellio.search.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.isEquals
 import org.springframework.data.r2dbc.query.Criteria.where

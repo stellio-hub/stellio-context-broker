@@ -1,4 +1,4 @@
-package com.egm.stellio.entity.web
+package com.egm.stellio.shared.model
 
 class InvalidRequestException(message: String) : Exception(message)
 class BadRequestDataException(message: String) : Exception(message)

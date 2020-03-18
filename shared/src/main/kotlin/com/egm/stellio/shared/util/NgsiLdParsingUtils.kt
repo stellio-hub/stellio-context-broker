@@ -1,8 +1,8 @@
-package com.egm.stellio.entity.util
+package com.egm.stellio.shared.util
 
-import com.egm.stellio.entity.model.Observation
-import com.egm.stellio.entity.web.BadRequestDataException
-import com.egm.stellio.entity.web.InvalidNgsiLdPayloadException
+import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor

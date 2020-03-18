@@ -1,9 +1,13 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.Neo4jService
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.getTypeFromURI
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getTypeFromURI
 import com.egm.stellio.entity.util.decode
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper

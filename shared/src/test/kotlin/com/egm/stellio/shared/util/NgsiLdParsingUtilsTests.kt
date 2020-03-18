@@ -1,20 +1,16 @@
-package com.egm.stellio.entity.util
+package com.egm.stellio.shared.util
 
-import com.egm.stellio.entity.web.InvalidNgsiLdPayloadException
+import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ NgsiLdParsingUtils::class ])
-@ActiveProfiles("test")
 class NgsiLdParsingUtilsTests {
 
     @Test
     fun `it should parse the incoming temporal property to an observation`() {
-        val jsonLdObservation = ClassPathResource("/ngsild/aquac/Observation.json")
+        val jsonLdObservation = ClassPathResource("/ngsild/Observation.json")
             .inputStream.readBytes().toString(Charsets.UTF_8)
 
         val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(jsonLdObservation)
@@ -30,7 +26,7 @@ class NgsiLdParsingUtilsTests {
 
     @Test
     fun `it should throw an exception if the incoming payload is invalid`() {
-        val jsonLdObservation = ClassPathResource("/ngsild/aquac/observationWithoutUnitCode.json")
+        val jsonLdObservation = ClassPathResource("/ngsild/ObservationWithoutUnitCode.json")
             .inputStream.readBytes().toString(Charsets.UTF_8)
 
         assertThrows<InvalidNgsiLdPayloadException> {

@@ -6,6 +6,8 @@ extra["springCloudVersion"] = "Hoxton.SR2"
 
 plugins {
     java // why did I have to add that ?!
+    // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
+    // and the shared lib is obviously not one
     id("org.springframework.boot") version "2.2.5.RELEASE" apply false
     id("io.spring.dependency-management") version "1.0.9.RELEASE" apply false
     kotlin("jvm") version "1.3.61" apply false
@@ -22,7 +24,6 @@ subprojects {
     }
 
     apply(plugin = "io.spring.dependency-management")
-    apply(plugin = "org.springframework.boot")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")

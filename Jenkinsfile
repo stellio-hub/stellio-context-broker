@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Pre Build') {
             steps {
-                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_TAG}, See ${env.BUILD_URL} for further details")
+                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
             }
         }
         stage('Build Api Gateway') {
@@ -22,7 +22,10 @@ pipeline {
         }
         stage('Build Entity Service') {
             when {
-                changeset "entity-service/**"
+                anyOf {
+                    changeset "entity-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew build -p entity-service'
@@ -30,7 +33,10 @@ pipeline {
         }
         stage('Build Subscription Service') {
             when {
-                changeset "subscription-service/**"
+                anyOf {
+                    changeset "subscription-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew build -p subscription-service'
@@ -38,13 +44,16 @@ pipeline {
         }
         stage('Build Search Service') {
             when {
-                changeset "search-service/**"
+                anyOf {
+                    changeset "search-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew build -p search-service'
             }
         }
-        stage('Deploy Api Gateway - Integration') {
+        stage('Dockerize Api Gateway') {
             when {
                 branch 'develop'
                 changeset "api-gateway/**"
@@ -53,34 +62,43 @@ pipeline {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p api-gateway'
             }
         }
-        stage('Deploy Entity Service - Integration') {
+        stage('Dockerize Entity Service') {
             when {
                 branch 'develop'
-                changeset "entity-service/**"
+                anyOf {
+                    changeset "entity-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p entity-service'
             }
         }
-        stage('Deploy Subscription Service - Integration') {
+        stage('Dockerize Subscription Service') {
             when {
                 branch 'develop'
-                changeset "subscription-service/**"
+                anyOf {
+                    changeset "subscription-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p subscription-service'
             }
         }
-        stage('Deploy Search Service - Integration') {
+        stage('Dockerize Search Service') {
             when {
                 branch 'develop'
-                changeset "search-service/**"
+                anyOf {
+                    changeset "search-service/**"
+                    changeset "shared/**"
+                }
             }
             steps {
                 sh './gradlew jib -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p search-service'
             }
         }
-        stage('Build datahub-launcher') {
+        stage('Deploy - Integration') {
             when {
                 branch 'develop'
             }
@@ -94,10 +112,10 @@ pipeline {
             archiveArtifacts artifacts: '**/build/reports/**', allowEmptyArchive: true
         }
         success {
-            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}, See ${env.BUILD_URL} for further details")
+            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
         }
         failure {
-            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_TAG} after ${currentBuild.durationString.replace(' and counting', '')}, See ${env.BUILD_URL} for further details")
+            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
         }
     }
 }

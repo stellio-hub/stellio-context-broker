@@ -10,11 +10,13 @@ configurations {
 
 plugins {
     id("com.google.cloud.tools.jib")
+    id("org.springframework.boot")
 }
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
+    implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

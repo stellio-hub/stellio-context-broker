@@ -3,35 +3,42 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.util.*
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.EGM_VENDOR_ID
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_PROPERTIES_CORE_MEMBERS
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIPS_CORE_MEMBERS
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.compactAndStringifyFragment
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandJsonLdFragment
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandJsonLdKey
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandRelationshipType
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.expandValueAsMap
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.extractShortTypeFromPayload
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.extractTypeFromPayload
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.getPropertyValueFromMap
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.getRelationshipObjectId
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.isAttributeOfType
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.parseJsonLdFragment
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTIES_CORE_MEMBERS
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIPS_CORE_MEMBERS
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactAndStringifyFragment
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandRelationshipType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayload
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractTypeFromPayload
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.stellio.entity.web.*
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.utils.JsonUtils
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
@@ -663,7 +670,7 @@ class Neo4jService(
             observedProperty.updateValues(observation.unitCode, observation.value, observation.observedAt)
             if (observation.latitude != null && observation.longitude != null) {
                 val observedEntity = neo4jRepository.getEntityByProperty(observedProperty)
-                observedEntity.location = GeographicPoint2d(observation.latitude, observation.longitude)
+                observedEntity.location = GeographicPoint2d(observation.latitude!!, observation.longitude!!)
                 entityRepository.save(observedEntity)
             }
             propertyRepository.save(observedProperty)

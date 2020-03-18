@@ -4,9 +4,9 @@ import com.egm.stellio.entity.model.Attribute
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.EGM_VENDOR_ID
-import com.egm.stellio.entity.util.toRelationshipTypeName
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import junit.framework.TestCase.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

@@ -1,9 +1,9 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity

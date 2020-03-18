@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.EntityEvent
-import com.egm.stellio.entity.model.EventType
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EventType
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions

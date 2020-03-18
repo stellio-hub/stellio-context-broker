@@ -3,8 +3,8 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.util.isFloat
-import com.egm.stellio.entity.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.isFloat
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event

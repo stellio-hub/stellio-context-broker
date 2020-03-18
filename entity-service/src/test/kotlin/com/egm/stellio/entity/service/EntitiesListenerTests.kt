@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.Observation
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test

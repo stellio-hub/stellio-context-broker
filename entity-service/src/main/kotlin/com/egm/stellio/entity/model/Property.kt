@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.fasterxml.jackson.annotation.JsonRawValue
 import org.neo4j.ogm.annotation.NodeEntity
 import java.time.OffsetDateTime

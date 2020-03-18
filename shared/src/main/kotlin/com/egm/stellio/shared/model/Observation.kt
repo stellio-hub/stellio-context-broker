@@ -1,4 +1,4 @@
-package com.egm.stellio.entity.model
+package com.egm.stellio.shared.model
 
 import java.time.OffsetDateTime
 

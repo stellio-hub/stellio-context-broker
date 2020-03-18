@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.util
 
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.parseEntities
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntities
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.net.URLDecoder
 

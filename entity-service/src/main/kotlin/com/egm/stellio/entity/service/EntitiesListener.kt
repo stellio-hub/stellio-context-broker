@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener

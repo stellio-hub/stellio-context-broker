@@ -3,6 +3,7 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.service.Neo4jService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
+import com.egm.stellio.shared.model.BadRequestDataException
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus

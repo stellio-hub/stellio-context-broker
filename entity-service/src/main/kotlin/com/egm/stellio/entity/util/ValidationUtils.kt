@@ -2,6 +2,14 @@ package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractTypeFromPayload
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
@@ -35,7 +43,7 @@ class ValidationUtils(
             val relationshipIds = getRelationshipIds(urn, entitiesIds, entities, ArrayList()).first
             logger.debug("Relationships ids for $urn are $relationshipIds")
             if (entitiesIds.containsAll(relationshipIds)) {
-                result[urn] = NgsiLdParsingUtils.extractTypeFromPayload(it.first)
+                result[urn] = extractTypeFromPayload(it.first)
             }
         }
 
@@ -66,15 +74,15 @@ class ValidationUtils(
         val entityRelationshipsIds = ArrayList<String>()
         val entity = getEntityPayloadById(entityId, payload)
         val propertiesAndRelationshipsMap = entity.first.filterKeys {
-            !listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE).contains(it)
+            !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
-            NgsiLdParsingUtils.expandValueAsMap(it.value)
+            expandValueAsMap(it.value)
         }
 
         propertiesAndRelationshipsMap.filter { entry ->
-            NgsiLdParsingUtils.isAttributeOfType(entry.value, NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE)
+            isAttributeOfType(entry.value, NGSILD_RELATIONSHIP_TYPE)
         }.forEach { entry ->
-            val objectId = NgsiLdParsingUtils.getRelationshipObjectId(entry.value)
+            val objectId = getRelationshipObjectId(entry.value)
             val objectEntity = entityRepository.findById(objectId)
             if (!objectEntity.isPresent) {
                 entityRelationshipsIds.add(objectId)
@@ -88,20 +96,20 @@ class ValidationUtils(
         val entityAttributesIds = ArrayList<String>()
         val entity = getEntityPayloadById(entityId, payload)
         val propertiesAndRelationshipsMap = entity.first.filterKeys {
-            !listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE).contains(it)
+            !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
-            NgsiLdParsingUtils.expandValueAsMap(it.value)
+            expandValueAsMap(it.value)
         }
 
         propertiesAndRelationshipsMap.filter { entry ->
-            NgsiLdParsingUtils.isAttributeOfType(entry.value, NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE)
+            isAttributeOfType(entry.value, NGSILD_PROPERTY_TYPE)
         }.forEach {
             it.value.forEach {
                 val propEntryValue = it.value[0]
                 if (propEntryValue is Map<*, *>) {
                     val propEntryValueMap = propEntryValue as Map<String, List<Any>>
-                    if (NgsiLdParsingUtils.isAttributeOfType(propEntryValueMap, NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE)) {
-                        val objectId = NgsiLdParsingUtils.getRelationshipObjectId(propEntryValueMap)
+                    if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
+                        val objectId = getRelationshipObjectId(propEntryValueMap)
                         val objectEntity = entityRepository.findById(objectId)
                         if (!objectEntity.isPresent) {
                             entityAttributesIds.add(objectId)

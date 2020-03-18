@@ -1,5 +1,6 @@
 plugins {
     id("com.google.cloud.tools.jib")
+    id("org.springframework.boot")
 }
 
 dependencies {

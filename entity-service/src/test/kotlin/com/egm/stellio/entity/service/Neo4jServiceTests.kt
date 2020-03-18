@@ -2,12 +2,14 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.util.NgsiLdParsingUtils
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.EGM_VENDOR_ID
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.model.Observation
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test

@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.entity.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.fasterxml.jackson.annotation.*
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels

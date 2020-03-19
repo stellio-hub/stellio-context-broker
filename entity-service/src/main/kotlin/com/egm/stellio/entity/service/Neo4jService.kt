@@ -39,7 +39,10 @@ import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
 import com.egm.stellio.shared.util.toRelationshipTypeName
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdOptions
+import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
@@ -99,7 +102,7 @@ class Neo4jService(
         }
 
         val entityType = extractShortTypeFromPayload(expandedPayload)
-        val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, JsonUtils.toString(expandedPayload), null)
+        val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(entity.id), null)
         applicationEventPublisher.publishEvent(entityEvent)
 
         return entity
@@ -340,6 +343,12 @@ class Neo4jService(
             }
 
         return Pair(resultEntity, entity.contexts)
+    }
+
+    fun getSerializedEntityById(entityId: String): String {
+        val mapper = jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+        val entity = getFullEntityById(entityId)
+        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.first, mapOf("@context" to entity.second), JsonLdOptions()))
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<Pair<Map<String, Any>, List<String>>> =
@@ -639,7 +648,7 @@ class Neo4jService(
                 createdEntities.add(urn)
 
                 val entityType = type.extractShortTypeFromExpanded()
-                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, JsonUtils.toString(it.first), null)
+                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(urn), null)
                 applicationEventPublisher.publishEvent(entityEvent)
             } catch (e: BadRequestDataException) {
                 deleteEntity(urn)

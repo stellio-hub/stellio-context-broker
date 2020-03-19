@@ -57,16 +57,21 @@ class Neo4jServiceTests {
     @Test
     fun `it should notify of a new entity`() {
 
-        val sampleDataWithContext = loadAndParseSampleData("MortalityRemovalService_standalone.json")
         val expectedPayloadInEvent = """
-            {"@id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","@type":["https://ontology.eglobalmark.com/aquac#MortalityRemovalService"]}
+        {"id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","type":"MortalityRemovalService","@context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld","https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]}
         """.trimIndent()
+        val sampleDataWithContext = loadAndParseSampleData("MortalityRemovalService_standalone.json")
         val mockedBreedingService = mockkClass(Entity::class)
 
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { mockedBreedingService.properties } returns mutableListOf()
         every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z"
+        every { entityRepository.getEntityCoreById(any()) } returns listOf(mapOf("entity" to mockedBreedingService))
+        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf("@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z", "@type" to listOf("MortalityRemovalService"))
+        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
+        every { entityRepository.getEntityRelationships(any()) } returns listOf()
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.second
 
         neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
 
@@ -132,6 +137,7 @@ class Neo4jServiceTests {
     @Test
     fun `it should create an entity with a property having a property`() {
 
+        val payload = String(ClassPathResource("/ngsild/aquac/BreedingService_propWithProp.json").inputStream.readAllBytes())
         val sampleDataWithContext = loadAndParseSampleData("BreedingService_propWithProp.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
@@ -144,6 +150,11 @@ class Neo4jServiceTests {
         every { attributeRepository.save<Attribute>(any()) } returns mockedProperty
         every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp"
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityRepository.getEntityCoreById(any()) } returns listOf(mapOf("entity" to mockedBreedingService))
+        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf("@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z", "@type" to listOf("MortalityRemovalService"))
+        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
+        every { entityRepository.getEntityRelationships(any()) } returns listOf()
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.second
 
         neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
 

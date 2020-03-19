@@ -31,8 +31,8 @@ class RepositoryEventsListener(
 
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
-            EventType.CREATE -> sendCreateMessage(channelName, entityEvent.entityId, entityEvent.entityType)
-            EventType.UPDATE -> sendUpdateMessage(channelName, entityEvent.entityId, entityEvent.entityType, entityEvent.payload)
+            EventType.CREATE -> sendCreateMessage(channelName, entityEvent.entityId, entityEvent.entityType, entityEvent.payload!!)
+            EventType.UPDATE -> sendUpdateMessage(channelName, entityEvent.entityId, entityEvent.entityType, entityEvent.payload!!)
             else -> false
         }
 
@@ -42,13 +42,12 @@ class RepositoryEventsListener(
             logger.warn("Unable to send entity ${entityEvent.entityId} to $channelName")
     }
 
-    private fun sendCreateMessage(channelName: String, entityId: String, entityType: String): Boolean {
-        val entity = getEntityById(entityId)
+    private fun sendCreateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
         val data = mapOf("operationType" to EventType.CREATE.name,
             "entityId" to entityId,
             "entityType" to entityType,
-            "payload" to entity
-            )
+            "payload" to payload
+        )
 
         return resolver.resolveDestination(channelName)
             .send(MessageBuilder.createMessage(mapper.writeValueAsString(data),
@@ -56,7 +55,7 @@ class RepositoryEventsListener(
             ))
     }
 
-    private fun sendUpdateMessage(channelName: String, entityId: String, entityType: String, payload: String?): Boolean {
+    private fun sendUpdateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
         val entity = getEntityById(entityId)
         val data = mapOf("operationType" to EventType.UPDATE.name,
             "entityId" to entityId,

@@ -1,12 +1,13 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.repository.SubscriptionRepository
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
-import com.egm.stellio.subscription.web.BadRequestDataException
-import com.egm.stellio.subscription.web.ResourceNotFoundException
+import com.egm.stellio.subscription.utils.parseEntityInfo
+import com.egm.stellio.subscription.repository.SubscriptionRepository
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -238,7 +239,7 @@ class SubscriptionService(
     fun updateEntities(subscriptionId: String, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
         return deleteEntityInfo(subscriptionId).doOnNext {
             entities.forEach {
-                createEntityInfo(NgsiLdParsingUtils.parseEntityInfo(it, contexts), subscriptionId).subscribe {}
+                createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).subscribe {}
             }
         }
     }

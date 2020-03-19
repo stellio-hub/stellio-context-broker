@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.utils.parseEntity
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -57,7 +57,7 @@ class NotificationServiceTests {
             } 
         """.trimIndent()
 
-    private val parsedEntity = NgsiLdParsingUtils.parseEntity(rawEntity)
+    private val parsedEntity = parseEntity(rawEntity)
 
     @BeforeAll
     fun beforeAll() {

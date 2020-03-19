@@ -21,6 +21,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("com.jayway.jsonpath:json-path:2.4.0")
+    implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

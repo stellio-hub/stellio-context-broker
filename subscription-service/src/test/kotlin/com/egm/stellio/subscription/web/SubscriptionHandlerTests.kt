@@ -1,8 +1,10 @@
 package com.egm.stellio.subscription.web
 
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -122,7 +124,7 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
-        val parsedSubscription = NgsiLdParsingUtils.parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+        val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
@@ -143,7 +145,7 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 400 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
-        val parsedSubscription = NgsiLdParsingUtils.parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+        val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")

@@ -1,7 +1,8 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.subscription.model.EventType
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
+import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.subscription.utils.parseEntity
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -20,7 +21,7 @@ class EntitiesListener(
         if (entityEvent.operationType == EventType.UPDATE) {
             entityEvent.updatedEntity?.let {
                 try {
-                    val entity = NgsiLdParsingUtils.parseEntity(it)
+                    val entity = parseEntity(it)
                     notificationService.notifyMatchingSubscribers(content, entity)
                             .subscribe {
                                 val succeededNotifications = it.filter { it.third }.size

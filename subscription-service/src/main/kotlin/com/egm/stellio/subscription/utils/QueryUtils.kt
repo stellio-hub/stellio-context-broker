@@ -2,7 +2,8 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component

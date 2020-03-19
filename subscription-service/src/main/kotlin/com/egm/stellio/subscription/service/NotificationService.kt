@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils.getLocationFromEntity
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getLocationFromEntity
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service

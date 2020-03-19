@@ -1,7 +1,13 @@
 package com.egm.stellio.subscription.web
 
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.subscription.utils.parseSubscription
+import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -36,7 +42,7 @@ class SubscriptionHandler(
         return req.bodyToMono<String>()
                 .map {
                     val context = NgsiLdParsingUtils.getContextOrThrowError(it)
-                    NgsiLdParsingUtils.parseSubscription(it, context)
+                    parseSubscription(it, context)
                 }
                 .flatMap { subscription ->
                     subscriptionService.exists(subscription.id).flatMap {
@@ -99,7 +105,7 @@ class SubscriptionHandler(
                 if (!it.second)
                     throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
 
-                val parsedInput = NgsiLdParsingUtils.parseSubscriptionUpdate(it.first)
+                val parsedInput = parseSubscriptionUpdate(it.first)
                 subscriptionService.update(subscriptionId, parsedInput)
             }
             .flatMap {

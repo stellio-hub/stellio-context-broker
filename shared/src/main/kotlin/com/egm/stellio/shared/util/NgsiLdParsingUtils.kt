@@ -3,6 +3,9 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.InvalidQueryException
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -37,6 +40,7 @@ object NgsiLdParsingUtils {
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
+    const val NGSILD_POINT_PROPERTY = "Point"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
 
@@ -286,6 +290,59 @@ object NgsiLdParsingUtils {
             latitude = location?.second,
             longitude = location?.first
         )
+    }
+
+    fun getContextOrThrowError(input: String): List<String> {
+        val rawParsedData = mapper.readTree(input) as ObjectNode
+        val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided ")
+
+        return mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+    }
+
+    fun getLocationFromEntity(parsedEntity: Pair<Map<String, Any>, List<String>>): Map<String, Any>? {
+        try {
+            val location = expandValueAsMap(parsedEntity.first[NGSILD_LOCATION_PROPERTY]!!)
+            val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
+            val geoPropertyType = locationValue["@type"]!![0] as String
+            val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!
+            if (geoPropertyType.extractShortTypeFromExpanded() == NGSILD_POINT_PROPERTY) {
+                val longitude = (geoPropertyValue[0] as Map<String, Double>)["@value"]
+                val latitude = (geoPropertyValue[1] as Map<String, Double>)["@value"]
+                return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to listOf(longitude, latitude))
+            } else {
+                var res = arrayListOf<List<Double?>>()
+                var count = 1
+                geoPropertyValue.forEach {
+                    if (count % 2 != 0) {
+                        val longitude = (geoPropertyValue[count - 1] as Map<String, Double>)["@value"]
+                        val latitude = (geoPropertyValue[count] as Map<String, Double>)["@value"]
+                        res.add(listOf(longitude, latitude))
+                    }
+                    count ++
+                }
+                return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to res)
+            }
+        } catch (e: Exception) {
+            return null
+        }
+    }
+
+    fun getAttributeType(attribute: String, entity: ObjectNode, separator: String): JsonNode? {
+        var node: JsonNode = entity
+        val attributePath = if (separator == "[")
+            attribute.replace("]", "").split(separator)
+        else
+            attribute.split(separator)
+
+        attributePath.forEach {
+            try {
+                node = node.get(it)
+            } catch (e: Exception) {
+                throw InvalidQueryException(e.message ?: "Unresolved value $it")
+            }
+        }
+
+        return node.get("type")
     }
 }
 

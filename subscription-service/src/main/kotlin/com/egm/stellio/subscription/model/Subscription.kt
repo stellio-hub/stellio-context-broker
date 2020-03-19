@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.subscription.utils.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import org.springframework.data.annotation.Id
 import java.util.*
 

@@ -70,7 +70,7 @@ class ObservationServiceTests {
             attributeName = "incoming",
             observedBy = sensorId
         )
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1), null)
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1), null, null, null)
         val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
@@ -84,7 +84,7 @@ class ObservationServiceTests {
     }
 
     @Test
-    fun `it should aggregate all known observations and return the filled entity`() {
+    fun `it should retrieve all known observations and return the filled entity`() {
 
         (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
 
@@ -95,12 +95,39 @@ class ObservationServiceTests {
             observedBy = defaultSensorId
         )
         val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null)
+            null, null, null)
         val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 it.size == 10
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should aggregate all observations for a day and return the filled entity`() {
+
+        (1..10).forEach { _ ->
+            val observation = gimmeObservation().copy(value = 1.0)
+            observationService.create(observation).block()
+        }
+
+        val entityTemporalProperty = EntityTemporalProperty(
+            entityId = "urn:ngsi-ld:BeeHive:TESTC",
+            type = "BeeHive",
+            attributeName = "incoming",
+            observedBy = defaultSensorId
+        )
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+            null, "1 day", TemporalQuery.Aggregate.SUM)
+        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0]["value"] == 10.0
             }
             .expectComplete()
             .verify()
@@ -119,7 +146,7 @@ class ObservationServiceTests {
             observedBy = defaultSensorId
         )
         val temporalQuery = TemporalQuery(listOf("incoming"), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null)
+            null, null, null)
         val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
@@ -142,7 +169,7 @@ class ObservationServiceTests {
             observedBy = defaultSensorId
         )
         val temporalQuery = TemporalQuery(listOf("unobserved_attr"), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
-            null)
+            null, null, null)
         val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
 
         StepVerifier.create(enrichedEntity)
@@ -174,7 +201,7 @@ object MyPostgresqlContainer {
     const val DB_USER = "datahub"
     const val DB_PASSWORD = "password"
     // TODO later extract it to a props file or load from env variable
-    private const val TIMESCALE_IMAGE = "timescale/timescaledb-postgis:latest-pg11"
+    private const val TIMESCALE_IMAGE = "timescale/timescaledb-postgis:1.4.2-pg11"
 
     val instance by lazy { startPostgresqlContainer() }
 

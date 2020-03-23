@@ -116,7 +116,20 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     val time = parseTimeParameter(params.getFirst("time")!!, "'time' parameter is not a valid date")
     val endTime = params.getFirst("endTime")?.let { parseTimeParameter(it, "'endTime' parameter is not a valid date") }
 
-    return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime)
+    if ((params.containsKey("timeBucket") && !params.containsKey("aggregate")) ||
+        (!params.containsKey("timeBucket") && params.containsKey("aggregate")))
+        throw TemporalEntityHandler.BadQueryParametersException("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
+
+    val aggregate =
+        if (params.containsKey("aggregate"))
+            if (TemporalQuery.Aggregate.isSupportedAggregate(params.getFirst("aggregate")!!))
+                TemporalQuery.Aggregate.valueOf(params.getFirst("aggregate")!!)
+            else
+                throw TemporalEntityHandler.BadQueryParametersException("Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter")
+        else
+            null
+
+    return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime, params.getFirst("timeBucket"), aggregate)
 }
 
 private fun parseTimeParameter(param: String, errorMsg: String) =

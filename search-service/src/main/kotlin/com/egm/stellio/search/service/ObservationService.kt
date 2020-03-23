@@ -3,7 +3,6 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.Observation
 import org.springframework.data.r2dbc.core.DatabaseClient
-import org.springframework.data.r2dbc.query.Criteria.where
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -22,28 +21,41 @@ class ObservationService(
 
     fun search(temporalQuery: TemporalQuery, entityTemporalProperty: EntityTemporalProperty): Mono<List<Map<String, Any>>> {
 
-        val fromSelectSpec = databaseClient
-            .select()
-            .from("observation")
-            .project("value", "observed_at", "attribute_name")
+        var selectQuery =
+            if (temporalQuery.timeBucket != null)
+                """
+                    SELECT time_bucket('${temporalQuery.timeBucket}', observed_at) as time_bucket, 
+                           ${temporalQuery.aggregate}(value) as value,
+                           attribute_name
+                    FROM observation
+                """.trimIndent()
+            else
+                """
+                    SELECT observed_at, value, attribute_name
+                    FROM observation
+                """.trimIndent()
 
-        var criteriaStep = when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> where("observed_at").lessThan(temporalQuery.time)
-            TemporalQuery.Timerel.AFTER -> where("observed_at").greaterThan(temporalQuery.time)
-            else -> where("observed_at").greaterThan(temporalQuery.time)
-                .and("observed_at").lessThan(temporalQuery.endTime!!)
+        selectQuery = when (temporalQuery.timerel) {
+            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" WHERE observed_at < '${temporalQuery.time}'")
+            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" WHERE observed_at > '${temporalQuery.time}'")
+            else -> selectQuery.plus(" WHERE observed_at > '${temporalQuery.time}' AND observed_at < '${temporalQuery.endTime}'")
         }
 
         if (temporalQuery.attrs.isNotEmpty()) {
-            criteriaStep = criteriaStep.and("attribute_name").`in`(temporalQuery.attrs)
+            val attrsList = temporalQuery.attrs.joinToString(",") { "'$it'" }
+            selectQuery = selectQuery.plus(" AND attribute_name in ($attrsList)")
         }
 
         // TODO we actually only support queries providing an entity id
-        val results = if (entityTemporalProperty.observedBy != null)
-            fromSelectSpec.matching(criteriaStep.and("observed_by").`is`(entityTemporalProperty.observedBy)).fetch().all()
-        else
-            fromSelectSpec.matching(criteriaStep).fetch().all()
+        if (entityTemporalProperty.observedBy != null)
+            selectQuery = selectQuery.plus(" AND observed_by = '${entityTemporalProperty.observedBy}'")
 
-        return results.collectList()
+        if (temporalQuery.timeBucket != null)
+            selectQuery = selectQuery.plus(" GROUP BY time_bucket, attribute_name")
+
+        return databaseClient.execute(selectQuery)
+            .fetch()
+            .all()
+            .collectList()
     }
 }

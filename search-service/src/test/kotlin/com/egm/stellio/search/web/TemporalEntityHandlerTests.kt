@@ -146,6 +146,28 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `it should raise a 400 if one of time bucket or aggregate is missing`() {
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody<String>().isEqualTo("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
+    }
+
+    @Test
+    fun `it should raise a 400 if aggregate function is unknown`() {
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody<String>().isEqualTo("Value 'unknown' is not supported for 'aggregate' parameter")
+    }
+
+    @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
 
         val entityTemporalProperty = EntityTemporalProperty(

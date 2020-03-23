@@ -1,28 +1,27 @@
 package com.egm.stellio.search.web
 
+import com.egm.stellio.shared.util.httpRequestPreconditions
+import com.egm.stellio.shared.util.transformErrorResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.server.router
 
 @Configuration
 class Routes(
-    private val statusHandler: StatusHandler,
     private val temporalEntityHandler: TemporalEntityHandler
 ) {
 
     @Bean
     fun router() = router {
-        (accept(MediaType.APPLICATION_JSON) and "/api").nest {
-            "/status".nest {
-                GET("/", statusHandler::status)
-            }
+        filter { request, next ->
+            httpRequestPreconditions(request, next)
         }
-        (accept(MediaType.valueOf("application/ld+json")) and "/ngsi-ld/v1").nest {
-            "/temporal/entities".nest {
-                GET("/{entityId}", temporalEntityHandler::getForEntity)
-                POST("/{entityId}/attrs", temporalEntityHandler::addAttrs)
-            }
+        "/ngsi-ld/v1/temporal/entities".nest {
+            GET("/{entityId}", temporalEntityHandler::getForEntity)
+            POST("/{entityId}/attrs", temporalEntityHandler::addAttrs)
+        }
+        onError<Throwable> { throwable, request ->
+            transformErrorResponse(throwable, request)
         }
     }
 }

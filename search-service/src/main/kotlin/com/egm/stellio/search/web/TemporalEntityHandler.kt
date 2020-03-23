@@ -5,10 +5,11 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.ContextRegistryService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.ObservationService
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseTemporalPropertyUpdate
+import com.egm.stellio.shared.util.parseTimeParameter
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -17,9 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import reactor.core.publisher.Mono
 import java.lang.IllegalArgumentException
-import java.lang.RuntimeException
-import java.time.OffsetDateTime
-import java.time.format.DateTimeParseException
 
 @Component
 class TemporalEntityHandler(
@@ -44,11 +42,6 @@ class TemporalEntityHandler(
                 }
                 .flatMap {
                     noContent().build()
-                }.onErrorResume {
-                    when (it) {
-                        is InvalidNgsiLdPayloadException -> badRequest().body(BodyInserters.fromValue(it.message.orEmpty()))
-                        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(it.message.orEmpty()))
-                    }
                 }
     }
 
@@ -67,7 +60,7 @@ class TemporalEntityHandler(
 
         val temporalQuery = try {
             buildTemporalQuery(req.queryParams())
-        } catch (e: BadQueryParametersException) {
+        } catch (e: BadRequestDataException) {
             return badRequest().body(BodyInserters.fromValue(e.message.orEmpty()))
         }
 
@@ -90,51 +83,37 @@ class TemporalEntityHandler(
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(it))
-            }.onErrorResume {
-                when (it) {
-                    is BadQueryParametersException -> badRequest().body(BodyInserters.fromValue(it.message.orEmpty()))
-                    else -> status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(it.message.orEmpty()))
-                }
             }
     }
-
-    class BadQueryParametersException(message: String) : RuntimeException(message)
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
     if (!params.containsKey("timerel") || !params.containsKey("time"))
-        throw TemporalEntityHandler.BadQueryParametersException("'timerel and 'time' request parameters are mandatory")
+        throw BadRequestDataException("'timerel and 'time' request parameters are mandatory")
 
     if (params.getFirst("timerel") == "between" && !params.containsKey("endTime"))
-        throw TemporalEntityHandler.BadQueryParametersException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
+        throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
     val timerel = try {
         TemporalQuery.Timerel.valueOf(params.getFirst("timerel")!!.toUpperCase())
     } catch (e: IllegalArgumentException) {
-        throw TemporalEntityHandler.BadQueryParametersException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
+        throw BadRequestDataException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
     }
-    val time = parseTimeParameter(params.getFirst("time")!!, "'time' parameter is not a valid date")
-    val endTime = params.getFirst("endTime")?.let { parseTimeParameter(it, "'endTime' parameter is not a valid date") }
+    val time = params.getFirst("time")!!.parseTimeParameter("'time' parameter is not a valid date")
+    val endTime = params.getFirst("endTime")?.parseTimeParameter("'endTime' parameter is not a valid date")
 
     if ((params.containsKey("timeBucket") && !params.containsKey("aggregate")) ||
         (!params.containsKey("timeBucket") && params.containsKey("aggregate")))
-        throw TemporalEntityHandler.BadQueryParametersException("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
+        throw BadRequestDataException("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
 
     val aggregate =
         if (params.containsKey("aggregate"))
             if (TemporalQuery.Aggregate.isSupportedAggregate(params.getFirst("aggregate")!!))
                 TemporalQuery.Aggregate.valueOf(params.getFirst("aggregate")!!)
             else
-                throw TemporalEntityHandler.BadQueryParametersException("Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter")
+                throw BadRequestDataException("Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter")
         else
             null
 
     return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime, params.getFirst("timeBucket"), aggregate)
 }
-
-private fun parseTimeParameter(param: String, errorMsg: String) =
-    try {
-        OffsetDateTime.parse(param)
-    } catch (e: DateTimeParseException) {
-        throw TemporalEntityHandler.BadQueryParametersException(errorMsg)
-    }

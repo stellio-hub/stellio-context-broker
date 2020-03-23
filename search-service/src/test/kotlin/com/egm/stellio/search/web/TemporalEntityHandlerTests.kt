@@ -6,17 +6,20 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.ContextRegistryService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.ObservationService
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
+import org.springframework.http.HttpStatus
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
@@ -45,6 +48,16 @@ class TemporalEntityHandlerTests {
     @MockkBean
     private lateinit var contextRegistryService: ContextRegistryService
 
+    @BeforeAll
+    fun configureWebClientDefaults() {
+        webClient = webClient.mutate()
+            .defaultHeaders {
+                it.accept = listOf(JSON_LD_MEDIA_TYPE)
+                it.contentType = JSON_LD_MEDIA_TYPE
+            }
+            .build()
+    }
+
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
 
@@ -55,8 +68,6 @@ class TemporalEntityHandlerTests {
         webClient.post()
                 .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
                 .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
-                .accept(MediaType.valueOf("application/ld+json"))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isNoContent
 
@@ -70,12 +81,32 @@ class TemporalEntityHandlerTests {
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
 
         webClient.post()
-                .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-                .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
-                .accept(MediaType.valueOf("application/ld+json"))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .exchange()
-                .expectStatus().isBadRequest
+            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
+            .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody<String>().isEqualTo("Received content misses one or more required attributes")
+    }
+
+    @Test
+    fun `it should return a 415 if Content-Type is not supported`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+            .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+            .expectBody<String>().isEqualTo("Content-Type header must be one of 'application/json' or 'application/ld+json' (was application/pdf)")
+    }
+
+    @Test
+    fun `it should return a 400 if a service throws a BadRequestDataException`() {
+
+        every { entityService.getForEntity(any(), any()) } throws BadRequestDataException("Bad request")
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+            .exchange()
+            .expectStatus().isBadRequest
     }
 
     @Test
@@ -83,8 +114,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?time=before")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'timerel and 'time' request parameters are mandatory")
@@ -95,7 +124,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'timerel and 'time' request parameters are mandatory")
@@ -106,7 +134,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=startTime")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'endTime' request parameter is mandatory if 'timerel' is 'between'")
@@ -117,7 +144,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before&time=badTime")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'time' parameter is not a valid date")
@@ -128,7 +154,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=befor&time=badTime")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
@@ -139,7 +164,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=endTime")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'endTime' parameter is not a valid date")
@@ -150,7 +174,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
@@ -161,7 +184,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isBadRequest
             .expectBody<String>().isEqualTo("Value 'unknown' is not supported for 'aggregate' parameter")
@@ -183,7 +205,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isOk
 
@@ -220,7 +241,6 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
@@ -237,7 +257,6 @@ class TemporalEntityHandlerTests {
     fun `it should not authorize an anonymous to call the API`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isForbidden
     }

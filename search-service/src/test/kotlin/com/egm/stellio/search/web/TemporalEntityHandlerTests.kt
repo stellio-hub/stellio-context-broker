@@ -90,8 +90,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 415 if Content-Type is not supported`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
             .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)

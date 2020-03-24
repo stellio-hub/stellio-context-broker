@@ -1,10 +1,10 @@
-package com.egm.datahub.apigateway
+package com.egm.stellio.subscription
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class ApiGatewayApplicationTests {
+class SubscriptionServiceApplicationTests {
 
     @Test
     fun contextLoads() {

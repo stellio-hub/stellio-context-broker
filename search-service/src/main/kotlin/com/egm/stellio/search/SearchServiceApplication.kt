@@ -8,8 +8,8 @@ import org.springframework.boot.runApplication
 @SpringBootApplication
 @EnableConfigurationProperties
 @ConfigurationPropertiesScan(basePackages = ["com.egm.stellio.search.config"])
-class ContextSearchApplication
+class SearchServiceApplication
 
 fun main(args: Array<String>) {
-    runApplication<ContextSearchApplication>(*args)
+    runApplication<SearchServiceApplication>(*args)
 }

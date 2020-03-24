@@ -1,4 +1,4 @@
-package com.egm.datahub.apigateway.config
+package com.egm.stellio.apigateway.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

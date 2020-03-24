@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
 
-fun String.parseTimeParameter(errorMsg: String) : OffsetDateTime =
+fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
     try {
         OffsetDateTime.parse(this)
     } catch (e: DateTimeParseException) {
@@ -24,10 +24,10 @@ fun String.parseTimeParameter(errorMsg: String) : OffsetDateTime =
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
-private fun isPostOrPatch(httpMethod: HttpMethod?) : Boolean =
+private fun isPostOrPatch(httpMethod: HttpMethod?): Boolean =
     listOf(HttpMethod.POST, HttpMethod.PATCH).contains(httpMethod)
 
-fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>) : Mono<ServerResponse> {
+fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     val contentType = request.headers().contentTypeOrNull()
     return if (isPostOrPatch(request.method()) && (contentType == null ||
         !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
@@ -37,7 +37,7 @@ fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mo
         next(request)
 }
 
-fun transformErrorResponse(throwable: Throwable, request: ServerRequest) : Mono<ServerResponse> =
+fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {
         is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
         is InvalidNgsiLdPayloadException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())

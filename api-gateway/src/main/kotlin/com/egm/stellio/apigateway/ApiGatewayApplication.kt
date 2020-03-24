@@ -1,4 +1,4 @@
-package com.egm.datahub.apigateway
+package com.egm.stellio.apigateway
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

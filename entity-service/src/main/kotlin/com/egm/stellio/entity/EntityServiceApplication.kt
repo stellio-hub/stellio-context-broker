@@ -6,8 +6,8 @@ import org.springframework.scheduling.annotation.EnableAsync
 
 @SpringBootApplication
 @EnableAsync
-class ContextRegistryApplication
+class EntityServiceApplication
 
 fun main(args: Array<String>) {
-    runApplication<ContextRegistryApplication>(*args)
+    runApplication<EntityServiceApplication>(*args)
 }

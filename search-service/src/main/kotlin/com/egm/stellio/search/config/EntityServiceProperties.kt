@@ -5,6 +5,6 @@ import org.springframework.boot.context.properties.ConstructorBinding
 
 @ConstructorBinding
 @ConfigurationProperties("application.entity-service")
-data class ContextRegistryProperties(
+data class EntityServiceProperties(
     val url: String
 )

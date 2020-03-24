@@ -12,6 +12,14 @@ pipeline {
                 slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
             }
         }
+        stage('Build Shared Lib') {
+            when {
+                changeset "shared/**"
+            }
+            steps {
+                sh './gradlew build -p shared'
+            }
+        }
         stage('Build Api Gateway') {
             when {
                 changeset "api-gateway/**"

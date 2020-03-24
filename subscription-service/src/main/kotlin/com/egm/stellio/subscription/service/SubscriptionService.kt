@@ -263,6 +263,47 @@ class SubscriptionService(
             .fetch()
             .rowsUpdated()
 
+    fun getSubscriptions(limit: Int, offset: Int): Flux<Subscription> {
+        val selectStatement = """
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept,
+                   status, times_sent, last_notification, last_failure, last_success,
+                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
+                   georel, geometry, coordinates, geoproperty
+            FROM subscription 
+            LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
+            LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
+            WHERE subscription.id in (
+                SELECT subscription.id as sub_id
+                from subscription
+                ORDER BY sub_id
+                limit :limit
+                offset :offset)
+        """.trimIndent()
+        return databaseClient.execute(selectStatement)
+            .bind("limit", limit)
+            .bind("offset", offset)
+            .map(rowToSubscription)
+            .all()
+            .groupBy { t: Subscription ->
+                t.id
+            }
+            .flatMap { grouped ->
+                grouped.reduce { t: Subscription, u: Subscription ->
+                    t.copy(entities = t.entities.plus(u.entities))
+                }
+            }
+    }
+
+    fun getSubscriptionsCount(): Mono<Int> {
+        val selectStatement = """
+            SELECT count(*) from subscription
+        """.trimIndent()
+        return databaseClient.execute(selectStatement)
+            .map(rowToSubscriptionCount)
+            .first()
+    }
+
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
@@ -417,5 +458,9 @@ class SubscriptionService(
 
     private var matchesGeoQuery: ((Row) -> Boolean) = { row ->
         row.get("geoquery_result", Object::class.java).toString() == "true"
+    }
+
+    private var rowToSubscriptionCount: ((Row) -> Int) = { row ->
+        row.get("count", Integer::class.java)!!.toInt()
     }
 }

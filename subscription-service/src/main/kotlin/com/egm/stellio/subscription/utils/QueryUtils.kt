@@ -6,9 +6,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 
-@Component
 object QueryUtils {
 
     const val NEAR_QUERY_CLAUSE = "near"

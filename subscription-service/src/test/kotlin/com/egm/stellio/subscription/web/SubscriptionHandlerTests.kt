@@ -19,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.lang.RuntimeException
 
@@ -118,6 +119,115 @@ class SubscriptionHandlerTests {
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `query subscriptions should return 200 without link header`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(1)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().doesNotExist("Link")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with prev link header if exists`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with next link header if exists`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with prev and next link header if exists`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(3)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"", "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\"")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 and empty response if requested page does not exists`() {
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.empty()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=9")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `query subscriptions should return 400 if requested page is equal or less than zero`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `query subscriptions should return 400 if limit is equal or less than zero`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isBadRequest
     }
 
     @Test

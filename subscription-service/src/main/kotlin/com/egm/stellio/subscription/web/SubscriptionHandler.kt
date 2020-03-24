@@ -1,13 +1,12 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.parseSubscription
 import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.service.SubscriptionService
+import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
+import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -17,6 +16,7 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
+import org.springframework.web.reactive.function.server.queryParamOrNull
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.lang.reflect.UndeclaredThrowableException
@@ -68,6 +68,48 @@ class SubscriptionHandler(
                         else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                     }
                 }
+    }
+
+    /**
+     * Implements 6.10.3.2 - Query Subscriptions
+     */
+    fun getSubscriptions(req: ServerRequest): Mono<ServerResponse> {
+        val pageNumber = req.queryParamOrNull("page")?.toInt() ?: 1
+        val limit = req.queryParamOrNull("limit")?.toInt() ?: SUBSCRIPTION_QUERY_PAGING_LIMIT
+
+        if (limit <= 0 || pageNumber <= 0) {
+            return badRequest().body(BodyInserters.fromValue("Page number and Limit must be greater than zero"))
+        }
+
+        return "".toMono()
+            .flatMap {
+                subscriptionService.getSubscriptionsCount()
+            }
+            .flatMap { subscriptionsCount ->
+                subscriptionService.getSubscriptions(limit, (pageNumber - 1) * limit).collectList().flatMap {
+                    Mono.just(Pair(subscriptionsCount, it))
+                }
+            }
+            .map {
+                val prevLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).first
+                val nextLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).second
+                Triple(it.second, prevLink, nextLink)
+            }
+            .flatMap {
+                if (it.second != null && it.third != null)
+                    ok().header("Link", it.second).header("Link", it.third).body(BodyInserters.fromValue(it.first))
+                else if (it.second != null)
+                    ok().header("Link", it.second).body(BodyInserters.fromValue(it.first))
+                else if (it.third != null)
+                    ok().header("Link", it.third).body(BodyInserters.fromValue(it.first))
+                else
+                    ok().body(BodyInserters.fromValue(it.first))
+            }
+            .onErrorResume {
+                when (it) {
+                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
+                }
+            }
     }
 
     /**

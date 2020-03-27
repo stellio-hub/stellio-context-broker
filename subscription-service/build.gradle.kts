@@ -21,11 +21,11 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("com.jayway.jsonpath:json-path:2.4.0")
+    implementation("io.r2dbc:r2dbc-postgresql")
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-    runtimeOnly("io.r2dbc:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")

@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -38,6 +39,21 @@ fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInf
     val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
     entityInfo.type = NgsiLdParsingUtils.expandJsonLdKey(entityInfo.type, contexts!!)!!
     return entityInfo
+}
+
+fun parseEndpointInfo(input: String?): List<EndpointInfo>? {
+    val mapper = jacksonObjectMapper()
+    return mapper.readValue(input, mapper.typeFactory.constructCollectionType(List::class.java, EndpointInfo::class.java))
+}
+
+fun endpointInfoToString(input: List<EndpointInfo>?): String {
+    val mapper = jacksonObjectMapper()
+    return mapper.writeValueAsString(input)
+}
+
+fun endpointInfoMapToString(input: List<Map<String, String>>?): String {
+    val mapper = jacksonObjectMapper()
+    return mapper.writeValueAsString(input)
 }
 
 fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {

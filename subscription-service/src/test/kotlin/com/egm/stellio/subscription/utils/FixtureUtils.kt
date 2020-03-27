@@ -1,12 +1,9 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.GeoQuery
-import com.egm.stellio.subscription.model.NotificationParams
-import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.*
 import java.net.URI
 
-fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true, georel: String = "within"): Subscription {
+fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true, withEndpointInfo: Boolean = true, georel: String = "within"): Subscription {
     val q =
             if (withQuery)
                 "speed>50;foodName==dietary fibres"
@@ -19,6 +16,12 @@ fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true
             else
                 null
 
+    val endpointInfo =
+        if (withEndpointInfo)
+            listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
+        else
+            null
+
     return Subscription(name = "My Subscription",
         description = "My beautiful subscription",
         q = q,
@@ -29,7 +32,8 @@ fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true
             format = NotificationParams.FormatType.KEY_VALUES,
             endpoint = Endpoint(
                 uri = URI.create("http://localhost:8089/notification"),
-                accept = Endpoint.AcceptType.JSONLD
+                accept = Endpoint.AcceptType.JSONLD,
+                info = endpointInfo
             ),
             status = null,
             lastNotification = null,

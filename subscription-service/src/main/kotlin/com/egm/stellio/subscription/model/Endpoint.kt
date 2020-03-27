@@ -5,7 +5,8 @@ import java.net.URI
 
 data class Endpoint(
     val uri: URI,
-    val accept: AcceptType
+    val accept: AcceptType,
+    val info: List<EndpointInfo>? = null
 ) {
     enum class AcceptType(val accept: String) {
         @JsonProperty("application/json")

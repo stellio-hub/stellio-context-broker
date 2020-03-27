@@ -4,12 +4,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
-import com.egm.stellio.subscription.utils.parseEntityInfo
 import com.egm.stellio.subscription.repository.SubscriptionRepository
+import com.egm.stellio.subscription.utils.*
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.spi.Row
+import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
@@ -33,9 +33,10 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription): Mono<Void> {
         val insertStatement = """
-            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent) 
-            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :times_sent)
+            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent) 
+            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent)
         """.trimIndent()
+
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
@@ -46,6 +47,7 @@ class SubscriptionService(
             .bind("notif_format", subscription.notification.format.name)
             .bind("endpoint_uri", subscription.notification.endpoint.uri)
             .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
+            .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
             .bind("times_sent", subscription.notification.timesSent)
             .fetch()
             .rowsUpdated()
@@ -95,7 +97,7 @@ class SubscriptionService(
             .flatMap {
                 val selectStatement = """
                 SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
-                       notif_attributes, notif_format, endpoint_uri, endpoint_accept,
+                       notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                        status, times_sent, last_notification, last_failure, last_success,
                        entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                        georel, geometry, coordinates, geoproperty
@@ -211,7 +213,7 @@ class SubscriptionService(
         }
     }
 
-    private fun extractParamsFromNotificationAttribute(attribute: Map.Entry<String, Any>, contexts: List<String>?): List<Pair<String, String>> {
+    private fun extractParamsFromNotificationAttribute(attribute: Map.Entry<String, Any>, contexts: List<String>?): List<Pair<String, Any?>> {
         return when (attribute.key) {
             "attributes" -> {
                 var valueList = attribute.value as List<String>
@@ -227,8 +229,9 @@ class SubscriptionService(
             "endpoint" -> {
                 val endpoint = attribute.value as Map<String, Any>
                 val accept = if (endpoint["accept"] == "application/json") Endpoint.AcceptType.JSON.name else Endpoint.AcceptType.JSONLD.name
+                val endpointInfo = endpoint["info"] as List<Map<String, String>>?
 
-                listOf(Pair("endpoint_uri", endpoint["uri"].toString()), Pair("endpoint_accept", accept))
+                listOf(Pair("endpoint_uri", endpoint["uri"]), Pair("endpoint_accept", accept), Pair("endpoint_info", Json.of(endpointInfoMapToString(endpointInfo))))
             }
             else -> {
                 throw BadRequestDataException("Could not update attribute ${attribute.key}")
@@ -266,13 +269,14 @@ class SubscriptionService(
     fun getSubscriptions(limit: Int, offset: Int): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept,
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
+
             WHERE subscription.id in (
                 SELECT subscription.id as sub_id
                 from subscription
@@ -307,7 +311,7 @@ class SubscriptionService(
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info
             FROM subscription 
             WHERE id IN (
                 SELECT subscription_id
@@ -411,7 +415,8 @@ class SubscriptionService(
                         format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
                         endpoint = Endpoint(
                                 uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                                accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!)
+                                accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
+                                info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
                         ),
                         status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
                         timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
@@ -435,7 +440,8 @@ class SubscriptionService(
                 format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
                 endpoint = Endpoint(
                     uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!)
+                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
+                    info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
                 ),
                 status = null,
                 lastNotification = null,

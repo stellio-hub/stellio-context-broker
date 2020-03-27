@@ -36,8 +36,13 @@ class NotificationService(
 
     private fun callSubscriber(subscription: Subscription, entities: List<String>): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(subscriptionId = subscription.id, data = entities)
-        return WebClient.create(subscription.notification.endpoint.uri.toString())
-            .post()
+        var request = WebClient.create(subscription.notification.endpoint.uri.toString()).post() as WebClient.RequestBodySpec
+
+        subscription.notification.endpoint.info?.forEach {
+            request = request.header(it.key, it.value)
+        }
+
+        return request
             .bodyValue(notification)
             .exchange()
             .map {

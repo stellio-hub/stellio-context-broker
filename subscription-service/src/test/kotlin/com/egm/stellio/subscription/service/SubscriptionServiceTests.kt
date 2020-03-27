@@ -39,7 +39,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @BeforeAll
     fun bootstrapSubscriptions() {
-        val subscription1 = gimmeRawSubscription(withGeoQuery = false).copy(
+        val subscription1 = gimmeRawSubscription(withGeoQuery = false, withEndpointInfo = false).copy(
             name = "Subscription 1",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive"),
@@ -49,7 +49,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         subscriptionService.create(subscription1).block()
         subscription1Id = subscription1.id
 
-        val subscription2 = gimmeRawSubscription(withGeoQuery = true).copy(
+        val subscription2 = gimmeRawSubscription(withGeoQuery = true, withEndpointInfo = true).copy(
             name = "Subscription 2",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
@@ -59,7 +59,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         subscriptionService.create(subscription2).block()
         subscription2Id = subscription2.id
 
-        val subscription3 = gimmeRawSubscription(withQuery = true).copy(
+        val subscription3 = gimmeRawSubscription(withQuery = true, withEndpointInfo = false).copy(
             name = "Subscription 3",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Apiary")
@@ -68,7 +68,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         subscriptionService.create(subscription3).block()
         subscription3Id = subscription3.id
 
-        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true).copy(
+        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true, withEndpointInfo = false).copy(
             name = "Subscription 4",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive")
@@ -80,7 +80,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should create a subscription insert the 3 entities info`() {
-        val subscription = gimmeRawSubscription().copy(
+        val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:FishContainment:1234567890", idPattern = null, type = "FishContainment"),
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:FishContainment:*", type = "FishContainment")
@@ -112,7 +112,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.description == "My beautiful subscription" &&
                 it.notification.attributes == listOf("incoming") &&
                 it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
                 it.entities.size == 2 &&
                 it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
                 it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
@@ -133,14 +133,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.q == "speed>50;foodName==dietary fibres" &&
                 it.notification.attributes == listOf("incoming") &&
                 it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
                 it.entities.size == 1
             }
             .verifyComplete()
     }
 
     @Test
-    fun `it should load and fill a persisted subscription with entities info and geoquery`() {
+    fun `it should load and fill a persisted subscription with entities info and geoquery and endpoint info`() {
 
         val persistedSubscription = subscriptionService.getById(subscription2Id)
 
@@ -150,7 +150,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.description == "My beautiful subscription" &&
                 it.notification.attributes == listOf("incoming") &&
                 it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
+                it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD,
+                    listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                ) &&
                 it.entities.size == 2 &&
                 it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
             }
@@ -268,7 +272,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val parsedInput = mapOf("attributes" to listOf("outgoing"),
             "format" to "keyValues",
-            "endpoint" to mapOf("accept" to "application/ld+json", "uri" to "http://localhost:8080"))
+            "endpoint" to mapOf("accept" to "application/ld+json",
+                "uri" to "http://localhost:8080",
+                "info" to listOf(
+                    mapOf("key" to "Authorization-token", "value" to "Authorization-token-newValue")
+                )))
 
         subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(apicContext)).block()
         val updateResult = subscriptionService.getById(subscription4Id)
@@ -278,7 +286,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.notification.attributes == listOf("https://ontology.eglobalmark.com/apic#outgoing") &&
                 it.notification.format.name == "KEY_VALUES" &&
                 it.notification.endpoint.accept.name == "JSONLD" &&
-                it.notification.endpoint.uri.toString() == "http://localhost:8080"
+                it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
+                it.notification.endpoint.info == listOf(
+                    EndpointInfo("Authorization-token", "Authorization-token-newValue")
+                ) &&
+                it.notification.endpoint.info!!.size == 1
             }
             .verifyComplete()
     }

@@ -2,6 +2,8 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -13,6 +15,15 @@ import org.springframework.web.reactive.function.server.contentTypeOrNull
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
+
+object ApiUtils {
+
+    val mapper = jacksonObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
+
+    fun serializeObject(input: Any): String {
+        return mapper.writeValueAsString(input)
+    }
+}
 
 fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
     try {

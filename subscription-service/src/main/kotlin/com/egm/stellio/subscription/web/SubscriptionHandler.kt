@@ -7,6 +7,7 @@ import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -93,7 +94,7 @@ class SubscriptionHandler(
             .map {
                 val prevLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).first
                 val nextLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).second
-                Triple(it.second, prevLink, nextLink)
+                Triple(serializeObject(it.second), prevLink, nextLink)
             }
             .flatMap {
                 if (it.second != null && it.third != null)
@@ -122,7 +123,7 @@ class SubscriptionHandler(
                     subscriptionService.getById(uri)
                 }
                 .flatMap {
-                    ok().body(BodyInserters.fromValue(it))
+                    ok().body(BodyInserters.fromValue(serializeObject(it)))
                 }
                 .onErrorResume {
                     when (it) {

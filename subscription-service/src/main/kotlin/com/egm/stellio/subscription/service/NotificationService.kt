@@ -49,7 +49,7 @@ class NotificationService(
                 Triple(subscription, notification, it.statusCode() == HttpStatus.OK)
             }
             .doOnNext {
-                subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third)
+                subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
             }
     }
 }

@@ -311,7 +311,7 @@ class SubscriptionService(
     fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
             WHERE id IN (
                 SELECT subscription_id
@@ -444,6 +444,7 @@ class SubscriptionService(
                     info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
                 ),
                 status = null,
+                timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
                 lastNotification = null,
                 lastFailure = null,
                 lastSuccess = null

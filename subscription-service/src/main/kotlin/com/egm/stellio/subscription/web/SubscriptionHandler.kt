@@ -50,13 +50,11 @@ class SubscriptionHandler(
                         Mono.just(Pair(subscription, it))
                     }
                 }
-                .map {
-                    if (it.second)
-                        throw AlreadyExistsException("A subscription with id ${it.first.id} already exists")
-                    else {
-                        subscriptionService.create(it.first).subscribe()
-                        it.first
-                    }
+                .flatMap { subAndExist ->
+                    if (subAndExist.second)
+                        throw AlreadyExistsException("A subscription with id ${subAndExist.first.id} already exists")
+                    else
+                        subscriptionService.create(subAndExist.first).map { subAndExist.first }
                 }
                 .flatMap {
                     created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
@@ -118,19 +116,16 @@ class SubscriptionHandler(
      */
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("subscriptionId")
-        return uri.toMono()
-                .flatMap {
-                    subscriptionService.getById(uri)
+        return subscriptionService.getById(uri)
+            .flatMap {
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
+            }
+            .onErrorResume {
+                when (it) {
+                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
+                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
                 }
-                .flatMap {
-                    ok().body(BodyInserters.fromValue(serializeObject(it)))
-                }
-                .onErrorResume {
-                    when (it) {
-                        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                        else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                    }
-                }
+            }
     }
 
     /**
@@ -147,7 +142,6 @@ class SubscriptionHandler(
             .flatMap {
                 if (!it.second)
                     throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
-
                 val parsedInput = parseSubscriptionUpdate(it.first)
                 subscriptionService.update(subscriptionId, parsedInput)
             }

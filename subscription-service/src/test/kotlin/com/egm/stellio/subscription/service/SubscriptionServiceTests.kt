@@ -1,8 +1,14 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
+import com.jayway.jsonpath.JsonPath.read
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
 import io.mockk.verify
 import junit.framework.TestCase.*
 import org.junit.jupiter.api.BeforeAll
@@ -30,6 +36,13 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
+    /**
+     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * we are directly mocking the event listener to check it receives what is expected
+     */
+    @MockkBean(relaxed = true)
+    private lateinit var subscriptionsEventsListener: SubscriptionsEventsListener
+
     private lateinit var subscription1Id: String
     private lateinit var subscription2Id: String
     private lateinit var subscription3Id: String
@@ -39,6 +52,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @BeforeAll
     fun bootstrapSubscriptions() {
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
         val subscription1 = gimmeRawSubscription(withGeoQuery = false, withEndpointInfo = false).copy(
             name = "Subscription 1",
             entities = setOf(
@@ -86,10 +102,12 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:FishContainment:*", type = "FishContainment")
             )
         )
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         val creationResult = subscriptionService.create(subscription)
 
         StepVerifier.create(creationResult)
+            .expectNext(2)
             .expectComplete()
             .verify()
 
@@ -99,6 +117,13 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         }) }
         verify(atLeast = 2) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
         verify(atLeast = 1) { databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)") }
+        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+            entityEvent.entityType == "Subscription" &&
+            entityEvent.entityId == subscription.id &&
+            entityEvent.operationType == EventType.CREATE &&
+            entityEvent.payload != null &&
+            entityEvent.updatedEntity == null
+        }) }
     }
 
     @Test
@@ -164,9 +189,20 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should delete an existing subscription`() {
         val subscription = gimmeRawSubscription()
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
         subscriptionService.create(subscription).block()
 
         val deletionResult = subscriptionService.delete(subscription.id).block()
+
+        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+            entityEvent.entityType == "Subscription" &&
+            entityEvent.entityId == subscription.id &&
+            entityEvent.operationType == EventType.DELETE &&
+            entityEvent.payload == null &&
+            entityEvent.updatedEntity == null
+        }) }
 
         assertEquals(deletionResult, 1)
     }
@@ -250,7 +286,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val parsedInput = Pair(mapOf("name" to "My Subscription Updated",
                 "description" to "My beautiful subscription has been updated",
                 "q" to "foodQuantity>=150",
-                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")), null)
+                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")), listOf(apicContext))
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         subscriptionService.update(subscription4Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription4Id)
@@ -265,6 +303,16 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.geoQ!!.coordinates == "[100.0, 0.0]"
             }
             .verifyComplete()
+
+        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+            entityEvent.entityType == "Subscription" &&
+            entityEvent.entityId == subscription4Id &&
+            entityEvent.operationType == EventType.UPDATE &&
+            entityEvent.payload != null &&
+            read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
+            read(entityEvent.updatedEntity, "$.description") as String == "My beautiful subscription has been updated" &&
+            read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
+        }) }
     }
 
     @Test

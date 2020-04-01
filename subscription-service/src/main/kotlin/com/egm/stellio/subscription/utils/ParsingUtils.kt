@@ -25,7 +25,7 @@ fun parseSubscription(input: String, context: List<String>): Subscription {
     }
 }
 
-fun parseSubscriptionUpdate(input: String): Pair<Map<String, Any>, List<String>?> {
+fun parseSubscriptionUpdate(input: String): Pair<Map<String, Any>, List<String>> {
     val mapper = jacksonObjectMapper()
     val parsedSubscription: Map<String, List<Any>> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
         Map::class.java, String::class.java, Any::class.java

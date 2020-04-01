@@ -1,7 +1,11 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
@@ -11,6 +15,7 @@ import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.spi.Row
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.r2dbc.query.Criteria
@@ -26,12 +31,13 @@ import java.time.OffsetDateTime
 @Component
 class SubscriptionService(
     private val databaseClient: DatabaseClient,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(subscription: Subscription): Mono<Void> {
+    fun create(subscription: Subscription): Mono<Int> {
         val insertStatement = """
             INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent) 
             VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent)
@@ -60,7 +66,14 @@ class SubscriptionService(
             .flatMap {
                 createEntityInfo(it, subscription.id)
             }
-            .then()
+            .collectList()
+            .doOnSuccess {
+                val subscriptionEvent = EntityEvent(EventType.CREATE, subscription.id, subscription.type, serializeObject(subscription), null)
+                applicationEventPublisher.publishEvent(subscriptionEvent)
+            }
+            .map {
+                it.size
+            }
     }
 
     fun exists(subscriptionId: String): Mono<Boolean> {
@@ -118,7 +131,7 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>?>): Mono<Int> {
+    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
         val contexts = parsedInput.second
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
@@ -153,11 +166,19 @@ class SubscriptionService(
             }
         }
 
-        return updates.toFlux().flatMap { updateOperation ->
-            updateOperation.map { it }
-        }
-        .collectList()
-        .map { it.size }
+        return updates.toFlux()
+            .flatMap { updateOperation ->
+                updateOperation.map { it }
+            }
+            .collectList()
+            .zipWhen {
+                getById(subscriptionId)
+            }
+            .doOnSuccess {
+                val subscriptionEvent = EntityEvent(EventType.UPDATE, subscriptionId, it.t2.type, serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)), serializeObject(it.t2))
+                applicationEventPublisher.publishEvent(subscriptionEvent)
+            }
+            .map { it.t1.size }
     }
 
     fun updateGeometryQuery(subscriptionId: String, geoQuery: Map<String, Any>): Mono<Int> {
@@ -257,6 +278,12 @@ class SubscriptionService(
                 .bind("id", subscriptionId)
                 .fetch()
                 .rowsUpdated()
+                .doOnSuccess {
+                    if (it >= 1) {
+                        val subscriptionEvent = EntityEvent(EventType.DELETE, subscriptionId, "Subscription")
+                        applicationEventPublisher.publishEvent(subscriptionEvent)
+                    }
+                }
     }
 
     fun deleteEntityInfo(subscriptionId: String): Mono<Int> =

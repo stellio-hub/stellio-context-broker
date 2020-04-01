@@ -1,9 +1,13 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.subscription.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getLocationFromEntity
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -11,7 +15,8 @@ import reactor.core.publisher.Mono
 
 @Service
 class NotificationService(
-    private val subscriptionService: SubscriptionService
+    private val subscriptionService: SubscriptionService,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -50,6 +55,10 @@ class NotificationService(
             }
             .doOnNext {
                 subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
+            }
+            .doOnNext {
+                val notificationEvent = EntityEvent(EventType.CREATE, it.second.id, it.second.type, serializeObject(it.second), null)
+                applicationEventPublisher.publishEvent(notificationEvent)
             }
     }
 }

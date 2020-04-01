@@ -3,6 +3,8 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -18,10 +20,18 @@ import java.time.format.DateTimeParseException
 
 object ApiUtils {
 
-    val mapper = jacksonObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    private val mapper: ObjectMapper =
+        jacksonObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     fun serializeObject(input: Any): String {
         return mapper.writeValueAsString(input)
+    }
+
+    fun addContextToParsedObject(parsedObject: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+        return parsedObject.plus(Pair("@context", contexts))
     }
 }
 

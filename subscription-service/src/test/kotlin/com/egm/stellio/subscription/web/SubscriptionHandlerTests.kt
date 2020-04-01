@@ -65,7 +65,7 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any()) } returns Mono.empty()
+        every { subscriptionService.create(any()) } returns Mono.just(1)
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
@@ -182,7 +182,8 @@ class SubscriptionHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"", "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\"")
+            .expectHeader().valueEquals("Link",
+        "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"", "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\"")
     }
 
     @Test

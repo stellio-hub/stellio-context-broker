@@ -3,7 +3,7 @@ services:
   postgres:
     # To ensure we are on the same version than Context Search module
     # (even if TimescaleDB is not needed for this module)
-    image: timescale/timescaledb-postgis:latest-pg11
+    image: timescale/timescaledb-postgis:1.4.2-pg11
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_USER=${POSTGRES_USER}

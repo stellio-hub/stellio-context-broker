@@ -17,7 +17,7 @@ object MyPostgresqlContainer {
     const val DB_USER = "datahub"
     const val DB_PASSWORD = "password"
     // TODO later extract it to a props file or load from env variable
-    private const val TIMESCALE_IMAGE = "timescale/timescaledb-postgis:latest-pg11"
+    private const val TIMESCALE_IMAGE = "timescale/timescaledb-postgis:1.4.2-pg11"
 
     val instance by lazy { startPostgresqlContainer() }
 

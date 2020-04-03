@@ -163,7 +163,7 @@ pipeline {
                 if (env.BRANCH_NAME == 'master')
                     build job: '../DataHub.Int.Launcher'
                 else if (env.BRANCH_NAME == 'develop')
-                    build job: '../DataHub.Dev.Launcher'
+                    build job: '../DataHub.Api-Tests.Launcher'
             }
             slackSend (color: '#36b37e', message: "Success: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
         }

@@ -114,13 +114,6 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should add modifiedAt value when creating new entity`() {
-        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
-        assertNotNull(entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
     fun `it should add modifiedAt value when creating a new property`() {
         val property = Property(name = "name", value = "Scalpa")
         propertyRepository.save(property)
@@ -203,8 +196,7 @@ class Neo4jRepositoryTests {
 
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
-        entityRepository.save(entity)
-        return entity
+        return entityRepository.save(entity)
     }
 
     fun createProperty(name: String): Property {

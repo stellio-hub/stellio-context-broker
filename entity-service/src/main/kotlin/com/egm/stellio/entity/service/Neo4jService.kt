@@ -276,30 +276,7 @@ class Neo4jService(
             }
             .values
             .forEach {
-                val property = it[0]["property"]!! as Property
-                val propertyKey = property.name
-                val propertyValues = property.serializeCoreProperties()
-
-                it.filter { relEntry -> relEntry["propValue"] != null }.forEach {
-                    val propertyOfProperty = it["propValue"] as Property
-                    propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
-                }
-
-                it.filter { relEntry -> relEntry["relOfProp"] != null }.forEach {
-                    val relationship = it["relOfProp"] as Relationship
-                    val targetEntity = it["relOfPropObject"] as Entity
-                    val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
-                    logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
-
-                    val relationshipValue = mapOf(
-                        NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
-                    )
-                    val relationshipValues = relationship.serializeCoreProperties()
-                    relationshipValues.putAll(relationshipValue)
-                    val expandedRelationshipKey = expandRelationshipType(mapOf(relationshipKey to relationshipValue), entity.contexts)
-                    propertyValues[expandedRelationshipKey] = relationshipValues
-                }
+                val (propertyKey, propertyValues) = buildPropertyFragment(it, entity.contexts)
                 resultEntity[propertyKey] = propertyValues
             }
 
@@ -343,6 +320,37 @@ class Neo4jService(
             }
 
         return Pair(resultEntity, entity.contexts)
+    }
+
+    private fun buildPropertyFragment(rawProperty: List<Map<String, Any>>, contexts: List<String>): Pair<String, Map<String, Any>> {
+        val property = rawProperty[0]["property"]!! as Property
+        val propertyKey = property.name
+        val propertyValues = property.serializeCoreProperties()
+
+        rawProperty.filter { relEntry -> relEntry["propValue"] != null }
+            .forEach {
+                val propertyOfProperty = it["propValue"] as Property
+                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
+            }
+
+        rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
+            .forEach {
+                val relationship = it["relOfProp"] as Relationship
+                val targetEntity = it["relOfPropObject"] as Entity
+                val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
+                logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
+
+                val relationshipValue = mapOf(
+                    NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
+                )
+                val relationshipValues = relationship.serializeCoreProperties()
+                relationshipValues.putAll(relationshipValue)
+                val expandedRelationshipKey = expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
+                propertyValues[expandedRelationshipKey] = relationshipValues
+            }
+
+        return Pair(propertyKey, propertyValues)
     }
 
     fun getSerializedEntityById(entityId: String): String {
@@ -683,6 +691,15 @@ class Neo4jService(
                 entityRepository.save(observedEntity)
             }
             propertyRepository.save(observedProperty)
+
+            val entity = neo4jRepository.getEntityByProperty(observedProperty)
+            val rawProperty = entityRepository.getEntitySpecificProperty(entity.id, observedProperty.id)
+            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
+            val propertyPayload = compactAndStringifyFragment(
+                expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
+                propertyFragment.second, entity.contexts)
+            val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entity.type[0].extractShortTypeFromExpanded(), propertyPayload, null)
+            applicationEventPublisher.publishEvent(entityEvent)
         }
     }
 }

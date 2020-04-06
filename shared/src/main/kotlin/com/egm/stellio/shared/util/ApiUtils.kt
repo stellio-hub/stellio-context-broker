@@ -2,6 +2,8 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
+import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.model.Subscription
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -33,6 +35,12 @@ object ApiUtils {
     fun addContextToParsedObject(parsedObject: Map<String, Any>, contexts: List<String>): Map<String, Any> {
         return parsedObject.plus(Pair("@context", contexts))
     }
+
+    fun parseSubscription(content: String): Subscription =
+        mapper.readValue(content, Subscription::class.java)
+
+    fun parseNotification(content: String): Notification =
+        mapper.readValue(content, Notification::class.java)
 }
 
 fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
@@ -47,6 +55,17 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 private fun isPostOrPatch(httpMethod: HttpMethod?): Boolean =
     listOf(HttpMethod.POST, HttpMethod.PATCH).contains(httpMethod)
+
+/**
+ * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
+ * JSON-LD @context.
+ */
+fun extractContextFromLinkHeader(req: ServerRequest): String {
+    return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
+        req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
+    else
+        NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+}
 
 fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     val contentType = request.headers().contentTypeOrNull()

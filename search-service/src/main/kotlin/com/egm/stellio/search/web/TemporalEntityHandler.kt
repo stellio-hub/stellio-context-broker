@@ -1,12 +1,17 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
+import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.ContextRegistryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.search.service.ObservationService
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseTemporalPropertyUpdate
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import com.egm.stellio.shared.util.extractContextFromLinkHeader
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -16,14 +21,16 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
+import org.springframework.web.reactive.function.server.bodyToMono
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.lang.IllegalArgumentException
 
 @Component
 class TemporalEntityHandler(
-    private val observationService: ObservationService,
-    private val entityService: EntityService,
-    private val contextRegistryService: ContextRegistryService
+    private val attributeInstanceService: AttributeInstanceService,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityService: EntityService
 ) {
 
     /**
@@ -32,17 +39,27 @@ class TemporalEntityHandler(
      * Implements 6.20.3.1
      */
     fun addAttrs(req: ServerRequest): Mono<ServerResponse> {
-        return req.bodyToMono(String::class.java)
-                .map {
-                    parseTemporalPropertyUpdate(it)
-                        ?: throw InvalidNgsiLdPayloadException("Received content misses one or more required attributes")
-                }
-                .flatMap {
-                    observationService.create(it)
-                }
-                .flatMap {
-                    noContent().build()
-                }
+        val entityId = req.pathVariable("entityId")
+        val contextLink = extractContextFromLinkHeader(req)
+
+        return req.bodyToMono<String>()
+            .flatMapMany {
+                Flux.fromIterable(expandJsonLdFragment(it, contextLink).asIterable())
+            }
+            .flatMap {
+                temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
+                    .map { temporalEntityAttribute ->
+                        Pair(temporalEntityAttribute, it) }
+            }
+            .map {
+                attributeInstanceService.addAttributeInstances(it.first,
+                    it.second.key.extractShortTypeFromExpanded(),
+                    expandValueAsMap(it.second.value))
+            }
+            .collectList()
+            .flatMap {
+                noContent().build()
+            }
     }
 
     /**
@@ -64,19 +81,23 @@ class TemporalEntityHandler(
             return badRequest().body(BodyInserters.fromValue(e.message.orEmpty()))
         }
 
-        return Mono.just(temporalQuery)
-            .flatMapMany {
-                entityService.getForEntity(entityId, temporalQuery.attrs).map { entityTemporalProperty ->
-                    Pair(entityTemporalProperty, it)
-                }
-            }
-            .flatMap {
-                observationService.search(it.second, it.first)
+        // FIXME this is way too complex, refactor it later
+        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs)
+            .flatMap { temporalEntityAttribute ->
+                attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+                    .map { results ->
+                        Pair(temporalEntityAttribute, results)
+                    }
             }
             .collectList()
-            .zipWith(contextRegistryService.getEntityById(entityId, bearerToken))
+            .zipWhen {
+                loadEntityPayload(it[0].first, bearerToken)
+            }
             .map {
-                entityService.injectTemporalValues(it.t2, it.t1)
+                val listOfResults = it.t1.map {
+                    it.second
+                }
+                temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults)
             }
             .map {
                 JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
@@ -85,6 +106,19 @@ class TemporalEntityHandler(
                 ok().body(BodyInserters.fromValue(it))
             }
     }
+
+    /**
+     * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
+     */
+    private fun loadEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> =
+        if (temporalEntityAttribute.entityPayload != null)
+            Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
+        else
+            entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
+                .doOnSuccess {
+                    val entityPayload = JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
+                    temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
+                }
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {

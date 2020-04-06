@@ -3,12 +3,12 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.MyPostgresqlContainer.DB_PASSWORD
 import com.egm.stellio.search.service.MyPostgresqlContainer.DB_USER
-import com.egm.stellio.shared.model.Observation
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
 import org.springframework.boot.test.context.SpringBootTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,22 +20,23 @@ import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.PostgreSQLContainer
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
+import java.util.*
 import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(R2DBCConfiguration::class)
-class ObservationServiceTests {
+class AttributeInstanceServiceTests {
 
     @Autowired
-    private lateinit var observationService: ObservationService
+    private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
     private val observationDateTime = OffsetDateTime.now()
 
-    private val defaultSensorId = "urn:ngsi-ld:Sensor:111222"
+    private lateinit var temporalEntityAttribute: TemporalEntityAttribute
 
     init {
         Flyway.configure()
@@ -44,10 +45,26 @@ class ObservationServiceTests {
             .migrate()
     }
 
+    @BeforeAll
+    fun createTemporalEntityAttribute() {
+        temporalEntityAttribute = TemporalEntityAttribute(
+            entityId = "urn:ngsi-ld:BeeHive:TESTC",
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+
+        databaseClient.insert()
+            .into(TemporalEntityAttribute::class.java)
+            .using(temporalEntityAttribute)
+            .then()
+            .block()
+    }
+
     @AfterEach
     fun clearPreviousObservations() {
         databaseClient.delete()
-            .from("observation")
+            .from("attribute_instance")
             .fetch()
             .rowsUpdated()
             .block()
@@ -56,28 +73,21 @@ class ObservationServiceTests {
     @Test
     fun `it should retrieve an observation and return the filled entity`() {
 
-        val sensorId = "urn:ngsi-ld:Sensor:IncomingSensor"
-        val observation = gimmeObservation().copy(
+        val observation = gimmeAttributeInstance().copy(
             observedAt = observationDateTime,
-            value = 12.4,
-            observedBy = sensorId
+            measuredValue = 12.4
         )
-        observationService.create(observation).block()
+        attributeInstanceService.create(observation).block()
 
-        val entityTemporalProperty = EntityTemporalProperty(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC",
-            type = "BeeHive",
-            attributeName = "incoming",
-            observedBy = sensorId
-        )
         val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1), null, null, null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 it.size == 1 &&
-                    it[0]["VALUE"] == 12.4 &&
-                    it[0]["OBSERVED_AT"] == observationDateTime
+                    it[0]["attribute_name"] == "incoming" &&
+                    it[0]["value"] == 12.4 &&
+                    it[0]["observed_at"] == observationDateTime
             }
             .expectComplete()
             .verify()
@@ -86,17 +96,11 @@ class ObservationServiceTests {
     @Test
     fun `it should retrieve all known observations and return the filled entity`() {
 
-        (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
-        val entityTemporalProperty = EntityTemporalProperty(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC",
-            type = "BeeHive",
-            attributeName = "incoming",
-            observedBy = defaultSensorId
-        )
         val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, null, null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -110,19 +114,13 @@ class ObservationServiceTests {
     fun `it should aggregate all observations for a day and return the filled entity`() {
 
         (1..10).forEach { _ ->
-            val observation = gimmeObservation().copy(value = 1.0)
-            observationService.create(observation).block()
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance).block()
         }
 
-        val entityTemporalProperty = EntityTemporalProperty(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC",
-            type = "BeeHive",
-            attributeName = "incoming",
-            observedBy = defaultSensorId
-        )
         val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, "1 day", TemporalQuery.Aggregate.SUM)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -134,20 +132,30 @@ class ObservationServiceTests {
     }
 
     @Test
-    fun `it should only retrieve the temporal evolution of the provided attribute`() {
+    fun `it should only retrieve the temporal evolution of the provided temporal entity atttribute`() {
 
-        (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
-        (1..5).forEach { _ -> observationService.create(gimmeObservation(attributeName = "outgoing")).block() }
-
-        val entityTemporalProperty = EntityTemporalProperty(
+        val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:BeeHive:TESTC",
             type = "BeeHive",
-            attributeName = "incoming",
-            observedBy = defaultSensorId
+            attributeName = "outgoing",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
-        val temporalQuery = TemporalQuery(listOf("incoming"), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+
+        databaseClient.insert()
+            .into(TemporalEntityAttribute::class.java)
+            .using(temporalEntityAttribute2)
+            .then()
+            .block()
+
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+        (1..5).forEach { _ ->
+            attributeInstanceService.create(
+                gimmeAttributeInstance().copy(temporalEntityAttribute = temporalEntityAttribute2.id)).block()
+        }
+
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, null, null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -158,19 +166,13 @@ class ObservationServiceTests {
     }
 
     @Test
-    fun `it should not retrieve temporal data if provided attribute is not matched`() {
+    fun `it should not retrieve temporal data if temporal entity does not match`() {
 
-        (1..10).forEach { _ -> observationService.create(gimmeObservation()).block() }
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
-        val entityTemporalProperty = EntityTemporalProperty(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC",
-            type = "BeeHive",
-            attributeName = "incoming",
-            observedBy = defaultSensorId
-        )
-        val temporalQuery = TemporalQuery(listOf("unobserved_attr"), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
             null, null, null)
-        val enrichedEntity = observationService.search(temporalQuery, entityTemporalProperty)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()))
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -180,14 +182,10 @@ class ObservationServiceTests {
             .verify()
     }
 
-    private fun gimmeObservation(attributeName: String = "incoming"): Observation {
-        return Observation(
-            attributeName = attributeName,
-            latitude = 43.12,
-            longitude = 65.43,
-            observedBy = defaultSensorId,
-            unitCode = "CEL",
-            value = Random.nextDouble(),
+    private fun gimmeAttributeInstance(): AttributeInstance {
+        return AttributeInstance(
+            temporalEntityAttribute = temporalEntityAttribute.id,
+            measuredValue = Random.nextDouble(),
             observedAt = OffsetDateTime.now()
         )
     }

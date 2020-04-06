@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
@@ -251,16 +252,5 @@ class EntityHandler(
             .onErrorResume {
                 status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
             }
-    }
-
-    /**
-     * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
-     * JSON-LD @context.
-     */
-    fun extractContextFromLinkHeader(req: ServerRequest): String {
-        return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
-            req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
-        else
-            NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
     }
 }

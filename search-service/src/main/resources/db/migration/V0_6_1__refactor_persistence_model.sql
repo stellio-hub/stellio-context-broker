@@ -1,8 +1,5 @@
 ALTER TABLE entity_temporal_property RENAME TO temporal_entity_attribute;
 
--- Add pgcryto extension to use UUID generation function
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 ALTER TABLE temporal_entity_attribute ADD COLUMN id uuid UNIQUE DEFAULT gen_random_uuid();
 ALTER TABLE temporal_entity_attribute ADD COLUMN entity_payload jsonb;
 
@@ -20,7 +17,6 @@ UPDATE attribute_instance SET temporal_entity_attribute =
         WHERE attribute_instance.attribute_name = temporal_entity_attribute.attribute_name
         AND attribute_instance.observed_by = temporal_entity_attribute.observed_by);
 
-DELETE FROM _timescaledb_catalog.dimension WHERE column_name = 'observed_by';
 SELECT add_dimension('attribute_instance', 'temporal_entity_attribute', 2);
 
 -- We can now remove the observed_by data

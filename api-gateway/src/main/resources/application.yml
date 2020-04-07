@@ -17,4 +17,27 @@ spring:
             user-info-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/userinfo
             user-name-attribute: sub
             jwk-set-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/certs
-
+  cloud:
+    gateway:
+      routes:
+        - id: entity_service_actuator
+          uri: http://localhost:8082
+          predicates:
+            - Path=/entity-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/entity-service/actuator, /actuator
+        - id: search_service_actuator
+          uri: http://localhost:8083
+          predicates:
+            - Path=/search-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/search-service/actuator, /actuator
+        - id: subscription_service_actuator
+          uri: http://localhost:8084
+          predicates:
+            - Path=/subscription-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/subscription-service/actuator, /actuator

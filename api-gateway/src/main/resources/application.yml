@@ -21,21 +21,21 @@ spring:
     gateway:
       routes:
         - id: entity_service_actuator
-          uri: http://localhost:8082
+          uri: http://entity-service:8082
           predicates:
             - Path=/entity-service/actuator/**
           filters:
             - TokenRelay=
             - RewritePath=/entity-service/actuator, /actuator
         - id: search_service_actuator
-          uri: http://localhost:8083
+          uri: http://search-service:8083
           predicates:
             - Path=/search-service/actuator/**
           filters:
             - TokenRelay=
             - RewritePath=/search-service/actuator, /actuator
         - id: subscription_service_actuator
-          uri: http://localhost:8084
+          uri: http://subscription-service:8084
           predicates:
             - Path=/subscription-service/actuator/**
           filters:

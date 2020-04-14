@@ -1,50 +1,39 @@
-version: '3.1'
+version: '3.5'
 services:
-  postgres:
-    image: timescale/timescaledb-postgis:1.4.2-pg11
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
-    ports:
-      - 5432:5432
-    volumes:
-      - postgres-storage:/var/lib/postgresql/data
-    networks:
-      - default
-
   zookeeper:
-    image: zookeeper:3.4.9
-    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:5.4.1
+    container_name: stellio-search-zookeeper
     ports:
-      - "2181:2181"
+      - 2181:2181
     environment:
-      ZOO_MY_ID: 1
-      ZOO_PORT: 2181
-      ZOO_SERVERS: server.1=zookeeper:2888:3888
-    networks:
-      - default
-
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
   kafka:
-    image: confluentinc/cp-kafka:5.3.0
-    container_name: kafka
+    image: confluentinc/cp-kafka:5.4.1
+    container_name: stellio-search-kafka
     ports:
-      - "9092:9092"
+      - 29092:29092
     environment:
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${KAFKA_EXTERNAL_HOST}:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_BROKER_ID: 1
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
-    networks:
-      - default
-
-networks:
-  default:
+  postgres:
+    image: stellio/stellio-timescale-postgis:latest
+    container_name: stellio-search-postgres
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - "POSTGRES_MULTIPLE_DATABASES=${STELLIO_SEARCH_DB_DATABASE},${STELLIO_SEARCH_DB_USER},${STELLIO_SEARCH_DB_PASSWORD}"
+    ports:
+      - 5432:5432
+    volumes:
+      - stellio-search-postgres-storage:/var/lib/postgresql/data
 
 volumes:
-  postgres-storage:
+  stellio-search-postgres-storage:

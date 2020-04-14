@@ -34,7 +34,7 @@ tasks.bootRun {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
-jib.to.image = "easyglobalmarket/stellio-entity-service"
+jib.to.image = "stellio/stellio-entity-service"
 jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
 jib.container.ports = listOf("8082")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

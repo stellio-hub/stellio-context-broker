@@ -8,9 +8,9 @@
         </encoder>
     </appender>
 
-    <logger name="com.egm.stellio.search" level="DEBUG"/>
-    <logger name="org.springframework.data.r2dbc" level="DEBUG"/>
-    <logger name="org.flywaydb" level="DEBUG"/>
+    <logger name="com.egm.stellio.entity" level="DEBUG"/>
+    <logger name="com.github.jsonldjava" level="DEBUG"/>
+    <logger name="org.neo4j.ogm" level="INFO"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.springframework.security" level="DEBUG"/>
     <logger name="org.springframework.web" level="TRACE"/>

@@ -69,7 +69,7 @@ pipeline {
                 changeset "api-gateway/**"
             }
             steps {
-                sh './gradlew jib -Djib.to.image=easyglobalmarket/stellio-api-gateway:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p api-gateway'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p api-gateway'
             }
         }
         stage('Dockerize Api Gateway') {
@@ -90,7 +90,7 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew jib -Djib.to.image=easyglobalmarket/stellio-entity-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p entity-service'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p entity-service'
             }
         }
         stage('Dockerize Entity Service') {
@@ -114,7 +114,7 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew jib -Djib.to.image=easyglobalmarket/stellio-subscription-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p subscription-service'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p subscription-service'
             }
         }
         stage('Dockerize Subscription Service') {
@@ -138,7 +138,7 @@ pipeline {
                 }
             }
             steps {
-                sh './gradlew jib -Djib.to.image=easyglobalmarket/stellio-search-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p search-service'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:dev -Djib.to.auth.username=$JIB_CREDS_USR -Djib.to.auth.password=$JIB_CREDS_PSW -p search-service'
             }
         }
         stage('Dockerize Search Service') {

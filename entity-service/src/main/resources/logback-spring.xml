@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.egm.stellio.entity" level="DEBUG"/>
+    <logger name="com.egm.stellio" level="DEBUG"/>
     <logger name="com.github.jsonldjava" level="DEBUG"/>
     <logger name="org.neo4j.ogm" level="INFO"/>
     <logger name="org.apache.kafka" level="WARN"/>

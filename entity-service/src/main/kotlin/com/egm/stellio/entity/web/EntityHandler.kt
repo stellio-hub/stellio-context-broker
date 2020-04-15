@@ -43,7 +43,7 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                NgsiLdParsingUtils.parseEntity(it)
+                NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
             }
             .map {
                 // TODO validation (https://redmine.eglobalmark.com/issues/853)
@@ -139,7 +139,6 @@ class EntityHandler(
         val disallowOverwrite = req.queryParam("options").map { it == "noOverwrite" }.orElse(false)
         val type = getTypeFromURI(entityId)
         val contextLink = extractContextFromLinkHeader(req)
-
         return req.bodyToMono<String>()
             .doOnNext {
                 if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {

@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.egm.stellio.search" level="DEBUG"/>
+    <logger name="com.egm.stellio" level="DEBUG"/>
     <logger name="org.springframework.data.r2dbc" level="DEBUG"/>
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>

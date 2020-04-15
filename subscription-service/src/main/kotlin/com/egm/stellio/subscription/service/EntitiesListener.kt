@@ -3,7 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.subscription.utils.parseEntity
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component

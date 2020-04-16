@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
@@ -99,7 +100,7 @@ class EntityHandler(
                 }
             }
             .flatMap {
-                ok().body(BodyInserters.fromValue(it))
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
             .onErrorResume {
                 badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
@@ -120,7 +121,7 @@ class EntityHandler(
                 JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }
             .flatMap {
-                ok().body(BodyInserters.fromValue(it))
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
             .onErrorResume {
                 when (it) {

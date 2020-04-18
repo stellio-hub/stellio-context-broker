@@ -20,10 +20,11 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.flywaydb:flyway-core")
     implementation(project(":shared"))
+    // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
+    implementation("io.r2dbc:r2dbc-postgresql")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-    runtimeOnly("io.r2dbc:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
@@ -45,7 +46,7 @@ tasks.bootRun {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
-jib.to.image = "easyglobalmarket/stellio-search-service"
+jib.to.image = "stellio/stellio-search-service"
 jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
 jib.container.ports = listOf("8083")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

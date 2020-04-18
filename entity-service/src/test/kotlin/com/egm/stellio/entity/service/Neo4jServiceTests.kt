@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
@@ -60,7 +61,7 @@ class Neo4jServiceTests {
         val expectedPayloadInEvent = """
         {"id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","type":"MortalityRemovalService","@context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld","https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]}
         """.trimIndent()
-        val sampleDataWithContext = loadAndParseSampleData("MortalityRemovalService_standalone.json")
+        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityRemovalService_standalone.json")
         val mockedBreedingService = mockkClass(Entity::class)
 
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
@@ -137,8 +138,7 @@ class Neo4jServiceTests {
     @Test
     fun `it should create an entity with a property having a property`() {
 
-        val payload = String(ClassPathResource("/ngsild/aquac/BreedingService_propWithProp.json").inputStream.readAllBytes())
-        val sampleDataWithContext = loadAndParseSampleData("BreedingService_propWithProp.json")
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithProp.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
         val mockedProperty = mockkClass(Property::class)
@@ -214,6 +214,20 @@ class Neo4jServiceTests {
     fun `it should update an existing measure`() {
         val observation = gimmeAnObservation()
         val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
+        val expectedPropertyUpdate = Property(
+            name = "fishNumber",
+            value = 400.0
+        )
+        val expectedEventPayload = """
+            {
+              "fishNumber":{
+                "type":"Property",
+                "createdAt":"${expectedPropertyUpdate.createdAt}",
+                "value":400.0
+              },
+              "@context":"$aquacContext"
+            }
+        """.trimIndent().replace("\n", "").replace(" ", "")
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedSensor = mockkClass(Entity::class)
@@ -223,12 +237,20 @@ class Neo4jServiceTests {
         every { mockkedObservation.name } returns observation.attributeName
         every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
+        every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234"
+        every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
+        every { mockkedEntity.contexts } returns listOf(aquacContext!!)
+        every { mockkedObservation.id } returns "property-9999"
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
         every { neo4jRepository.getEntityByProperty(any()) } returns mockkedEntity
         every { propertyRepository.save(any<Property>()) } returns mockkedObservation
         every { entityRepository.save(any<Entity>()) } returns mockkedEntity
+        every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
+            mapOf("property" to expectedPropertyUpdate)
+        )
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         neo4jService.updateEntityLastMeasure(observation)
 
@@ -237,6 +259,13 @@ class Neo4jServiceTests {
         verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
+        verify(timeout = 1000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+            entityEvent.entityType == "BreedingService" &&
+                    entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234" &&
+                    entityEvent.operationType == EventType.UPDATE &&
+                    entityEvent.payload == expectedEventPayload &&
+                    entityEvent.updatedEntity == null
+        }) }
 
         confirmVerified()
     }
@@ -685,10 +714,5 @@ class Neo4jServiceTests {
             value = 12.4,
             observedAt = OffsetDateTime.now()
         )
-    }
-
-    private fun loadAndParseSampleData(filename: String): Pair<Map<String, Any>, List<String>> {
-        val sampleData = ClassPathResource("/ngsild/aquac/$filename")
-        return NgsiLdParsingUtils.parseEntity(String(sampleData.inputStream.readAllBytes()))
     }
 }

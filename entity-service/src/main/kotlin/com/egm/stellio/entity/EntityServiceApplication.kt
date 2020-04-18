@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.scheduling.annotation.EnableAsync
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = ["com.egm.stellio.entity", "com.egm.stellio.shared"])
 @EnableAsync
 class EntityServiceApplication
 

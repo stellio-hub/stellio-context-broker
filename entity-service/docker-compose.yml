@@ -1,45 +1,39 @@
-version: '3.2'
+version: '3.5'
 services:
-  neo4j:
-    image: neo4j:3.5
-    container_name: neo4j
-    volumes:
-      - ./data/neo4j/data:/data
-    ports:
-      - 7474:7474
-      - 7687:7687
-    networks:
-      - default
-
   zookeeper:
-    image: zookeeper:3.4.9
-    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:5.4.1
+    container_name: stellio-entity-zookeeper
     ports:
-      - "2181:2181"
+      - 2181:2181
     environment:
-      ZOO_MY_ID: 1
-      ZOO_PORT: 2181
-      ZOO_SERVERS: server.1=zookeeper:2888:3888
-    networks:
-      - default
-
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
   kafka:
-    image: confluentinc/cp-kafka:5.3.0
-    container_name: kafka
+    image: confluentinc/cp-kafka:5.4.1
+    container_name: stellio-entity-kafka
     ports:
-      - "9092:9092"
+      - 29092:29092
     environment:
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${KAFKA_EXTERNAL_HOST}:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_DOCKER_INTERNAL:PLAINTEXT,LISTENER_DOCKER_EXTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER_INTERNAL
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_BROKER_ID: 1
-      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: INFO
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
-    networks:
-      - default
+  neo4j:
+    image: neo4j:3.5.14
+    container_name: stellio-entity-neo4j
+    volumes:
+      - stellio-entity-neo4j-storage:/data
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+    ports:
+      - 7474:7474
+      - 7687:7687
 
-networks:
-  default:
+volumes:
+  stellio-entity-neo4j-storage:

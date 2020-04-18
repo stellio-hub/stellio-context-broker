@@ -6,7 +6,7 @@ spring:
           login-client:
             provider: keycloak
             client-id: api-gateway
-            client-secret: fd3fa938-495c-4f21-9887-c226d77878bd
+            client-secret: client-secret
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope: openid,profile,email,resource.read
@@ -17,4 +17,27 @@ spring:
             user-info-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/userinfo
             user-name-attribute: sub
             jwk-set-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/certs
-
+  cloud:
+    gateway:
+      routes:
+        - id: entity_service_actuator
+          uri: http://entity-service:8082
+          predicates:
+            - Path=/entity-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/entity-service/actuator, /actuator
+        - id: search_service_actuator
+          uri: http://search-service:8083
+          predicates:
+            - Path=/search-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/search-service/actuator, /actuator
+        - id: subscription_service_actuator
+          uri: http://subscription-service:8084
+          predicates:
+            - Path=/subscription-service/actuator/**
+          filters:
+            - TokenRelay=
+            - RewritePath=/subscription-service/actuator, /actuator

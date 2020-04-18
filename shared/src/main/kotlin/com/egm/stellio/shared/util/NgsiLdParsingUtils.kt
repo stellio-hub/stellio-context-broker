@@ -1,21 +1,25 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.InvalidQueryException
+import com.egm.stellio.shared.model.*
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
+import org.springframework.core.io.ClassPathResource
+import org.springframework.stereotype.Component
 import java.time.OffsetDateTime
+import javax.annotation.PostConstruct
 import kotlin.reflect.full.safeCast
 
 data class AttributeType(val uri: String)
 
+@Component
 object NgsiLdParsingUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
@@ -64,13 +68,42 @@ object NgsiLdParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private var mapper = jacksonObjectMapper()
+    private val mapper: ObjectMapper =
+        jacksonObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    init {
-        // TODO check if this registration is still required
-        mapper.findAndRegisterModules()
+    private val localCoreContextPayload = ClassPathResource("/ngsild/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+    private var BASE_CONTEXT: Map<String, Any> = mapOf()
+
+    @PostConstruct
+    private fun loadCoreContext() {
+        val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
+        val coreContext: Map<String, Any> = mapper.readValue(coreContextPayload, mapper.typeFactory.constructMapLikeType(
+            Map::class.java, String::class.java, Any::class.java
+        ))
+        BASE_CONTEXT = coreContext.get("@context") as Map<String, Any>
+        logger.info("Core context loaded")
     }
 
+    private fun addCoreContext(contexts: List<String>): List<Any> =
+        contexts.plus(BASE_CONTEXT)
+
+    fun parseEntity(input: String, contexts: List<String>): Pair<Map<String, Any>, List<String>> {
+        val usedContext = addCoreContext(contexts)
+        val jsonLdOptions = JsonLdOptions()
+        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
+
+        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
+
+        val expandedResult = JsonUtils.toPrettyString(expandedEntity)
+        logger.debug("Expanded entity is $expandedResult")
+
+        return Pair(expandedEntity as Map<String, Any>, contexts)
+    }
+
+    @Deprecated("Deprecated in favor of the method accepting the contexts as separate arguments, as it allow for more genericity")
     fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
 
@@ -111,7 +144,7 @@ object NgsiLdParsingUtils {
     }
 
     fun parseEntityEvent(input: String): EntityEvent {
-        return mapper.readValue<EntityEvent>(input, EntityEvent::class.java)
+        return mapper.readValue(input, EntityEvent::class.java)
     }
 
     fun parseJsonLdFragment(input: String): Map<String, Any> {
@@ -241,17 +274,29 @@ object NgsiLdParsingUtils {
             null
     }
 
-    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
+    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> {
+        val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to listOf(context, NGSILD_CORE_CONTEXT))
+        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
         val expandedFragment = JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
         logger.debug("Expanded fragment $fragment to $expandedFragment")
+        if (expandedFragment.isEmpty())
+            throw InvalidNgsiLdPayloadException("Unable to expand JSON-LD fragment : $fragment")
         return expandedFragment[0] as Map<String, Any>
+    }
+
+    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
+        return expandJsonLdFragment(fragment, listOf(context))
+    }
+
+    fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String {
+        val compactedFragment = JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
+        return mapper.writeValueAsString(compactedFragment)
     }
 
     fun compactAndStringifyFragment(key: String, value: Any, context: String): String {
         val compactedFragment = JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
-        return JsonUtils.toString(compactedFragment)
+        return mapper.writeValueAsString(compactedFragment)
     }
 
     fun getTypeFromURI(uri: String): String {
@@ -292,9 +337,13 @@ object NgsiLdParsingUtils {
         )
     }
 
+    /**
+     * As per 6.3.5, extract @context from request payload. In the absence of such context, then BadRequestDataException
+     * shall be raised
+     */
     fun getContextOrThrowError(input: String): List<String> {
         val rawParsedData = mapper.readTree(input) as ObjectNode
-        val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided ")
+        val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided")
 
         return mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
     }
@@ -310,7 +359,7 @@ object NgsiLdParsingUtils {
                 val latitude = (geoPropertyValue[1] as Map<String, Double>)["@value"]
                 return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to listOf(longitude, latitude))
             } else {
-                var res = arrayListOf<List<Double?>>()
+                val res = arrayListOf<List<Double?>>()
                 var count = 1
                 geoPropertyValue.forEach {
                     if (count % 2 != 0) {

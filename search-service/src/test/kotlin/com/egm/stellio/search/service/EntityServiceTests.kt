@@ -1,54 +1,60 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.loadAndParseSampleData
-import org.flywaydb.core.Flyway
+import com.egm.stellio.shared.util.loadSampleData
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
+
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 
-@SpringBootTest
+// TODO : it should be possible to have this test not depend on the whole application
+//        (ie to only load the target service)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
 @ActiveProfiles("test")
-@Import(R2DBCConfiguration::class)
 class EntityServiceTests {
 
     @Autowired
     private lateinit var entityService: EntityService
 
-    init {
-        Flyway.configure()
-            .dataSource(MyPostgresqlContainer.instance.jdbcUrl, MyPostgresqlContainer.DB_USER, MyPostgresqlContainer.DB_PASSWORD)
-            .load()
-            .migrate()
+    private lateinit var wireMockServer: WireMockServer
+
+    @BeforeAll
+    fun beforeAll() {
+        wireMockServer = WireMockServer(wireMockConfig().port(8089))
+        wireMockServer.start()
+        // If not using the default port, we need to instruct explicitely the client (quite redundant)
+        configureFor(8089)
+    }
+
+    @AfterAll
+    fun afterAll() {
+        wireMockServer.stop()
     }
 
     @Test
-    fun `it should create one entry for an entity with one temporal property`() {
-        val rawEntity = loadAndParseSampleData()
+    fun `it should call the context registry with the correct entityId`() {
 
-        val temporalReferencesResults = entityService.createEntityTemporalReferences(rawEntity)
+        // prepare our stub
+        stubFor(get(urlMatching("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
+            .willReturn(okJson(loadSampleData("beehive.jsonld"))))
 
-        StepVerifier.create(temporalReferencesResults)
-            .expectNextMatches {
-                it == 1
-            }
+        val entity = entityService.getEntityById("urn:ngsi-ld:BeeHive:TESTC", "Bearer 1234")
+
+        // verify the steps in getEntityById
+        StepVerifier.create(entity)
+            .expectNextMatches { it.first["@id"] == "urn:ngsi-ld:BeeHive:TESTC" }
             .expectComplete()
             .verify()
-    }
 
-    @Test
-    fun `it should create two entries for an entity with two temporal properties`() {
-        val rawEntity = loadAndParseSampleData("beehive_two_temporal_properties.jsonld")
-
-        val temporalReferencesResults = entityService.createEntityTemporalReferences(rawEntity)
-
-        StepVerifier.create(temporalReferencesResults)
-            .expectNextMatches {
-                it == 2
-            }
-            .expectComplete()
-            .verify()
+        // ensure external components and services have been called as expected
+        verify(getRequestedFor(urlPathEqualTo("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))
+            .withHeader("Authorization", equalTo("Bearer 1234")))
     }
 }

@@ -5,6 +5,9 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.Neo4jService
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -21,6 +24,9 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.RuntimeException
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -123,6 +129,25 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize temporal properties`() {
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.getFullEntityById(any()) } returns Pair(
+            mapOf(NGSILD_CREATED_AT_PROPERTY to mapOf("@type" to NGSILD_DATE_TIME_TYPE,
+                "@value" to OffsetDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1")))),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001+01:00\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test

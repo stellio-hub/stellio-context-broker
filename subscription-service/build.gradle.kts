@@ -17,9 +17,8 @@ dependencies {
     implementation("org.springframework.boot.experimental:spring-boot-actuator-autoconfigure-r2dbc")
     implementation("org.springframework.boot.experimental:spring-boot-starter-data-r2dbc")
     implementation("org.springframework:spring-jdbc")
-    implementation("org.springframework.boot:spring-boot-starter-quartz")
-    implementation("org.flywaydb:flyway-core")
     // required for Flyway's direct access to the DB to apply migration scripts
+    implementation("org.flywaydb:flyway-core")
     implementation("com.jayway.jsonpath:json-path:2.4.0")
     implementation("io.r2dbc:r2dbc-postgresql")
     implementation(project(":shared"))
@@ -29,7 +28,6 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
-    testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.testcontainers:testcontainers:1.12.3")
     testImplementation("org.testcontainers:postgresql:1.12.3")
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
@@ -48,7 +46,7 @@ tasks.bootRun {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
-jib.to.image = "easyglobalmarket/stellio-subscription-service"
+jib.to.image = "stellio/stellio-subscription-service"
 jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
 jib.container.ports = listOf("8084")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

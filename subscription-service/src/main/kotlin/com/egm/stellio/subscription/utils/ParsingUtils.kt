@@ -7,8 +7,6 @@ import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.jsonldjava.core.JsonLdProcessor
-import com.github.jsonldjava.utils.JsonUtils
 
 fun parseSubscription(input: String, context: List<String>): Subscription {
     val mapper = jacksonObjectMapper()
@@ -54,16 +52,4 @@ fun endpointInfoToString(input: List<EndpointInfo>?): String {
 fun endpointInfoMapToString(input: List<Map<String, String>>?): String {
     val mapper = jacksonObjectMapper()
     return mapper.writeValueAsString(input)
-}
-
-fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {
-    val mapper = jacksonObjectMapper()
-    val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
-
-    // TODO find a way to avoid this extra parsing
-    val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
-        Map::class.java, String::class.java, Any::class.java
-    ))
-
-    return Pair(expandedEntity as Map<String, Any>, parsedInput["@context"] as List<String>)
 }

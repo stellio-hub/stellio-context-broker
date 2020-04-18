@@ -5,8 +5,7 @@ bin/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**
 !**/src/test/**
-/data/graphdb
-/data/neo4j/data
+**/data/neo4j/data
 tmp/
 .gradletasknamecache
 **/application-dev.properties
@@ -36,6 +35,4 @@ out/
 
 ### VS Code ###
 .vscode/
-target
-kafka-logs
-neo4j
+

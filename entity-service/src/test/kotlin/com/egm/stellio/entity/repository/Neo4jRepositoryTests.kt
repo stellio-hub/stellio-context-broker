@@ -114,9 +114,18 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should add modifiedAt value when creating new entity`() {
+    fun `it should update a property value of a string type`() {
         val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
-        assertNotNull(entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt)
+        neo4jRepository.updateEntityAttribute(entity.id, "name", "new name")
+        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update a property value of a numeric type`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = 100L)))
+        neo4jRepository.updateEntityAttribute(entity.id, "name", 200L)
+        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -203,8 +212,7 @@ class Neo4jRepositoryTests {
 
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
-        entityRepository.save(entity)
-        return entity
+        return entityRepository.save(entity)
     }
 
     fun createProperty(name: String): Property {

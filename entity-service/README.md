@@ -6,12 +6,6 @@
 docker-compose up -d && docker-compose logs -f
 ```
 
-* Update your `/etc/hosts` file and add the following entry :
-
-```
-127.0.0.1       dh-local-docker
-```
-
 * Bootstrap some data in a batch (optional)
 
 ```

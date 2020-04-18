@@ -20,7 +20,7 @@ class Neo4jRepository(
     private val session: Session,
     private val sessionFactory: SessionFactory
 ) {
-    private val logger = LoggerFactory.getLogger(Neo4jRepository::class.java)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Create the concrete relationship from a relationship to an entity.
@@ -56,7 +56,8 @@ class Neo4jRepository(
     fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
         val query = """
             MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
-            ON MATCH SET property.value = $propertyValue
+            ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
+                         property.modifiedAt = "${OffsetDateTime.now()}"
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
@@ -305,27 +306,34 @@ class Neo4jRepository(
             .map { it["e"] as Entity }
             .first()
     }
+
+    private fun escapePropertyValue(value: Any): Any {
+        return when (value) {
+            is String -> "\"$value\""
+            else -> value
+        }
+    }
+
     @PostConstruct
     fun addEventListenerToSessionFactory() {
         val eventListener = PreSaveEventListener()
         sessionFactory.register(eventListener)
     }
 }
+
 class PreSaveEventListener : EventListenerAdapter() {
     override fun onPreSave(event: Event) {
         when (event.getObject()) {
             is Entity -> {
-                var entity: Entity = event.getObject() as Entity
+                val entity = event.getObject() as Entity
                 entity.modifiedAt = OffsetDateTime.now()
             }
-
             is Property -> {
-                var property: Property = event.getObject() as Property
+                val property = event.getObject() as Property
                 property.modifiedAt = OffsetDateTime.now()
             }
-
             is Relationship -> {
-                var relationship: Relationship = event.getObject() as Relationship
+                val relationship = event.getObject() as Relationship
                 relationship.modifiedAt = OffsetDateTime.now()
             }
         }

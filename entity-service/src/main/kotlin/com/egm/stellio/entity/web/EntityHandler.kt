@@ -8,6 +8,8 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.extractContextFromLinkHeader
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
@@ -42,7 +44,7 @@ class EntityHandler(
 
         return req.bodyToMono<String>()
             .map {
-                NgsiLdParsingUtils.parseEntity(it)
+                NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
             }
             .map {
                 // TODO validation (https://redmine.eglobalmark.com/issues/853)
@@ -98,7 +100,7 @@ class EntityHandler(
                 }
             }
             .flatMap {
-                ok().body(BodyInserters.fromValue(it))
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
             .onErrorResume {
                 badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
@@ -119,7 +121,7 @@ class EntityHandler(
                 JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
             }
             .flatMap {
-                ok().body(BodyInserters.fromValue(it))
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
             .onErrorResume {
                 when (it) {
@@ -138,7 +140,6 @@ class EntityHandler(
         val disallowOverwrite = req.queryParam("options").map { it == "noOverwrite" }.orElse(false)
         val type = getTypeFromURI(entityId)
         val contextLink = extractContextFromLinkHeader(req)
-
         return req.bodyToMono<String>()
             .doOnNext {
                 if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
@@ -251,16 +252,5 @@ class EntityHandler(
             .onErrorResume {
                 status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
             }
-    }
-
-    /**
-     * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
-     * JSON-LD @context.
-     */
-    fun extractContextFromLinkHeader(req: ServerRequest): String {
-        return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
-            req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
-        else
-            NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
     }
 }

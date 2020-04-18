@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
-import com.egm.stellio.subscription.utils.parseEntity
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig

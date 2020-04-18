@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- displaying method name may be costly, eventually remove it -->
+            <pattern>%yellow(%d) [%15.15t] %highlight(%-5level) %-40.40logger{39} - %white(%M) - %msg%n %ex{10}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.egm.stellio" level="DEBUG"/>
+    <logger name="com.github.jsonldjava" level="DEBUG"/>
+    <logger name="org.neo4j.ogm" level="INFO"/>
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.springframework.security" level="DEBUG"/>
+    <logger name="org.springframework.web" level="TRACE"/>
+
+    <root level="INFO">
+        <appender-ref ref="console" />
+    </root>
+
+</configuration>

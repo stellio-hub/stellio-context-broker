@@ -3,28 +3,35 @@ ALTER TABLE entity_temporal_property RENAME TO temporal_entity_attribute;
 ALTER TABLE temporal_entity_attribute ADD COLUMN id uuid UNIQUE DEFAULT gen_random_uuid();
 ALTER TABLE temporal_entity_attribute ADD COLUMN entity_payload jsonb;
 
--- Migrate data in observation table
-ALTER TABLE observation RENAME TO attribute_instance;
-ALTER TABLE attribute_instance ADD COLUMN instance_id uuid DEFAULT gen_random_uuid();
-ALTER TABLE attribute_instance RENAME COLUMN value TO measured_value;
-ALTER TABLE attribute_instance ADD COLUMN value VARCHAR(2048);
-ALTER TABLE attribute_instance ADD COLUMN temporal_entity_attribute uuid;
-ALTER TABLE attribute_instance DROP COLUMN unit_code;
-
 -- Set references to the temporal_entity_attribute table
-UPDATE attribute_instance SET temporal_entity_attribute =
+ALTER TABLE observation ADD COLUMN temporal_entity_attribute uuid;
+UPDATE observation SET temporal_entity_attribute =
     (SELECT id FROM temporal_entity_attribute
-        WHERE attribute_instance.attribute_name = temporal_entity_attribute.attribute_name
-        AND attribute_instance.observed_by = temporal_entity_attribute.observed_by);
+        WHERE observation.attribute_name = temporal_entity_attribute.attribute_name
+        AND observation.observed_by = temporal_entity_attribute.observed_by);
+    
+-- Migrate data in the new attribute_instance table
+CREATE TABLE attribute_instance (
+    observed_at timestamp with time zone NOT NULL,
+    measured_value double precision,
+    latitude double precision,
+    longitude double precision,
+    instance_id uuid DEFAULT gen_random_uuid(),
+    value character varying(2048),
+    temporal_entity_attribute uuid NOT NULL
+);
 
-SELECT add_dimension('attribute_instance', 'temporal_entity_attribute', 2);
+INSERT INTO attribute_instance
+    (observed_at, measured_value, latitude, longitude, instance_id, temporal_entity_attribute)
+    (SELECT observed_at, value, latitude, longitude, gen_random_uuid(), temporal_entity_attribute FROM observation);
+
+SELECT create_hypertable('attribute_instance', 'observed_at', migrate_data => true);
 
 -- We can now remove the observed_by data
 ALTER TABLE temporal_entity_attribute DROP COLUMN observed_by;
-ALTER TABLE attribute_instance DROP COLUMN observed_by;
-ALTER TABLE attribute_instance DROP COLUMN attribute_name;
 
 DROP TABLE property_observation;
+DROP TABLE observation;
 
 -- Primary and foreign keys
 

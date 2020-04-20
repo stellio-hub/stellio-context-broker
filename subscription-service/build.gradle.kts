@@ -22,6 +22,8 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.4.0")
     implementation("io.r2dbc:r2dbc-postgresql")
     implementation(project(":shared"))
+    // firebase SDK
+    implementation("com.google.firebase:firebase-admin:6.12.2")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

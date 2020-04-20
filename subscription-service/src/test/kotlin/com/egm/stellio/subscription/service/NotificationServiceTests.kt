@@ -3,6 +3,10 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import com.egm.stellio.subscription.firebase.FCMService
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
+import com.egm.stellio.subscription.model.NotificationParams
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
@@ -10,6 +14,7 @@ import com.ninjasquad.springmockk.MockkBean
 import com.jayway.jsonpath.JsonPath.read
 import io.mockk.*
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -18,6 +23,7 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
+import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -32,6 +38,9 @@ class NotificationServiceTests {
      */
     @MockkBean
     private lateinit var notificationsEventsListener: NotificationsEventsListener
+
+    @MockkBean
+    private lateinit var fcmService: FCMService
 
     @Autowired
     private lateinit var notificationService: NotificationService
@@ -72,6 +81,11 @@ class NotificationServiceTests {
         wireMockServer.start()
         // If not using the default port, we need to instruct explicitly the client (quite redundant)
         configureFor(8089)
+    }
+
+    @AfterEach
+    fun resetWiremock() {
+        reset()
     }
 
     @AfterAll
@@ -189,5 +203,102 @@ class NotificationServiceTests {
         confirmVerified(subscriptionService)
 
         verify(1, postRequestedFor(urlPathEqualTo("/notification")))
+    }
+
+    @Test
+    fun `it should call the subscriber`() {
+
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+
+        stubFor(post(urlMatching("/notification"))
+            .willReturn(ok()))
+
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                it.second.subscriptionId == subscription.id &&
+                it.second.data.size == 1 &&
+                it.third
+            }
+            .expectComplete()
+            .verify()
+
+        verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(subscription, any(), true) }
+        confirmVerified(subscriptionService)
+
+        verify(1, postRequestedFor(urlPathEqualTo("/notification")))
+    }
+
+    @Test
+    fun `it should call the FCM subscriber`() {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = listOf("incoming"),
+                format = NotificationParams.FormatType.KEY_VALUES,
+                endpoint = Endpoint(
+                    uri = URI.create("embedded-firebase"),
+                    accept = Endpoint.AcceptType.JSONLD,
+                    info = listOf(EndpointInfo(key = "deviceToken", value = "deviceToken-value"))
+                ),
+                status = null,
+                lastNotification = null,
+                lastFailure = null,
+                lastSuccess = null
+            )
+        )
+
+        every { fcmService.sendMessage(any(), any(), any()) } returns "Notification sent successfully"
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                it.second.subscriptionId == subscription.id &&
+                it.third
+            }
+            .expectComplete()
+            .verify()
+
+        verify { fcmService.sendMessage(any(), any(), "deviceToken-value") }
+        verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(subscription, any(), true) }
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `it should not call the FCM subscriber if no fcmDeviceToken was found`() {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = listOf("incoming"),
+                format = NotificationParams.FormatType.KEY_VALUES,
+                endpoint = Endpoint(
+                    uri = URI.create("embedded-firebase"),
+                    accept = Endpoint.AcceptType.JSONLD,
+                    info = listOf(EndpointInfo(key = "unknownToken-key", value = "deviceToken-value"))
+                ),
+                status = null,
+                lastNotification = null,
+                lastFailure = null,
+                lastSuccess = null
+            )
+        )
+
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                it.second.subscriptionId == subscription.id &&
+                !it.third
+            }
+            .expectComplete()
+            .verify()
+
+        verify(exactly = 1) { subscriptionService.updateSubscriptionNotification(subscription, any(), false) }
+        verify { fcmService wasNot Called }
+        confirmVerified(subscriptionService)
     }
 }

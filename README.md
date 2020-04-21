@@ -131,4 +131,19 @@ API quick guide.
 
 Stellio is licensed under [APL-2.0](https://spdx.org/licenses/Apache-2.0.html).
 
+It mainly makes use of the following libraries and frameworks (dependencies of dependencies have been omitted):
+
+| Library / Framework |	Licence         |
+| ------------------- | --------------- |
+| Spring              | APL v2          |
+| JSON-LD Java        | BSD-3 Clause    |
+| Reactor             | APL v2          |
+| Jackson             |	APL v2          |
+| JUnit               | EPL v2          |
+| Mockk               |	APL v2          |
+| JsonPath            |	APL v2          |
+| WireMock            | APL v2          |
+| Testcontainers      |	MIT             |
+| Neo4j OGM           |	APL v2          |
+
 © 2020 EGM

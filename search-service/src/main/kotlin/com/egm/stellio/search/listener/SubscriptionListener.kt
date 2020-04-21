@@ -72,6 +72,7 @@ class SubscriptionListener(
         val entityEvent = parseEntityEvent(content)
         when (entityEvent.operationType) {
             EventType.CREATE -> {
+                logger.debug("Received subscription event payload: ${entityEvent.payload}")
                 val notification = parseNotification(entityEvent.payload!!)
                 val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
                 temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)

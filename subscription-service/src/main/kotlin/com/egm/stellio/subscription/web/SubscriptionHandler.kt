@@ -2,8 +2,8 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.subscription.utils.parseSubscription
-import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
+import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
+import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT

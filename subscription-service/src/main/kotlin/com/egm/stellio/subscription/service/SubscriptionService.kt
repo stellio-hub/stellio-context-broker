@@ -12,6 +12,10 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.egm.stellio.subscription.repository.SubscriptionRepository
 import com.egm.stellio.subscription.utils.*
+import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
+import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
+import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
+import com.egm.stellio.subscription.utils.ParsingUtils.parseEntityInfo
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.spi.Row
 import io.r2dbc.postgresql.codec.Json

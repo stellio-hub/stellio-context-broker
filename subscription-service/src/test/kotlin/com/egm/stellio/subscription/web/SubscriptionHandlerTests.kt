@@ -4,7 +4,7 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
-import com.egm.stellio.subscription.utils.parseSubscriptionUpdate
+import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is

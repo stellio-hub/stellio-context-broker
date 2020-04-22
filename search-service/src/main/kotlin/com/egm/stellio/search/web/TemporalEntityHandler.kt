@@ -7,14 +7,14 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.parseTimeParameter
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -32,6 +32,8 @@ class TemporalEntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val entityService: EntityService
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Mirror of what we receive from Kafka.
@@ -100,10 +102,11 @@ class TemporalEntityHandler(
                 temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults)
             }
             .map {
-                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
+                compactEntity(it)
             }
             .flatMap {
-                ok().body(BodyInserters.fromValue(it))
+                logger.debug("Preparing to return $it")
+                ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
     }
 
@@ -116,7 +119,7 @@ class TemporalEntityHandler(
         else
             entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
                 .doOnSuccess {
-                    val entityPayload = JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
+                    val entityPayload = compactEntity(it)
                     temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
                 }
 }

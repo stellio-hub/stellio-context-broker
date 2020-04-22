@@ -75,7 +75,7 @@ class SubscriptionListener(
                 val notification = parseNotification(entityEvent.payload!!)
                 val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
                 temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
-                    .map {
+                    .flatMap {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it.id,
                             observedAt = notification.notifiedAt,
@@ -84,7 +84,7 @@ class SubscriptionListener(
                         attributeInstanceService.create(attributeInstance)
                     }
                     .subscribe {
-                        logger.debug("Created observations for notification ${notification.id}")
+                        logger.debug("Created a new instance for notification ${notification.id}")
                     }
             }
             else -> logger.warn("Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}")

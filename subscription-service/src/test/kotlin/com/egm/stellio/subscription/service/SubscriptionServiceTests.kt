@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
@@ -369,7 +370,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should update a subscription with a notification result`() {
 
         val persistedSubscription = subscriptionService.getById(subscription1Id).block()!!
-        val notification = Notification(subscriptionId = subscription1Id, data = listOf("entity"))
+        val notification = Notification(subscriptionId = subscription1Id, data = emptyList())
 
         val updateResult = subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
             .then(subscriptionService.getById(subscription1Id))

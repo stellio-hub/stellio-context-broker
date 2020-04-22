@@ -1,12 +1,12 @@
 package com.egm.stellio.shared.model
 
-import com.fasterxml.jackson.databind.JsonNode
 import java.time.OffsetDateTime
+import java.util.*
 
 data class Notification(
-    val id: String,
+    val id: String = "urn:ngsi-ld:Notification:${UUID.randomUUID()}",
     val type: String = "Notification",
-    val notifiedAt: OffsetDateTime,
     val subscriptionId: String,
-    val data: List<JsonNode>
+    val notifiedAt: OffsetDateTime = OffsetDateTime.now(),
+    val data: List<Map<String, Any>>
 )

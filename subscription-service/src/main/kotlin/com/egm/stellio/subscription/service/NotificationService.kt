@@ -2,10 +2,11 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getLocationFromEntity
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
 import com.egm.stellio.subscription.firebase.FCMService
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -36,13 +37,13 @@ class NotificationService(
                     subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(parsedEntity))
                 }
                 .flatMap {
-                    callSubscriber(it, listOf(rawEntity))
+                    callSubscriber(it, listOf(parsedEntity))
                 }
                 .collectList()
     }
 
-    fun callSubscriber(subscription: Subscription, entities: List<String>): Mono<Triple<Subscription, Notification, Boolean>> {
-        val notification = Notification(subscriptionId = subscription.id, data = entities)
+    fun callSubscriber(subscription: Subscription, entities: List<Pair<Map<String, Any>, List<String>>>): Mono<Triple<Subscription, Notification, Boolean>> {
+        val notification = Notification(subscriptionId = subscription.id, data = compactEntities(entities))
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")

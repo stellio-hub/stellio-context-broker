@@ -10,8 +10,8 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -95,9 +95,7 @@ class EntityHandler(
                 neo4jService.searchEntities(type, q.decode(), contextLink)
             }
             .map {
-                it.map {
-                    JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
-                }
+                compactEntities(it)
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
@@ -118,7 +116,7 @@ class EntityHandler(
                 neo4jService.getFullEntityById(it)
             }
             .map {
-                JsonLdProcessor.compact(it.first, mapOf("@context" to it.second), JsonLdOptions())
+                compactEntity(it)
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))

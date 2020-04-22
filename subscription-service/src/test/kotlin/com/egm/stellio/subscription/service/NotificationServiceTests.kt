@@ -121,10 +121,9 @@ class NotificationServiceTests {
 
         verify(timeout = 1000, exactly = 1) { notificationsEventsListener.handleNotificationEvent(match { entityEvent ->
             entityEvent.entityType == "Notification" &&
-            entityEvent.entityId != null &&
             entityEvent.operationType == EventType.CREATE &&
             read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
-            read(entityEvent.payload!!, "$.data") as List<String> == listOf(rawEntity) &&
+            read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
             entityEvent.updatedEntity == null
         }) }
 
@@ -216,7 +215,7 @@ class NotificationServiceTests {
         stubFor(post(urlMatching("/notification"))
             .willReturn(ok()))
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                 it.second.subscriptionId == subscription.id &&
@@ -254,7 +253,7 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                 it.second.subscriptionId == subscription.id &&
@@ -288,7 +287,7 @@ class NotificationServiceTests {
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(rawEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                 it.second.subscriptionId == subscription.id &&

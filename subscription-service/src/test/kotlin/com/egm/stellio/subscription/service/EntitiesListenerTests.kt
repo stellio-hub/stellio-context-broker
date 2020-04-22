@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.subscription.model.Notification
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*

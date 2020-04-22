@@ -8,7 +8,6 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.ApiUtils.parseNotification
 import com.egm.stellio.shared.util.ApiUtils.parseSubscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
-import com.fasterxml.jackson.databind.JsonNode
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -72,7 +71,7 @@ class SubscriptionListener(
         val entityEvent = parseEntityEvent(content)
         when (entityEvent.operationType) {
             EventType.CREATE -> {
-                logger.debug("Received subscription event payload: ${entityEvent.payload}")
+                logger.debug("Received notification event payload: ${entityEvent.payload}")
                 val notification = parseNotification(entityEvent.payload!!)
                 val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
                 temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
@@ -92,8 +91,8 @@ class SubscriptionListener(
         }
     }
 
-    fun mergeEntitesIdsFromNotificationData(data: List<JsonNode>): String =
+    fun mergeEntitesIdsFromNotificationData(data: List<Map<String, Any>>): String =
         data.joinToString(",") {
-            it.get("id").asText()
+            it["id"] as String
         }
 }

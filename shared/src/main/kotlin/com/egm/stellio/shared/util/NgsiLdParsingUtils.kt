@@ -299,6 +299,14 @@ object NgsiLdParsingUtils {
         return mapper.writeValueAsString(compactedFragment)
     }
 
+    fun compactEntity(entity: Pair<Map<String, Any>, List<String>>): Map<String, Any> =
+        JsonLdProcessor.compact(entity.first, mapOf("@context" to entity.second), JsonLdOptions())
+
+    fun compactEntities(entities: List<Pair<Map<String, Any>, List<String>>>): List<Map<String, Any>> =
+        entities.map {
+            compactEntity(it)
+        }
+
     fun getTypeFromURI(uri: String): String {
         return uri.split(":")[2]
     }

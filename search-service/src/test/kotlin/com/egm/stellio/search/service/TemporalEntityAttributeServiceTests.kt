@@ -31,6 +31,28 @@ class TemporalEntityAttributeServiceTests {
     }
 
     @Test
+    fun `it should retrieve a persisted temporal entity attribute`() {
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTD",
+                listOf("https://ontology.eglobalmark.com/apic#incoming", "https://ontology.eglobalmark.com/apic#outgoing"))
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.entityId == "urn:ngsi-ld:BeeHive:TESTD" &&
+                    it.entityPayload !== null
+            }
+            .expectNextMatches {
+                it.entityId == "urn:ngsi-ld:BeeHive:TESTD"
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should create one entry for an entity with one temporal property`() {
         val rawEntity = loadSampleData()
 
@@ -46,7 +68,7 @@ class TemporalEntityAttributeServiceTests {
 
     @Test
     fun `it should create two entries for an entity with two temporal properties`() {
-        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val rawEntity = loadSampleData("beehive2_two_temporal_properties.jsonld")
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
 

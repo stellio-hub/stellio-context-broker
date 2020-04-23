@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ SubscriptionListener::class ])
 @ActiveProfiles("test")
@@ -47,22 +48,18 @@ class SubscriptionListenerTest {
     @Test
     fun `it should parse a notification and create one related observation`() {
 
-        val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:Subscription:1234",
-            type = "Subscription",
-            attributeName = "notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
-        )
+        val temporalEntityAttributeUuid = UUID.randomUUID()
         val notification = loadSampleData("notification_event.jsonld")
 
-        every { temporalEntityAttributeService.getFirstForEntity(any()) } returns Mono.just(entityTemporalProperty)
+        every { temporalEntityAttributeService.getFirstForEntity(any()) } returns Mono.just(temporalEntityAttributeUuid)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
         subscriptionListener.processNotification(notification)
 
         verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234")) }
         verify { attributeInstanceService.create(match {
-            it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD"
+            it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
+                it.temporalEntityAttribute == temporalEntityAttributeUuid
         }) }
         confirmVerified(temporalEntityAttributeService)
         confirmVerified(attributeInstanceService)

@@ -50,8 +50,8 @@ class TemporalEntityHandler(
             }
             .flatMap {
                 temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
-                    .map { temporalEntityAttribute ->
-                        Pair(temporalEntityAttribute, it) }
+                    .map { temporalEntityAttributeUuid ->
+                        Pair(temporalEntityAttributeUuid, it) }
             }
             .map {
                 attributeInstanceService.addAttributeInstances(it.first,

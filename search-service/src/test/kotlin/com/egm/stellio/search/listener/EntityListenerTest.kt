@@ -1,6 +1,5 @@
 package com.egm.stellio.search.listener
 
-import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.ninjasquad.springmockk.MockkBean
@@ -13,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntityListener::class ])
 @ActiveProfiles("test")
@@ -77,14 +77,8 @@ class EntityListenerTest {
             }
         """.trimIndent().replace("\n", "")
 
-        val temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:FishContainment:1234",
-            type = "FishContainment",
-            attributeName = "totalDissolvedSolids",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-            entityPayload = eventPayload
-        )
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(temporalEntityAttribute)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(temporalEntityAttributeUuid)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
         entityListener.processMessage(content)
@@ -94,7 +88,8 @@ class EntityListenerTest {
         verify { attributeInstanceService.create(match {
             it.value == null &&
                 it.measuredValue == 33869.0 &&
-                it.observedAt == OffsetDateTime.parse("2020-03-12T08:33:38.000Z")
+                it.observedAt == OffsetDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                it.temporalEntityAttribute == temporalEntityAttributeUuid
         }) }
         confirmVerified(temporalEntityAttributeService)
     }

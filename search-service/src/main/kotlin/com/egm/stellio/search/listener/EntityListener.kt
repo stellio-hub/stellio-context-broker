@@ -45,7 +45,7 @@ class EntityListener(
                 temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, attributeName)
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
-                            temporalEntityAttribute = it.id,
+                            temporalEntityAttribute = it,
                             observedAt = OffsetDateTime.parse(rawParsedData[attributeName]["observedAt"].asText()),
                             measuredValue = rawParsedData[attributeName]["value"].asDouble()
                         )
@@ -55,7 +55,7 @@ class EntityListener(
                         logger.error("Failed to persist new attribute instance, ignoring it", it)
                     }
                     .doOnNext {
-                        logger.debug("Created new attribute instance for entity (${it.t1.entityId})")
+                        logger.debug("Created new attribute instance for temporal entity attribute (${it.t1})")
                     }
                     .subscribe()
             }

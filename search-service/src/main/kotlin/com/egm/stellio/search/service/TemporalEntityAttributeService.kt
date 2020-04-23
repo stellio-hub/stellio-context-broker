@@ -17,14 +17,14 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import io.r2dbc.postgresql.codec.Json
+import io.r2dbc.spi.Row
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
-import org.springframework.data.r2dbc.core.isEquals
-import org.springframework.data.r2dbc.query.Criteria.where
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
+import java.util.*
 
 @Service
 class TemporalEntityAttributeService(
@@ -109,36 +109,68 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntity(id: String, attrs: List<String>): Flux<TemporalEntityAttribute> {
-        var criteria = where("entity_id").isEquals(id)
-        if (attrs.isNotEmpty())
-            criteria = criteria.and("attribute_name").`in`(attrs)
+        val selectQuery = """
+            SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+        """.trimIndent()
+
+        val finalQuery =
+            if (attrs.isNotEmpty())
+                selectQuery + " AND attribute_name in (${attrs.joinToString(",") { "'$it'" }})"
+            else
+                selectQuery
 
         return databaseClient
-            .select()
-            .from(TemporalEntityAttribute::class.java)
-            .matching(criteria)
-            .fetch()
+            .execute(finalQuery)
+            .bind("entity_id", id)
+            .map(rowToTemporalEntityAttribute)
             .all()
     }
 
-    fun getFirstForEntity(id: String): Mono<TemporalEntityAttribute> =
-        databaseClient
-            .select()
-            .from(TemporalEntityAttribute::class.java)
-            .matching(where("entity_id").isEquals(id))
-            .fetch()
-            .first()
-
-    fun getForEntityAndAttribute(id: String, attritbuteName: String): Mono<TemporalEntityAttribute> {
-        val criteria = where("entity_id").isEquals(id)
-            .and("attribute_name").isEquals(attritbuteName)
+    fun getFirstForEntity(id: String): Mono<UUID> {
+        val selectQuery = """
+            SELECT id
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+        """.trimIndent()
 
         return databaseClient
-            .select()
-            .from(TemporalEntityAttribute::class.java)
-            .matching(criteria)
-            .fetch()
+            .execute(selectQuery)
+            .bind("entity_id", id)
+            .map(rowToId)
+            .first()
+    }
+
+    fun getForEntityAndAttribute(id: String, attritbuteName: String): Mono<UUID> {
+        val selectQuery = """
+            SELECT id
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            AND attribute = :attribute_name
+        """.trimIndent()
+
+        return databaseClient
+            .execute(selectQuery)
+            .bind("entity_id", id)
+            .bind("attribute_name", attritbuteName)
+            .map(rowToId)
             .one()
+    }
+
+    private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->
+        TemporalEntityAttribute(
+            id = row.get("id", UUID::class.java)!!,
+            entityId = row.get("entity_id", String::class.java)!!,
+            type = row.get("type", String::class.java)!!,
+            attributeName = row.get("attribute_name", String::class.java)!!,
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(row.get("attribute_value_type", String::class.java)!!),
+            entityPayload = row.get("entity_payload", String::class.java)
+        )
+    }
+
+    private var rowToId: ((Row) -> UUID) = { row ->
+        row.get("id", UUID::class.java)!!
     }
 
     fun injectTemporalValues(rawEntity: Pair<Map<String, Any>, List<String>>, rawResults: List<List<Map<String, Any>>>): Pair<Map<String, Any>, List<String>> {

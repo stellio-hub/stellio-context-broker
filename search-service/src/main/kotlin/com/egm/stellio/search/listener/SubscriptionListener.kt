@@ -77,7 +77,7 @@ class SubscriptionListener(
                 temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
                     .flatMap {
                         val attributeInstance = AttributeInstance(
-                            temporalEntityAttribute = it.id,
+                            temporalEntityAttribute = it,
                             observedAt = notification.notifiedAt,
                             value = entitiesIds
                         )

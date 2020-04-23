@@ -30,6 +30,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -62,15 +63,9 @@ class TemporalEntityHandlerTests {
     fun `it should return a 204 if temporal entity fragment is valid`() {
 
         val jsonLdObservation = ClassPathResource("/ngsild/observation.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        val temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC",
-            type = "BeeHive",
-            attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-        )
-
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(temporalEntityAttribute)
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(temporalEntityAttributeUuid)
         every { attributeInstanceService.addAttributeInstances(any(), any(), any()) } returns Mono.just(1)
 
         webClient.post()
@@ -81,14 +76,12 @@ class TemporalEntityHandlerTests {
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(eq("urn:ngsi-ld:BeeHive:TESTC"),
             eq("incoming")) }
-        verify { attributeInstanceService.addAttributeInstances(match {
-            it.entityId == "urn:ngsi-ld:BeeHive:TESTC" &&
-                it.attributeName == "incoming" &&
-                it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
-                it.type == "BeeHive"
-        }, eq("incoming"), match {
-            it.size == 4
-        }) }
+        verify { attributeInstanceService.addAttributeInstances(eq(temporalEntityAttributeUuid),
+            eq("incoming"),
+            match {
+                it.size == 4
+            }
+        ) }
         confirmVerified(temporalEntityAttributeService)
         confirmVerified(attributeInstanceService)
     }

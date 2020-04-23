@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsD
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import java.util.*
 
 @Service
 class AttributeInstanceService(
@@ -26,10 +27,10 @@ class AttributeInstanceService(
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances
-    fun addAttributeInstances(temporalEntityAttribute: TemporalEntityAttribute, attributeKey: String, attributeValues: Map<String, List<Any>>): Mono<Int> {
+    fun addAttributeInstances(temporalEntityAttributeUuid: UUID, attributeKey: String, attributeValues: Map<String, List<Any>>): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)!!
         val attributeInstance = AttributeInstance(
-            temporalEntityAttribute = temporalEntityAttribute.id,
+            temporalEntityAttribute = temporalEntityAttributeUuid,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue)

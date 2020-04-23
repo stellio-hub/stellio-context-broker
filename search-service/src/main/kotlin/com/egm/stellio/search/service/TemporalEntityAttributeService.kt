@@ -147,7 +147,7 @@ class TemporalEntityAttributeService(
             SELECT id
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-            AND attribute = :attribute_name
+            AND attribute_name = :attribute_name
         """.trimIndent()
 
         return databaseClient

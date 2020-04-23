@@ -199,6 +199,17 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `it should return a 404 if temporal entity attribute does not exist`() {
+
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.empty()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
+            .exchange()
+            .expectStatus().isNotFound
+    }
+
+    @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
 
         val entityTemporalProperty = TemporalEntityAttribute(

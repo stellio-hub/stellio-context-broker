@@ -6,6 +6,7 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
@@ -83,6 +84,7 @@ class TemporalEntityHandler(
 
         // FIXME this is way too complex, refactor it later
         return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs)
+            .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
             .flatMap { temporalEntityAttribute ->
                 attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
                     .map { results ->

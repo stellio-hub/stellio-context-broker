@@ -1,9 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.InvalidNgsiLdPayloadException
-import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.model.Subscription
+import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -13,8 +10,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.badRequest
-import org.springframework.web.reactive.function.server.ServerResponse.status
+import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.contentTypeOrNull
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
@@ -81,5 +77,6 @@ fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<S
     when (throwable) {
         is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
         is InvalidNgsiLdPayloadException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
+        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
         else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
     }

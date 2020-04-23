@@ -47,8 +47,9 @@ class TemporalEntityAttributeService(
             .rowsUpdated()
 
     fun addEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, payload: String): Mono<Int> =
-        databaseClient.execute("UPDATE temporal_entity_attribute set entity_payload = :entity_payload")
+        databaseClient.execute("UPDATE temporal_entity_attribute SET entity_payload = :entity_payload WHERE id = :id")
             .bind("entity_payload", Json.of(payload))
+            .bind("id", temporalEntityAttribute.id)
             .fetch()
             .rowsUpdated()
 

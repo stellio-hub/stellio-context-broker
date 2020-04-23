@@ -176,7 +176,8 @@ class TemporalEntityAttributeService(
     fun injectTemporalValues(rawEntity: Pair<Map<String, Any>, List<String>>, rawResults: List<List<Map<String, Any>>>): Pair<Map<String, Any>, List<String>> {
 
         val entity = rawEntity.first.toMutableMap()
-        if (rawResults.size == 1 && rawResults[0][0].isEmpty())
+        // FIXME it is ugly!!
+        if (rawResults.size == 1 && (rawResults[0].isEmpty() || (rawResults[0].size == 1 && rawResults[0][0].isEmpty())))
             return Pair(entity, rawEntity.second)
 
         rawResults.forEach {

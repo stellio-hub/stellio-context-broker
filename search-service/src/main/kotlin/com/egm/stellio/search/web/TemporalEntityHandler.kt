@@ -7,6 +7,7 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
@@ -118,7 +119,10 @@ class TemporalEntityHandler(
                         temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
                     }
             temporalEntityAttribute.type != "Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
-            else -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload, emptyList()))
+            else -> {
+                val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
+                Mono.just(Pair(parsedEntity.first, listOf(NGSILD_CORE_CONTEXT)))
+            }
         }
 }
 

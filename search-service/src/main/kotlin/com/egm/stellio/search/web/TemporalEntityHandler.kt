@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.parseTimeParameter
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -32,8 +31,6 @@ class TemporalEntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val entityService: EntityService
 ) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Mirror of what we receive from Kafka.
@@ -105,7 +102,6 @@ class TemporalEntityHandler(
                 compactEntity(it)
             }
             .flatMap {
-                logger.debug("Preparing to return $it")
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
     }
@@ -114,14 +110,16 @@ class TemporalEntityHandler(
      * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
      */
     private fun loadEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> =
-        if (temporalEntityAttribute.entityPayload != null)
-            Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
-        else
-            entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
-                .doOnSuccess {
-                    val entityPayload = compactEntity(it)
-                    temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
-                }
+        when {
+            temporalEntityAttribute.entityPayload == null ->
+                entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
+                    .doOnSuccess {
+                        val entityPayload = compactEntity(it)
+                        temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
+                    }
+            temporalEntityAttribute.type != "Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
+            else -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload, emptyList()))
+        }
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {

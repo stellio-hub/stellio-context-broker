@@ -103,4 +103,26 @@ class TemporalEntityAttributeServiceTests {
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("expectations/subscription_with_notifications.jsonld").trim(), finalEntity)
     }
+
+    @Test
+    fun `it should return the entity untouched if it has no temporal history`() {
+        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawResults = emptyList<List<Map<String, Any>>>()
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults)
+        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
+    }
+
+    @Test
+    fun `it should return the entity untouched if it has an empty temporal history`() {
+        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawResults = listOf(listOf(emptyMap<String, Any>()))
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults)
+        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
+    }
 }

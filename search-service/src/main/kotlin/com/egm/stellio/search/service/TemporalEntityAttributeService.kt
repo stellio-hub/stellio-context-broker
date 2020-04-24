@@ -177,11 +177,12 @@ class TemporalEntityAttributeService(
     fun injectTemporalValues(rawEntity: Pair<Map<String, Any>, List<String>>, rawResults: List<List<Map<String, Any>>>): Pair<Map<String, Any>, List<String>> {
 
         val entity = rawEntity.first.toMutableMap()
-        // FIXME it is ugly!!
-        if (rawResults.size == 1 && (rawResults[0].isEmpty() || (rawResults[0].size == 1 && rawResults[0][0].isEmpty())))
-            return Pair(entity, rawEntity.second)
 
-        rawResults.forEach {
+        rawResults.filter {
+            // filtering out empty lists or lists with an empty map of results
+            it.isNotEmpty() && it[0].isNotEmpty()
+        }
+        .forEach {
             // attribute_name is the name of the temporal property we want to update
             val attributeName = it.first()["attribute_name"]!!
             val expandedAttributeName = NgsiLdParsingUtils.expandJsonLdKey(attributeName as String, rawEntity.second)

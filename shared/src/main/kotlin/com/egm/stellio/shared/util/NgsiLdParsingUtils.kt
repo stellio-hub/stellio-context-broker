@@ -23,6 +23,7 @@ data class AttributeType(val uri: String)
 object NgsiLdParsingUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    const val NGSILD_EGM_CONTEXT = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -65,6 +66,7 @@ object NgsiLdParsingUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
+    const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 

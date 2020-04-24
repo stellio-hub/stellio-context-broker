@@ -9,8 +9,10 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.loadAndParseSampleData
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
@@ -704,7 +706,149 @@ class Neo4jServiceTests {
         confirmVerified()
     }
 
-    private fun gimmeAnObservation(): Observation {
+    @Test
+    fun `it should create a new subscription`() {
+
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val subscriptionType = "Subscription"
+        val properties = mapOf(
+            "q" to "foodQuantity<150;foodName=='dietary fibres'"
+        )
+        val mockkedSubscription = mockkClass(Entity::class)
+        val mockkedProperty = mockkClass(Property::class)
+
+        every { neo4jService.exists(any()) } returns false
+        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
+        every { entityRepository.save<Entity>(any()) } returns mockkedSubscription
+
+        neo4jService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
+
+        verify { neo4jService.exists(eq(subscriptionId)) }
+        verify { propertyRepository.save(any<Property>()) }
+        verify { entityRepository.save(any<Entity>()) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create subscription if exists`() {
+
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val subscriptionType = "Subscription"
+        val properties = mapOf(
+            "q" to "foodQuantity<150;foodName=='dietary fibres'"
+        )
+
+        every { neo4jService.exists(any()) } returns true
+
+        neo4jService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
+
+        verify { neo4jService.exists(eq(subscriptionId)) }
+        verify { propertyRepository wasNot Called }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a new notification and add a relationship to the subscription`() {
+
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
+        val notificationId = "urn:ngsi-ld:Notification:1234"
+        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610"
+        val notificationType = "Notification"
+        val properties = mapOf(
+            "notifiedAt" to "2020-03-10T00:00:00Z"
+        )
+        val mockkedSubscription = mockkClass(Entity::class)
+        val mockkedNotification = mockkClass(Entity::class)
+        val mockkedProperty = mockkClass(Property::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
+
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSubscription)
+        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
+        every { entityRepository.save<Entity>(any()) } returns mockkedNotification
+        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
+        every { relationshipRepository.save(any<Relationship>()) } returns mockkedRelationship
+        every { mockkedSubscription.relationships } returns mutableListOf()
+        every { mockkedRelationship.id } returns relationshipId
+        every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
+
+        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+
+        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { propertyRepository.save(any<Property>()) }
+        verify { entityRepository.save(any<Entity>()) }
+        verify { neo4jRepository.getRelationshipTargetOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName()) }
+        verify { relationshipRepository.save(any<Relationship>()) }
+        verify { neo4jRepository.createRelationshipToEntity(relationshipId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName(), notificationId) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should remove the last notification create a new one and update the relationship to the subscription`() {
+
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
+        val notificationId = "urn:ngsi-ld:Notification:1234"
+        val lastNotificationId = "urn:ngsi-ld:Notification:1233"
+        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610"
+        val notificationType = "Notification"
+        val properties = mapOf(
+            "notifiedAt" to "2020-03-10T00:00:00Z"
+        )
+        val mockkedSubscription = mockkClass(Entity::class)
+        val mockkedNotification = mockkClass(Entity::class)
+        val mockkedLastNotification = mockkClass(Entity::class)
+        val mockkedProperty = mockkClass(Property::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
+
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedSubscription)
+        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
+        every { entityRepository.save<Entity>(any()) } returns mockkedNotification
+        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedLastNotification
+        every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
+        every { mockkedRelationship.id } returns relationshipId
+        every { mockkedNotification.id } returns notificationId
+        every { mockkedLastNotification.id } returns lastNotificationId
+        every { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) } returns Pair(1, 1)
+        every { relationshipRepository.save<Relationship>(any()) } returns mockkedRelationship
+        every { neo4jRepository.deleteEntity(any()) } returns Pair(1, 1)
+
+        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+
+        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { propertyRepository.save(any<Property>()) }
+        verify { entityRepository.save(any<Entity>()) }
+        verify { neo4jRepository.getRelationshipTargetOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName()) }
+        verify { neo4jRepository.getRelationshipOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName()) }
+        verify { neo4jRepository.updateRelationshipTargetOfAttribute(relationshipId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName(), lastNotificationId, notificationId) }
+        verify { relationshipRepository.save(any<Relationship>()) }
+        every { neo4jRepository.deleteEntity(lastNotificationId) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create notification if the related subscription does not exist`() {
+
+        val notificationId = "urn:ngsi-ld:Notification:1234"
+        val notificationType = "Notification"
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
+        val properties = mapOf(
+            "notifiedAt" to "2020-03-10T00:00:00Z"
+        )
+
+        every { entityRepository.findById(any()) } returns Optional.empty()
+
+        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+
+        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { propertyRepository wasNot Called }
+
+        confirmVerified()
+    }
+
+        private fun gimmeAnObservation(): Observation {
         return Observation(
             attributeName = "incoming",
             latitude = 43.12,

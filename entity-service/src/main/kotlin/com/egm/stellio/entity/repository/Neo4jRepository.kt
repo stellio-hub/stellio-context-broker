@@ -296,15 +296,14 @@ class Neo4jRepository(
             .first()
     }
 
-    fun getRelationshipTargetOfSubject(subjectId: String, relationshipType: String): Entity {
+    fun getRelationshipTargetOfSubject(subjectId: String, relationshipType: String): Entity? {
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
             RETURN e
         """.trimIndent()
-
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
-            .first()
+            .firstOrNull()
     }
 
     private fun escapePropertyValue(value: Any): Any {

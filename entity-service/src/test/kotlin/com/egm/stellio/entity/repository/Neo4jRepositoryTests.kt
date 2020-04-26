@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -108,7 +111,39 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should return an entity if given name not equals to entity name and comparaison parameter is correct`() {
         val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
-        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "<>", "ScalpaXYZ"))))
+        val entities = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("name", "<>", "ScalpaXYZ"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an entity if type and dateTime properties are correct`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1234", listOf("Beekeeper"), mutableListOf(Property(name = "testedAt", value = ZonedDateTime.parse("2018-12-04T12:00:00Z"))))
+        val entities = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("testedAt", "=", "2018-12-04T12:00:00Z"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an entity if type and date properties are correct`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1235", listOf("Beekeeper"), mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04"))))
+        val entities = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("testedAt", "=", "2018-12-04"))))
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not return an entity if type is correct but not the compared date`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1235", listOf("Beekeeper"), mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04"))))
+        val entities = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("testedAt", "=", "2018-12-07"))))
+        assertFalse(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return an entity if type and time properties are correct`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1236", listOf("Beekeeper"), mutableListOf(Property(name = "testedAt", value = LocalTime.parse("12:00:00"))))
+        val entities: List<String> = neo4jRepository.getEntitiesByTypeAndQuery("Beekeeper", Pair(listOf(), listOf(Triple("testedAt", "=", "12:00:00"))))
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }

@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
@@ -441,7 +442,8 @@ class Neo4jServiceTests {
                 mapOf("@value" to "kg")
             ),
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
-                mapOf("@value" to "2019-12-18T10:45:44.248755+01:00")
+                mapOf("@type" to NGSILD_DATE_TIME_TYPE,
+                    "@value" to "2019-12-18T10:45:44.248755+01:00")
             )
         )
 

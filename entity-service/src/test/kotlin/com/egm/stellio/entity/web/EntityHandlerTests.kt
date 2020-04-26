@@ -8,6 +8,9 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -24,9 +27,7 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.RuntimeException
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
+import java.time.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -148,6 +149,69 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001+01:00\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize properties of type DateTime`() {
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.getFullEntityById(any()) } returns Pair(
+            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                NGSILD_PROPERTY_VALUE to mapOf(
+                    "@type" to NGSILD_DATE_TIME_TYPE,
+                    "@value" to ZonedDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1"))))),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001+01:00\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize properties of type Date`() {
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.getFullEntityById(any()) } returns Pair(
+            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                NGSILD_PROPERTY_VALUE to mapOf(
+                    "@type" to NGSILD_DATE_TYPE,
+                    "@value" to LocalDate.of(2015, 10, 18)))),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Date\",\"@value\":\"2015-10-18\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize properties of type Time`() {
+
+        every { neo4jService.exists(any()) } returns true
+        every { neo4jService.getFullEntityById(any()) } returns Pair(
+            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                NGSILD_PROPERTY_VALUE to mapOf(
+                    "@type" to NGSILD_TIME_TYPE,
+                    "@value" to LocalTime.of(11, 20, 30)))),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Time\",\"@value\":\"11:20:30\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test

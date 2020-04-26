@@ -3,8 +3,7 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.isFloat
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.*
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -179,10 +178,14 @@ class Neo4jRepository(
         val propertiesFilter =
             if (query.second.isNotEmpty())
                 query.second.joinToString(" AND ") {
-                    if (it.third.isFloat())
-                        "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} toFloat('${it.third}')"
-                    else
-                        "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} '${it.third}'"
+                    val comparableValue = when {
+                        it.third.isFloat() -> "toFloat('${it.third}')"
+                        it.third.isDateTime() -> "datetime('${it.third}')"
+                        it.third.isDate() -> "date('${it.third}')"
+                        it.third.isTime() -> "localtime('${it.third}')"
+                        else -> "'${it.third}'"
+                    }
+                    "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} $comparableValue"
                 }
             else
                 ""

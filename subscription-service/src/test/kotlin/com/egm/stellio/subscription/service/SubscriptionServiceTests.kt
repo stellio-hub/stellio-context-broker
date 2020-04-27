@@ -48,6 +48,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     private lateinit var subscription2Id: String
     private lateinit var subscription3Id: String
     private lateinit var subscription4Id: String
+    private lateinit var subscription5Id: String
+    private lateinit var subscription6Id: String
 
     private val entity = ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
 
@@ -80,7 +82,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             name = "Subscription 3",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Apiary")
-            )
+            ),
+            isActive = false
         )
         subscriptionService.create(subscription3).block()
         subscription3Id = subscription3.id
@@ -89,10 +92,31 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             name = "Subscription 4",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive")
-            )
+            ),
+            isActive = false
         )
         subscriptionService.create(subscription4).block()
         subscription4Id = subscription4.id
+
+        val subscription5 = gimmeRawSubscription().copy(
+            name = "Subscription 5",
+            entities = setOf(
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:77", idPattern = null, type = "smartDoor")
+            ),
+            isActive = true
+        )
+        subscriptionService.create(subscription5).block()
+        subscription5Id = subscription5.id
+
+        val subscription6 = gimmeRawSubscription().copy(
+            name = "Subscription 6",
+            entities = setOf(
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:88", idPattern = null, type = "smartDoor")
+            ),
+            isActive = false
+        )
+        subscriptionService.create(subscription6).block()
+        subscription6Id = subscription6.id
     }
 
     @Test
@@ -188,6 +212,46 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should load and fill a persisted subscription with entities info and active status`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription2Id)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 2" &&
+                it.description == "My beautiful subscription" &&
+                it.notification.attributes == listOf("incoming") &&
+                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD,
+                    listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
+                ) &&
+                it.entities.size == 2 &&
+                it.isActive
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should load and fill a persisted subscription with entities info and inactive status`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription4Id)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 4" &&
+                it.description == "My beautiful subscription" &&
+                it.notification.attributes == listOf("incoming") &&
+                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
+                it.entities.size == 1 &&
+                !it.isActive
+            }
+            .verifyComplete()
+    }
+
+    @Test
     fun `it should delete an existing subscription`() {
         val subscription = gimmeRawSubscription()
 
@@ -267,7 +331,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive")
 
         StepVerifier.create(persistedSubscription)
-            .expectNextCount(2)
+            .expectNextCount(1)
             .verifyComplete()
     }
 
@@ -279,6 +343,28 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should retrieve an activated subscription matching an id`() {
+
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor")
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 5"
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should not retrieve a deactivated subscription matching an id`() {
+
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor")
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(0)
+            .verifyComplete()
     }
 
     @Test
@@ -362,6 +448,34 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.entities.contains(EntityInfo(id = "urn:ngsi-ld:Beehive:123", idPattern = null, type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
                 it.entities.contains(EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beehive:12*", type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
                 it.entities.size == 2
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should activate a subscription`() {
+        val parsedInput = Pair(mapOf("isActive" to true), listOf(apicContext))
+
+        subscriptionService.update(subscription3Id, parsedInput).block()
+        val updateResult = subscriptionService.getById(subscription3Id)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                it.isActive
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should deactivate a subscription`() {
+        val parsedInput = Pair(mapOf("isActive" to false), listOf(apicContext))
+
+        subscriptionService.update(subscription1Id, parsedInput).block()
+        val updateResult = subscriptionService.getById(subscription1Id)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                !it.isActive
             }
             .verifyComplete()
     }

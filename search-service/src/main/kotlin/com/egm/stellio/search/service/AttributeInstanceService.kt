@@ -49,11 +49,11 @@ class AttributeInstanceService(
                     """.trimIndent()
                 temporalEntityAttribute.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
                     """
-                        SELECT observed_at, value
+                        SELECT observed_at, value, instance_id
                     """.trimIndent()
                 else ->
                     """
-                        SELECT observed_at, measured_value as value
+                        SELECT observed_at, measured_value as value, instance_id
                     """.trimIndent()
             }
 

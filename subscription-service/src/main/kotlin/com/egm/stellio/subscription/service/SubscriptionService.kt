@@ -44,8 +44,8 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription): Mono<Int> {
         val insertStatement = """
-            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent) 
-            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent)
+            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active) 
+            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active)
         """.trimIndent()
 
         return databaseClient.execute(insertStatement)
@@ -60,6 +60,7 @@ class SubscriptionService(
             .bind("endpoint_accept", subscription.notification.endpoint.accept.name)
             .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
             .bind("times_sent", subscription.notification.timesSent)
+            .bind("is_active", subscription.isActive)
             .fetch()
             .rowsUpdated()
             .flatMap {
@@ -116,7 +117,7 @@ class SubscriptionService(
                 val selectStatement = """
                 SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                        notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                       status, times_sent, last_notification, last_failure, last_success,
+                       status, times_sent, is_active, last_notification, last_failure, last_success,
                        entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                        georel, geometry, coordinates, geoproperty
                 FROM subscription 
@@ -156,7 +157,11 @@ class SubscriptionService(
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
                 else -> {
-                    val updateStatement = Update.update(it.key, it.value.toString())
+                    val columnName =
+                        if (it.key == "isActive") "is_active"
+                        else it.key
+
+                    val updateStatement = Update.update(columnName, it.value)
                     updates.add(databaseClient.update()
                         .table("subscription")
                         .using(updateStatement)
@@ -302,7 +307,7 @@ class SubscriptionService(
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                   status, times_sent, last_notification, last_failure, last_success,
+                   status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
             FROM subscription 
@@ -345,7 +350,8 @@ class SubscriptionService(
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
-            WHERE id IN (
+            WHERE is_active 
+            AND id IN (
                 SELECT subscription_id
                 FROM entity_info
                 WHERE entity_info.type = :type
@@ -455,7 +461,8 @@ class SubscriptionService(
                         lastNotification = row.get("last_notification", OffsetDateTime::class.java),
                         lastFailure = row.get("last_failure", OffsetDateTime::class.java),
                         lastSuccess = row.get("last_success", OffsetDateTime::class.java)
-                )
+                ),
+                isActive = row.get("is_active", Object::class.java).toString() == "true"
         )
     }
 

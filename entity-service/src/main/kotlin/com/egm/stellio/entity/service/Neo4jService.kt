@@ -36,9 +36,11 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
-import com.egm.stellio.shared.util.toRelationshipTypeName
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
@@ -318,7 +320,6 @@ class Neo4jService(
 
                 resultEntity[primaryRelType] = relationshipValues
             }
-
         return Pair(resultEntity, entity.contexts)
     }
 
@@ -566,7 +567,7 @@ class Neo4jService(
             throw BadRequestDataException("Target entity $targetEntityId does not exist, create it first")
 
         val relationship = neo4jRepository.getRelationshipOfSubject(subjectId, relationshipType.toRelationshipTypeName())
-        val oldRelationshipTarget = neo4jRepository.getRelationshipTargetOfSubject(subjectId, relationshipType.toRelationshipTypeName())
+        val oldRelationshipTarget = neo4jRepository.getRelationshipTargetOfSubject(subjectId, relationshipType.toRelationshipTypeName())!!
         relationship.observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
         neo4jRepository.updateRelationshipTargetOfAttribute(relationship.id, relationshipType.toRelationshipTypeName(),
             oldRelationshipTarget.id, targetEntityId)
@@ -701,5 +702,48 @@ class Neo4jService(
             val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entity.type[0].extractShortTypeFromExpanded(), propertyPayload, null)
             applicationEventPublisher.publishEvent(entityEvent)
         }
+    }
+
+    fun createSubscriptionEntity(id: String, type: String, properties: Map<String, Any>) {
+        if (exists(id)) {
+            logger.warn("Subscription $id already exists")
+            return
+        }
+
+        val subscription = Entity(id = id, type = listOf(expandJsonLdKey(type, NGSILD_CORE_CONTEXT)!!))
+        properties.forEach {
+            val property = propertyRepository.save(Property(name = expandJsonLdKey(it.key, NGSILD_CORE_CONTEXT)!!, value = serializeObject(it.value)))
+            subscription.properties.add(property)
+        }
+        subscription.contexts = listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        entityRepository.save(subscription)
+    }
+
+    fun createNotificationEntity(id: String, type: String, subscriptionId: String, properties: Map<String, Any>) {
+        val subscription = entityRepository.findById(subscriptionId)
+        if (!subscription.isPresent) {
+            logger.warn("Subscription $subscriptionId does not exist")
+            return
+        }
+
+        val notification = Entity(id = id, type = listOf(expandJsonLdKey(type, NGSILD_CORE_CONTEXT)!!))
+        properties.forEach {
+            val property = propertyRepository.save(Property(name = expandJsonLdKey(it.key, NGSILD_CORE_CONTEXT)!!, value = serializeObject(it.value)))
+            notification.properties.add(property)
+        }
+        notification.contexts = listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        entityRepository.save(notification)
+
+        // Find the last notification of the subscription
+        val lastNotification = neo4jRepository.getRelationshipTargetOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName())
+
+        // Create relationship between the subscription and the new notification
+        if (lastNotification != null) {
+            val relationship = neo4jRepository.getRelationshipOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName())
+            neo4jRepository.updateRelationshipTargetOfAttribute(relationship.id, EGM_RAISED_NOTIFICATION.toRelationshipTypeName(), lastNotification.id, notification.id)
+            relationshipRepository.save(relationship)
+            deleteEntity(lastNotification.id)
+        } else
+            createEntityRelationship(subscription.get(), EGM_RAISED_NOTIFICATION, emptyMap(), notification.id)
     }
 }

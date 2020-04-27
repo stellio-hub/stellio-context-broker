@@ -13,7 +13,10 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import javax.annotation.PostConstruct
 import kotlin.reflect.full.safeCast
 
@@ -23,6 +26,7 @@ data class AttributeType(val uri: String)
 object NgsiLdParsingUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    const val NGSILD_EGM_CONTEXT = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -45,8 +49,11 @@ object NgsiLdParsingUtils {
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
     const val NGSILD_POINT_PROPERTY = "Point"
+    const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
+    const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
+    const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     val NGSILD_ATTRIBUTES_CORE_MEMBERS = listOf(
         NGSILD_CREATED_AT_PROPERTY,
@@ -65,6 +72,7 @@ object NgsiLdParsingUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
+    const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -197,8 +205,18 @@ object NgsiLdParsingUtils {
             val intermediateList = value[propertyKey] as List<Map<String, Any>>
             if (intermediateList.size == 1) {
                 val firstListEntry = intermediateList[0]
-                val finalValue = firstListEntry["@value"]
-                finalValue
+                val finalValueType = firstListEntry["@type"]
+                if (finalValueType != null) {
+                    val finalValue = String::class.safeCast(firstListEntry["@value"])
+                    when (finalValueType) {
+                        NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
+                        NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
+                        NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
+                        else -> firstListEntry["@value"]
+                    }
+                } else {
+                    firstListEntry["@value"]
+                }
             } else {
                 intermediateList.map {
                     it["@value"]
@@ -208,9 +226,9 @@ object NgsiLdParsingUtils {
             null
 
     fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): OffsetDateTime? {
-        val observedAt = String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+        val observedAt = ZonedDateTime::class.safeCast(getPropertyValueFromMap(values, propertyKey))
         return observedAt?.run {
-            OffsetDateTime.parse(this)
+            OffsetDateTime.parse(this.toString())
         }
     }
 
@@ -264,8 +282,9 @@ object NgsiLdParsingUtils {
         expandJsonLdKey(type, listOf(context))
 
     fun expandJsonLdKey(type: String, contexts: List<String>): String? {
+        val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to contexts)
+        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
         val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
         logger.debug("Expanded type $type to $expandedType")
         return if (expandedType.isNotEmpty())
@@ -424,3 +443,27 @@ fun String.toNgsiLdRelationshipKey(): String =
 
 fun String.isFloat(): Boolean =
     this.matches("-?\\d+(\\.\\d+)?".toRegex())
+
+fun String.isDateTime(): Boolean =
+    try {
+        ZonedDateTime.parse(this)
+        true
+    } catch (e: Exception) {
+        false
+    }
+
+fun String.isDate(): Boolean =
+    try {
+        LocalDate.parse(this)
+        true
+    } catch (e: Exception) {
+        false
+    }
+
+fun String.isTime(): Boolean =
+    try {
+        LocalTime.parse(this)
+        true
+    } catch (e: Exception) {
+        false
+    }

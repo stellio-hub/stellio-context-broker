@@ -81,7 +81,7 @@ class TemporalEntityAttributeServiceTests {
     }
 
     @Test
-    fun `it should inject temporal string values into an entity`() {
+    fun `it should inject temporal string values in temporalValues format into an entity`() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(
             listOf(
@@ -98,7 +98,33 @@ class TemporalEntityAttributeServiceTests {
             )
         )
 
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults)
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
+        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("expectations/subscription_with_notifications_temporal_values.jsonld").trim(), finalEntity)
+    }
+
+    @Test
+    fun `it should inject temporal string values in default format into an entity`() {
+        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawResults = listOf(
+            listOf(
+                mapOf(
+                    "attribute_name" to "notification",
+                    "value" to "urn:ngsi-ld:Beehive:1234",
+                    "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T08:29:17.965206+01:00")
+                ),
+                mapOf(
+                    "attribute_name" to "notification",
+                    "value" to "urn:ngsi-ld:Beehive:5678",
+                    "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T08:33:17.965206+01:00")
+                )
+            )
+        )
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
         val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("expectations/subscription_with_notifications.jsonld").trim(), finalEntity)
@@ -109,7 +135,7 @@ class TemporalEntityAttributeServiceTests {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = emptyList<List<Map<String, Any>>>()
 
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults)
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
@@ -120,7 +146,7 @@ class TemporalEntityAttributeServiceTests {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(listOf(emptyMap<String, Any>()))
 
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults)
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)

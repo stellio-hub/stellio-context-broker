@@ -3,9 +3,16 @@
   "type" : "Subscription",
   "description" : "Description de mon alerte frelons",
   "name" : "Alerte frelons",
-  "notification" : {
+  "notification" : [ {
     "type" : "Property",
-    "values" : [ ["urn:ngsi-ld:Beehive:1234","2020-03-25T08:29:17.965206+01:00"], ["urn:ngsi-ld:Beehive:5678","2020-03-25T08:33:17.965206+01:00"] ]
-  },
+    "value" : "urn:ngsi-ld:Beehive:1234",
+    "instanceId" : "urn:ngsi-ld:Beehive:notification:1234",
+    "observedAt" : "2020-03-25T08:29:17.965206+01:00"
+  }, {
+    "type" : "Property",
+    "value" : "urn:ngsi-ld:Beehive:5678",
+    "instanceId" : "urn:ngsi-ld:Beehive:notification:4567",
+    "observedAt" : "2020-03-25T08:33:17.965206+01:00"
+  } ],
   "@context" : "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
 }

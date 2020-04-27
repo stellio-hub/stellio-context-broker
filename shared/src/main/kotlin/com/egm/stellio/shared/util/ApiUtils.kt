@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.server.contentTypeOrNull
 import reactor.core.publisher.Mono
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
+import java.util.*
 
 object ApiUtils {
 
@@ -72,6 +73,16 @@ fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mo
     else
         next(request)
 }
+
+enum class OptionsParamValue(val value: String) {
+    TEMPORAL_VALUES("temporalValues")
+}
+
+fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamValue): Boolean =
+    options
+        .map { it.split(",") }
+        .filter { it.any { option -> option == optionValue.value } }
+        .isPresent
 
 fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {

@@ -7,15 +7,13 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
-import com.egm.stellio.shared.util.extractContextFromLinkHeader
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -68,6 +66,8 @@ class TemporalEntityHandler(
      */
     fun getForEntity(req: ServerRequest): Mono<ServerResponse> {
         val entityId = req.pathVariable("entityId")
+        val withTemporalValues = hasValueInOptionsParam(req.queryParam("options"), OptionsParamValue.TEMPORAL_VALUES)
+
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
         val bearerToken =
@@ -99,7 +99,7 @@ class TemporalEntityHandler(
                 val listOfResults = it.t1.map {
                     it.second
                 }
-                temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults)
+                temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
             }
             .map {
                 compactEntity(it)

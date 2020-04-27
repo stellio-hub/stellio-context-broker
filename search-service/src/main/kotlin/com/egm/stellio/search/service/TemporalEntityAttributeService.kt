@@ -8,7 +8,11 @@ import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_INSTANCE_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
@@ -174,7 +178,11 @@ class TemporalEntityAttributeService(
         row.get("id", UUID::class.java)!!
     }
 
-    fun injectTemporalValues(rawEntity: Pair<Map<String, Any>, List<String>>, rawResults: List<List<Map<String, Any>>>): Pair<Map<String, Any>, List<String>> {
+    fun injectTemporalValues(
+        rawEntity: Pair<Map<String, Any>, List<String>>,
+        rawResults: List<List<Map<String, Any>>>,
+        withTemporalValues: Boolean
+    ): Pair<Map<String, Any>, List<String>> {
 
         val entity = rawEntity.first.toMutableMap()
 
@@ -187,30 +195,50 @@ class TemporalEntityAttributeService(
             val attributeName = it.first()["attribute_name"]!!
             val expandedAttributeName = NgsiLdParsingUtils.expandJsonLdKey(attributeName as String, rawEntity.second)
 
-            // extract the temporal property from the raw entity and remove the value property from it
-            // ... if it exists, which is not the case for notifications of a subscription (in this case, create it)
+            // extract the temporal property from the raw entity
+            // ... if it exists, which is not the case for notifications of a subscription (in this case, create an empty map)
             val propertyToEnrich: MutableMap<String, Any> =
                 if (entity[expandedAttributeName] != null) {
                     expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
                 } else {
-                    mutableMapOf(
-                        NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri
-                    )
+                    mutableMapOf()
                 }
-            propertyToEnrich.remove(NGSILD_PROPERTY_VALUE)
 
-            val valuesMap =
-                it.map {
-                    if (it["value"] is Double)
-                        TemporalValue(it["value"] as Double, (it["observed_at"] as OffsetDateTime).toString())
-                    else
-                        RawValue(it["value"]!!, (it["observed_at"] as OffsetDateTime).toString())
-                }
-            propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
+            if (withTemporalValues) {
+                propertyToEnrich.putIfAbsent(NGSILD_ENTITY_TYPE, NGSILD_PROPERTY_TYPE.uri)
+                // remove the existing value as we will inject our list of results in the property
+                propertyToEnrich.remove(NGSILD_PROPERTY_VALUE)
 
-            // and finally update the raw entity with the updated temporal property
-            entity.remove(expandedAttributeName)
-            entity[expandedAttributeName!!] = listOf(propertyToEnrich)
+                val valuesMap =
+                    it.map {
+                        if (it["value"] is Double)
+                            TemporalValue(it["value"] as Double, (it["observed_at"] as OffsetDateTime).toString())
+                        else
+                            RawValue(it["value"]!!, (it["observed_at"] as OffsetDateTime).toString())
+                    }
+                propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
+
+                // and finally update the raw entity with the updated temporal property
+                entity.remove(expandedAttributeName)
+                entity[expandedAttributeName!!] = listOf(propertyToEnrich)
+            } else {
+                val valuesMap =
+                    it.map {
+                        mapOf(NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                            NGSILD_INSTANCE_ID_PROPERTY to mapOf(
+                                NGSILD_ENTITY_ID to it["instance_id"]
+                            ),
+                            NGSILD_PROPERTY_VALUE to it["value"],
+                            NGSILD_OBSERVED_AT_PROPERTY to mapOf(
+                                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                JSONLD_VALUE_KW to (it["observed_at"] as OffsetDateTime).toString()
+                            )
+                        )
+                    }
+
+                entity.remove(expandedAttributeName)
+                entity[expandedAttributeName!!] = listOf(valuesMap)
+            }
         }
 
         return Pair(entity, rawEntity.second)

@@ -63,7 +63,7 @@ class NotificationService(
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
                 }
                 .doOnNext {
-                    val notificationEvent = EntityEvent(EventType.CREATE, it.second.id, it.second.type, serializeObject(it.second), null)
+                    val notificationEvent = EntityEvent(EventType.CREATE, it.second.id.toString(), it.second.type, serializeObject(it.second), null)
                     applicationEventPublisher.publishEvent(notificationEvent)
                 }
         }
@@ -79,14 +79,14 @@ class NotificationService(
 
         val response = fcmService.sendMessage(
             mapOf("title" to subscription.name, "body" to subscription.description),
-            mapOf("id_alert" to notification.id, "id_subscription" to subscription.id),
+            mapOf("id_alert" to notification.id.toString(), "id_subscription" to subscription.id),
             fcmDeviceToken
         )
 
         val success = response != null
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
-                val notificationEvent = EntityEvent(EventType.CREATE, notification.id, notification.type, serializeObject(notification), null)
+                val notificationEvent = EntityEvent(EventType.CREATE, notification.id.toString(), notification.type, serializeObject(notification), null)
                 applicationEventPublisher.publishEvent(notificationEvent)
             }
             .map {

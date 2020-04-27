@@ -87,7 +87,8 @@ class AttributeInstanceServiceTests {
                 it.size == 1 &&
                     it[0]["attribute_name"] == "incoming" &&
                     it[0]["value"] == 12.4 &&
-                    it[0]["observed_at"] == observationDateTime
+                    it[0]["observed_at"] == observationDateTime &&
+                    (it[0]["instance_id"] as String).startsWith("urn:ngsi-ld:Instance:")
             }
             .expectComplete()
             .verify()

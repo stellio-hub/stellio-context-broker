@@ -222,7 +222,7 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any()) } returns Pair(emptyMap(), emptyList())
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns Pair(emptyMap(), emptyList())
         every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
 
         webClient.get()
@@ -238,6 +238,8 @@ class TemporalEntityHandlerTests {
 
         verify { entityService.getEntityById(eq("entityId"), any()) }
         confirmVerified(entityService)
+
+        verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
 
         verify(timeout = 1000) { temporalEntityAttributeService.addEntityPayload(match {
             it.entityId == "entityId"
@@ -266,7 +268,7 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any()) } returns rawEntity
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -295,7 +297,7 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any()) } returns rawEntity
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")

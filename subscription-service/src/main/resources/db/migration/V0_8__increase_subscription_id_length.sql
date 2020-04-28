@@ -1,0 +1,2 @@
+ALTER TABLE subscription
+ALTER COLUMN id TYPE VARCHAR(255);

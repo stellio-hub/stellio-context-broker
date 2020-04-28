@@ -29,7 +29,7 @@ import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 @Service
@@ -219,9 +219,9 @@ class TemporalEntityAttributeService(
                 val valuesMap =
                     it.map {
                         if (it["value"] is Double)
-                            TemporalValue(it["value"] as Double, (it["observed_at"] as OffsetDateTime).toString())
+                            TemporalValue(it["value"] as Double, (it["observed_at"] as ZonedDateTime).toString())
                         else
-                            RawValue(it["value"]!!, (it["observed_at"] as OffsetDateTime).toString())
+                            RawValue(it["value"]!!, (it["observed_at"] as ZonedDateTime).toString())
                     }
                 propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
 
@@ -237,7 +237,7 @@ class TemporalEntityAttributeService(
                             NGSILD_PROPERTY_VALUE to it["value"],
                             NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                 NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                JSONLD_VALUE_KW to (it["observed_at"] as OffsetDateTime).toString()
+                                JSONLD_VALUE_KW to (it["observed_at"] as ZonedDateTime).toString()
                             )
                         )
                     }

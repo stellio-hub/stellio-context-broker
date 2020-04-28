@@ -9,7 +9,8 @@ import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.annotation.Transient
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
 
 @NodeEntity
@@ -18,13 +19,13 @@ open class Attribute(
     @Transient
     val attributeType: String,
 
-    var observedAt: OffsetDateTime? = null,
+    var observedAt: ZonedDateTime? = null,
 
     @JsonIgnore
-    val createdAt: OffsetDateTime = OffsetDateTime.now(),
+    val createdAt: ZonedDateTime = ZonedDateTime.now(ZoneOffset.of("+02:00")),
 
     @JsonIgnore
-    var modifiedAt: OffsetDateTime? = null,
+    var modifiedAt: ZonedDateTime? = null,
 
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),

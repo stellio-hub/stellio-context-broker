@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonRawValue
 import org.neo4j.ogm.annotation.NodeEntity
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 
 @NodeEntity
@@ -23,7 +22,7 @@ class Property(
     @JsonRawValue
     var value: Any,
 
-    observedAt: OffsetDateTime? = null
+    observedAt: ZonedDateTime? = null
 ) : Attribute(attributeType = "Property", observedAt = observedAt) {
 
     override fun serializeCoreProperties(): MutableMap<String, Any> {
@@ -42,7 +41,7 @@ class Property(
         return resultEntity
     }
 
-    fun updateValues(unitCode: String?, value: Any?, observedAt: OffsetDateTime?) {
+    fun updateValues(unitCode: String?, value: Any?, observedAt: ZonedDateTime?) {
         unitCode?.let {
             this.unitCode = unitCode
         }

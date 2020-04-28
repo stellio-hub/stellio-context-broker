@@ -11,7 +11,8 @@ import org.neo4j.ogm.session.event.EventListenerAdapter
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import javax.annotation.PostConstruct
 
 @Component
@@ -56,7 +57,7 @@ class Neo4jRepository(
         val query = """
             MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
             ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
-                         property.modifiedAt = "${OffsetDateTime.now()}"
+                         property.modifiedAt = datetime("${ZonedDateTime.now(ZoneOffset.of("+02:00"))}")
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
@@ -336,15 +337,15 @@ class PreSaveEventListener : EventListenerAdapter() {
         when (event.getObject()) {
             is Entity -> {
                 val entity = event.getObject() as Entity
-                entity.modifiedAt = OffsetDateTime.now()
+                entity.modifiedAt = ZonedDateTime.now(ZoneOffset.of("+02:00"))
             }
             is Property -> {
                 val property = event.getObject() as Property
-                property.modifiedAt = OffsetDateTime.now()
+                property.modifiedAt = ZonedDateTime.now(ZoneOffset.of("+02:00"))
             }
             is Relationship -> {
                 val relationship = event.getObject() as Relationship
-                relationship.modifiedAt = OffsetDateTime.now()
+                relationship.modifiedAt = ZonedDateTime.now(ZoneOffset.of("+02:00"))
             }
         }
     }

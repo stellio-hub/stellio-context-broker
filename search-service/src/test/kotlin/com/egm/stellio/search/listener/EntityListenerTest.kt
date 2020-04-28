@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntityListener::class ])
@@ -96,7 +96,7 @@ class EntityListenerTest {
         verify { attributeInstanceService.create(match {
             it.value == null &&
                 it.measuredValue == 33869.0 &&
-                it.observedAt == OffsetDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
                 it.temporalEntityAttribute == temporalEntityAttributeUuid
         }) }
         confirmVerified(temporalEntityAttributeService)

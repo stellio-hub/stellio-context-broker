@@ -15,7 +15,8 @@ import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
-import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @NodeEntity
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -29,10 +30,10 @@ class Entity(
     val type: List<String>,
 
     @JsonIgnore
-    val createdAt: OffsetDateTime = OffsetDateTime.now(),
+    val createdAt: ZonedDateTime = ZonedDateTime.now(ZoneOffset.of("+02:00")),
 
     @JsonIgnore
-    var modifiedAt: OffsetDateTime? = null,
+    var modifiedAt: ZonedDateTime? = null,
 
     @JsonIgnore
     var location: GeographicPoint2d? = null,

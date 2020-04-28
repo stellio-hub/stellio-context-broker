@@ -33,7 +33,6 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.test.web.reactive.server.expectBody
 import java.lang.RuntimeException
 import java.time.*
 
@@ -186,12 +185,11 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
-
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf(NGSILD_CREATED_AT_PROPERTY to
                     mapOf("@type" to NGSILD_DATE_TIME_TYPE,
-                        "@value" to OffsetDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1"))),
+                        "@value" to ZonedDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1"))),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),

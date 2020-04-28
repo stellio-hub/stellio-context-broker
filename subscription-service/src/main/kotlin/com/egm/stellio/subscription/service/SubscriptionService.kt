@@ -42,10 +42,10 @@ class SubscriptionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(subscription: Subscription): Mono<Int> {
+    fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement = """
-            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active) 
-            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active)
+            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
+            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
         """.trimIndent()
 
         return databaseClient.execute(insertStatement)
@@ -61,6 +61,7 @@ class SubscriptionService(
             .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
+            .bind("sub", sub)
             .fetch()
             .rowsUpdated()
             .flatMap {
@@ -107,7 +108,7 @@ class SubscriptionService(
         else
             Mono.just(0)
 
-    fun getById(id: String): Mono<Subscription> {
+    fun getById(id: String, sub: String): Mono<Subscription> {
         return exists(id)
             .map {
                 if (!it)
@@ -124,10 +125,12 @@ class SubscriptionService(
                 LEFT JOIN entity_info ON entity_info.subscription_id = :id
                 LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
                 WHERE subscription.id = :id
+                AND subscription.sub = :sub
             """.trimIndent()
 
                 databaseClient.execute(selectStatement)
                     .bind("id", id)
+                    .bind("sub", sub)
                     .map(rowToSubscription)
                     .all()
                     .reduce { t: Subscription, u: Subscription ->
@@ -136,8 +139,9 @@ class SubscriptionService(
             }
     }
 
+    // TODO: add check on sub before update
     @Transactional
-    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
+    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>, sub: String): Mono<Int> {
         val contexts = parsedInput.second
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
@@ -182,7 +186,7 @@ class SubscriptionService(
             }
             .collectList()
             .zipWhen {
-                getById(subscriptionId)
+                getById(subscriptionId, sub)
             }
             .doOnSuccess {
                 val subscriptionEvent = EntityEvent(EventType.UPDATE, subscriptionId, it.t2.type, serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)), serializeObject(it.t2))
@@ -278,7 +282,8 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: String): Mono<Int> {
+    // TODO: add check on sub before delete
+    fun delete(subscriptionId: String, sub: String): Mono<Int> {
         val deleteStatement = """
             DELETE FROM subscription 
             WHERE subscription.id = :id
@@ -303,7 +308,7 @@ class SubscriptionService(
             .fetch()
             .rowsUpdated()
 
-    fun getSubscriptions(limit: Int, offset: Int): Flux<Subscription> {
+    fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
@@ -317,6 +322,7 @@ class SubscriptionService(
             WHERE subscription.id in (
                 SELECT subscription.id as sub_id
                 from subscription
+                WHERE subscription.sub = :sub 
                 ORDER BY sub_id
                 limit :limit
                 offset :offset)
@@ -324,6 +330,7 @@ class SubscriptionService(
         return databaseClient.execute(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
+            .bind("sub", sub)
             .map(rowToSubscription)
             .all()
             .groupBy { t: Subscription ->
@@ -336,11 +343,13 @@ class SubscriptionService(
             }
     }
 
-    fun getSubscriptionsCount(): Mono<Int> {
+    fun getSubscriptionsCount(sub: String): Mono<Int> {
         val selectStatement = """
             SELECT count(*) from subscription
+            WHERE subscription.sub = :sub
         """.trimIndent()
         return databaseClient.execute(selectStatement)
+            .bind("sub", sub)
             .map(rowToSubscriptionCount)
             .first()
     }

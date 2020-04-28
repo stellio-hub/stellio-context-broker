@@ -43,7 +43,7 @@ class SubscriptionBootstrapper(
                 lastSuccess = null
             ))
 
-        subscriptionService.create(subscription)
+        subscriptionService.create(subscription, "subscription-bootstrapper")
             .thenEmpty {
                 logger.debug("Created subscription !")
             }

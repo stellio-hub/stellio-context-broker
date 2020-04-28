@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -18,14 +19,13 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
-import org.springframework.security.test.context.support.WithMockUser
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.lang.RuntimeException
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@WithMockUser
+@WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
 
     @Autowired
@@ -38,7 +38,7 @@ class SubscriptionHandlerTests {
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
+        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
 
         webClient.get()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
@@ -50,7 +50,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `get subscription by id should return 404 when subscription does not exist`() {
-        every { subscriptionService.getById(any()) } returns Mono.error(ResourceNotFoundException("Subscription Not Found"))
+        every { subscriptionService.getById(any(), any()) } returns Mono.error(ResourceNotFoundException("Subscription Not Found"))
 
         webClient.get()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -65,7 +65,7 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any()) } returns Mono.just(1)
+        every { subscriptionService.create(any(), any()) } returns Mono.just(1)
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
@@ -97,7 +97,7 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any()) } throws InternalErrorException("Internal Server Exception")
+        every { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
@@ -125,8 +125,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 without link header`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(1)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(1)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/")
@@ -141,8 +141,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with prev link header if exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
@@ -157,8 +157,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with next link header if exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
@@ -173,8 +173,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 200 with prev and next link header if exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(3)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(3)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
@@ -189,8 +189,8 @@ class SubscriptionHandlerTests {
     @Test
     fun `query subscriptions should return 200 and empty response if requested page does not exists`() {
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.empty()
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.empty()
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=9")
@@ -205,8 +205,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 400 if requested page is equal or less than zero`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
@@ -220,8 +220,8 @@ class SubscriptionHandlerTests {
     fun `query subscriptions should return 400 if limit is equal or less than zero`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getSubscriptionsCount() } returns Mono.just(2)
-        every { subscriptionService.getSubscriptions(any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
@@ -238,7 +238,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any()) } returns Mono.just(1)
+        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -248,7 +248,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
         confirmVerified(subscriptionService)
     }
 
@@ -259,7 +259,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")
+        every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -270,7 +270,7 @@ class SubscriptionHandlerTests {
             .expectBody().json("{\"ProblemDetails\":[\"Update failed\"]}")
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
         confirmVerified(subscriptionService)
     }
 
@@ -308,7 +308,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
         val subscription = gimmeRawSubscription()
-        every { subscriptionService.delete(any()) } returns Mono.just(1)
+        every { subscriptionService.delete(any(), any()) } returns Mono.just(1)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -317,13 +317,13 @@ class SubscriptionHandlerTests {
                 .expectStatus().isNoContent
                 .expectBody().isEmpty
 
-        verify { subscriptionService.delete(eq(subscription.id)) }
+        verify { subscriptionService.delete(eq(subscription.id), "mock-user") }
         confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
-        every { subscriptionService.delete(any()) } returns Mono.just(0)
+        every { subscriptionService.delete(any(), any()) } returns Mono.just(0)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -335,7 +335,7 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() {
-        every { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
+        every { subscriptionService.delete(any(), any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")

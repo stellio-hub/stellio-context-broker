@@ -8,6 +8,7 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.web.extractJwT
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -19,7 +20,6 @@ import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import org.springframework.web.reactive.function.server.queryParamOrNull
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
 
@@ -39,22 +39,22 @@ class SubscriptionHandler(
      * Implements 6.10.3.1 - Create Subscription
      */
     fun create(req: ServerRequest): Mono<ServerResponse> {
-
         return req.bodyToMono<String>()
+                .zipWith(extractJwT())
                 .map {
-                    val context = NgsiLdParsingUtils.getContextOrThrowError(it)
-                    parseSubscription(it, context)
+                    val context = NgsiLdParsingUtils.getContextOrThrowError(it.t1)
+                    Pair(parseSubscription(it.t1, context), it.t2.subject)
                 }
-                .flatMap { subscription ->
-                    subscriptionService.exists(subscription.id).flatMap {
-                        Mono.just(Pair(subscription, it))
+                .flatMap { subscriptionAndSubject ->
+                    subscriptionService.exists(subscriptionAndSubject.first.id).flatMap {
+                        Mono.just(Triple(subscriptionAndSubject.first, it, subscriptionAndSubject.second))
                     }
                 }
-                .flatMap { subAndExist ->
-                    if (subAndExist.second)
-                        throw AlreadyExistsException("A subscription with id ${subAndExist.first.id} already exists")
+                .flatMap { subscriptionAndExistAndSubject ->
+                    if (subscriptionAndExistAndSubject.second)
+                        throw AlreadyExistsException("A subscription with id ${subscriptionAndExistAndSubject.first.id} already exists")
                     else
-                        subscriptionService.create(subAndExist.first).map { subAndExist.first }
+                        subscriptionService.create(subscriptionAndExistAndSubject.first, subscriptionAndExistAndSubject.third).map { subscriptionAndExistAndSubject.first }
                 }
                 .flatMap {
                     created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
@@ -80,13 +80,15 @@ class SubscriptionHandler(
             return badRequest().body(BodyInserters.fromValue("Page number and Limit must be greater than zero"))
         }
 
-        return "".toMono()
+        return extractJwT()
             .flatMap {
-                subscriptionService.getSubscriptionsCount()
+                subscriptionService.getSubscriptionsCount(it.subject).flatMap { count ->
+                    Mono.just(Pair(count, it.subject))
+                }
             }
-            .flatMap { subscriptionsCount ->
-                subscriptionService.getSubscriptions(limit, (pageNumber - 1) * limit).collectList().flatMap {
-                    Mono.just(Pair(subscriptionsCount, it))
+            .flatMap { subscriptionsCountAndSubject ->
+                subscriptionService.getSubscriptions(limit, (pageNumber - 1) * limit, subscriptionsCountAndSubject.second).collectList().flatMap {
+                    Mono.just(Pair(subscriptionsCountAndSubject.first, it))
                 }
             }
             .map {
@@ -116,7 +118,10 @@ class SubscriptionHandler(
      */
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("subscriptionId")
-        return subscriptionService.getById(uri)
+        return extractJwT()
+            .flatMap {
+                subscriptionService.getById(uri, it.subject)
+            }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
@@ -134,16 +139,17 @@ class SubscriptionHandler(
     fun update(req: ServerRequest): Mono<ServerResponse> {
         val subscriptionId = req.pathVariable("subscriptionId")
         return req.bodyToMono<String>()
-            .flatMap { input ->
+            .zipWith(extractJwT())
+            .flatMap { inputAndSubject ->
                 subscriptionService.exists(subscriptionId).flatMap {
-                    Mono.just(Pair(input, it))
+                    Mono.just(Triple(inputAndSubject.t1, it, inputAndSubject.t2.subject))
                 }
             }
             .flatMap {
                 if (!it.second)
                     throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
                 val parsedInput = parseSubscriptionUpdate(it.first)
-                subscriptionService.update(subscriptionId, parsedInput)
+                subscriptionService.update(subscriptionId, parsedInput, it.third)
             }
             .flatMap {
                 noContent().build()
@@ -163,9 +169,9 @@ class SubscriptionHandler(
     fun delete(req: ServerRequest): Mono<ServerResponse> {
         val subscriptionId = req.pathVariable("subscriptionId")
 
-        return subscriptionId.toMono()
+        return extractJwT()
                 .flatMap {
-                    subscriptionService.delete(subscriptionId)
+                    subscriptionService.delete(subscriptionId, it.subject)
                 }
                 .flatMap {
                     if (it >= 1)

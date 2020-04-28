@@ -46,8 +46,9 @@ class NotificationService(
         val notification = Notification(subscriptionId = subscription.id, data = compactEntities(entities))
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
+            val entityId = entities[0].first["@id"]!! as String
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
-            return callFCMSubscriber(subscription, notification, fcmDeviceToken)
+            return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {
             var request = WebClient.create(subscription.notification.endpoint.uri.toString()).post() as WebClient.RequestBodySpec
             subscription.notification.endpoint.info?.forEach {
@@ -69,7 +70,7 @@ class NotificationService(
         }
     }
 
-    fun callFCMSubscriber(subscription: Subscription, notification: Notification, fcmDeviceToken: String?): Mono<Triple<Subscription, Notification, Boolean>> {
+    fun callFCMSubscriber(entityId: String, subscription: Subscription, notification: Notification, fcmDeviceToken: String?): Mono<Triple<Subscription, Notification, Boolean>> {
         if (fcmDeviceToken == null) {
             return subscriptionService.updateSubscriptionNotification(subscription, notification, false)
                 .map {
@@ -79,7 +80,7 @@ class NotificationService(
 
         val response = fcmService.sendMessage(
             mapOf("title" to subscription.name, "body" to subscription.description),
-            mapOf("id_alert" to notification.id.toString(), "id_subscription" to subscription.id),
+            mapOf("id_alert" to notification.id.toString(), "id_subscription" to subscription.id, "timestamp" to notification.notifiedAt.toString(), "id_beehive" to entityId),
             fcmDeviceToken
         )
 

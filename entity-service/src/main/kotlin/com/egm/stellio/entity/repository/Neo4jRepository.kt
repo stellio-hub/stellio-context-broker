@@ -238,12 +238,20 @@ class Neo4jRepository(
         // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
         // TODO : this will have to be resolved with a clean provisioning architecture
         val query = """
-            MATCH (e:Entity)
-            WHERE e.id = '$observerId'
+            MATCH (e:Entity) 
+            WHERE e.id = '$observerId' 
+            RETURN e 
+            UNION 
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
+            WHERE m.name ENDS WITH '$measureName' 
+            AND p.name = '$propertyName' 
+            AND p.value = '$observerId' 
             RETURN e
-            UNION ALL
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property)
-            WHERE m.name ENDS WITH '$measureName' AND p.name = '$propertyName' AND p.value = '$observerId'
+            UNION
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_OBJECT]-()-[:IS_CONTAINED_IN]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
+            WHERE m.name ENDS WITH '$measureName' 
+            AND deviceProp.name = '$propertyName' 
+            AND deviceProp.value = '$observerId' 
             RETURN e
         """.trimIndent()
 

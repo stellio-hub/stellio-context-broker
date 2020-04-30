@@ -262,7 +262,7 @@ class Neo4jServiceTests {
         verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
-        verify(timeout = 1000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
+        verify(timeout = 2000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "BreedingService" &&
                     entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234" &&
                     entityEvent.operationType == EventType.UPDATE &&

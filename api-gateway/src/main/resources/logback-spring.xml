@@ -17,7 +17,7 @@
         <graylogPort>${graylogPort}</graylogPort>
         <encoder class="de.siegmar.logbackgelf.GelfEncoder">
             <includeLevelName>true</includeLevelName>
-            <staticField>app_name:search-service</staticField>
+            <staticField>app_name:api-gateway</staticField>
             <staticField>platform:${graylogSource}</staticField>
         </encoder>
     </appender>
@@ -28,11 +28,8 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
-    <logger name="org.springframework.data.r2dbc" level="DEBUG"/>
-    <logger name="org.flywaydb" level="DEBUG"/>
-    <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.springframework.security" level="DEBUG"/>
-    <logger name="org.springframework.web" level="TRACE"/>
+    <logger name="web" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="console" />

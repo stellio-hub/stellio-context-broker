@@ -95,7 +95,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive")
             ),
-            isActive = false
+            isActive = false,
+            watchedAttributes = listOf("incoming", "outgoing")
         )
         subscriptionService.create(subscription4, MOCK_USER_SUB).block()
         subscription4Id = subscription4.id
@@ -272,6 +273,36 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should load and fill a persisted subscription with entities info and watched attributes`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription4Id, MOCK_USER_SUB)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 4" &&
+                it.description == "My beautiful subscription" &&
+                it.entities.size == 1 &&
+                it.watchedAttributes!! == listOf("incoming", "outgoing")
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should load and fill a persisted subscription with entities info and a null value for watched attributes`() {
+
+        val persistedSubscription = subscriptionService.getById(subscription2Id, MOCK_USER_SUB)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.name == "Subscription 2" &&
+                it.description == "My beautiful subscription" &&
+                it.entities.size == 2 &&
+                it.watchedAttributes == null
+            }
+            .verifyComplete()
+    }
+
+    @Test
     fun `it should delete an existing subscription`() {
         val subscription = gimmeRawSubscription()
 
@@ -302,7 +333,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching an idPattern`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:12345678", "Beekeeper")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:12345678", "Beekeeper", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(2L)
@@ -312,7 +343,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a subscription if idPattern does not match`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:9876543", "Beekeeper")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:9876543", "Beekeeper", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
@@ -324,7 +355,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching a type and not one with non matching id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:ABCD", "Beehive")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:ABCD", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
@@ -338,7 +369,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching a type and an exact id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(2)
@@ -348,7 +379,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(1)
@@ -358,7 +389,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a subscription if type does not match`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Sensor:1234567890", "Sensor")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Sensor:1234567890", "Sensor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectComplete()
@@ -368,7 +399,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve an activated subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
@@ -380,11 +411,80 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a deactivated subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor")
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(0)
             .verifyComplete()
+    }
+
+    @Test
+    fun `it should retrieve a subscription if watched attributes is null`() {
+        val subscription = gimmeRawSubscription().copy(
+            name = "My subscription",
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "BeeHive")
+            ),
+            watchedAttributes = null
+        )
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
+        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(1)
+            .verifyComplete()
+
+        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+    }
+
+    @Test
+    fun `it should retrieve a subscription if watched attributes contains at least one of the updated attributes`() {
+        val subscription = gimmeRawSubscription().copy(
+            name = "My subscription",
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "BeeHive")
+            ),
+            watchedAttributes = listOf("incoming", "outgoing", "temperature")
+        )
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
+        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(1)
+            .verifyComplete()
+
+        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+    }
+
+    @Test
+    fun `it should not retrieve a subscription if watched attributes does not contain any element of the updated attributes`() {
+        val subscription = gimmeRawSubscription().copy(
+            name = "My subscription",
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "BeeHive")
+            ),
+            watchedAttributes = listOf("outgoing", "temperature")
+        )
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
+        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+
+        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(0)
+            .verifyComplete()
+
+        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
     }
 
     @Test
@@ -501,6 +601,19 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .verifyComplete()
     }
 
+    @Test
+    fun `it should update a subscription watched attributes`() {
+        val parsedInput = Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(apicContext))
+
+        subscriptionService.update(subscription5Id, parsedInput, MOCK_USER_SUB).block()
+        val updateResult = subscriptionService.getById(subscription5Id, MOCK_USER_SUB)
+
+        StepVerifier.create(updateResult)
+            .expectNextMatches {
+                it.watchedAttributes!! == listOf("incoming", "temperature")
+            }
+            .verifyComplete()
+    }
     @Test
     fun `it should update a subscription with a notification result`() {
 

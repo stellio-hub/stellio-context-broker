@@ -24,12 +24,11 @@ class NotificationService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun notifyMatchingSubscribers(rawEntity: String, parsedEntity: Pair<Map<String, Any>, List<String>>):
+    fun notifyMatchingSubscribers(rawEntity: String, parsedEntity: Pair<Map<String, Any>, List<String>>, updatedAttributes: Set<String>):
             Mono<List<Triple<Subscription, Notification, Boolean>>> {
         val id = parsedEntity.first["@id"]!! as String
         val type = (parsedEntity.first["@type"]!! as List<String>)[0]
-
-        return subscriptionService.getMatchingSubscriptions(id, type)
+        return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
                 .filter {
                     subscriptionService.isMatchingQuery(it.q, rawEntity)
                 }

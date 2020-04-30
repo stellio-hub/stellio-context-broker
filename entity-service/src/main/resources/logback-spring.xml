@@ -1,11 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
+    <springProperty scope="context" name="graylogHost" source="application.graylog.host" defaultValue="localhost"/>
+    <springProperty scope="context" name="graylogPort" source="application.graylog.port" defaultValue="12201"/>
+    <springProperty scope="context" name="graylogSource" source="application.graylog.source" defaultValue="stellio-int"/>
+
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- displaying method name may be costly, eventually remove it -->
             <pattern>%yellow(%d) [%15.15t] %highlight(%-5level) %-40.40logger{39} - %white(%M) - %msg%n %ex{10}</pattern>
         </encoder>
+    </appender>
+
+    <appender name="gelf" class="de.siegmar.logbackgelf.GelfTcpAppender">
+        <graylogHost>${graylogHost}</graylogHost>
+        <graylogPort>${graylogPort}</graylogPort>
+        <encoder class="de.siegmar.logbackgelf.GelfEncoder">
+            <includeLevelName>true</includeLevelName>
+            <staticField>app_name:entity-service</staticField>
+            <staticField>platform:${graylogSource}</staticField>
+        </encoder>
+    </appender>
+
+    <!-- Use AsyncAppender to prevent slowdowns -->
+    <appender name="async_gelf" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="gelf" />
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
@@ -17,6 +36,9 @@
 
     <root level="INFO">
         <appender-ref ref="console" />
+        <springProfile name="gelflogs">
+            <appender-ref ref="async_gelf" />
+        </springProfile>
     </root>
 
 </configuration>

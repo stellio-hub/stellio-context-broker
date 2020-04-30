@@ -4,6 +4,7 @@ import com.egm.stellio.entity.model.Attribute
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.toRelationshipTypeName
@@ -204,6 +205,23 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should find a sensor by vendor id of a device and measured property`() {
+        val vendorId = "urn:something:9876"
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
+        val sensorToDeviceRelationship = createRelationship(sensor, EGM_IS_CONTAINED_IN, device.id)
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val propertyToDeviceRelationship = createRelationship(property, EGM_OBSERVED_BY, sensor.id)
+        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
+        assertNotNull(persistedEntity)
+        propertyRepository.delete(property)
+        relationshipRepository.delete(sensorToDeviceRelationship)
+        relationshipRepository.delete(propertyToDeviceRelationship)
+        neo4jRepository.deleteEntity(device.id)
+        neo4jRepository.deleteEntity(sensor.id)
+    }
+
+    @Test
     fun `it should not find a sensor by vendor id if measured property does not exist`() {
         val vendorId = "urn:something:9876"
         val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
@@ -260,6 +278,17 @@ class Neo4jRepositoryTests {
         val persistedRelationship = relationshipRepository.save(relationship)
         subject.relationships.add(persistedRelationship)
         attributeRepository.save(subject)
+        neo4jRepository.createRelationshipToEntity(persistedRelationship.id,
+            relationshipType.toRelationshipTypeName(), objectId)
+
+        return persistedRelationship
+    }
+
+    fun createRelationship(subject: Entity, relationshipType: String, objectId: String): Relationship {
+        val relationship = Relationship(type = listOf(relationshipType))
+        val persistedRelationship = relationshipRepository.save(relationship)
+        subject.relationships.add(persistedRelationship)
+        entityRepository.save(subject)
         neo4jRepository.createRelationshipToEntity(persistedRelationship.id,
             relationshipType.toRelationshipTypeName(), objectId)
 

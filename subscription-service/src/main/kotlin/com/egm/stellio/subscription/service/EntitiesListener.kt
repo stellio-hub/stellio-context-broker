@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -22,8 +23,9 @@ class EntitiesListener(
         val entity = getEntityFromEvent(entityEvent)
         entity?.let {
             try {
+                val updatedFragment = parseJsonLdFragment(entityEvent.payload!!)
                 val parsedEntity = parseEntity(it)
-                notificationService.notifyMatchingSubscribers(it, parsedEntity)
+                notificationService.notifyMatchingSubscribers(it, parsedEntity, updatedFragment.keys)
                         .subscribe {
                             val succeededNotifications = it.filter { it.third }.size
                             val failedNotifications = it.filter { !it.third }.size

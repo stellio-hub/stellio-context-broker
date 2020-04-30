@@ -9,6 +9,8 @@ import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
+import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.egm.stellio.subscription.repository.SubscriptionRepository
 import com.egm.stellio.subscription.utils.*
@@ -44,8 +46,8 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement = """
-            INSERT INTO subscription (id, type, name, description, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
-            VALUES(:id, :type, :name, :description, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
+            INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
+            VALUES(:id, :type, :name, :description, :watched_attributes, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
         """.trimIndent()
 
         return databaseClient.execute(insertStatement)
@@ -53,6 +55,7 @@ class SubscriptionService(
             .bind("type", subscription.type)
             .bind("name", subscription.name)
             .bind("description", subscription.description)
+            .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
             .bind("q", subscription.q)
             .bind("notif_attributes", subscription.notification.attributes.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
@@ -116,7 +119,7 @@ class SubscriptionService(
             }
             .flatMap {
                 val selectStatement = """
-                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
+                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                        notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                        status, times_sent, is_active, last_notification, last_failure, last_success,
                        entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
@@ -161,11 +164,10 @@ class SubscriptionService(
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
                 else -> {
-                    val columnName =
-                        if (it.key == "isActive") "is_active"
-                        else it.key
+                    val columnName = it.key.toSqlColumnName()
+                    val value = it.value.toSqlValue(it.key)
 
-                    val updateStatement = Update.update(columnName, it.value)
+                    val updateStatement = Update.update(columnName, value)
                     updates.add(databaseClient.update()
                         .table("subscription")
                         .using(updateStatement)
@@ -310,7 +312,7 @@ class SubscriptionService(
 
     fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement = """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
@@ -354,12 +356,13 @@ class SubscriptionService(
             .first()
     }
 
-    fun getMatchingSubscriptions(id: String, type: String): Flux<Subscription> {
+    fun getMatchingSubscriptions(id: String, type: String, updatedAttributes: String): Flux<Subscription> {
         val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
             WHERE is_active 
+            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
             AND id IN (
                 SELECT subscription_id
                 FROM entity_info
@@ -371,6 +374,7 @@ class SubscriptionService(
         return databaseClient.execute(selectStatement)
             .bind("id", id)
             .bind("type", type)
+            .bind("updatedAttributes", updatedAttributes)
             .map(rowToRawSubscription)
 
             .all()
@@ -450,6 +454,7 @@ class SubscriptionService(
                 type = row.get("sub_type", String::class.java)!!,
                 name = row.get("name", String::class.java),
                 description = row.get("description", String::class.java),
+                watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
                 q = row.get("q", String::class.java),
                 entities = setOf(EntityInfo(
                         id = row.get("entity_id", String::class.java),

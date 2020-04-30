@@ -71,6 +71,7 @@ object NgsiLdParsingUtils {
     ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
+    const val EGM_IS_CONTAINED_IN = "https://ontology.eglobalmark.com/egm#isContainedIn"
     const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
@@ -104,9 +105,6 @@ object NgsiLdParsingUtils {
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
 
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
-
-        val expandedResult = JsonUtils.toPrettyString(expandedEntity)
-        logger.debug("Expanded entity is $expandedResult")
 
         return Pair(expandedEntity as Map<String, Any>, contexts)
     }

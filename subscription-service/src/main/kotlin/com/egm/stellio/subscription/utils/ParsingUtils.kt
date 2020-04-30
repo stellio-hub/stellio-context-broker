@@ -63,4 +63,22 @@ object ParsingUtils {
         val mapper = jacksonObjectMapper()
         return mapper.writeValueAsString(input)
     }
+
+    fun String.toSqlColumnName(): String =
+        this.map {
+            if (it.isUpperCase()) "_${it.toLowerCase()}"
+            else it
+        }.joinToString("")
+
+    fun Any.toSqlValue(columnName: String): Any? =
+        when (columnName) {
+            "watchedAttributes" -> {
+                val valueAsArrayList = this as ArrayList<String>
+                if (valueAsArrayList.isEmpty())
+                    null
+                else
+                    valueAsArrayList.joinToString(separator = ",")
+            }
+            else -> this
+        }
 }

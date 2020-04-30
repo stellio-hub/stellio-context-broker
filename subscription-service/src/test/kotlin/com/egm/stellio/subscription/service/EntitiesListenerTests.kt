@@ -28,7 +28,7 @@ class EntitiesListenerTests {
         val mockedSubscription = mockkClass(Subscription::class)
         val mockedNotification = mockkClass(Notification::class)
 
-        every { notificationService.notifyMatchingSubscribers(any(), any()) } answers {
+        every { notificationService.notifyMatchingSubscribers(any(), any(), any()) } answers {
             Mono.just(listOf(
                 Triple(mockedSubscription, mockedNotification, true),
                 Triple(mockedSubscription, mockedNotification, false)
@@ -37,7 +37,7 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { notificationService.notifyMatchingSubscribers(any(), any()) }
+        verify { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
         confirmVerified(notificationService)
     }
 }

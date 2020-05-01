@@ -221,16 +221,6 @@ class Neo4jServiceTests {
             name = "fishNumber",
             value = 400.0
         )
-        val expectedEventPayload = """
-            {
-              "fishNumber":{
-                "type":"Property",
-                "createdAt":"${expectedPropertyUpdate.createdAt}",
-                "value":400.0
-              },
-              "@context":"$aquacContext"
-            }
-        """.trimIndent().replace("\n", "").replace(" ", "")
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedSensor = mockkClass(Entity::class)
@@ -266,7 +256,8 @@ class Neo4jServiceTests {
             entityEvent.entityType == "BreedingService" &&
                     entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234" &&
                     entityEvent.operationType == EventType.UPDATE &&
-                    entityEvent.payload == expectedEventPayload &&
+                    entityEvent.payload != null &&
+                    entityEvent.payload!!.contains("fishNumber") &&
                     entityEvent.updatedEntity == null
         }) }
 

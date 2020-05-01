@@ -110,7 +110,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 400 if a service throws a BadRequestDataException`() {
 
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } throws BadRequestDataException("Bad request")
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } throws BadRequestDataException("Bad request")
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId")
@@ -201,7 +201,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
 
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.empty()
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.empty()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -219,7 +219,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns Pair(emptyMap(), emptyList())
@@ -265,7 +265,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val rawEntity = loadAndParseSampleData()
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
@@ -294,7 +294,7 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = loadAndParseSampleData()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(entityTemporalProperty)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity

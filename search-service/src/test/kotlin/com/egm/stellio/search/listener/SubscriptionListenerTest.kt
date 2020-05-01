@@ -37,10 +37,10 @@ class SubscriptionListenerTest {
         subscriptionListener.processSubscription(subscription)
 
         verify { temporalEntityAttributeService.create(match { entityTemporalProperty ->
-            entityTemporalProperty.attributeName == "notification" &&
+            entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                     entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
                     entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
-                    entityTemporalProperty.type == "Subscription"
+                    entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
         }) }
         confirmVerified(temporalEntityAttributeService)
     }

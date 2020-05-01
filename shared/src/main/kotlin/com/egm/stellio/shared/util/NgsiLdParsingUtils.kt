@@ -105,9 +105,6 @@ object NgsiLdParsingUtils {
 
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
 
-        val expandedResult = JsonUtils.toPrettyString(expandedEntity)
-        logger.debug("Expanded entity is $expandedResult")
-
         return Pair(expandedEntity as Map<String, Any>, contexts)
     }
 

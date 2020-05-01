@@ -9,6 +9,7 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -22,6 +23,9 @@ class TemporalEntityAttributeServiceTests {
 
     @Autowired
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+
+    @Value("\${application.jsonld.apic_context}")
+    val apicContext: String? = null
 
     init {
         Flyway.configure()
@@ -37,12 +41,13 @@ class TemporalEntityAttributeServiceTests {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTD",
-                listOf("https://ontology.eglobalmark.com/apic#incoming", "https://ontology.eglobalmark.com/apic#outgoing"))
+            temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTD", listOf("incoming", "outgoing"), apicContext!!)
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
                 it.entityId == "urn:ngsi-ld:BeeHive:TESTD" &&
+                    it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                    it.attributeName == "https://ontology.eglobalmark.com/apic#incoming" &&
                     it.entityPayload !== null
             }
             .expectNextMatches {
@@ -81,17 +86,41 @@ class TemporalEntityAttributeServiceTests {
     }
 
     @Test
+    fun `it should inject temporal numeric values in temporalValues format into an entity`() {
+        val rawEntity = loadAndParseSampleData("beehive.jsonld")
+        val rawResults = listOf(
+            listOf(
+                mapOf(
+                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
+                    "value" to 550.0,
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T08:29:17.965206+01:00")
+                ),
+                mapOf(
+                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
+                    "value" to 650.0,
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T08:33:17.965206+01:00")
+                )
+            )
+        )
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
+        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.first, mapOf("@context" to enrichedEntity.second), JsonLdOptions())
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("expectations/beehive_with_incoming_temporal_values.jsonld").trim(), finalEntity)
+    }
+
+    @Test
     fun `it should inject temporal string values in temporalValues format into an entity`() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(
             listOf(
                 mapOf(
-                    "attribute_name" to "notification",
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
                     "observed_at" to OffsetDateTime.parse("2020-03-25T08:29:17.965206+01:00")
                 ),
                 mapOf(
-                    "attribute_name" to "notification",
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
                     "observed_at" to OffsetDateTime.parse("2020-03-25T08:33:17.965206+01:00")
                 )
@@ -110,13 +139,13 @@ class TemporalEntityAttributeServiceTests {
         val rawResults = listOf(
             listOf(
                 mapOf(
-                    "attribute_name" to "notification",
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
                     "observed_at" to OffsetDateTime.parse("2020-03-25T08:29:17.965206+01:00")
                 ),
                 mapOf(
-                    "attribute_name" to "notification",
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
                     "observed_at" to OffsetDateTime.parse("2020-03-25T08:33:17.965206+01:00")

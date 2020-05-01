@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
@@ -113,16 +114,22 @@ class TemporalEntityAttributeService(
             .map { it.size }
     }
 
-    fun getForEntity(id: String, attrs: List<String>): Flux<TemporalEntityAttribute> {
+    fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {
         val selectQuery = """
             SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
         """.trimIndent()
 
+        val expandedAttrsList =
+            attrs.map {
+                expandJsonLdKey(it, contextLink)!!
+            }
+            .joinToString(",") { "'$it'" }
+
         val finalQuery =
             if (attrs.isNotEmpty())
-                selectQuery + " AND attribute_name in (${attrs.joinToString(",") { "'$it'" }})"
+                "$selectQuery AND attribute_name in ($expandedAttrsList)"
             else
                 selectQuery
 
@@ -192,14 +199,13 @@ class TemporalEntityAttributeService(
         }
         .forEach {
             // attribute_name is the name of the temporal property we want to update
-            val attributeName = it.first()["attribute_name"]!!
-            val expandedAttributeName = NgsiLdParsingUtils.expandJsonLdKey(attributeName as String, rawEntity.second)
+            val attributeName = it.first()["attribute_name"]!! as String
 
             // extract the temporal property from the raw entity
             // ... if it exists, which is not the case for notifications of a subscription (in this case, create an empty map)
             val propertyToEnrich: MutableMap<String, Any> =
-                if (entity[expandedAttributeName] != null) {
-                    expandValueAsMap(entity[expandedAttributeName]!!).toMutableMap()
+                if (entity[attributeName] != null) {
+                    expandValueAsMap(entity[attributeName]!!).toMutableMap()
                 } else {
                     mutableMapOf()
                 }
@@ -219,8 +225,7 @@ class TemporalEntityAttributeService(
                 propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
 
                 // and finally update the raw entity with the updated temporal property
-                entity.remove(expandedAttributeName)
-                entity[expandedAttributeName!!] = listOf(propertyToEnrich)
+                entity[attributeName] = listOf(propertyToEnrich)
             } else {
                 val valuesMap =
                     it.map {
@@ -236,8 +241,7 @@ class TemporalEntityAttributeService(
                         )
                     }
 
-                entity.remove(expandedAttributeName)
-                entity[expandedAttributeName!!] = listOf(valuesMap)
+                entity[attributeName] = listOf(valuesMap)
             }
         }
 

@@ -67,6 +67,7 @@ class TemporalEntityHandler(
     fun getForEntity(req: ServerRequest): Mono<ServerResponse> {
         val entityId = req.pathVariable("entityId")
         val withTemporalValues = hasValueInOptionsParam(req.queryParam("options"), OptionsParamValue.TEMPORAL_VALUES)
+        val contextLink = extractContextFromLinkHeader(req)
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
@@ -83,7 +84,7 @@ class TemporalEntityHandler(
         }
 
         // FIXME this is way too complex, refactor it later
-        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs)
+        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs, contextLink)
             .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
             .flatMap { temporalEntityAttribute ->
                 attributeInstanceService.search(temporalQuery, temporalEntityAttribute)

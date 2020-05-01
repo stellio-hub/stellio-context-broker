@@ -54,6 +54,13 @@ class EntityListenerTest {
 
     @Test
     fun `it should ask to create an attribute instance`() {
+        val entity = """
+            {
+                \"id\": \"urn:ngsi-ld:FishContainment:1234\",
+                \"type\": \"FishContainment\",
+                \"@context\": \"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld\"
+            }
+        """.trimIndent()
         val eventPayload = """
             {
                 \"totalDissolvedSolids\":{
@@ -73,7 +80,8 @@ class EntityListenerTest {
                 "operationType": "UPDATE",
                 "entityId": "urn:ngsi-ld:FishContainment:1234",
                 "entityType": "FishContainment",
-                "payload": "$eventPayload"
+                "payload": "$eventPayload",
+                "updatedEntity": "$entity"
             }
         """.trimIndent().replace("\n", "")
 
@@ -84,7 +92,7 @@ class EntityListenerTest {
         entityListener.processMessage(content)
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(eq("urn:ngsi-ld:FishContainment:1234"),
-            eq("totalDissolvedSolids")) }
+            eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids")) }
         verify { attributeInstanceService.create(match {
             it.value == null &&
                 it.measuredValue == 33869.0 &&

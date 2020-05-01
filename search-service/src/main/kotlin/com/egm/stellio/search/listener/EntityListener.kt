@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -39,10 +41,13 @@ class EntityListener(
                 //  - existence of temporal entity attribute
                 //  - only add an attribute instance if observedAt (?)
                 //  - handle double vs string value
+                //  - needs optimization (lot of JSON-LD parsing, ...)
                 val rawParsedData = jacksonObjectMapper().readTree(entityEvent.payload!!)
+                val rawEntity = parseEntity(entityEvent.updatedEntity!!)
                 val attributeName = rawParsedData.fieldNames().next()
+                val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.second)!!
 
-                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, attributeName)
+                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName)
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it,

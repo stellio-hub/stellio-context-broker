@@ -121,7 +121,7 @@ class TemporalEntityHandler(
                         val entityPayload = compactEntity(it)
                         temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
                     }
-            temporalEntityAttribute.type != "Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
+            temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
             else -> {
                 val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
                 Mono.just(Pair(parsedEntity.first, listOf(NGSILD_CORE_CONTEXT)))

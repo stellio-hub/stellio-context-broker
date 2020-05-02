@@ -1,6 +1,7 @@
 # Stellio context broker
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-APL%202.0-blue.svg)](https://spdx.org/licenses/Apache-2.0.html)
+![Release Drafter](https://github.com/stellio-hub/stellio-context-broker/workflows/Release%20Drafter/badge.svg)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
 context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.02_60/gs_CIM009v010202p.pdf).

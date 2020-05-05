@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.ZONE_OFFSET
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
@@ -23,7 +24,6 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -850,7 +850,7 @@ class EntityServiceTests {
             observedBy = "urn:ngsi-ld:Sensor:01XYZ",
             unitCode = "CEL",
             value = 12.4,
-            observedAt = ZonedDateTime.now(ZoneOffset.of("+02:00"))
+            observedAt = ZonedDateTime.now(ZONE_OFFSET)
         )
     }
 }

@@ -9,9 +9,7 @@ import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.web.extractJwT
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
@@ -20,7 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import org.springframework.web.reactive.function.server.queryParamOrNull
 import reactor.core.publisher.Mono
-import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
 
 @Component
@@ -29,11 +26,6 @@ class SubscriptionHandler(
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    fun generatesProblemDetails(list: List<String>): String {
-        val mapper = jacksonObjectMapper()
-        return mapper.writeValueAsString(mapOf("ProblemDetails" to list))
-    }
 
     /**
      * Implements 6.10.3.1 - Create Subscription
@@ -58,14 +50,6 @@ class SubscriptionHandler(
                 }
                 .flatMap {
                     created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
-                }.onErrorResume {
-                    when (it) {
-                        is AlreadyExistsException -> status(HttpStatus.CONFLICT).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                        is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                        is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
-                        is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                        else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                    }
                 }
     }
 
@@ -106,11 +90,6 @@ class SubscriptionHandler(
                 else
                     ok().body(BodyInserters.fromValue(it.first))
             }
-            .onErrorResume {
-                when (it) {
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
-            }
     }
 
     /**
@@ -124,12 +103,6 @@ class SubscriptionHandler(
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
-            }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
             }
     }
 
@@ -154,13 +127,6 @@ class SubscriptionHandler(
             .flatMap {
                 noContent().build()
             }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
-            }
     }
 
     /**
@@ -178,9 +144,6 @@ class SubscriptionHandler(
                         noContent().build()
                     else
                         notFound().build()
-                }
-                .onErrorResume {
-                    status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
                 }
     }
 }

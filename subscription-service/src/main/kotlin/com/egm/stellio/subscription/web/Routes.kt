@@ -1,8 +1,9 @@
 package com.egm.stellio.subscription.web
 
+import com.egm.stellio.shared.util.httpRequestPreconditions
+import com.egm.stellio.shared.util.transformErrorResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.server.router
 
 @Configuration
@@ -12,15 +13,18 @@ class Routes(
 
     @Bean
     fun router() = router {
-        (accept(MediaType.valueOf("application/ld+json")) and "/ngsi-ld/v1")
-                .nest {
-                    "/subscriptions".nest {
-                        POST("", subscriptionHandler::create)
-                        GET("", subscriptionHandler::getSubscriptions)
-                        GET("/{subscriptionId}", subscriptionHandler::getByURI)
-                        PATCH("/{subscriptionId}", subscriptionHandler::update)
-                        DELETE("/{subscriptionId}", subscriptionHandler::delete)
-                    }
-                }
+        filter { request, next ->
+            httpRequestPreconditions(request, next)
+        }
+        "/ngsi-ld/v1/subscriptions".nest {
+            POST("", subscriptionHandler::create)
+            GET("", subscriptionHandler::getSubscriptions)
+            GET("/{subscriptionId}", subscriptionHandler::getByURI)
+            PATCH("/{subscriptionId}", subscriptionHandler::update)
+            DELETE("/{subscriptionId}", subscriptionHandler::delete)
+        }
+        onError<Throwable> { throwable, request ->
+            transformErrorResponse(throwable, request)
+        }
     }
 }

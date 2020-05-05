@@ -3,11 +3,11 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
-import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -18,7 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
 
 @Component
@@ -27,10 +26,6 @@ class EntityHandler(
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    fun generatesProblemDetails(list: List<String>): String {
-        return objectMapper().writeValueAsString(mapOf("ProblemDetails" to list))
-    }
 
     /**
      * Implements 6.4.3.1 - Create Entity
@@ -54,14 +49,6 @@ class EntityHandler(
             }
             .flatMap {
                 created(URI("/ngsi-ld/v1/entities/${it.id}")).build()
-            }.onErrorResume {
-                when (it) {
-                    is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
-                    is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
-                    is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.undeclaredThrowable.message.toString()))))
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
             }
     }
 
@@ -94,9 +81,6 @@ class EntityHandler(
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
             }
-            .onErrorResume {
-                badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-            }
     }
 
     /**
@@ -114,12 +98,6 @@ class EntityHandler(
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
-            }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
             }
     }
 
@@ -148,12 +126,6 @@ class EntityHandler(
                 else
                     status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
             }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
-            }
     }
 
     /**
@@ -178,12 +150,6 @@ class EntityHandler(
                 else
                     status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
             }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
-            }
     }
 
     /**
@@ -202,12 +168,6 @@ class EntityHandler(
             .flatMap {
                 status(HttpStatus.NO_CONTENT).build()
             }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
-            }
     }
 
     /**
@@ -225,9 +185,6 @@ class EntityHandler(
                     noContent().build()
                 else
                     notFound().build()
-            }
-            .onErrorResume {
-                status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
             }
     }
 }

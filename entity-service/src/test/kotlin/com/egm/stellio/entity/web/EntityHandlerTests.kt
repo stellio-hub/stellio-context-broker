@@ -5,16 +5,20 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -44,6 +48,16 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
+    @BeforeAll
+    fun configureWebClientDefaults() {
+        webClient = webClient.mutate()
+            .defaultHeaders {
+                it.accept = listOf(JSON_LD_MEDIA_TYPE)
+                it.contentType = JSON_LD_MEDIA_TYPE
+            }
+            .build()
+    }
+
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
@@ -55,7 +69,6 @@ class EntityHandlerTests {
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isCreated
@@ -71,10 +84,12 @@ class EntityHandlerTests {
         webClient.post()
                 .uri("/ngsi-ld/v1/entities")
                 .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(409)
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
+                    "\"title\":\"The referred element already exists\"," +
+                    "\"detail\":\"Already Exists\"}")
     }
 
     @Test
@@ -87,10 +102,12 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(500)
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                "\"title\":\"There has been an error during the operation execution\"," +
+                "\"detail\":\"Internal Server Exception\"}")
     }
 
     @Test
@@ -100,7 +117,6 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -113,7 +129,6 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -161,7 +176,6 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -183,7 +197,6 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -207,7 +220,6 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -231,7 +243,6 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -255,7 +266,6 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -269,17 +279,18 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                "\"title\":\"The referred resource has not been found\"," +
+                "\"detail\":\"Entity Not Found\"}")
     }
 
     @Test
     fun `search on entities should return 400 if required parameters are missing`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entities")
-            .accept(MediaType.valueOf("application/ld+json"))
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
@@ -296,7 +307,6 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -319,7 +329,6 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -341,7 +350,6 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
@@ -357,11 +365,11 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("@type not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -377,11 +385,11 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -397,11 +405,11 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("Key $NGSILD_RELATIONSHIP_HAS_OBJECT not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -422,7 +430,6 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -442,7 +449,6 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -463,7 +469,6 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(207)
@@ -485,7 +490,6 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -500,13 +504,17 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
         val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
+        every { entityService.exists(any()) } returns true
+
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                "\"title\":\"The request includes invalid JsonLd\"," +
+                "\"detail\":\"loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld\"}")
     }
 
     @Test
@@ -519,7 +527,6 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
@@ -533,7 +540,6 @@ class EntityHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
@@ -548,7 +554,6 @@ class EntityHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isNotFound
             .expectBody().isEmpty
@@ -560,10 +565,11 @@ class EntityHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-            .expectBody().json("{\"ProblemDetails\":[\"Unexpected server error\"]}")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                "\"title\":\"There has been an error during the operation execution\"," +
+                "\"detail\":\"Unexpected server error\"}")
     }
 
     @Test
@@ -572,7 +578,6 @@ class EntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .exchange()
             .expectStatus().isForbidden
     }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -40,6 +41,15 @@ object ApiUtils {
         mapper.readValue(content, Notification::class.java)
 }
 
+fun generatesProblemDetails(response: ErrorResponse): String {
+    val mapper = jacksonObjectMapper()
+    return mapper.writeValueAsString(mapOf(
+        "type" to response.type.type,
+        "title" to response.title,
+        "detail" to response.detail
+    ))
+}
+
 fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
     try {
         OffsetDateTime.parse(this)
@@ -67,7 +77,7 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
 fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     val contentType = request.headers().contentTypeOrNull()
     return if (isPostOrPatch(request.method()) && (contentType == null ||
-        !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
+                !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
         status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
             .bodyValue("Content-Type header must be one of 'application/json' or 'application/ld+json' (was $contentType)")
     else
@@ -86,8 +96,19 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
 
 fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {
-        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        is InvalidNgsiLdPayloadException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
+        is AlreadyExistsException -> status(HttpStatus.CONFLICT).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.ALREADY_EXISTS,
+            "The referred element already exists", throwable.message.toString()))
+        )
+        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.RESOURCE_NOT_FOUND,
+            "The referred resource has not been found", throwable.message.toString()))
+        )
+        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA,
+            "The request includes input data which does not meet the requirements of the operation", throwable.message.toString()))
+        )
+        is JsonLdError -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA,
+            "The request includes invalid JsonLd", throwable.message.toString()))
+        )
+        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.INTERNAL_ERROR,
+            "There has been an error during the operation execution", throwable.message.toString()))
+        )
     }

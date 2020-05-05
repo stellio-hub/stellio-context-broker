@@ -205,6 +205,19 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should find a sensor by vendor id with case not matching and measured property`() {
+        val vendorId = "urn:something:9876"
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
+        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId.toUpperCase(), EGM_VENDOR_ID, "outgoing")
+        assertNotNull(persistedEntity)
+        propertyRepository.delete(property)
+        relationshipRepository.delete(relationship)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
     fun `it should find a sensor by vendor id of a device and measured property`() {
         val vendorId = "urn:something:9876"
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf())

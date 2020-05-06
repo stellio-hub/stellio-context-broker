@@ -114,6 +114,9 @@ class SubscriptionHandlerTests {
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(500)
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Internal Server Exception\"}")
     }
 
     @Test
@@ -125,6 +128,9 @@ class SubscriptionHandlerTests {
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isBadRequest
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Context not provided\"}")
     }
 
     @Test
@@ -208,6 +214,9 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
     }
 
     @Test
@@ -221,6 +230,9 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
     }
 
     @Test

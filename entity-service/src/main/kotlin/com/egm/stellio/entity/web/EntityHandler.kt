@@ -8,8 +8,11 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.generatesProblemDetails
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
@@ -62,13 +65,15 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(req)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
-        if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-            return badRequest().body(BodyInserters.fromValue("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
-        }
+        if (q.isNullOrEmpty() && type.isNullOrEmpty())
+            return badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(
+                generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA, "The request includes input data which does not meet the requirements of the operation",
+                        "'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2")))
 
-        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-            return badRequest().body(BodyInserters.fromValue("Unable to resolve 'type' parameter from the provided Link header"))
-        }
+        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink))
+            return badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(
+                generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA, "The request includes input data which does not meet the requirements of the operation",
+                    "Unable to resolve 'type' parameter from the provided Link header")))
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
         return "".toMono()

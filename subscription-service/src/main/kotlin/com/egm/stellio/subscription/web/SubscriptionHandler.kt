@@ -8,8 +8,10 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.generatesProblemDetails
 import com.egm.stellio.shared.web.extractJwT
 import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.ServerRequest
@@ -60,11 +62,11 @@ class SubscriptionHandler(
         val pageNumber = req.queryParamOrNull("page")?.toInt() ?: 1
         val limit = req.queryParamOrNull("limit")?.toInt() ?: SUBSCRIPTION_QUERY_PAGING_LIMIT
 
-        if (limit <= 0 || pageNumber <= 0) {
-            return badRequest().body(BodyInserters.fromValue("Page number and Limit must be greater than zero"))
-        }
+        return if (limit <= 0 || pageNumber <= 0)
+            badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA,
+                    "The request includes input data which does not meet the requirements of the operation", "Page number and Limit must be greater than zero")))
 
-        return extractJwT()
+        else extractJwT()
             .flatMap {
                 subscriptionService.getSubscriptionsCount(it.subject).flatMap { count ->
                     Mono.just(Pair(count, it.subject))

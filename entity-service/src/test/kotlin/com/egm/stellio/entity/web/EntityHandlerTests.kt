@@ -294,6 +294,9 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2\"}")
     }
 
     @Test
@@ -353,6 +356,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Entity urn:ngsi-ld:BreedingService:0214 does not exist\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -373,6 +379,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"@type not found\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -393,6 +402,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasValue not found\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -413,6 +425,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasObject not found\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -530,6 +545,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Entity urn:ngsi-ld:UnknownType:0022CCC does not exist\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:UnknownType:0022CCC")) }
     }

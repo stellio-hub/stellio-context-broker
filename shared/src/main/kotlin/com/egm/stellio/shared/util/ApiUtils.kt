@@ -15,7 +15,6 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.contentTypeOrNull
 import reactor.core.publisher.Mono
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
@@ -52,8 +51,6 @@ fun String.parseTimeParameter(errorMsg: String): ZonedDateTime =
 
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
-
-val ZONE_OFFSET = ZoneOffset.of("+02:00")
 
 private fun isPostOrPatch(httpMethod: HttpMethod?): Boolean =
     listOf(HttpMethod.POST, HttpMethod.PATCH).contains(httpMethod)

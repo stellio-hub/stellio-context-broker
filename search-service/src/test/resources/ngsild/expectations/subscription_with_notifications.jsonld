@@ -7,12 +7,12 @@
     "type" : "Property",
     "value" : "urn:ngsi-ld:Beehive:1234",
     "instanceId" : "urn:ngsi-ld:Beehive:notification:1234",
-    "observedAt" : "2020-03-25T08:29:17.965206+01:00"
+    "observedAt" : "2020-03-25T08:29:17.965206Z"
   }, {
     "type" : "Property",
     "value" : "urn:ngsi-ld:Beehive:5678",
     "instanceId" : "urn:ngsi-ld:Beehive:notification:4567",
-    "observedAt" : "2020-03-25T08:33:17.965206+01:00"
+    "observedAt" : "2020-03-25T08:33:17.965206Z"
   } ],
   "@context" : "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
 }

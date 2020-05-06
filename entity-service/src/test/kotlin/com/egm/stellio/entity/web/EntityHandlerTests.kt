@@ -189,7 +189,7 @@ class EntityHandlerTests {
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf(NGSILD_CREATED_AT_PROPERTY to
                     mapOf("@type" to NGSILD_DATE_TIME_TYPE,
-                        "@value" to ZonedDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1"))),
+                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -201,7 +201,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001+01:00\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001Z\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test
@@ -212,7 +212,7 @@ class EntityHandlerTests {
             mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
                 NGSILD_PROPERTY_VALUE to mapOf(
                     "@type" to NGSILD_DATE_TIME_TYPE,
-                    "@value" to ZonedDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1")))),
+                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -224,7 +224,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001+01:00\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001Z\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test

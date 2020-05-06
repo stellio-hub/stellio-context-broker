@@ -93,12 +93,12 @@ class TemporalEntityAttributeServiceTests {
                 mapOf(
                     "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
                     "value" to 550.0,
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 mapOf(
                     "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
                     "value" to 650.0,
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -117,12 +117,12 @@ class TemporalEntityAttributeServiceTests {
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -142,13 +142,13 @@ class TemporalEntityAttributeServiceTests {
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206+01:00")
+                    "observed_at" to ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )

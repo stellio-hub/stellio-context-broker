@@ -8,7 +8,7 @@
   "@type": "BeeHive",
   "connectsTo": {
     "@type": "Beekeeper",
-    "createdAt": "2010-10-26T21:32:52+02:00",
+    "createdAt": "2010-10-26T21:32:52.98601Z",
     "@id": "urn:ngsi-ld:Beekeeper:TEST1"
   }
 }

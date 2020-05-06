@@ -276,6 +276,20 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(entity.id)
     }
 
+    @Test
+    fun `it should create createdAt property with time zone related information equal to the character "Z"`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        assertTrue(entity.createdAt.toString().endsWith("Z"))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should create modifiedAt property with time zone related information equal to the character "Z"`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        assertTrue(entity.modifiedAt.toString().endsWith("Z"))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)

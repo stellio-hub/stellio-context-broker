@@ -163,7 +163,7 @@ object NgsiLdParsingUtils {
      *     @value=kg
      *   }],
      *   https://uri.etsi.org/ngsi-ld/observedAt=[{
-     *     @value=2019-12-18T10:45:44.248755+01:00
+     *     @value=2019-12-18T10:45:44.248755Z
      *   }]
      * }
      *

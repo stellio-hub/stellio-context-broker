@@ -23,7 +23,7 @@
       "type": "Property",
       "value": 22.2,
       "unitCode": "CEL",
-      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedAt": "2019-10-26T21:32:52.98601Z",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:01XYZ"
@@ -33,7 +33,7 @@
       "type": "Property",
       "value": 60,
       "unitCode": "P1",
-      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedAt": "2019-10-26T21:32:52.98601Z",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:1541jdh"
@@ -51,7 +51,7 @@
          "type": "Property",
          "value": "MIN"
       },
-      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedAt": "2019-10-26T21:32:52.98601Z",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:0021"
@@ -69,7 +69,7 @@
          "type": "Property",
          "value": "MIN"
       },
-      "observedAt": "2019-10-26T21:32:52+02:00",
+      "observedAt": "2019-10-26T21:32:52.98601Z",
       "observedBy": {
          "type": "Relationship",
          "object": "urn:ngsi-ld:Sensor:002XIO52"
@@ -79,7 +79,7 @@
 	 "type": "Property",
 	 "value": 50,
 	 "unitCode": "VLT",
-	 "observedAt": "2019-10-26T21:32:52+02:00",
+	 "observedAt": "2019-10-26T21:32:52.98601Z",
 	 "observedBy": {
 		"type": "Relationship",
 		"object": "urn:ngsi-ld:Sensor:016352"

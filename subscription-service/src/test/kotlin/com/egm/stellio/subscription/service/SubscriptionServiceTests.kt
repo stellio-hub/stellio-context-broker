@@ -685,7 +685,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should support multiple predicates query with logical operator`() {
-        val query = "foodQuantity>150;executes.createdAt==\"2018-11-26T21:32:52+02:00\""
+        val query = "foodQuantity>150;executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
         val res = subscriptionService.isMatchingQuery(query, entity)
 
         assertEquals(res, false)
@@ -693,7 +693,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should support multiple predicates query with or logical operator`() {
-        val query = "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52+02:00\""
+        val query = "foodQuantity>150|executes.createdAt==\"2018-11-26T21:32:52.98601Z\""
         val res = subscriptionService.isMatchingQuery(query, entity)
 
         assertEquals(res, true)

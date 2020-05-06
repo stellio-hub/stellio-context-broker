@@ -9,13 +9,14 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.ZONE_OFFSET
 import com.fasterxml.jackson.annotation.*
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @NodeEntity
@@ -30,7 +31,7 @@ class Entity(
     val type: List<String>,
 
     @JsonIgnore
-    val createdAt: ZonedDateTime = ZonedDateTime.now(ZONE_OFFSET),
+    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
 
     @JsonIgnore
     var modifiedAt: ZonedDateTime? = null,

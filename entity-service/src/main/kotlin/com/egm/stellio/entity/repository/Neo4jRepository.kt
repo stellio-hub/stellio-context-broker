@@ -245,13 +245,13 @@ class Neo4jRepository(
             MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
             WHERE m.name ENDS WITH '$measureName' 
             AND p.name = '$propertyName' 
-            AND p.value = '$observerId' 
+            AND toLower(p.value) = toLower('$observerId') 
             RETURN e
             UNION
             MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_OBJECT]-()-[:IS_CONTAINED_IN]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
             WHERE m.name ENDS WITH '$measureName' 
             AND deviceProp.name = '$propertyName' 
-            AND deviceProp.value = '$observerId' 
+            AND toLower(deviceProp.value) = toLower('$observerId') 
             RETURN e
         """.trimIndent()
 

@@ -6,6 +6,7 @@ import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.ninjasquad.springmockk.MockkBean
@@ -222,7 +223,7 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns Pair(emptyMap(), emptyList())
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns ExpandedEntity(emptyMap(), emptyList())
         every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
 
         webClient.get()

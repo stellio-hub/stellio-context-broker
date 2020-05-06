@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getLocationFromEntity
@@ -24,28 +25,28 @@ class NotificationService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun notifyMatchingSubscribers(rawEntity: String, parsedEntity: Pair<Map<String, Any>, List<String>>, updatedAttributes: Set<String>):
+    fun notifyMatchingSubscribers(rawEntity: String, expandedEntity: ExpandedEntity, updatedAttributes: Set<String>):
             Mono<List<Triple<Subscription, Notification, Boolean>>> {
-        val id = parsedEntity.first["@id"]!! as String
-        val type = (parsedEntity.first["@type"]!! as List<String>)[0]
+        val id = expandedEntity.getId()
+        val type = expandedEntity.getType()
         return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
                 .filter {
                     subscriptionService.isMatchingQuery(it.q, rawEntity)
                 }
                 .filterWhen {
-                    subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(parsedEntity))
+                    subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(expandedEntity))
                 }
                 .flatMap {
-                    callSubscriber(it, listOf(parsedEntity))
+                    callSubscriber(it, listOf(expandedEntity))
                 }
                 .collectList()
     }
 
-    fun callSubscriber(subscription: Subscription, entities: List<Pair<Map<String, Any>, List<String>>>): Mono<Triple<Subscription, Notification, Boolean>> {
+    fun callSubscriber(subscription: Subscription, entities: List<ExpandedEntity>): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(subscriptionId = subscription.id, data = compactEntities(entities))
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
-            val entityId = entities[0].first["@id"]!! as String
+            val entityId = entities[0].getId()
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {

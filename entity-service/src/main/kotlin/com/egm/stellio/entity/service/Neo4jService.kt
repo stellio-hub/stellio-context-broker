@@ -32,10 +32,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.stellio.entity.web.*
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
@@ -267,7 +264,7 @@ class Neo4jService(
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
      */
-    fun getFullEntityById(entityId: String): Pair<Map<String, Any>, List<String>> {
+    fun getFullEntityById(entityId: String): ExpandedEntity {
         val entity = entityRepository.getEntityCoreById(entityId)[0]["entity"] as Entity
         val resultEntity = entity.serializeCoreProperties()
 
@@ -320,7 +317,7 @@ class Neo4jService(
 
                 resultEntity[primaryRelType] = relationshipValues
             }
-        return Pair(resultEntity, entity.contexts)
+        return ExpandedEntity(resultEntity, entity.contexts)
     }
 
     private fun buildPropertyFragment(rawProperty: List<Map<String, Any>>, contexts: List<String>): Pair<String, Map<String, Any>> {
@@ -357,10 +354,10 @@ class Neo4jService(
     fun getSerializedEntityById(entityId: String): String {
         val mapper = jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         val entity = getFullEntityById(entityId)
-        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.first, mapOf("@context" to entity.second), JsonLdOptions()))
+        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions()))
     }
 
-    fun searchEntities(type: String, query: List<String>, contextLink: String): List<Pair<Map<String, Any>, List<String>>> =
+    fun searchEntities(type: String, query: List<String>, contextLink: String): List<ExpandedEntity> =
         searchEntities(type, query, listOf(contextLink))
 
     /**
@@ -372,7 +369,7 @@ class Neo4jService(
      *
      * @return a list of entities represented as per #getFullEntityById result
      */
-    fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<Pair<Map<String, Any>, List<String>>> {
+    fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<ExpandedEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
         val queryCriteria = query
@@ -632,24 +629,24 @@ class Neo4jService(
         return neo4jRepository.deleteEntity(entityId)
     }
 
-    fun processBatchOfEntities(existingEntities: List<Pair<Map<String, Any>, List<String>>>, newEntities: List<Pair<Map<String, Any>, List<String>>>, validEntities: Map<String, String>): BatchOperationResult {
+    fun processBatchOfEntities(existingEntities: List<ExpandedEntity>, newEntities: List<ExpandedEntity>, validEntities: Map<String, String>): BatchOperationResult {
         val batchCreationResult = createBatchOfEntities(newEntities, validEntities)
         existingEntities.forEach {
-            val urn = it.first.getOrElse("@id") { "" } as String
+            val urn = it.getId()
             batchCreationResult.errors.add(BatchEntityError(urn, arrayListOf("Entity already exists")))
         }
         return BatchOperationResult(batchCreationResult.success, batchCreationResult.errors)
     }
 
-    fun createBatchOfEntities(entities: List<Pair<Map<String, Any>, List<String>>>, validEntities: Map<String, String>): BatchOperationResult {
+    fun createBatchOfEntities(entities: List<ExpandedEntity>, validEntities: Map<String, String>): BatchOperationResult {
         val createdEntities: ArrayList<String> = ArrayList()
         val failedEntities: ArrayList<BatchEntityError> = ArrayList()
 
         entities.forEach {
-            val urn = it.first.getOrElse("@id") { "" } as String
-            val type = extractTypeFromPayload(it.first)
-            val entity = createTempEntityInBatch(urn, type, it.second)
-            val propertiesAndRelationshipsMap = it.first.filterKeys {
+            val urn = it.getId()
+            val type = extractTypeFromPayload(it.attributes)
+            val entity = createTempEntityInBatch(urn, type, it.contexts)
+            val propertiesAndRelationshipsMap = it.attributes.filterKeys {
                 !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
             }
             try {

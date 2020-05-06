@@ -2,6 +2,7 @@ package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
@@ -21,36 +22,36 @@ class ValidationUtils(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun getExistingEntities(entities: List<Pair<Map<String, Any>, List<String>>>): List<Pair<Map<String, Any>, List<String>>> {
+    fun getExistingEntities(entities: List<ExpandedEntity>): List<ExpandedEntity> {
         return entities.filter {
-            neo4jService.exists(it.first.getOrElse("@id") { "" } as String)
+            neo4jService.exists(it.getId())
         }
     }
 
-    fun getNewEntities(entities: List<Pair<Map<String, Any>, List<String>>>): List<Pair<Map<String, Any>, List<String>>> {
+    fun getNewEntities(entities: List<ExpandedEntity>): List<ExpandedEntity> {
         return entities.filter {
-            !neo4jService.exists(it.first.getOrElse("@id") { "" } as String)
+            !neo4jService.exists(it.getId())
         }
     }
 
-    fun getValidEntities(entities: List<Pair<Map<String, Any>, List<String>>>): Map<String, String> {
+    fun getValidEntities(entities: List<ExpandedEntity>): Map<String, String> {
         val result: MutableMap<String, String> = mutableMapOf()
         val entitiesIds = entities.map {
-            it.first.getOrElse("@id") { "" } as String
+            it.getId()
         }
         entities.forEach {
-            val urn = it.first.getOrElse("@id") { "" } as String
+            val urn = it.getId()
             val relationshipIds = getRelationshipIds(urn, entitiesIds, entities, ArrayList()).first
             logger.debug("Relationships ids for $urn are $relationshipIds")
             if (entitiesIds.containsAll(relationshipIds)) {
-                result[urn] = extractTypeFromPayload(it.first)
+                result[urn] = extractTypeFromPayload(it.attributes)
             }
         }
 
         return result
     }
 
-    fun getRelationshipIds(entityId: String, entitiesIds: List<String>, payload: List<Pair<Map<String, Any>, List<String>>>, exploredEntities: ArrayList<String>): Pair<List<String>, List<String>> {
+    fun getRelationshipIds(entityId: String, entitiesIds: List<String>, payload: List<ExpandedEntity>, exploredEntities: ArrayList<String>): Pair<List<String>, List<String>> {
         val result = ArrayList<String>()
         val relationshipIds = ArrayList<String>()
 
@@ -70,10 +71,10 @@ class ValidationUtils(
         return Pair(result, exploredEntities)
     }
 
-    fun getEntityRelationships(entityId: String, payload: List<Pair<Map<String, Any>, List<String>>>): List<String> {
+    fun getEntityRelationships(entityId: String, payload: List<ExpandedEntity>): List<String> {
         val entityRelationshipsIds = ArrayList<String>()
         val entity = getEntityPayloadById(entityId, payload)
-        val propertiesAndRelationshipsMap = entity.first.filterKeys {
+        val propertiesAndRelationshipsMap = entity.attributes.filterKeys {
             !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
             expandValueAsMap(it.value)
@@ -92,10 +93,10 @@ class ValidationUtils(
         return entityRelationshipsIds
     }
 
-    fun getEntityRelationshipsOfProperties(entityId: String, payload: List<Pair<Map<String, Any>, List<String>>>): List<String> {
+    fun getEntityRelationshipsOfProperties(entityId: String, payload: List<ExpandedEntity>): List<String> {
         val entityAttributesIds = ArrayList<String>()
         val entity = getEntityPayloadById(entityId, payload)
-        val propertiesAndRelationshipsMap = entity.first.filterKeys {
+        val propertiesAndRelationshipsMap = entity.attributes.filterKeys {
             !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
             expandValueAsMap(it.value)
@@ -122,9 +123,9 @@ class ValidationUtils(
         return entityAttributesIds
     }
 
-    fun getEntityPayloadById(entityId: String, payload: List<Pair<Map<String, Any>, List<String>>>): Pair<Map<String, Any>, List<String>> {
+    fun getEntityPayloadById(entityId: String, payload: List<ExpandedEntity>): ExpandedEntity {
         return payload.filter {
-            it.first.getOrElse("@id") { "" } as String == entityId
+            it.getId() == entityId
         }[0]
     }
 }

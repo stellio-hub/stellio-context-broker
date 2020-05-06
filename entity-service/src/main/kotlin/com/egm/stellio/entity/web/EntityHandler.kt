@@ -4,10 +4,7 @@ import com.egm.stellio.entity.service.Neo4jService
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getTypeFromURI
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
@@ -48,7 +45,7 @@ class EntityHandler(
             }
             .map {
                 // TODO validation (https://redmine.eglobalmark.com/issues/853)
-                val urn = it.first.getOrElse("@id") { "" } as String
+                val urn = it.getId()
                 if (neo4jService.exists(urn)) {
                     throw AlreadyExistsException("Already Exists")
                 }
@@ -56,7 +53,7 @@ class EntityHandler(
                 it
             }
             .map {
-                neo4jService.createEntity(it.first, it.second)
+                neo4jService.createEntity(it.attributes, it.contexts)
             }
             .flatMap {
                 created(URI("/ngsi-ld/v1/entities/${it.id}")).build()

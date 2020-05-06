@@ -45,7 +45,7 @@ class EntityListener(
                 val rawParsedData = jacksonObjectMapper().readTree(entityEvent.payload!!)
                 val rawEntity = parseEntity(entityEvent.updatedEntity!!)
                 val attributeName = rawParsedData.fieldNames().next()
-                val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.second)!!
+                val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.contexts)!!
 
                 temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName)
                     .zipWhen {

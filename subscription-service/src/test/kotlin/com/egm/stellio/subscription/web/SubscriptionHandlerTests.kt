@@ -257,6 +257,9 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().is5xxServerError
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Update failed\"}")
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
@@ -275,6 +278,9 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}")
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
     }
@@ -290,6 +296,9 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Context not provided\"}")
     }
 
     @Test

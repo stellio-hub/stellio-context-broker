@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.EntityServiceProperties
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
@@ -20,7 +21,7 @@ class EntityService(
         .baseUrl(entityServiceProperties.url)
         .build()
 
-    fun getEntityById(entityId: String, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> =
+    fun getEntityById(entityId: String, bearerToken: String): Mono<ExpandedEntity> =
         webClient.get()
             .uri("/entities/$entityId")
             .header("Authorization", bearerToken)

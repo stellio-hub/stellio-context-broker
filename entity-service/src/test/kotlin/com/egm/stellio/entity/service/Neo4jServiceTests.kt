@@ -75,9 +75,9 @@ class Neo4jServiceTests {
         every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf("@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z", "@type" to listOf("MortalityRemovalService"))
         every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.second
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
+        neo4jService.createEntity(sampleDataWithContext.attributes, sampleDataWithContext.contexts)
 
         verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "MortalityRemovalService" &&
@@ -157,9 +157,9 @@ class Neo4jServiceTests {
         every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf("@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z", "@type" to listOf("MortalityRemovalService"))
         every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.second
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        neo4jService.createEntity(sampleDataWithContext.first, sampleDataWithContext.second)
+        neo4jService.createEntity(sampleDataWithContext.attributes, sampleDataWithContext.contexts)
 
         verifyAll {
             propertyRepository.save<Property>(match {

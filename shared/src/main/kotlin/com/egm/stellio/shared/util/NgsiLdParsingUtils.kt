@@ -99,40 +99,24 @@ object NgsiLdParsingUtils {
     private fun addCoreContext(contexts: List<String>): List<Any> =
         contexts.plus(BASE_CONTEXT)
 
-    fun parseEntity(input: String, contexts: List<String>): Pair<Map<String, Any>, List<String>> {
+    fun parseEntity(input: String, contexts: List<String>): ExpandedEntity {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
 
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
 
-        return Pair(expandedEntity as Map<String, Any>, contexts)
+        return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
     }
 
     @Deprecated("Deprecated in favor of the method accepting the contexts as separate arguments, as it allow for more genericity")
-    fun parseEntity(input: String): Pair<Map<String, Any>, List<String>> {
+    fun parseEntity(input: String): ExpandedEntity {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
-
-        val expandedResult = JsonUtils.toPrettyString(expandedEntity)
-        logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
             Map::class.java, String::class.java, Any::class.java
         ))
-
-        // Not currently used but it could be useful later if we want to improve / optimize the parsing logic
-        // and / or the way data is persisted
-        // For instance, for each entity / property / relationship, we could store the compact and expanded name
-        // for more efficient queries (e.g. no need to expand every parameter)
-//        val compactedEntity = JsonLdProcessor.compact(JsonUtils.fromInputStream(input.byteInputStream()),
-//            parsedInput["@context"], JsonLdOptions()
-//        )
-//        logger.debug("Compacted entity is ${JsonUtils.toPrettyString(compactedEntity)}")
-//
-//        val flattenedEntity = JsonLdProcessor.flatten(JsonUtils.fromInputStream(input.byteInputStream()),
-//            parsedInput["@context"], JsonLdOptions())
-//        logger.debug("Flattened entity is ${JsonUtils.toPrettyString(flattenedEntity)}")
 
         val contexts =
             if (parsedInput["@context"] is List<*>)
@@ -140,10 +124,10 @@ object NgsiLdParsingUtils {
             else
                 listOf(parsedInput["@context"] as String)
 
-        return Pair(expandedEntity as Map<String, Any>, contexts)
+        return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
     }
 
-    fun parseEntities(entities: List<Map<String, Any>>): List<Pair<Map<String, Any>, List<String>>> {
+    fun parseEntities(entities: List<Map<String, Any>>): List<ExpandedEntity> {
         return entities.map {
             parseEntity(mapper.writeValueAsString(it))
         }
@@ -316,10 +300,10 @@ object NgsiLdParsingUtils {
         return mapper.writeValueAsString(compactedFragment)
     }
 
-    fun compactEntity(entity: Pair<Map<String, Any>, List<String>>): Map<String, Any> =
-        JsonLdProcessor.compact(entity.first, mapOf("@context" to entity.second), JsonLdOptions())
+    fun compactEntity(entity: ExpandedEntity): Map<String, Any> =
+        JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions())
 
-    fun compactEntities(entities: List<Pair<Map<String, Any>, List<String>>>): List<Map<String, Any>> =
+    fun compactEntities(entities: List<ExpandedEntity>): List<Map<String, Any>> =
         entities.map {
             compactEntity(it)
         }
@@ -373,9 +357,9 @@ object NgsiLdParsingUtils {
         return mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
     }
 
-    fun getLocationFromEntity(parsedEntity: Pair<Map<String, Any>, List<String>>): Map<String, Any>? {
+    fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
         try {
-            val location = expandValueAsMap(parsedEntity.first[NGSILD_LOCATION_PROPERTY]!!)
+            val location = expandValueAsMap(parsedEntity.attributes[NGSILD_LOCATION_PROPERTY]!!)
             val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
             val geoPropertyType = locationValue["@type"]!![0] as String
             val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!

@@ -4,6 +4,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
@@ -122,7 +123,7 @@ class EntityHandlerTests {
     fun `get entity by id should return 200 when entity exists`() {
 
         every { neo4jService.exists(any()) } returns true
-        every { neo4jService.getFullEntityById(any()) } returns Pair(emptyMap(), emptyList())
+        every { neo4jService.getFullEntityById(any()) } returns ExpandedEntity(emptyMap(), emptyList())
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
@@ -136,7 +137,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
 
         every { neo4jService.exists(any()) } returns true
-        every { neo4jService.getFullEntityById(any()) } returns Pair(
+        every { neo4jService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf(NGSILD_CREATED_AT_PROPERTY to mapOf("@type" to NGSILD_DATE_TIME_TYPE,
                 "@value" to OffsetDateTime.of(LocalDateTime.of(2015, 10, 18, 11, 20, 30, 1000), ZoneOffset.of("+1")))),
             listOf(NGSILD_CORE_CONTEXT)
@@ -155,7 +156,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type DateTime`() {
 
         every { neo4jService.exists(any()) } returns true
-        every { neo4jService.getFullEntityById(any()) } returns Pair(
+        every { neo4jService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
                 NGSILD_PROPERTY_VALUE to mapOf(
                     "@type" to NGSILD_DATE_TIME_TYPE,
@@ -176,7 +177,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Date`() {
 
         every { neo4jService.exists(any()) } returns true
-        every { neo4jService.getFullEntityById(any()) } returns Pair(
+        every { neo4jService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
                 NGSILD_PROPERTY_VALUE to mapOf(
                     "@type" to NGSILD_DATE_TYPE,
@@ -197,7 +198,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Time`() {
 
         every { neo4jService.exists(any()) } returns true
-        every { neo4jService.getFullEntityById(any()) } returns Pair(
+        every { neo4jService.getFullEntityById(any()) } returns ExpandedEntity(
             mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
                 NGSILD_PROPERTY_VALUE to mapOf(
                     "@type" to NGSILD_TIME_TYPE,

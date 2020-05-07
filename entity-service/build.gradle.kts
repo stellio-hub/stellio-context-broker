@@ -15,7 +15,10 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
+    implementation("org.liquigraph:liquigraph-spring-boot-starter:4.0.1")
+
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")

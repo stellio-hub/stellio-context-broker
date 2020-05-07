@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changelog>
+    <changeset id="migrate-temporal-properties-to-datetime-data-type" author="stellio-neo4j-migrations">
+        <query>MATCH (n) set n.modifiedAt = dateTime(n.modifiedAt)
+            set n.createdAt = datetime(n.createdAt) set n.observedAt = datetime(n.observedAt)</query>
+    </changeset>
+</changelog>

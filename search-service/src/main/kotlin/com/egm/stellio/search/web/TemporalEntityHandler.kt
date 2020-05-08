@@ -11,7 +11,6 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
@@ -104,7 +103,7 @@ class TemporalEntityHandler(
                 temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
             }
             .map {
-                compactEntity(it)
+                it.compact()
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
@@ -119,7 +118,7 @@ class TemporalEntityHandler(
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
                     .doOnSuccess {
-                        val entityPayload = compactEntity(it)
+                        val entityPayload = it.compact()
                         temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
                     }
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))

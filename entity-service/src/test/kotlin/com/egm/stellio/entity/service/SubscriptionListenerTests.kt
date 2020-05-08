@@ -17,7 +17,7 @@ class SubscriptionListenerTests {
     private lateinit var subscriptionListener: SubscriptionListener
 
     @MockkBean
-    private lateinit var neo4jService: Neo4jService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
@@ -31,12 +31,12 @@ class SubscriptionListenerTests {
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
         )
 
-        every { neo4jService.createSubscriptionEntity(any(), any(), any()) } just Runs
+        every { entityService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
         subscriptionListener.processSubscription(subscription)
 
-        verify { neo4jService.createSubscriptionEntity("urn:ngsi-ld:Subscription:04", "Subscription", parsedSubscription.minus("id").minus("type")) }
-        confirmVerified(neo4jService)
+        verify { entityService.createSubscriptionEntity("urn:ngsi-ld:Subscription:04", "Subscription", parsedSubscription.minus("id").minus("type")) }
+        confirmVerified(entityService)
     }
 
     @Test
@@ -49,12 +49,12 @@ class SubscriptionListenerTests {
             "subscriptionId" to "urn:ngsi-ld:Subscription:1234"
         )
 
-        every { neo4jService.createNotificationEntity(any(), any(), any(), any()) } just Runs
+        every { entityService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 
         subscriptionListener.processNotification(notification)
 
-        verify { neo4jService.createNotificationEntity("urn:ngsi-ld:Notification:1234", "Notification", "urn:ngsi-ld:Subscription:1234",
+        verify { entityService.createNotificationEntity("urn:ngsi-ld:Notification:1234", "Notification", "urn:ngsi-ld:Subscription:1234",
             parsedNotification.minus("id").minus("type").minus("subscriptionId")) }
-        confirmVerified(neo4jService)
+        confirmVerified(entityService)
     }
 }

@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -18,7 +18,7 @@ import java.lang.reflect.UndeclaredThrowableException
 
 @Component
 class EntityOperationHandler(
-    private val neo4jService: Neo4jService,
+    private val entityService: EntityService,
     private val validationUtils: ValidationUtils
 ) {
 
@@ -44,7 +44,7 @@ class EntityOperationHandler(
                 Triple(existingEntities, newEntities, validEntities)
             }
             .map {
-                    neo4jService.processBatchOfEntities(it.first, it.second, it.third)
+                    entityService.processBatchOfEntities(it.first, it.second, it.third)
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(it))

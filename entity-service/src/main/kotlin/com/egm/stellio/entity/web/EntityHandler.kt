@@ -1,14 +1,12 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getTypeFromURI
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -25,7 +23,7 @@ import java.net.URI
 
 @Component
 class EntityHandler(
-    private val neo4jService: Neo4jService
+    private val entityService: EntityService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -45,15 +43,14 @@ class EntityHandler(
             }
             .map {
                 // TODO validation (https://redmine.eglobalmark.com/issues/853)
-                val urn = it.getId()
-                if (neo4jService.exists(urn)) {
+                if (entityService.exists(it.id)) {
                     throw AlreadyExistsException("Already Exists")
                 }
 
                 it
             }
             .map {
-                neo4jService.createEntity(it.attributes, it.contexts)
+                entityService.createEntity(it)
             }
             .flatMap {
                 created(URI("/ngsi-ld/v1/entities/${it.id}")).build()
@@ -89,7 +86,7 @@ class EntityHandler(
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
         return "".toMono()
             .map {
-                neo4jService.searchEntities(type, q.decode(), contextLink)
+                entityService.searchEntities(type, q.decode(), contextLink)
             }
             .map {
                 compactEntities(it)
@@ -109,11 +106,11 @@ class EntityHandler(
         val uri = req.pathVariable("entityId")
         return uri.toMono()
             .map {
-                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity Not Found")
-                neo4jService.getFullEntityById(it)
+                if (!entityService.exists(uri)) throw ResourceNotFoundException("Entity Not Found")
+                entityService.getFullEntityById(it)
             }
             .map {
-                compactEntity(it)
+                it.compact()
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
@@ -133,21 +130,16 @@ class EntityHandler(
     fun appendEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
         val entityId = req.pathVariable("entityId")
         val disallowOverwrite = req.queryParam("options").map { it == "noOverwrite" }.orElse(false)
-        val type = getTypeFromURI(entityId)
         val contextLink = extractContextFromLinkHeader(req)
         return req.bodyToMono<String>()
             .doOnNext {
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
-
-                if (!neo4jService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
                 NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
             }
             .map {
-                neo4jService.appendEntityAttributes(entityId, it, disallowOverwrite)
+                entityService.appendEntityAttributes(entityId, it, disallowOverwrite)
             }
             .flatMap {
                 logger.debug("Appended $it attributes on entity $entityId")
@@ -170,19 +162,14 @@ class EntityHandler(
      */
     fun updateEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
         val uri = req.pathVariable("entityId")
-        val type = getTypeFromURI(uri)
         val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .doOnNext {
-                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity $uri does not exist")
-
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
+                if (!entityService.exists(uri)) throw ResourceNotFoundException("Entity $uri does not exist")
             }
             .map {
-                neo4jService.updateEntityAttributes(uri, it, contextLink)
+                entityService.updateEntityAttributes(uri, it, contextLink)
             }
             .flatMap {
                 logger.debug("Update $it attributes on entity $uri")
@@ -206,16 +193,11 @@ class EntityHandler(
     fun partialAttributeUpdate(req: ServerRequest): Mono<ServerResponse> {
         val attr = req.pathVariable("attrId")
         val uri = req.pathVariable("entityId")
-        val type = getTypeFromURI(uri)
-
         val contextLink = extractContextFromLinkHeader(req)
 
         return req.bodyToMono<String>()
             .map {
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
-                neo4jService.updateEntityAttribute(uri, attr, it, contextLink)
+                entityService.updateEntityAttribute(uri, attr, it, contextLink)
             }
             .flatMap {
                 status(HttpStatus.NO_CONTENT).build()
@@ -236,7 +218,7 @@ class EntityHandler(
 
         return entityId.toMono()
             .map {
-                neo4jService.deleteEntity(entityId)
+                entityService.deleteEntity(entityId)
             }
             .flatMap {
                 if (it.first >= 1)

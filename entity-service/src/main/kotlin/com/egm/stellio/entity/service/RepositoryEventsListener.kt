@@ -72,6 +72,6 @@ class RepositoryEventsListener(
 
     private fun getEntityById(entityId: String): String {
         val entity = neo4jService.getFullEntityById(entityId)
-        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.first, mapOf("@context" to entity.second), JsonLdOptions()))
+        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions()))
     }
 }

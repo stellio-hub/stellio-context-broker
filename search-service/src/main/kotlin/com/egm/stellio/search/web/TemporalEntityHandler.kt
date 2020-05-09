@@ -6,6 +6,7 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
@@ -113,7 +114,7 @@ class TemporalEntityHandler(
     /**
      * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
      */
-    private fun loadEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, bearerToken: String): Mono<Pair<Map<String, Any>, List<String>>> =
+    private fun loadEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, bearerToken: String): Mono<ExpandedEntity> =
         when {
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
@@ -124,7 +125,7 @@ class TemporalEntityHandler(
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
             else -> {
                 val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
-                Mono.just(Pair(parsedEntity.first, listOf(NGSILD_CORE_CONTEXT)))
+                Mono.just(ExpandedEntity(parsedEntity.attributes, listOf(NGSILD_CORE_CONTEXT)))
             }
         }
 }

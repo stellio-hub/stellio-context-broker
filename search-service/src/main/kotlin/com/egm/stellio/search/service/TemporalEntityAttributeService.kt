@@ -7,6 +7,7 @@ import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
@@ -61,7 +62,7 @@ class TemporalEntityAttributeService(
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
         val entity = NgsiLdParsingUtils.parseEntity(payload)
-        val rawEntity = entity.first
+        val rawEntity = entity.attributes
 
         val temporalProperties = rawEntity
             .filter {
@@ -186,12 +187,12 @@ class TemporalEntityAttributeService(
     }
 
     fun injectTemporalValues(
-        rawEntity: Pair<Map<String, Any>, List<String>>,
+        expandedEntity: ExpandedEntity,
         rawResults: List<List<Map<String, Any>>>,
         withTemporalValues: Boolean
-    ): Pair<Map<String, Any>, List<String>> {
+    ): ExpandedEntity {
 
-        val entity = rawEntity.first.toMutableMap()
+        val entity = expandedEntity.attributes.toMutableMap()
 
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results
@@ -245,6 +246,6 @@ class TemporalEntityAttributeService(
             }
         }
 
-        return Pair(entity, rawEntity.second)
+        return ExpandedEntity(entity, expandedEntity.contexts)
     }
 }

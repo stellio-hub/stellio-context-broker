@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.util
 
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntities
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.net.URLDecoder
@@ -39,7 +40,7 @@ fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {
     return mapper.readValue(payload, mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java))
 }
 
-fun extractAndParseBatchOfEntities(payload: String): List<Pair<Map<String, Any>, List<String>>> {
+fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
     val extractedEntities = extractEntitiesFromJsonPayload(payload)
     return parseEntities(extractedEntities)
 }

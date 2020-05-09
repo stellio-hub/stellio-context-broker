@@ -3,7 +3,9 @@ name: Release Drafter
 on:
   push:
     # branches to consider in the event; optional, defaults to all
-    branches: [master]
+    branches:
+      - master
+      - develop
 
 jobs:
   update_release_draft:
@@ -13,4 +15,3 @@ jobs:
       - uses: release-drafter/release-drafter@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.mockkClass
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
@@ -223,7 +224,7 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns ExpandedEntity(emptyMap(), emptyList())
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(ExpandedEntity::class, relaxed = true)
         every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
 
         webClient.get()

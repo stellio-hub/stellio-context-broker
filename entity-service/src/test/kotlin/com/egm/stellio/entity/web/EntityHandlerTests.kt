@@ -528,7 +528,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                "\"title\":\"The request includes invalid JsonLd\"," +
+                "\"title\":\"loading remote context failed\"," +
                 "\"detail\":\"loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld\"}")
     }
 

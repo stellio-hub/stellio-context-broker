@@ -87,9 +87,24 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
 
 fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {
-        is AlreadyExistsException -> status(HttpStatus.CONFLICT).contentType(MediaType.APPLICATION_JSON).bodyValue(AlreadyExistsResponse(throwable.message ?: "The referred element already exists"))
-        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(ResourceNotFoundResponse(throwable.message ?: "The referred resource has not been found"))
-        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(BadRequestDataResponse(throwable.message ?: "The request includes input data which does not meet the requirements of the operation"))
-        is JsonLdError -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(JsonLdErrorResponse(throwable.message ?: "The request includes invalid JsonLd"))
-        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
+        is AlreadyExistsException ->
+            status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AlreadyExistsResponse(throwable.message))
+        is ResourceNotFoundException ->
+            status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(ResourceNotFoundResponse(throwable.message))
+        is BadRequestDataException ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(BadRequestDataResponse(throwable.message))
+        is JsonLdError ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty()))
+        else ->
+            status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
     }

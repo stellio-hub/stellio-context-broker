@@ -41,15 +41,6 @@ object ApiUtils {
         mapper.readValue(content, Notification::class.java)
 }
 
-fun generatesProblemDetails(response: ErrorResponse): String {
-    val mapper = jacksonObjectMapper()
-    return mapper.writeValueAsString(mapOf(
-        "type" to response.type.type,
-        "title" to response.title,
-        "detail" to response.detail
-    ))
-}
-
 fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
     try {
         OffsetDateTime.parse(this)
@@ -96,19 +87,9 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
 
 fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {
-        is AlreadyExistsException -> status(HttpStatus.CONFLICT).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.ALREADY_EXISTS,
-            "The referred element already exists", throwable.message.toString()))
-        )
-        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.RESOURCE_NOT_FOUND,
-            "The referred resource has not been found", throwable.message.toString()))
-        )
-        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA,
-            "The request includes input data which does not meet the requirements of the operation", throwable.message.toString()))
-        )
-        is JsonLdError -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.BAD_REQUEST_DATA,
-            "The request includes invalid JsonLd", throwable.message.toString()))
-        )
-        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(ErrorResponse(ErrorType.INTERNAL_ERROR,
-            "There has been an error during the operation execution", throwable.message.toString()))
-        )
+        is AlreadyExistsException -> status(HttpStatus.CONFLICT).contentType(MediaType.APPLICATION_JSON).bodyValue(AlreadyExistsResponse(throwable.message ?: "The referred element already exists"))
+        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(ResourceNotFoundResponse(throwable.message ?: "The referred resource has not been found"))
+        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(BadRequestDataResponse(throwable.message ?: "The request includes input data which does not meet the requirements of the operation"))
+        is JsonLdError -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(JsonLdErrorResponse(throwable.message ?: "The request includes invalid JsonLd"))
+        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
     }

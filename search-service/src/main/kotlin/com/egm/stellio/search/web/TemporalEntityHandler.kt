@@ -5,11 +5,7 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.ErrorResponse
-import com.egm.stellio.shared.model.ErrorType
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
@@ -83,10 +79,7 @@ class TemporalEntityHandler(
         val temporalQuery = try {
             buildTemporalQuery(req.queryParams())
         } catch (e: BadRequestDataException) {
-            return badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(generatesProblemDetails(
-                ErrorResponse(ErrorType.BAD_REQUEST_DATA, "The request includes input data which does not meet the requirements of the operation",
-                    e.message ?: "Unable to build a temporal query for the given parameters")
-            ))
+            return badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(BadRequestDataResponse(e.message ?: "Unable to build a temporal query for the given parameters"))
         }
 
         // FIXME this is way too complex, refactor it later

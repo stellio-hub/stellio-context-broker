@@ -1,10 +1,21 @@
 package com.egm.stellio.shared.model
 
-data class ErrorResponse(
-    val type: ErrorType,
+sealed class ErrorResponse(
+    val type: String,
     val title: String,
-    val detail: String
+    open val detail: String
 )
+
+data class InvalidRequestResponse(override val detail: String) : ErrorResponse(ErrorType.INVALID_REQUEST.type, "The request associated to the operation is syntactically invalid or includes wrong content", detail)
+data class BadRequestDataResponse(override val detail: String) : ErrorResponse(ErrorType.BAD_REQUEST_DATA.type, "The request includes input data which does not meet the requirements of the operation", detail)
+data class AlreadyExistsResponse(override val detail: String) : ErrorResponse(ErrorType.ALREADY_EXISTS.type, "The referred element already exists", detail)
+data class OperationNotSupportedResponse(override val detail: String) : ErrorResponse(ErrorType.OPERATION_NOT_SUPPORTED.type, "The operation is not supported", detail)
+data class ResourceNotFoundResponse(override val detail: String) : ErrorResponse(ErrorType.RESOURCE_NOT_FOUND.type, "The referred resource has not been found", detail)
+data class InternalErrorResponse(override val detail: String) : ErrorResponse(ErrorType.INTERNAL_ERROR.type, "There has been an error during the operation execution", detail)
+data class TooComplexQueryResponse(override val detail: String) : ErrorResponse(ErrorType.TOO_COMPLEX_QUERY.type, "The query associated to the operation is too complex and cannot be resolved", detail)
+data class TooManyResultsResponse(override val detail: String) : ErrorResponse(ErrorType.TOO_MANY_RESULTS.type, "The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive", detail)
+data class LdContextNotAvailableResponse(override val detail: String) : ErrorResponse(ErrorType.LD_CONTEXT_NOT_AVAILABLE.type, "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed", detail)
+data class JsonLdErrorResponse(override val detail: String) : ErrorResponse(ErrorType.BAD_REQUEST_DATA.type, "The request includes invalid JsonLd", detail)
 
 enum class ErrorType(val type: String) {
     INVALID_REQUEST("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest"),
@@ -15,5 +26,5 @@ enum class ErrorType(val type: String) {
     INTERNAL_ERROR("https://uri.etsi.org/ngsi-ld/errors/InternalError"),
     TOO_COMPLEX_QUERY("https://uri.etsi.org/ngsi-ld/errors/TooComplexQuery"),
     TOO_MANY_RESULTS("https://uri.etsi.org/ngsi-ld/errors/TooManyResults"),
-    LD_CONTEXT_NOT_AVAILABLE("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable"),
+    LD_CONTEXT_NOT_AVAILABLE("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable")
 }

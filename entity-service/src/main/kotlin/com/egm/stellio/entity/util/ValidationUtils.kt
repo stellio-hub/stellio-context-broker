@@ -1,14 +1,13 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractTypeFromPayload
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import org.slf4j.LoggerFactory
@@ -16,7 +15,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ValidationUtils(
-    private val neo4jService: Neo4jService,
+    private val entityService: EntityService,
     private val entityRepository: EntityRepository
 ) {
 
@@ -24,27 +23,27 @@ class ValidationUtils(
 
     fun getExistingEntities(entities: List<ExpandedEntity>): List<ExpandedEntity> {
         return entities.filter {
-            neo4jService.exists(it.getId())
+            entityService.exists(it.id)
         }
     }
 
     fun getNewEntities(entities: List<ExpandedEntity>): List<ExpandedEntity> {
         return entities.filter {
-            !neo4jService.exists(it.getId())
+            !entityService.exists(it.id)
         }
     }
 
     fun getValidEntities(entities: List<ExpandedEntity>): Map<String, String> {
         val result: MutableMap<String, String> = mutableMapOf()
         val entitiesIds = entities.map {
-            it.getId()
+            it.id
         }
         entities.forEach {
-            val urn = it.getId()
-            val relationshipIds = getRelationshipIds(urn, entitiesIds, entities, ArrayList()).first
-            logger.debug("Relationships ids for $urn are $relationshipIds")
+            val id = it.id
+            val relationshipIds = getRelationshipIds(id, entitiesIds, entities, ArrayList()).first
+            logger.debug("Relationships ids for $id are $relationshipIds")
             if (entitiesIds.containsAll(relationshipIds)) {
-                result[urn] = extractTypeFromPayload(it.attributes)
+                result[id] = it.type
             }
         }
 
@@ -124,8 +123,8 @@ class ValidationUtils(
     }
 
     fun getEntityPayloadById(entityId: String, payload: List<ExpandedEntity>): ExpandedEntity {
-        return payload.filter {
-            it.getId() == entityId
-        }[0]
+        return payload.first {
+            it.id == entityId
+        }
     }
 }

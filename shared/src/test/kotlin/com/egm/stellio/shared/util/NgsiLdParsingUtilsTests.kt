@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.core.io.ClassPathResource
 
 class NgsiLdParsingUtilsTests {
-    private final val rawEntityWithPolygonLocation = """
+    private val rawEntityWithPolygonLocation = """
             {
                "id":"urn:ngsi-ld:Apiary:XYZ01",
                "type":"Apiary",
@@ -35,7 +35,7 @@ class NgsiLdParsingUtilsTests {
             } 
         """.trimIndent()
 
-    private final val rawEntityWithPointLocation = """
+    private val rawEntityWithPointLocation = """
             {
                "id":"urn:ngsi-ld:Apiary:XYZ01",
                "type":"Apiary",

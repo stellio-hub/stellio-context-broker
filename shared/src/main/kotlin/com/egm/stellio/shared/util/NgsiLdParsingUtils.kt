@@ -147,23 +147,6 @@ object NgsiLdParsingUtils {
         (value as List<Any>)[0] as Map<String, List<Any>>
 
     /**
-     * Expects an JSON-LD expanded fragment like this :
-     *
-     * [{
-     *    https://uri.etsi.org/ngsi-ld/hasObject=[{
-     *      @id=urn:ngsi-ld:FishContainment:1234
-     *    }],
-     *    @type=[
-     *      https://uri.etsi.org/ngsi-ld/Relationship
-     *    ]
-     *  }]
-     *
-     *  @return the raw value of the #propertyKey (typically a map or a string)
-     */
-    fun getRawPropertyValueFromList(value: Any, propertyKey: String): Any =
-        (expandValueAsMap(value)[propertyKey]!!)[0]
-
-    /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
      * @param value a map similar to:
@@ -232,9 +215,6 @@ object NgsiLdParsingUtils {
         return objectId
     }
 
-    fun extractTypeFromPayload(payload: Map<String, Any>): String =
-        (payload["@type"] as List<String>)[0]
-
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
         // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
         // TODO do a clean implementation using info from @context
@@ -300,17 +280,10 @@ object NgsiLdParsingUtils {
         return mapper.writeValueAsString(compactedFragment)
     }
 
-    fun compactEntity(entity: ExpandedEntity): Map<String, Any> =
-        JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions())
-
     fun compactEntities(entities: List<ExpandedEntity>): List<Map<String, Any>> =
         entities.map {
-            compactEntity(it)
+            it.compact()
         }
-
-    fun getTypeFromURI(uri: String): String {
-        return uri.split(":")[2]
-    }
 
     fun parseTemporalPropertyUpdate(content: String): Observation? {
         val rawParsedData = mapper.readTree(content)

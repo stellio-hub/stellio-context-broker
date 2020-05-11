@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.entity.service.EntityService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
@@ -27,15 +27,15 @@ class EntityOperationHandlerTests {
     private lateinit var webClient: WebTestClient
 
     @MockkBean
-    private lateinit var neo4jService: Neo4jService
+    private lateinit var entityService: EntityService
 
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
 
-        every { neo4jService.exists(any()) } returns false
-        every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
+        every { entityService.exists(any()) } returns false
+        every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
                 .uri("/ngsi-ld/v1/entityOperations/create")
@@ -59,8 +59,8 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_cyclic_dependency.json")
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
 
-        every { neo4jService.exists(any()) } returns false
-        every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
+        every { entityService.exists(any()) } returns false
+        every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -85,8 +85,8 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
         val errorObject = arrayListOf(BatchEntityError("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 in relationship connectsTo does not exist, create it first")))
 
-        every { neo4jService.exists(any()) } returns false
-        every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
+        every { entityService.exists(any()) } returns false
+        every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -117,8 +117,8 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
         val errorObject = arrayListOf(BatchEntityError("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", arrayListOf("Entity already exists")))
 
-        every { neo4jService.exists(any()) } returns false
-        every { neo4jService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
+        every { entityService.exists(any()) } returns false
+        every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")

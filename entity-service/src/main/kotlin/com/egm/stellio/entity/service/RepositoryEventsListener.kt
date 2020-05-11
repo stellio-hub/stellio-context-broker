@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class RepositoryEventsListener(
-    private val neo4jService: Neo4jService,
+    private val entityService: EntityService,
     private val resolver: BinderAwareChannelResolver
 ) {
 
@@ -71,7 +71,7 @@ class RepositoryEventsListener(
     }
 
     private fun getEntityById(entityId: String): String {
-        val entity = neo4jService.getFullEntityById(entityId)
+        val entity = entityService.getFullEntityById(entityId)
         return mapper.writeValueAsString(JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions()))
     }
 }

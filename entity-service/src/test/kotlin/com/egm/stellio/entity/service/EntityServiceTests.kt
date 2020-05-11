@@ -26,15 +26,15 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.OffsetDateTime
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ Neo4jService::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntityService::class ])
 @ActiveProfiles("test")
-class Neo4jServiceTests {
+class EntityServiceTests {
 
     @Value("\${application.jsonld.aquac_context}")
     val aquacContext: String? = null
 
     @Autowired
-    private lateinit var neo4jService: Neo4jService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var neo4jRepository: Neo4jRepository
@@ -77,7 +77,7 @@ class Neo4jServiceTests {
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        neo4jService.createEntity(sampleDataWithContext.attributes, sampleDataWithContext.contexts)
+        entityService.createEntity(sampleDataWithContext)
 
         verify(timeout = 1000, exactly = 1) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "MortalityRemovalService" &&
@@ -117,7 +117,7 @@ class Neo4jServiceTests {
         every { mockedBreedingService.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        neo4jService.updateEntityAttributes("urn:ngsi-ld:BreedingService:0214", payload, aquacContext!!)
+        entityService.updateEntityAttributes("urn:ngsi-ld:BreedingService:0214", payload, aquacContext!!)
 
         verify(timeout = 1000) { repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
             entityEvent.entityType == "BreedingService" &&
@@ -159,7 +159,7 @@ class Neo4jServiceTests {
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        neo4jService.createEntity(sampleDataWithContext.attributes, sampleDataWithContext.contexts)
+        entityService.createEntity(sampleDataWithContext)
 
         verifyAll {
             propertyRepository.save<Property>(match {
@@ -183,7 +183,7 @@ class Neo4jServiceTests {
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns null
 
-        neo4jService.updateEntityLastMeasure(observation)
+        entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:01XYZ", EGM_VENDOR_ID, "incoming") }
 
@@ -204,7 +204,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns null
 
-        neo4jService.updateEntityLastMeasure(observation)
+        entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
@@ -245,7 +245,7 @@ class Neo4jServiceTests {
         )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        neo4jService.updateEntityLastMeasure(observation)
+        entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
@@ -299,7 +299,7 @@ class Neo4jServiceTests {
         every { relationshipRepository.save(any<Relationship>()) } returns mockkedRelationship
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { neo4jRepository.hasRelationshipOfType(any(), any()) }
         verify { neo4jRepository.getRelationshipOfSubject(any(), any()) }
@@ -341,7 +341,7 @@ class Neo4jServiceTests {
         every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
         verify { neo4jRepository.hasPropertyOfName(any(), any()) }
@@ -381,7 +381,7 @@ class Neo4jServiceTests {
         every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        neo4jService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
         verify { entityRepository.findById(eq(sensorId)) }
@@ -411,7 +411,7 @@ class Neo4jServiceTests {
         every { mockkedEntity.id } returns entityId
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
-        neo4jService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
+        entityService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
 
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
 
@@ -446,7 +446,7 @@ class Neo4jServiceTests {
         every { propertyRepository.save<Property>(any()) } returns mockkedProperty
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
 
-        neo4jService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
+        entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
 
         verify { propertyRepository.save(match<Property> {
             it.name == "temperature" &&
@@ -494,7 +494,7 @@ class Neo4jServiceTests {
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
         every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
+        entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
         verify { entityRepository.findById(eq(entityId)) }
@@ -523,7 +523,7 @@ class Neo4jServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, true)
+        entityService.appendEntityAttributes(entityId, expandedNewRelationship, true)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
 
@@ -566,7 +566,7 @@ class Neo4jServiceTests {
         every { entityRepository.save(match<Entity> { it.id == entityId }) } returns mockkedEntity
         every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewRelationship, false)
+        entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
         verify { neo4jRepository.deleteRelationshipFromEntity(eq(entityId), "CONNECTS_TO") }
@@ -605,7 +605,7 @@ class Neo4jServiceTests {
         every { propertyRepository.save<Property>(any()) } returns mockkedProperty
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewProperty, false)
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
         verify { neo4jRepository.hasPropertyOfName(eq(entityId), "https://ontology.eglobalmark.com/aquac#fishNumber") }
         verify { entityRepository.findById(eq(entityId)) }
@@ -647,7 +647,7 @@ class Neo4jServiceTests {
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
+        entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
         verify { entityRepository.findById(eq(entityId)) }
@@ -690,7 +690,7 @@ class Neo4jServiceTests {
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
         every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
 
-        neo4jService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
+        entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
         verify { entityRepository.findById(eq(entityId)) }
@@ -710,13 +710,13 @@ class Neo4jServiceTests {
         val mockkedSubscription = mockkClass(Entity::class)
         val mockkedProperty = mockkClass(Property::class)
 
-        every { neo4jService.exists(any()) } returns false
+        every { entityService.exists(any()) } returns false
         every { propertyRepository.save<Property>(any()) } returns mockkedProperty
         every { entityRepository.save<Entity>(any()) } returns mockkedSubscription
 
-        neo4jService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
+        entityService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
 
-        verify { neo4jService.exists(eq(subscriptionId)) }
+        verify { entityService.exists(eq(subscriptionId)) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
 
@@ -732,11 +732,11 @@ class Neo4jServiceTests {
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
         )
 
-        every { neo4jService.exists(any()) } returns true
+        every { entityService.exists(any()) } returns true
 
-        neo4jService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
+        entityService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
 
-        verify { neo4jService.exists(eq(subscriptionId)) }
+        verify { entityService.exists(eq(subscriptionId)) }
         verify { propertyRepository wasNot Called }
 
         confirmVerified()
@@ -766,7 +766,7 @@ class Neo4jServiceTests {
         every { mockkedRelationship.id } returns relationshipId
         every { neo4jRepository.createRelationshipToEntity(any(), any(), any()) } returns 1
 
-        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+        entityService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
 
         verify { entityRepository.findById(eq(subscriptionId)) }
         verify { propertyRepository.save(any<Property>()) }
@@ -807,7 +807,7 @@ class Neo4jServiceTests {
         every { relationshipRepository.save<Relationship>(any()) } returns mockkedRelationship
         every { neo4jRepository.deleteEntity(any()) } returns Pair(1, 1)
 
-        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+        entityService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
 
         verify { entityRepository.findById(eq(subscriptionId)) }
         verify { propertyRepository.save(any<Property>()) }
@@ -833,7 +833,7 @@ class Neo4jServiceTests {
 
         every { entityRepository.findById(any()) } returns Optional.empty()
 
-        neo4jService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
+        entityService.createNotificationEntity(notificationId, notificationType, subscriptionId, properties)
 
         verify { entityRepository.findById(eq(subscriptionId)) }
         verify { propertyRepository wasNot Called }

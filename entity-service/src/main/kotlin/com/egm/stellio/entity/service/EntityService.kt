@@ -24,7 +24,6 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandRelationshipType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayload
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractTypeFromPayload
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
@@ -42,7 +41,6 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
-import com.github.jsonldjava.utils.JsonUtils
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -50,7 +48,7 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 @Component
-class Neo4jService(
+class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
     private val propertyRepository: PropertyRepository,
@@ -61,15 +59,12 @@ class Neo4jService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun createEntity(expandedPayload: Map<String, Any>, contexts: List<String>): Entity {
-        val mapper = jacksonObjectMapper()
-        val rawEntity = mapper.readValue(JsonUtils.toString(expandedPayload), Entity::class.java)
-        // we have to re-inject the contexts as the expanded form does not ship them (by definition)
-        rawEntity.contexts = contexts
+    fun createEntity(expandedEntity: ExpandedEntity): Entity {
+        val rawEntity = Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
 
         // filter the unwanted entries and expand all attributes for easier later processing
-        val propertiesAndRelationshipsMap = expandedPayload.filterKeys {
+        val propertiesAndRelationshipsMap = expandedEntity.attributes.filterKeys {
             !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
             expandValueAsMap(it.value)
@@ -100,7 +95,7 @@ class Neo4jService(
             createLocationProperty(entity, entry.key, entry.value)
         }
 
-        val entityType = extractShortTypeFromPayload(expandedPayload)
+        val entityType = extractShortTypeFromPayload(expandedEntity.attributes)
         val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(entity.id), null)
         applicationEventPublisher.publishEvent(entityEvent)
 
@@ -632,8 +627,7 @@ class Neo4jService(
     fun processBatchOfEntities(existingEntities: List<ExpandedEntity>, newEntities: List<ExpandedEntity>, validEntities: Map<String, String>): BatchOperationResult {
         val batchCreationResult = createBatchOfEntities(newEntities, validEntities)
         existingEntities.forEach {
-            val urn = it.getId()
-            batchCreationResult.errors.add(BatchEntityError(urn, arrayListOf("Entity already exists")))
+            batchCreationResult.errors.add(BatchEntityError(it.id, arrayListOf("Entity already exists")))
         }
         return BatchOperationResult(batchCreationResult.success, batchCreationResult.errors)
     }
@@ -643,22 +637,22 @@ class Neo4jService(
         val failedEntities: ArrayList<BatchEntityError> = ArrayList()
 
         entities.forEach {
-            val urn = it.getId()
-            val type = extractTypeFromPayload(it.attributes)
-            val entity = createTempEntityInBatch(urn, type, it.contexts)
+            val id = it.id
+            val type = it.type
+            val entity = createTempEntityInBatch(id, type, it.contexts)
             val propertiesAndRelationshipsMap = it.attributes.filterKeys {
                 !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
             }
             try {
                 appendEntityAttributes(entity.id, propertiesAndRelationshipsMap, false, true, validEntities)
-                createdEntities.add(urn)
+                createdEntities.add(id)
 
                 val entityType = type.extractShortTypeFromExpanded()
-                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(urn), null)
+                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(id), null)
                 applicationEventPublisher.publishEvent(entityEvent)
             } catch (e: BadRequestDataException) {
-                deleteEntity(urn)
-                failedEntities.add(BatchEntityError(urn, arrayListOf(e.message ?: "Unexpected error while creating entity $urn")))
+                deleteEntity(id)
+                failedEntities.add(BatchEntityError(id, arrayListOf(e.message ?: "Unexpected error while creating entity $id")))
             }
         }
         return BatchOperationResult(createdEntities, failedEntities)

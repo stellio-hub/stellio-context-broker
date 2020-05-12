@@ -55,6 +55,12 @@ data class JsonLdErrorResponse(override val title: String, override val detail: 
         detail
     )
 
+data class JsonParseErrorResponse(override val detail: String) : ErrorResponse(
+        ErrorType.BAD_REQUEST_DATA.type,
+        "The request includes invalid input data, An error occurred during JSON parsing",
+        detail
+    )
+
 enum class ErrorType(val type: String) {
     INVALID_REQUEST("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest"),
     BAD_REQUEST_DATA("https://uri.etsi.org/ngsi-ld/errors/BadRequestData"),

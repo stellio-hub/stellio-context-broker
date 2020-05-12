@@ -68,6 +68,7 @@ subprojects {
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
         testImplementation("org.springframework.security:spring-security-test")
+        testImplementation("org.testcontainers:testcontainers:1.12.3")
     }
 
     tasks.withType<KotlinCompile> {

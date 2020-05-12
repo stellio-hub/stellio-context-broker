@@ -107,7 +107,7 @@ fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<S
         is JsonParseException ->
             badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during Json parsing"))
+                .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
         else ->
             status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)

@@ -33,6 +33,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.test.web.reactive.server.expectBody
 import java.lang.RuntimeException
 import java.time.*
 
@@ -591,6 +592,18 @@ class EntityHandlerTests {
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                 "\"title\":\"There has been an error during the operation execution\"," +
                 "\"detail\":\"Unexpected server error\"}")
+    }
+
+    @Test
+    fun `it should support Mime-type with parameters`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns mockkClass(ExpandedEntity::class, relaxed = true)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .header(HttpHeaders.CONTENT_TYPE, "application/ld+json;charset=UTF-8")
+            .exchange()
+            .expectStatus().isOk
     }
 
     @Test

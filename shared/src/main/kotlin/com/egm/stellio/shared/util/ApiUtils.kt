@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -68,7 +69,7 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
 fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     val contentType = request.headers().contentTypeOrNull()
     return if (isPostOrPatch(request.method()) && (contentType == null ||
-                !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
+                !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(MediaType(contentType.type, contentType.subtype))))
         status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
             .bodyValue("Content-Type header must be one of 'application/json' or 'application/ld+json' (was $contentType)")
     else
@@ -103,6 +104,10 @@ fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<S
             badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty()))
+        is JsonParseException ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
         else ->
             status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)

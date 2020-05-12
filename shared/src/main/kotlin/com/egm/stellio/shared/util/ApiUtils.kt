@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -67,7 +68,7 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
 fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     val contentType = request.headers().contentTypeOrNull()
     return if (isPostOrPatch(request.method()) && (contentType == null ||
-        !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
+                !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(contentType)))
         status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
             .bodyValue("Content-Type header must be one of 'application/json' or 'application/ld+json' (was $contentType)")
     else
@@ -86,8 +87,24 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
 
 fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
     when (throwable) {
-        is BadRequestDataException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        is InvalidNgsiLdPayloadException -> badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
-        else -> status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON).bodyValue(throwable.message.orEmpty())
+        is AlreadyExistsException ->
+            status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AlreadyExistsResponse(throwable.message))
+        is ResourceNotFoundException ->
+            status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(ResourceNotFoundResponse(throwable.message))
+        is BadRequestDataException ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(BadRequestDataResponse(throwable.message))
+        is JsonLdError ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty()))
+        else ->
+            status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
     }

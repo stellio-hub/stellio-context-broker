@@ -5,15 +5,14 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.util.MultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
@@ -80,7 +79,7 @@ class TemporalEntityHandler(
         val temporalQuery = try {
             buildTemporalQuery(req.queryParams())
         } catch (e: BadRequestDataException) {
-            return badRequest().body(BodyInserters.fromValue(e.message.orEmpty()))
+            return badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(BadRequestDataResponse(e.message ?: "Unable to build a temporal query for the given parameters"))
         }
 
         // FIXME this is way too complex, refactor it later

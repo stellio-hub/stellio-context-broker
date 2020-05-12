@@ -1,15 +1,16 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -29,6 +30,16 @@ class EntityOperationHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
+    @BeforeAll
+    fun configureWebClientDefaults() {
+        webClient = webClient.mutate()
+            .defaultHeaders {
+                it.accept = listOf(JSON_LD_MEDIA_TYPE)
+                it.contentType = JSON_LD_MEDIA_TYPE
+            }
+            .build()
+    }
+
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
@@ -40,7 +51,6 @@ class EntityOperationHandlerTests {
         webClient.post()
                 .uri("/ngsi-ld/v1/entityOperations/create")
                 .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isOk
@@ -65,7 +75,6 @@ class EntityOperationHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
@@ -91,7 +100,6 @@ class EntityOperationHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
@@ -123,7 +131,6 @@ class EntityOperationHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
@@ -150,9 +157,11 @@ class EntityOperationHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
             .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Could not parse entity due to invalid json-ld payload\"}")
     }
 }

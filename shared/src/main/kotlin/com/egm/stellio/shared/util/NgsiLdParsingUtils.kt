@@ -111,7 +111,12 @@ object NgsiLdParsingUtils {
 
     @Deprecated("Deprecated in favor of the method accepting the contexts as separate arguments, as it allow for more genericity")
     fun parseEntity(input: String): ExpandedEntity {
-        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
+        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
+        if (expandedEntity.isEmpty())
+            throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
+
+        val expandedResult = JsonUtils.toPrettyString(expandedEntity[0])
+        logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
@@ -124,7 +129,7 @@ object NgsiLdParsingUtils {
             else
                 listOf(parsedInput["@context"] as String)
 
-        return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
+        return ExpandedEntity(expandedEntity[0] as Map<String, Any>, contexts)
     }
 
     fun parseEntities(entities: List<Map<String, Any>>): List<ExpandedEntity> {
@@ -262,7 +267,7 @@ object NgsiLdParsingUtils {
         val expandedFragment = JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
         logger.debug("Expanded fragment $fragment to $expandedFragment")
         if (expandedFragment.isEmpty())
-            throw InvalidNgsiLdPayloadException("Unable to expand JSON-LD fragment : $fragment")
+            throw BadRequestDataException("Unable to expand JSON-LD fragment : $fragment")
         return expandedFragment[0] as Map<String, Any>
     }
 
@@ -327,7 +332,11 @@ object NgsiLdParsingUtils {
         val rawParsedData = mapper.readTree(input) as ObjectNode
         val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided")
 
-        return mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+        return try {
+            mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+        } catch (e: Exception) {
+            throw BadRequestDataException(e.message ?: "Unable to parse the provided context")
+        }
     }
 
     fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
@@ -369,7 +378,7 @@ object NgsiLdParsingUtils {
             try {
                 node = node.get(it)
             } catch (e: Exception) {
-                throw InvalidQueryException(e.message ?: "Unresolved value $it")
+                throw BadRequestDataException(e.message ?: "Unresolved value $it")
             }
         }
 

@@ -96,7 +96,9 @@ class TemporalEntityHandlerTests {
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("Unable to expand JSON-LD fragment : { \"id\": \"bad\" }")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                "\"detail\":\"Unable to expand JSON-LD fragment : { \\\"id\\\": \\\"bad\\\" }\"}")
     }
 
     @Test
@@ -118,6 +120,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId")
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
     }
 
     @Test
@@ -127,7 +132,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?time=before")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'timerel and 'time' request parameters are mandatory")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
     }
 
     @Test
@@ -137,7 +144,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'timerel and 'time' request parameters are mandatory")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
     }
 
     @Test
@@ -147,7 +156,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=startTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'endTime' request parameter is mandatory if 'timerel' is 'between'")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'endTime' request parameter is mandatory if 'timerel' is 'between'\"}")
     }
 
     @Test
@@ -157,7 +168,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before&time=badTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'time' parameter is not a valid date")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'time' parameter is not a valid date\"}")
     }
 
     @Test
@@ -167,7 +180,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=befor&time=badTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'timerel' is not valid, it should be one of 'before', 'between', or 'after'\"}")
     }
 
     @Test
@@ -177,7 +192,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=endTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'endTime' parameter is not a valid date")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'endTime' parameter is not a valid date\"}")
     }
 
     @Test
@@ -187,7 +204,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"'timeBucket' and 'aggregate' must both be provided for aggregated queries\"}")
     }
 
     @Test
@@ -197,7 +216,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody<String>().isEqualTo("Value 'unknown' is not supported for 'aggregate' parameter")
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Value 'unknown' is not supported for 'aggregate' parameter\"}")
     }
 
     @Test
@@ -209,6 +230,9 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                "\"title\":\"The referred resource has not been found\"," +
+                "\"detail\":\"Entity entityId was not found\"}")
     }
 
     @Test

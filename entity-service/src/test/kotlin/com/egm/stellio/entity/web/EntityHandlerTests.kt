@@ -15,6 +15,8 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
+import com.github.jsonldjava.core.JsonLdError
+import com.github.jsonldjava.core.JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -520,6 +522,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
         every { entityService.exists(any()) } returns true
+        every { entityService.updateEntityAttributes(any(), any(), any()) } throws JsonLdError(LOADING_REMOTE_CONTEXT_FAILED, "http://easyglobalmarket.com/contexts/diat.jsonld")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

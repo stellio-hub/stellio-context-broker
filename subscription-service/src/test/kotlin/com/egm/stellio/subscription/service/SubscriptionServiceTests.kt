@@ -255,7 +255,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should not load and fill a persisted subscription if the subject is not correct`() {
+    fun `it should throw an AccessDeniedException if the subject is not correct`() {
         val subscription = gimmeRawSubscription().copy(
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "FishContainment")
@@ -267,9 +267,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val persistedSubscription = subscriptionService.getById(subscription.id, "another-mock-user-sub")
 
-        StepVerifier.create(persistedSubscription)
-            .expectNextCount(0)
-            .verifyComplete()
+        StepVerifier.create(persistedSubscription).expectErrorMatches {
+            it.message == "Access to this resource on the server is denied"
+        }
     }
 
     @Test

@@ -18,6 +18,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import org.springframework.web.reactive.function.server.queryParamOrNull
+import org.springframework.security.access.AccessDeniedException
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -118,11 +119,20 @@ class SubscriptionHandler(
                     Mono.just(Triple(inputAndSubject.t1, it, inputAndSubject.t2.subject))
                 }
             }
-            .flatMap {
-                if (!it.second)
+            .flatMap { inputAndExistsAndSubject ->
+                if (!inputAndExistsAndSubject.second)
                     throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
-                val parsedInput = parseSubscriptionUpdate(it.first)
-                subscriptionService.update(subscriptionId, parsedInput, it.third)
+
+                subscriptionService.getSubscriptionSub(subscriptionId).flatMap { SubscriptionSub ->
+                    Mono.just(Triple(inputAndExistsAndSubject.first, inputAndExistsAndSubject.third, SubscriptionSub))
+                }
+            }
+            .flatMap { inputAndSubjectAndSubscriptionSub ->
+                if (inputAndSubjectAndSubscriptionSub.second != inputAndSubjectAndSubscriptionSub.third)
+                    throw AccessDeniedException("Access to this resource on the server is denied")
+
+                val parsedInput = parseSubscriptionUpdate(inputAndSubjectAndSubscriptionSub.first)
+                subscriptionService.update(subscriptionId, parsedInput, inputAndSubjectAndSubscriptionSub.second)
             }
             .flatMap {
                 noContent().build()
@@ -137,7 +147,15 @@ class SubscriptionHandler(
 
         return extractJwT()
                 .flatMap {
-                    subscriptionService.delete(subscriptionId, it.subject)
+                    subscriptionService.getSubscriptionSub(subscriptionId).flatMap { SubscriptionSub ->
+                        Mono.just(Pair(it.subject, SubscriptionSub))
+                    }
+                }
+                .flatMap {
+                    if (it.first != it.second)
+                        throw AccessDeniedException("Access to this resource on the server is denied")
+
+                    subscriptionService.delete(subscriptionId, it.first)
                 }
                 .flatMap {
                     if (it >= 1)

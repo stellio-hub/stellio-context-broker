@@ -27,6 +27,7 @@ import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.r2dbc.query.Criteria
 import org.springframework.data.r2dbc.query.Update
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
@@ -118,6 +119,11 @@ class SubscriptionService(
                     throw ResourceNotFoundException("Subscription Not Found")
             }
             .flatMap {
+                getSubscriptionSub(id)
+            }
+            .flatMap {
+                if (sub != it)
+                    throw AccessDeniedException("Access to this resource on the server is denied")
                 val selectStatement = """
                 SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                        notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
@@ -142,7 +148,6 @@ class SubscriptionService(
             }
     }
 
-    // TODO: add check on sub before update
     @Transactional
     fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>, sub: String): Mono<Int> {
         val contexts = parsedInput.second
@@ -284,7 +289,6 @@ class SubscriptionService(
         }
     }
 
-    // TODO: add check on sub before delete
     fun delete(subscriptionId: String, sub: String): Mono<Int> {
         val deleteStatement = """
             DELETE FROM subscription 
@@ -448,6 +452,19 @@ class SubscriptionService(
             .rowsUpdated()
     }
 
+    fun getSubscriptionSub(subscriptionId: String): Mono<String> {
+        val selectStatement = """
+            SELECT sub
+            FROM subscription 
+            WHERE subscription.id = :id
+        """.trimIndent()
+
+        return databaseClient.execute(selectStatement)
+            .bind("id", subscriptionId)
+            .map(rowToSub)
+            .first()
+    }
+
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
                 id = row.get("sub_id", String::class.java)!!,
@@ -522,5 +539,9 @@ class SubscriptionService(
 
     private var rowToSubscriptionCount: ((Row) -> Int) = { row ->
         row.get("count", Integer::class.java)!!.toInt()
+    }
+
+    private var rowToSub: (Row) -> String = { row ->
+        row.get("sub", String::class.java)!!
     }
 }

@@ -17,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -69,6 +70,16 @@ class SubscriptionHandlerTests {
                 .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
                     "\"detail\":\"Subscription Not Found\"}")
+    }
+
+    @Test
+    fun `get subscription by id should return a 403 if subscription does not belong to the user`() {
+        every { subscriptionService.getById(any(), any()) } returns Mono.error(AccessDeniedException("Access to this resource on the server is denied"))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isForbidden
     }
 
     @Test
@@ -242,6 +253,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
         every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
 
         webClient.patch()
@@ -251,6 +263,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
         confirmVerified(subscriptionService)
     }
@@ -262,6 +275,7 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
         every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
@@ -274,6 +288,7 @@ class SubscriptionHandlerTests {
                     "\"detail\":\"Update failed\"}")
 
         verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
         confirmVerified(subscriptionService)
     }
@@ -284,6 +299,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -303,6 +319,8 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
+
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
             .bodyValue(jsonLdFile)
@@ -311,11 +329,34 @@ class SubscriptionHandlerTests {
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
                     "\"detail\":\"Context not provided\"}")
+
+        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
+    }
+
+    @Test
+    fun `update subscription should return a 403 if subscription does not belong to the user`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("another-mock-user")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
+
+        confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
         val subscription = gimmeRawSubscription()
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
         every { subscriptionService.delete(any(), any()) } returns Mono.just(1)
 
         webClient.delete()
@@ -324,12 +365,15 @@ class SubscriptionHandlerTests {
                 .expectStatus().isNoContent
                 .expectBody().isEmpty
 
+        verify { subscriptionService.getSubscriptionSub(subscription.id) }
         verify { subscriptionService.delete(eq(subscription.id), "mock-user") }
+
         confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
         every { subscriptionService.delete(any(), any()) } returns Mono.just(0)
 
         webClient.delete()
@@ -337,10 +381,13 @@ class SubscriptionHandlerTests {
                 .exchange()
                 .expectStatus().isNotFound
                 .expectBody().isEmpty
+
+        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
     }
 
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() {
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
         every { subscriptionService.delete(any(), any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -350,6 +397,20 @@ class SubscriptionHandlerTests {
                 .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
                     "\"detail\":\"Unexpected server error\"}")
+
+        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
+    }
+
+    @Test
+    fun `delete subscription should return a 403 if subscription does not belong to the user`() {
+        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("another-mock-user")
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+
+        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
     }
 
     @Test

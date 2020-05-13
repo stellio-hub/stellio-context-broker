@@ -21,7 +21,6 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.hamcrest:hamcrest:2.1")
-    testImplementation("org.testcontainers:neo4j:1.14.1")
 }
 
 defaultTasks("bootRun")

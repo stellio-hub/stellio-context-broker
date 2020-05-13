@@ -15,10 +15,10 @@ class TestContainersConfiguration {
 
     object TestContainers {
 
-        private val NEO4J_SERVICE_NAME = "neo4j"
+        private const val NEO4J_SERVICE_NAME = "neo4j"
         private val DOCKER_COMPOSE_FILE = File("docker-compose.yml")
 
-        val instance: KDockerComposeContainer by lazy { defineDockerCompose() }
+        private val instance: KDockerComposeContainer by lazy { defineDockerCompose() }
 
         private fun defineDockerCompose() =
             KDockerComposeContainer(DOCKER_COMPOSE_FILE).withLocalCompose(true).withExposedService(NEO4J_SERVICE_NAME, 7687)
@@ -26,11 +26,15 @@ class TestContainersConfiguration {
         fun getNeo4jUri(): String {
             return "bolt://" + instance.getServiceHost(NEO4J_SERVICE_NAME, 7687) + ":" + instance.getServicePort(NEO4J_SERVICE_NAME, 7687)
         }
+
+        fun startContainers() {
+            instance.start()
+        }
     }
 
     @Bean
     fun configuration(): org.neo4j.ogm.config.Configuration {
-        TestContainers.instance.start()
+        TestContainers.startContainers()
 
         return org.neo4j.ogm.config.Configuration.Builder()
             .uri(TestContainers.getNeo4jUri())

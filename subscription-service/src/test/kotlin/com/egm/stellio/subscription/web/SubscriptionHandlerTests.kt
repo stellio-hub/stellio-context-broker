@@ -408,7 +408,7 @@ class SubscriptionHandlerTests {
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+            .expectStatus().isForbidden
 
         verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
     }

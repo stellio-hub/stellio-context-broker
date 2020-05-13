@@ -21,10 +21,6 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.hamcrest:hamcrest:2.1")
-
-    testRuntimeOnly("org.neo4j:neo4j-ogm-embedded-driver")
-    testRuntimeOnly("org.neo4j:neo4j-ogm-embedded-native-types")
-    testRuntimeOnly("org.neo4j:neo4j:3.5.12")
 }
 
 defaultTasks("bootRun")

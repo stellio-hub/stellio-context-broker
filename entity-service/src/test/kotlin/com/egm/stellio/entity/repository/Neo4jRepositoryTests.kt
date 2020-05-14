@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.TestContainersConfiguration
 import com.egm.stellio.entity.model.Attribute
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -14,12 +15,14 @@ import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Import
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(TestContainersConfiguration::class)
 class Neo4jRepositoryTests {
 
     @Autowired

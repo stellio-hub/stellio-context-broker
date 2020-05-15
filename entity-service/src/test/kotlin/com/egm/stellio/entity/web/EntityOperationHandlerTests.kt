@@ -31,7 +31,7 @@ class EntityOperationHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var validationUtils: ValidationUtils
 
     @BeforeAll
@@ -49,9 +49,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
 
-        every { validationUtils.getNewEntities(any()) } returns listOf()
-        every { validationUtils.getValidEntities(any()) } returns mapOf()
-        every { validationUtils.getExistingEntities(any()) } returns listOf()
         every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
@@ -75,9 +72,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_cyclic_dependency.json")
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
 
-        every { validationUtils.getNewEntities(any()) } returns listOf()
-        every { validationUtils.getValidEntities(any()) } returns mapOf()
-        every { validationUtils.getExistingEntities(any()) } returns listOf()
         every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = arrayListOf())
 
         webClient.post()
@@ -102,9 +96,6 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
         val errorObject = arrayListOf(BatchEntityError("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 in relationship connectsTo does not exist, create it first")))
 
-        every { validationUtils.getNewEntities(any()) } returns listOf()
-        every { validationUtils.getValidEntities(any()) } returns mapOf()
-        every { validationUtils.getExistingEntities(any()) } returns listOf()
         every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()
@@ -135,9 +126,6 @@ class EntityOperationHandlerTests {
         val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Device:HCMR-AQUABOX1")
         val errorObject = arrayListOf(BatchEntityError("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", arrayListOf("Entity already exists")))
 
-        every { validationUtils.getNewEntities(any()) } returns listOf()
-        every { validationUtils.getValidEntities(any()) } returns mapOf()
-        every { validationUtils.getExistingEntities(any()) } returns listOf()
         every { entityService.processBatchOfEntities(any(), any(), any()) } returns BatchOperationResult(success = createdEntitiesIds, errors = errorObject)
 
         webClient.post()

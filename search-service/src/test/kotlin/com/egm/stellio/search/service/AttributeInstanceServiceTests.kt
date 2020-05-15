@@ -89,9 +89,6 @@ class AttributeInstanceServiceTests {
                 it.size == 1 &&
                     it[0]["attribute_name"] == "incoming" &&
                     it[0]["value"] == 12.4 &&
-                    // Postgres stores the observedAt value in UTC.
-                    // when retrieved, it's converted to the current timezone using the system variable timezone and with the +/- annotation.
-                    // For this reason, a cast to Z format and a cast to UTC is needed.
                     ZonedDateTime.parse(it[0]["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC) == observationDateTime &&
                     (it[0]["instance_id"] as String).startsWith("urn:ngsi-ld:Instance:")
             }

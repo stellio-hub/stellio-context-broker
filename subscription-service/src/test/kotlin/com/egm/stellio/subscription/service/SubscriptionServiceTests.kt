@@ -22,6 +22,9 @@ import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -298,6 +301,30 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.description == "My beautiful subscription" &&
                 it.entities.size == 2 &&
                 it.watchedAttributes == null
+            }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should load and fill a persisted subscription with the correct format for temporal values`() {
+        val subscription = gimmeRawSubscription().copy(
+            entities = setOf(
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:77", idPattern = null, type = "smartDoor")
+            )
+        )
+        val notifiedAt = Instant.now().atZone(ZoneOffset.UTC)
+
+        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
+
+        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.updateSubscriptionNotification(subscription, Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()), true).block()
+
+        val persistedSubscription = subscriptionService.getById(subscription.id, MOCK_USER_SUB)
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextMatches {
+                it.notification.lastNotification == notifiedAt &&
+                it.notification.lastSuccess == notifiedAt
             }
             .verifyComplete()
     }

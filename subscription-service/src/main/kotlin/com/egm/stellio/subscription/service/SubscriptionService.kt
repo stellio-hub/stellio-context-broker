@@ -33,6 +33,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @Component
@@ -472,9 +473,9 @@ class SubscriptionService(
                         ),
                         status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
                         timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
-                        lastNotification = row.get("last_notification", ZonedDateTime::class.java),
-                        lastFailure = row.get("last_failure", ZonedDateTime::class.java),
-                        lastSuccess = row.get("last_success", ZonedDateTime::class.java)
+                        lastNotification = row.get("last_notification", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
+                        lastFailure = row.get("last_failure", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
+                        lastSuccess = row.get("last_success", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC)
                 ),
                 isActive = row.get("is_active", Object::class.java).toString() == "true"
         )

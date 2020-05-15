@@ -1,5 +1,5 @@
 {
-   "id":"urn:ngsi-ld:Beekeeper:02",
+   "id":"urn:ngsi-ld:Beekeeper:1230",
    "type":"Beekeeper",
    "name":{
       "type":"Property",

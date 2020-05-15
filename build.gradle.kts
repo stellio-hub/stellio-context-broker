@@ -1,6 +1,6 @@
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 extra["springCloudVersion"] = "Hoxton.SR2"
 
@@ -54,6 +54,7 @@ subprojects {
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.0")
+        implementation("com.google.guava:guava:29.0-jre")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

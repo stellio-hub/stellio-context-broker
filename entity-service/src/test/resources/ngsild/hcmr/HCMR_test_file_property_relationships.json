@@ -1,0 +1,59 @@
+[
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "temperature"
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+    "type": "Sensor",
+    "deviceParameter": {
+      "type": "Property",
+      "value": "dissolvedOxygen"
+    },
+    "speed": {
+      "type": "Property",
+      "createdAt": "2020-01-24T13:08:32.614Z",
+      "observedAt": "2020-02-14T16:28:24.89Z",
+      "observedBy": {
+        "object": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+        "type": "Relationship"
+      },
+      "value": 28.0
+    },
+    "connectsTo": {
+      "type": "Relationship",
+      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    },
+    "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  },
+  {
+    "id": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
+    "type": "Device",
+    "brandName": {
+      "type": "Property",
+      "value": "BIOCEANOR"
+    },
+    "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
+  }
+]

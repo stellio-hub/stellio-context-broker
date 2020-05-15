@@ -2,10 +2,15 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.util.*
+import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
@@ -30,13 +35,9 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsS
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
-import com.egm.stellio.entity.web.*
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdOptions
@@ -78,7 +79,7 @@ class EntityService(
             val objectEntity = entityRepository.findById(objectId)
 
             if (!objectEntity.isPresent) {
-                    throw BadRequestDataException("Target entity $objectId in relationship $relationshipType does not exist, create it first")
+                throw BadRequestDataException("Target entity $objectId in relationship $relationshipType does not exist, create it first")
             } else
                 createEntityRelationship(entity, relationshipType, entry.value, objectEntity.get().id)
         }
@@ -95,14 +96,18 @@ class EntityService(
             createLocationProperty(entity, entry.key, entry.value)
         }
 
-        val entityType = extractShortTypeFromPayload(expandedEntity.attributes)
-        val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(entity.id), null)
-        applicationEventPublisher.publishEvent(entityEvent)
+        publishCreationEvent(expandedEntity)
 
         return entity
     }
 
-    internal fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>, isInBatchContext: Boolean = false, validEntities: Map<String, String> = mutableMapOf()): Property {
+    fun publishCreationEvent(expandedEntity: ExpandedEntity) {
+        val entityType = extractShortTypeFromPayload(expandedEntity.attributes)
+        val entityEvent = EntityEvent(EventType.CREATE, expandedEntity.id, entityType, getSerializedEntityById(expandedEntity.id), null)
+        applicationEventPublisher.publishEvent(entityEvent)
+    }
+
+    internal fun createEntityProperty(entity: Entity, propertyKey: String, propertyValues: Map<String, List<Any>>): Property {
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found in $propertyValues")
 
@@ -120,7 +125,7 @@ class EntityService(
         entityRepository.save(entity)
 
         createAttributeProperties(property, propertyValues)
-        createAttributeRelationships(property, propertyValues, isInBatchContext, validEntities)
+        createAttributeRelationships(property, propertyValues)
 
         return property
     }
@@ -139,8 +144,10 @@ class EntityService(
     ): Relationship {
 
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
-        val rawRelationship = Relationship(type = listOf(relationshipType),
-            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY))
+        val rawRelationship = Relationship(
+            type = listOf(relationshipType),
+            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
+        )
         val relationship = relationshipRepository.save(rawRelationship)
         entity.relationships.add(relationship)
         entityRepository.save(entity)
@@ -182,7 +189,7 @@ class EntityService(
         }
     }
 
-    private fun createAttributeRelationships(subject: Attribute, values: Map<String, List<Any>>, isInBatchContext: Boolean = false, validEntities: Map<String, String> = mutableMapOf()) {
+    private fun createAttributeRelationships(subject: Attribute, values: Map<String, List<Any>>) {
         values.forEach { propEntry ->
             val propEntryValue = propEntry.value[0]
             logger.debug("Looking at prop entry ${propEntry.key} with value $propEntryValue")
@@ -203,29 +210,9 @@ class EntityService(
                         subject.relationships.add(relationship)
                         attributeRepository.save(subject)
 
-                        neo4jRepository.createRelationshipToEntity(relationship.id, propEntry.key.toRelationshipTypeName(), objectEntity.get().id
-                        )
+                        neo4jRepository.createRelationshipToEntity(relationship.id, propEntry.key.toRelationshipTypeName(), objectEntity.get().id)
                     } else {
-                        if (!isInBatchContext)
-                            throw BadRequestDataException("Target entity $objectId in property $subject does not exist, create it first")
-                        else {
-                            if (!validEntities.containsKey(objectId)) {
-                                throw BadRequestDataException("Target entity $objectId in relationship $subject does not exist, create it first")
-                            } else {
-                                val rawRelationship = Relationship(
-                                    type = listOf(propEntry.key),
-                                    observedAt = getPropertyValueFromMapAsDateTime(
-                                        propEntryValueMap,
-                                        NGSILD_OBSERVED_AT_PROPERTY
-                                    )
-                                )
-                                val relationship = relationshipRepository.save(rawRelationship)
-                                subject.relationships.add(relationship)
-                                attributeRepository.save(subject)
-
-                                neo4jRepository.createRelationshipToEntity(relationship.id, propEntry.key.toRelationshipTypeName(), createTempEntityInBatch(objectId, validEntities.getValue(objectId)).id)
-                            }
-                        }
+                        throw BadRequestDataException("Target entity $objectId in property $subject does not exist, create it first")
                     }
                 } else {
                     logger.debug("Ignoring ${propEntry.key} entry as it can't be a relationship ($propEntryValue)")
@@ -384,7 +371,7 @@ class EntityService(
             .map { getFullEntityById(it) }
     }
 
-    fun appendEntityAttributes(entityId: String, attributes: Map<String, Any>, disallowOverwrite: Boolean, isInBatchContext: Boolean = false, validEntities: Map<String, String> = mutableMapOf()): UpdateResult {
+    fun appendEntityAttributes(entityId: String, attributes: Map<String, Any>, disallowOverwrite: Boolean): UpdateResult {
         val updateStatuses = attributes.map {
             val attributeValue = expandValueAsMap(it.value)
             if (!attributeValue.containsKey("@type"))
@@ -394,44 +381,30 @@ class EntityService(
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
                 if (!neo4jRepository.hasRelationshipOfType(entityId, relationshipTypeName.toRelationshipTypeName())) {
-                    val objectId = getRelationshipObjectId(attributeValue)
-                    val objectEntity = entityRepository.findById(objectId)
-                    if (!objectEntity.isPresent && isInBatchContext) {
-                        if (!validEntities.containsKey(objectId)) {
-                            throw BadRequestDataException("Target entity $objectId in relationship $relationshipTypeName does not exist, create it first")
-                        } else
-                            createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, createTempEntityInBatch(objectId, validEntities.getValue(objectId)).id)
-                    } else
-                        createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, getRelationshipObjectId(attributeValue))
+                    createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                     Triple(it.key, false, "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                 } else {
                     neo4jRepository.deleteRelationshipFromEntity(entityId, relationshipTypeName.toRelationshipTypeName())
-                    val objectId = getRelationshipObjectId(attributeValue)
-                    val objectEntity = entityRepository.findById(objectId)
-                    if (!objectEntity.isPresent && isInBatchContext) {
-                        if (!validEntities.containsKey(objectId)) {
-                            throw BadRequestDataException("Target entity $objectId in relationship $relationshipTypeName does not exist, create it first")
-                        } else
-                            createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, createTempEntityInBatch(objectId, validEntities.getValue(objectId)).id)
-                    } else
-                        createEntityRelationship(
-                            entityRepository.findById(entityId).get(), it.key, attributeValue,
-                            getRelationshipObjectId(attributeValue))
+                    createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 }
             } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
                 if (!neo4jRepository.hasPropertyOfName(entityId, it.key)) {
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue, isInBatchContext, validEntities)
+                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
                     logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(it.key, false, "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                    Triple(
+                        it.key,
+                        false,
+                        "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
+                    )
                 } else {
                     neo4jRepository.deletePropertyFromEntity(entityId, it.key)
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue, isInBatchContext, validEntities)
+                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 }
             } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
@@ -440,7 +413,11 @@ class EntityService(
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
                     logger.info("GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(it.key, false, "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                    Triple(
+                        it.key,
+                        false,
+                        "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
+                    )
                 } else {
                     updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
@@ -500,8 +477,12 @@ class EntityService(
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "GeoProperty does not exist"))
                 }
             } catch (e: BadRequestDataException) {
-                notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName,
-                    e.message ?: "Unexpected error while updating attribute $shortAttributeName"))
+                notUpdatedAttributes.add(
+                    NotUpdatedDetails(
+                        shortAttributeName,
+                        e.message ?: "Unexpected error while updating attribute $shortAttributeName"
+                    )
+                )
             }
         }
 
@@ -535,12 +516,7 @@ class EntityService(
         return propertyRepository.save(property)
     }
 
-    private fun updateRelationshipOfEntity(
-        entity: Entity,
-        relationshipType: String,
-        relationshipValues: Map<String, List<Any>>,
-        targetEntityId: String
-    ): Relationship {
+    private fun updateRelationshipOfEntity(entity: Entity, relationshipType: String, relationshipValues: Map<String, List<Any>>, targetEntityId: String): Relationship {
         val relationship = updateRelationshipValues(entity.id, relationshipType, relationshipValues, targetEntityId)
         updatePropertiesOfAttribute(relationship, relationshipValues)
         updateRelationshipsOfAttribute(relationship, relationshipValues)
@@ -561,8 +537,10 @@ class EntityService(
         val relationship = neo4jRepository.getRelationshipOfSubject(subjectId, relationshipType.toRelationshipTypeName())
         val oldRelationshipTarget = neo4jRepository.getRelationshipTargetOfSubject(subjectId, relationshipType.toRelationshipTypeName())!!
         relationship.observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
-        neo4jRepository.updateRelationshipTargetOfAttribute(relationship.id, relationshipType.toRelationshipTypeName(),
-            oldRelationshipTarget.id, targetEntityId)
+        neo4jRepository.updateRelationshipTargetOfAttribute(
+            relationship.id, relationshipType.toRelationshipTypeName(),
+            oldRelationshipTarget.id, targetEntityId
+        )
 
         return relationshipRepository.save(relationship)
     }
@@ -624,40 +602,6 @@ class EntityService(
         return neo4jRepository.deleteEntity(entityId)
     }
 
-    fun processBatchOfEntities(existingEntities: List<ExpandedEntity>, newEntities: List<ExpandedEntity>, validEntities: Map<String, String>): BatchOperationResult {
-        val batchCreationResult = createBatchOfEntities(newEntities, validEntities)
-        existingEntities.forEach {
-            batchCreationResult.errors.add(BatchEntityError(it.id, arrayListOf("Entity already exists")))
-        }
-        return BatchOperationResult(batchCreationResult.success, batchCreationResult.errors)
-    }
-
-    fun createBatchOfEntities(entities: List<ExpandedEntity>, validEntities: Map<String, String>): BatchOperationResult {
-        val createdEntities: ArrayList<String> = ArrayList()
-        val failedEntities: ArrayList<BatchEntityError> = ArrayList()
-
-        entities.forEach {
-            val id = it.id
-            val type = it.type
-            val entity = createTempEntityInBatch(id, type, it.contexts)
-            val propertiesAndRelationshipsMap = it.attributes.filterKeys {
-                !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
-            }
-            try {
-                appendEntityAttributes(entity.id, propertiesAndRelationshipsMap, false, true, validEntities)
-                createdEntities.add(id)
-
-                val entityType = type.extractShortTypeFromExpanded()
-                val entityEvent = EntityEvent(EventType.CREATE, entity.id, entityType, getSerializedEntityById(id), null)
-                applicationEventPublisher.publishEvent(entityEvent)
-            } catch (e: BadRequestDataException) {
-                deleteEntity(id)
-                failedEntities.add(BatchEntityError(id, arrayListOf(e.message ?: "Unexpected error while creating entity $id")))
-            }
-        }
-        return BatchOperationResult(createdEntities, failedEntities)
-    }
-
     fun createTempEntityInBatch(entityId: String, entityType: String, contexts: List<String> = listOf()): Entity {
         val entity = Entity(id = entityId, type = listOf(entityType), contexts = contexts)
         entityRepository.save(entity)
@@ -689,8 +633,15 @@ class EntityService(
             val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
             val propertyPayload = compactAndStringifyFragment(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
-                propertyFragment.second, entity.contexts)
-            val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entity.type[0].extractShortTypeFromExpanded(), propertyPayload, null)
+                propertyFragment.second, entity.contexts
+            )
+            val entityEvent = EntityEvent(
+                EventType.UPDATE,
+                entity.id,
+                entity.type[0].extractShortTypeFromExpanded(),
+                propertyPayload,
+                null
+            )
             applicationEventPublisher.publishEvent(entityEvent)
         }
     }
@@ -731,7 +682,12 @@ class EntityService(
         // Create relationship between the subscription and the new notification
         if (lastNotification != null) {
             val relationship = neo4jRepository.getRelationshipOfSubject(subscriptionId, EGM_RAISED_NOTIFICATION.toRelationshipTypeName())
-            neo4jRepository.updateRelationshipTargetOfAttribute(relationship.id, EGM_RAISED_NOTIFICATION.toRelationshipTypeName(), lastNotification.id, notification.id)
+            neo4jRepository.updateRelationshipTargetOfAttribute(
+                relationship.id,
+                EGM_RAISED_NOTIFICATION.toRelationshipTypeName(),
+                lastNotification.id,
+                notification.id
+            )
             relationshipRepository.save(relationship)
             deleteEntity(lastNotification.id)
         } else

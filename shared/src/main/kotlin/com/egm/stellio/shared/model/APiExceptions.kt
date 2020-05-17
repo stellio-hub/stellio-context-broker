@@ -12,3 +12,4 @@ data class ResourceNotFoundException(override val message: String) : APiExceptio
 data class InternalErrorException(override val message: String) : APiException(message)
 data class TooComplexQueryException(override val message: String) : APiException(message)
 data class TooManyResultsException(override val message: String) : APiException(message)
+data class AccessDeniedException(override val message: String) : APiException(message)

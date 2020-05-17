@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
@@ -27,7 +28,6 @@ import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.r2dbc.query.Criteria
 import org.springframework.data.r2dbc.query.Update
-import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
@@ -146,6 +146,20 @@ class SubscriptionService(
                         t.copy(entities = t.entities.plus(u.entities))
                     }
             }
+    }
+
+    fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
+        val selectStatement = """
+            SELECT sub
+            FROM subscription
+            WHERE id = :id
+        """.trimIndent()
+
+        return databaseClient.execute(selectStatement)
+            .bind("id", subscriptionId)
+            .map(rowToSub)
+            .first()
+            .map { it == sub }
     }
 
     @Transactional
@@ -289,7 +303,7 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: String, sub: String): Mono<Int> {
+    fun delete(subscriptionId: String): Mono<Int> {
         val deleteStatement = """
             DELETE FROM subscription 
             WHERE subscription.id = :id

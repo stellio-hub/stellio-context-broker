@@ -310,7 +310,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
-        val deletionResult = subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+        val deletionResult = subscriptionService.delete(subscription.id).block()
 
         verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
             entityEvent.entityType == "Subscription" &&
@@ -325,7 +325,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not delete an unknown subscription`() {
-        val deletionResult = subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription", MOCK_USER_SUB).block()
+        val deletionResult = subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription").block()
 
         assertEquals(deletionResult, 0)
     }
@@ -438,7 +438,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .expectNextCount(1)
             .verifyComplete()
 
-        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+        subscriptionService.delete(subscription.id).block()
     }
 
     @Test
@@ -461,7 +461,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .expectNextCount(1)
             .verifyComplete()
 
-        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+        subscriptionService.delete(subscription.id).block()
     }
 
     @Test
@@ -484,7 +484,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .expectNextCount(0)
             .verifyComplete()
 
-        subscriptionService.delete(subscription.id, MOCK_USER_SUB).block()
+        subscriptionService.delete(subscription.id).block()
     }
 
     @Test

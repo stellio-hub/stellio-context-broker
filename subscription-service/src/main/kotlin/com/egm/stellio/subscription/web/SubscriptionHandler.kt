@@ -18,7 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.bodyToMono
 import org.springframework.web.reactive.function.server.queryParamOrNull
-import org.springframework.security.access.AccessDeniedException
 import reactor.core.publisher.Mono
 import java.net.URI
 
@@ -145,23 +144,36 @@ class SubscriptionHandler(
     fun delete(req: ServerRequest): Mono<ServerResponse> {
         val subscriptionId = req.pathVariable("subscriptionId")
 
-        return extractJwT()
-                .flatMap {
-                    subscriptionService.getSubscriptionSub(subscriptionId).flatMap { SubscriptionSub ->
-                        Mono.just(Pair(it.subject, SubscriptionSub))
-                    }
-                }
-                .flatMap {
-                    if (it.first != it.second)
-                        throw AccessDeniedException("Access to this resource on the server is denied")
-
-                    subscriptionService.delete(subscriptionId, it.first)
-                }
-                .flatMap {
-                    if (it >= 1)
-                        noContent().build()
-                    else
-                        notFound().build()
-                }
+        return checkSubscriptionExists(subscriptionId)
+            .flatMap {
+                extractJwT()
+            }
+            .flatMap {
+                checkIsAllowed(subscriptionId, it.subject)
+            }
+            .flatMap {
+                subscriptionService.delete(subscriptionId)
+            }
+            .flatMap {
+                noContent().build()
+            }
     }
+
+    private fun checkSubscriptionExists(subscriptionId: String): Mono<String> =
+        subscriptionService.exists(subscriptionId)
+            .flatMap {
+                if (!it)
+                    Mono.error(ResourceNotFoundException("Could not find a subscription with id $subscriptionId"))
+                else
+                    Mono.just(subscriptionId)
+            }
+
+    private fun checkIsAllowed(subscriptionId: String, userSub: String): Mono<String> =
+        subscriptionService.isCreatorOf(subscriptionId, userSub)
+            .flatMap {
+                if (!it)
+                    Mono.error(AccessDeniedException("User is not authorized to access subscription $subscriptionId"))
+                else
+                    Mono.just(subscriptionId)
+            }
 }

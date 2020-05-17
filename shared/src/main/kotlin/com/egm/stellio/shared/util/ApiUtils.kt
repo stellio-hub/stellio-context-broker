@@ -10,7 +10,6 @@ import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
@@ -110,7 +109,9 @@ fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<S
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
         is AccessDeniedException ->
-            status(403).bodyValue(throwable.message!!)
+            status(403)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AccessDeniedResponse(throwable.message))
         else ->
             status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)

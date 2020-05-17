@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.web
 
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -17,7 +18,6 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
-import org.springframework.security.access.AccessDeniedException
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -356,8 +356,9 @@ class SubscriptionHandlerTests {
     @Test
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
         val subscription = gimmeRawSubscription()
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
-        every { subscriptionService.delete(any(), any()) } returns Mono.just(1)
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.delete(any()) } returns Mono.just(1)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -365,30 +366,39 @@ class SubscriptionHandlerTests {
                 .expectStatus().isNoContent
                 .expectBody().isEmpty
 
-        verify { subscriptionService.getSubscriptionSub(subscription.id) }
-        verify { subscriptionService.delete(eq(subscription.id), "mock-user") }
+        verify { subscriptionService.exists(subscription.id) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
-        every { subscriptionService.delete(any(), any()) } returns Mono.just(0)
+        every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
                 .exchange()
                 .expectStatus().isNotFound
-                .expectBody().isEmpty
+                .expectBody().json("""
+                    {
+                        "detail":"Could not find a subscription with id urn:ngsi-ld:Subscription:1",
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found"
+                    }
+                """.trimIndent())
 
-        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+
+        confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() {
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
-        every { subscriptionService.delete(any(), any()) } throws RuntimeException("Unexpected server error")
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -397,20 +407,24 @@ class SubscriptionHandlerTests {
                 .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
                     "\"detail\":\"Unexpected server error\"}")
-
-        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
     }
 
     @Test
     fun `delete subscription should return a 403 if subscription does not belong to the user`() {
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("another-mock-user")
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
             .exchange()
             .expectStatus().isForbidden
-
-        verify { subscriptionService.getSubscriptionSub("urn:ngsi-ld:Subscription:1") }
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
     }
 
     @Test

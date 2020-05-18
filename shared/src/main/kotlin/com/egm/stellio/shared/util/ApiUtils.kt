@@ -101,7 +101,6 @@ private fun httpPostRequestPreconditions(request: ServerRequest, next: (ServerRe
             status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build()
         else
             next(request)
-    }
 }
 
 private fun httpPatchRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
@@ -119,8 +118,6 @@ private fun httpPatchRequestPreconditions(request: ServerRequest, next: (ServerR
             status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build()
         else
             next(request)
-    }
-
 }
 
 enum class OptionsParamValue(val value: String) {

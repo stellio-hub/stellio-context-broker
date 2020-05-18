@@ -7,12 +7,12 @@
       "type" : "Relationship",
       "object" : "urn:ngsi-ld:Sensor:IncomingSensor"
     },
-    "values" : [ [550.0,"2020-03-25T08:29:17.965206+01:00"], [650.0,"2020-03-25T08:33:17.965206+01:00"] ],
+    "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ],
     "observedAt" : "2020-01-24T13:01:22.066Z"
   },
   "connectsTo" : {
     "type" : "Relationship",
-    "createdAt" : "2010-10-26T21:32:52+02:00",
+    "createdAt" : "2010-10-26T21:32:52.98601Z",
     "object" : "urn:ngsi-ld:Beekeeper:Pascal"
   },
   "createdAt" : "2020-01-24T13:01:21.938Z",

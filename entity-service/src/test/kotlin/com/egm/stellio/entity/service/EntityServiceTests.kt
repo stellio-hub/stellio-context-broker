@@ -23,7 +23,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.OffsetDateTime
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntityService::class ])
@@ -289,7 +291,7 @@ class EntityServiceTests {
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
-        every { mockkedRelationship setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
+        every { mockkedRelationship setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
@@ -332,7 +334,7 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
         every { mockkedPropertyEntity setProperty "value" value any<Double>() } answers { value }
         every { mockkedPropertyEntity setProperty "unitCode" value any<String>() } answers { value }
-        every { mockkedPropertyEntity setProperty "observedAt" value any<OffsetDateTime>() } answers { value }
+        every { mockkedPropertyEntity setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
@@ -434,7 +436,7 @@ class EntityServiceTests {
             ),
             NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf("@type" to NGSILD_DATE_TIME_TYPE,
-                    "@value" to "2019-12-18T10:45:44.248755+01:00")
+                    "@value" to "2019-12-18T10:45:44.248755Z")
             )
         )
 
@@ -452,7 +454,7 @@ class EntityServiceTests {
             it.name == "temperature" &&
                 it.value == 250 &&
                 it.unitCode == "kg" &&
-                it.observedAt.toString() == "2019-12-18T10:45:44.248755+01:00"
+                it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
         }) }
         verify { entityRepository.save(any<Entity>()) }
 
@@ -849,7 +851,7 @@ class EntityServiceTests {
             observedBy = "urn:ngsi-ld:Sensor:01XYZ",
             unitCode = "CEL",
             value = 12.4,
-            observedAt = OffsetDateTime.now()
+            observedAt = Instant.now().atZone(ZoneOffset.UTC)
         )
     }
 }

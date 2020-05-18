@@ -15,7 +15,6 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import javax.annotation.PostConstruct
 import kotlin.reflect.full.safeCast
@@ -164,7 +163,7 @@ object NgsiLdParsingUtils {
      *     @value=kg
      *   }],
      *   https://uri.etsi.org/ngsi-ld/observedAt=[{
-     *     @value=2019-12-18T10:45:44.248755+01:00
+     *     @value=2019-12-18T10:45:44.248755Z
      *   }]
      * }
      *
@@ -195,10 +194,10 @@ object NgsiLdParsingUtils {
         } else
             null
 
-    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): OffsetDateTime? {
+    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): ZonedDateTime? {
         val observedAt = ZonedDateTime::class.safeCast(getPropertyValueFromMap(values, propertyKey))
         return observedAt?.run {
-            OffsetDateTime.parse(this.toString())
+            ZonedDateTime.parse(this.toString())
         }
     }
 
@@ -316,7 +315,7 @@ object NgsiLdParsingUtils {
         return Observation(
             attributeName = propertyName,
             observedBy = propertyValues["observedBy"]["object"].asText(),
-            observedAt = OffsetDateTime.parse(propertyValues["observedAt"].asText()),
+            observedAt = ZonedDateTime.parse(propertyValues["observedAt"].asText()),
             value = propertyValues["value"].asDouble(),
             unitCode = propertyValues["unitCode"].asText(),
             latitude = location?.second,

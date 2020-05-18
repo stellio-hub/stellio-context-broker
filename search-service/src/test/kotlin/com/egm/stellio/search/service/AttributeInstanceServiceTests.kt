@@ -19,7 +19,9 @@ import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import org.testcontainers.containers.PostgreSQLContainer
 import reactor.test.StepVerifier
-import java.time.OffsetDateTime
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
 import kotlin.random.Random
 
@@ -34,7 +36,7 @@ class AttributeInstanceServiceTests {
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
-    private val observationDateTime = OffsetDateTime.now()
+    private val observationDateTime = Instant.now().atZone(ZoneOffset.UTC)
 
     private lateinit var temporalEntityAttribute: TemporalEntityAttribute
 
@@ -79,7 +81,7 @@ class AttributeInstanceServiceTests {
         )
         attributeInstanceService.create(observation).block()
 
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1), null, null, null)
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1), null, null, null)
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
         StepVerifier.create(enrichedEntity)
@@ -87,7 +89,7 @@ class AttributeInstanceServiceTests {
                 it.size == 1 &&
                     it[0]["attribute_name"] == "incoming" &&
                     it[0]["value"] == 12.4 &&
-                    it[0]["observed_at"] == observationDateTime &&
+                    ZonedDateTime.parse(it[0]["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC) == observationDateTime &&
                     (it[0]["instance_id"] as String).startsWith("urn:ngsi-ld:Instance:")
             }
             .expectComplete()
@@ -99,7 +101,7 @@ class AttributeInstanceServiceTests {
 
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, null, null)
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -119,7 +121,7 @@ class AttributeInstanceServiceTests {
             attributeInstanceService.create(attributeInstance).block()
         }
 
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, "1 day", TemporalQuery.Aggregate.SUM)
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -154,7 +156,7 @@ class AttributeInstanceServiceTests {
                 gimmeAttributeInstance().copy(temporalEntityAttribute = temporalEntityAttribute2.id)).block()
         }
 
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, null, null)
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -171,7 +173,7 @@ class AttributeInstanceServiceTests {
 
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
-        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, OffsetDateTime.now().minusHours(1),
+        val temporalQuery = TemporalQuery(emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, null, null)
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()))
 
@@ -187,7 +189,7 @@ class AttributeInstanceServiceTests {
         return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = Random.nextDouble(),
-            observedAt = OffsetDateTime.now()
+            observedAt = Instant.now().atZone(ZoneOffset.UTC)
         )
     }
 }

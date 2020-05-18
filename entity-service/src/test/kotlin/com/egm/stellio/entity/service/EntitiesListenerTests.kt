@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntitiesListener::class ])
@@ -86,7 +86,7 @@ class EntitiesListenerTests {
             attributeName = "incoming",
             value = 20.7,
             unitCode = "CEL",
-            observedAt = OffsetDateTime.parse("2019-10-18T07:31:39.77Z"),
+            observedAt = ZonedDateTime.parse("2019-10-18T07:31:39.77Z"),
             latitude = location?.second,
             longitude = location?.first,
             observedBy = "urn:sosa:Sensor:10e2073a01080065"

@@ -1,12 +1,12 @@
 package com.egm.stellio.search.model
 
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 
 data class TemporalQuery(
     val attrs: List<String> = emptyList(),
     val timerel: Timerel,
-    val time: OffsetDateTime,
-    val endTime: OffsetDateTime?,
+    val time: ZonedDateTime,
+    val endTime: ZonedDateTime?,
     val timeBucket: String?,
     val aggregate: Aggregate?
 ) {

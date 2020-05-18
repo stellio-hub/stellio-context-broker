@@ -15,7 +15,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import org.springframework.web.reactive.function.server.ServerResponse.*
 import org.springframework.web.reactive.function.server.contentTypeOrNull
 import reactor.core.publisher.Mono
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
 
@@ -42,9 +42,9 @@ object ApiUtils {
         mapper.readValue(content, Notification::class.java)
 }
 
-fun String.parseTimeParameter(errorMsg: String): OffsetDateTime =
+fun String.parseTimeParameter(errorMsg: String): ZonedDateTime =
     try {
-        OffsetDateTime.parse(this)
+        ZonedDateTime.parse(this)
     } catch (e: DateTimeParseException) {
         throw BadRequestDataException(errorMsg)
     }

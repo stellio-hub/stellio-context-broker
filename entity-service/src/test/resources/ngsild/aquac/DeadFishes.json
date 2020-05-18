@@ -5,7 +5,7 @@
       "type":"Property",
       "value":500
    },
-   "observedAt":"2018-10-25T21:32:52+02:00",
+   "observedAt":"2018-10-25T21:32:52.98601Z",
    "removedFrom":{
       "type":"Relationship",
       "object":"urn:ngsi-ld:FishContainment:0012",

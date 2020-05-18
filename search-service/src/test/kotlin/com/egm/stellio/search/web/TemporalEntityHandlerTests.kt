@@ -31,7 +31,7 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -258,7 +258,7 @@ class TemporalEntityHandlerTests {
 
         verify { attributeInstanceService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
+                temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
         }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
         confirmVerified(attributeInstanceService)
 
@@ -304,7 +304,7 @@ class TemporalEntityHandlerTests {
 
         verify { attributeInstanceService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                    temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
+                    temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
         }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
         confirmVerified(attributeInstanceService)
     }
@@ -333,7 +333,7 @@ class TemporalEntityHandlerTests {
 
         verify { attributeInstanceService.search(match { temporalQuery ->
             temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                    temporalQuery.time.isEqual(OffsetDateTime.parse("2019-10-17T07:31:39Z"))
+                    temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
         }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
         confirmVerified(attributeInstanceService)
     }

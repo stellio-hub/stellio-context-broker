@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 
 data class NotificationParams(
     var attributes: List<String>,
@@ -9,9 +9,9 @@ data class NotificationParams(
     val endpoint: Endpoint,
     var status: StatusType?,
     val timesSent: Int = 0,
-    val lastNotification: OffsetDateTime?,
-    val lastFailure: OffsetDateTime?,
-    val lastSuccess: OffsetDateTime?
+    val lastNotification: ZonedDateTime?,
+    val lastFailure: ZonedDateTime?,
+    val lastSuccess: ZonedDateTime?
 ) {
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")

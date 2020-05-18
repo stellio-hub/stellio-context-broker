@@ -64,7 +64,7 @@ fun extractContextFromLinkHeader(linkHeader: List<String>): String {
 fun List<MediaType>.isAcceptable(): Boolean {
     return this.map {
         it == MediaType("*", "*") ||
-        it == MediaType("application","*") ||
+        it == MediaType("application", "*") ||
         it == MediaType("application", "json") ||
         it == MediaType("application", "ld+json")
     }.contains(true)
@@ -95,7 +95,7 @@ private fun httpPostRequestPreconditions(request: ServerRequest, next: (ServerRe
 
     return if (contentLength == null)
             status(HttpStatus.LENGTH_REQUIRED).build()
-        else if  (contentType == null || !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(MediaType(contentType.type, contentType.subtype)))
+        else if (contentType == null || !listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE).contains(MediaType(contentType.type, contentType.subtype)))
             status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).build()
         else
             next(request)

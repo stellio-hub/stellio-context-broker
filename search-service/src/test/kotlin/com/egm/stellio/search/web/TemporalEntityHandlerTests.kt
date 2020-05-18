@@ -18,8 +18,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
@@ -31,6 +34,7 @@ import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.*
 
+@AutoConfigureWebTestClient(timeout = "30000")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @WithMockUser
@@ -96,6 +100,27 @@ class TemporalEntityHandlerTests {
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                 "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
                 "\"detail\":\"Unable to expand JSON-LD fragment : { \\\"id\\\": \\\"bad\\\" }\"}")
+    }
+
+    @Test
+    fun `it should return a 415 if Content-Type is not supported`() {
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+            .expectBody().isEmpty
+    }
+
+    @Test
+    fun `it should return a 411 if Content-Length is null`() {
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.LENGTH_REQUIRED)
+            .expectBody().isEmpty
     }
 
     @Test

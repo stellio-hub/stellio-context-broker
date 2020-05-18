@@ -111,7 +111,7 @@ class SubscriptionService(
             Mono.just(0)
 
     fun getById(id: String): Mono<Subscription> {
-            val selectStatement = """
+        val selectStatement = """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
@@ -122,6 +122,7 @@ class SubscriptionService(
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
             WHERE subscription.id = :id
         """.trimIndent()
+
         return databaseClient.execute(selectStatement)
                 .bind("id", id)
                 .map(rowToSubscription)

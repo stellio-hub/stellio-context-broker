@@ -39,7 +39,7 @@ class SubscriptionHandler(
                     Pair(parseSubscription(it.t1, context), it.t2.subject)
                 }
                 .flatMap { subscriptionAndSubject ->
-                    isNewSubscription(subscriptionAndSubject.first.id).flatMap {
+                    checkSubscriptionNotExists(subscriptionAndSubject.first.id).flatMap {
                         Mono.just(subscriptionAndSubject)
                     }
                 }
@@ -165,7 +165,7 @@ class SubscriptionHandler(
                     Mono.just(subscriptionId)
             }
 
-    private fun isNewSubscription(subscriptionId: String): Mono<String> =
+    private fun checkSubscriptionNotExists(subscriptionId: String): Mono<String> =
         subscriptionService.exists(subscriptionId)
             .flatMap {
                 if (it)

@@ -1,6 +1,9 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -9,6 +12,7 @@ import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.web.extractJwT
+import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -33,18 +37,16 @@ class SubscriptionHandler(
      */
     fun create(req: ServerRequest): Mono<ServerResponse> {
         return req.bodyToMono<String>()
-                .zipWith(extractJwT())
                 .map {
-                    val context = NgsiLdParsingUtils.getContextOrThrowError(it.t1)
-                    Pair(parseSubscription(it.t1, context), it.t2.subject)
+                    val context = NgsiLdParsingUtils.getContextOrThrowError(it)
+                    parseSubscription(it, context)
                 }
-                .flatMap { subscriptionAndSubject ->
-                    checkSubscriptionNotExists(subscriptionAndSubject.first.id).flatMap {
-                        Mono.just(subscriptionAndSubject)
-                    }
+                .flatMap {
+                    checkSubscriptionNotExists(it)
                 }
+                .zipWith(extractJwT())
                 .flatMap { subscriptionAndSubject ->
-                    subscriptionService.create(subscriptionAndSubject.first, subscriptionAndSubject.second).map { subscriptionAndSubject.first }
+                    subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject).map { subscriptionAndSubject.t1 }
                 }
                 .flatMap {
                     created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
@@ -114,17 +116,15 @@ class SubscriptionHandler(
      */
     fun update(req: ServerRequest): Mono<ServerResponse> {
         val subscriptionId = req.pathVariable("subscriptionId")
-        return req.bodyToMono<String>()
-            .flatMap { input ->
-                checkSubscriptionExists(subscriptionId).flatMap {
-                    Mono.just(input)
-                }
+        return checkSubscriptionExists(subscriptionId)
+            .flatMap {
+                extractJwT()
             }
-            .zipWith(extractJwT())
-            .flatMap { inputAndSubject ->
-                checkIsAllowed(subscriptionId, inputAndSubject.t2.subject).flatMap {
-                    Mono.just(inputAndSubject.t1)
-                }
+            .flatMap {
+                checkIsAllowed(subscriptionId, it.subject)
+            }
+            .flatMap {
+                req.bodyToMono<String>()
             }
             .flatMap {
                 val parsedInput = parseSubscriptionUpdate(it)
@@ -165,13 +165,13 @@ class SubscriptionHandler(
                     Mono.just(subscriptionId)
             }
 
-    private fun checkSubscriptionNotExists(subscriptionId: String): Mono<String> =
-        subscriptionService.exists(subscriptionId)
+    private fun checkSubscriptionNotExists(subscription: Subscription): Mono<Subscription> =
+        subscriptionService.exists(subscription.id)
             .flatMap {
                 if (it)
-                    Mono.error(AlreadyExistsException("A subscription with id $subscriptionId already exists"))
+                    Mono.error(AlreadyExistsException("A subscription with id ${subscription.id} already exists"))
                 else
-                    Mono.just(subscriptionId)
+                    Mono.just(subscription)
             }
 
     private fun checkIsAllowed(subscriptionId: String, userSub: String): Mono<String> =

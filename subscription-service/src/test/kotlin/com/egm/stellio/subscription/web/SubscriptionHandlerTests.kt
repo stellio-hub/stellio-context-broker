@@ -1,8 +1,6 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -51,17 +49,23 @@ class SubscriptionHandlerTests {
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
 
         webClient.get()
-                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
+                .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
                 .exchange()
                 .expectStatus().isOk
+
+        verify { subscriptionService.exists(subscription.id) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.getById(subscription.id) }
     }
 
     @Test
     fun `get subscription by id should return 404 when subscription does not exist`() {
-        every { subscriptionService.getById(any(), any()) } returns Mono.error(ResourceNotFoundException("Subscription Not Found"))
+        every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.get()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
@@ -69,17 +73,30 @@ class SubscriptionHandlerTests {
                 .expectStatus().isNotFound
                 .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Subscription Not Found\"}")
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}")
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
     }
 
     @Test
     fun `get subscription by id should return a 403 if subscription does not belong to the user`() {
-        every { subscriptionService.getById(any(), any()) } returns Mono.error(AccessDeniedException("Access to this resource on the server is denied"))
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
             .exchange()
             .expectStatus().isForbidden
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
     }
 
     @Test
@@ -253,8 +270,8 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
-        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } returns Mono.just(1)
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -262,9 +279,9 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
 
@@ -275,8 +292,8 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
-        every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -287,9 +304,9 @@ class SubscriptionHandlerTests {
                     "\"title\":\"There has been an error during the operation execution\"," +
                     "\"detail\":\"Update failed\"}")
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
 
@@ -299,7 +316,6 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -310,7 +326,7 @@ class SubscriptionHandlerTests {
                     "\"title\":\"The referred resource has not been found\"," +
                     "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}")
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
     }
 
     @Test
@@ -319,7 +335,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("mock-user")
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -330,7 +346,8 @@ class SubscriptionHandlerTests {
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
                     "\"detail\":\"Context not provided\"}")
 
-        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
     }
 
     @Test
@@ -339,16 +356,23 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.getSubscriptionSub(any()) } returns Mono.just("another-mock-user")
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:04",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.getSubscriptionSub(subscriptionId) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
 
         confirmVerified(subscriptionService)
     }
@@ -407,6 +431,10 @@ class SubscriptionHandlerTests {
                 .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
                     "\"detail\":\"Unexpected server error\"}")
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
+        verify { subscriptionService.delete(eq("urn:ngsi-ld:Subscription:1")) }
     }
 
     @Test
@@ -425,6 +453,9 @@ class SubscriptionHandlerTests {
                     "title":"The request tried to access an unauthorized resource"
                 }
             """.trimIndent())
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
     }
 
     @Test

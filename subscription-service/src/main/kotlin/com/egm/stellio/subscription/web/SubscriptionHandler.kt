@@ -39,15 +39,12 @@ class SubscriptionHandler(
                     Pair(parseSubscription(it.t1, context), it.t2.subject)
                 }
                 .flatMap { subscriptionAndSubject ->
-                    subscriptionService.exists(subscriptionAndSubject.first.id).flatMap {
-                        Mono.just(Triple(subscriptionAndSubject.first, it, subscriptionAndSubject.second))
+                    isNewSubscription(subscriptionAndSubject.first.id).flatMap {
+                        Mono.just(subscriptionAndSubject)
                     }
                 }
-                .flatMap { subscriptionAndExistAndSubject ->
-                    if (subscriptionAndExistAndSubject.second)
-                        throw AlreadyExistsException("A subscription with id ${subscriptionAndExistAndSubject.first.id} already exists")
-                    else
-                        subscriptionService.create(subscriptionAndExistAndSubject.first, subscriptionAndExistAndSubject.third).map { subscriptionAndExistAndSubject.first }
+                .flatMap { subscriptionAndSubject ->
+                    subscriptionService.create(subscriptionAndSubject.first, subscriptionAndSubject.second).map { subscriptionAndSubject.first }
                 }
                 .flatMap {
                     created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
@@ -96,10 +93,16 @@ class SubscriptionHandler(
      * Implements 6.11.3.1 - Retrieve Subscription
      */
     fun getByURI(req: ServerRequest): Mono<ServerResponse> {
-        val uri = req.pathVariable("subscriptionId")
-        return extractJwT()
+        val subscriptionId = req.pathVariable("subscriptionId")
+        return checkSubscriptionExists(subscriptionId)
             .flatMap {
-                subscriptionService.getById(uri, it.subject)
+                extractJwT()
+            }
+            .flatMap {
+                checkIsAllowed(subscriptionId, it.subject)
+            }
+            .flatMap {
+                subscriptionService.getById(subscriptionId)
             }
             .flatMap {
                 ok().body(BodyInserters.fromValue(serializeObject(it)))
@@ -112,26 +115,20 @@ class SubscriptionHandler(
     fun update(req: ServerRequest): Mono<ServerResponse> {
         val subscriptionId = req.pathVariable("subscriptionId")
         return req.bodyToMono<String>()
+            .flatMap { input ->
+                checkSubscriptionExists(subscriptionId).flatMap {
+                    Mono.just(input)
+                }
+            }
             .zipWith(extractJwT())
             .flatMap { inputAndSubject ->
-                subscriptionService.exists(subscriptionId).flatMap {
-                    Mono.just(Triple(inputAndSubject.t1, it, inputAndSubject.t2.subject))
+                checkIsAllowed(subscriptionId, inputAndSubject.t2.subject).flatMap {
+                    Mono.just(inputAndSubject.t1)
                 }
             }
-            .flatMap { inputAndExistsAndSubject ->
-                if (!inputAndExistsAndSubject.second)
-                    throw ResourceNotFoundException("Could not find a subscription with id $subscriptionId")
-
-                subscriptionService.getSubscriptionSub(subscriptionId).flatMap { SubscriptionSub ->
-                    Mono.just(Triple(inputAndExistsAndSubject.first, inputAndExistsAndSubject.third, SubscriptionSub))
-                }
-            }
-            .flatMap { inputAndSubjectAndSubscriptionSub ->
-                if (inputAndSubjectAndSubscriptionSub.second != inputAndSubjectAndSubscriptionSub.third)
-                    throw AccessDeniedException("Access to this resource on the server is denied")
-
-                val parsedInput = parseSubscriptionUpdate(inputAndSubjectAndSubscriptionSub.first)
-                subscriptionService.update(subscriptionId, parsedInput, inputAndSubjectAndSubscriptionSub.second)
+            .flatMap {
+                val parsedInput = parseSubscriptionUpdate(it)
+                subscriptionService.update(subscriptionId, parsedInput)
             }
             .flatMap {
                 noContent().build()
@@ -164,6 +161,15 @@ class SubscriptionHandler(
             .flatMap {
                 if (!it)
                     Mono.error(ResourceNotFoundException("Could not find a subscription with id $subscriptionId"))
+                else
+                    Mono.just(subscriptionId)
+            }
+
+    private fun isNewSubscription(subscriptionId: String): Mono<String> =
+        subscriptionService.exists(subscriptionId)
+            .flatMap {
+                if (it)
+                    Mono.error(AlreadyExistsException("A subscription with id $subscriptionId already exists"))
                 else
                     Mono.just(subscriptionId)
             }

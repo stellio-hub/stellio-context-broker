@@ -1,11 +1,9 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.subscription.model.*
@@ -112,40 +110,25 @@ class SubscriptionService(
         else
             Mono.just(0)
 
-    fun getById(id: String, sub: String): Mono<Subscription> {
-        return exists(id)
-            .map {
-                if (!it)
-                    throw ResourceNotFoundException("Subscription Not Found")
-            }
-            .flatMap {
-                getSubscriptionSub(id)
-            }
-            .flatMap {
-                if (sub != it)
-                    throw AccessDeniedException("Access to this resource on the server is denied")
-                val selectStatement = """
-                SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
-                       notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                       status, times_sent, is_active, last_notification, last_failure, last_success,
-                       entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                       georel, geometry, coordinates, geoproperty
-                FROM subscription 
-                LEFT JOIN entity_info ON entity_info.subscription_id = :id
-                LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
-                WHERE subscription.id = :id
-                AND subscription.sub = :sub
-            """.trimIndent()
-
-                databaseClient.execute(selectStatement)
-                    .bind("id", id)
-                    .bind("sub", sub)
-                    .map(rowToSubscription)
-                    .all()
-                    .reduce { t: Subscription, u: Subscription ->
-                        t.copy(entities = t.entities.plus(u.entities))
-                    }
-            }
+    fun getById(id: String): Mono<Subscription> {
+            val selectStatement = """
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+                   status, times_sent, is_active, last_notification, last_failure, last_success,
+                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
+                   georel, geometry, coordinates, geoproperty
+            FROM subscription 
+            LEFT JOIN entity_info ON entity_info.subscription_id = :id
+            LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
+            WHERE subscription.id = :id
+        """.trimIndent()
+        return databaseClient.execute(selectStatement)
+                .bind("id", id)
+                .map(rowToSubscription)
+                .all()
+                .reduce { t: Subscription, u: Subscription ->
+                    t.copy(entities = t.entities.plus(u.entities))
+                }
     }
 
     fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
@@ -163,7 +146,7 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>, sub: String): Mono<Int> {
+    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
         val contexts = parsedInput.second
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
@@ -207,7 +190,7 @@ class SubscriptionService(
             }
             .collectList()
             .zipWhen {
-                getById(subscriptionId, sub)
+                getById(subscriptionId)
             }
             .doOnSuccess {
                 val subscriptionEvent = EntityEvent(EventType.UPDATE, subscriptionId, it.t2.type, serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)), serializeObject(it.t2))
@@ -464,19 +447,6 @@ class SubscriptionService(
             .matching(Criteria.where("id").`is`(subscription.id))
             .fetch()
             .rowsUpdated()
-    }
-
-    fun getSubscriptionSub(subscriptionId: String): Mono<String> {
-        val selectStatement = """
-            SELECT sub
-            FROM subscription 
-            WHERE subscription.id = :id
-        """.trimIndent()
-
-        return databaseClient.execute(selectStatement)
-            .bind("id", subscriptionId)
-            .map(rowToSub)
-            .first()
     }
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->

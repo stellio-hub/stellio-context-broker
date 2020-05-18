@@ -554,21 +554,6 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isOk
     }
-
-    @Test
-    fun `it should return 413 if the payload is too large`() {
-        val jsonLdFile = ClassPathResource("/ngsild/too_large_subscription.json")
-
-        every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/subscriptions")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE)
-    }
-
     @Test
     @WithAnonymousUser
     fun `it should not authorize an anonymous to call the API`() {

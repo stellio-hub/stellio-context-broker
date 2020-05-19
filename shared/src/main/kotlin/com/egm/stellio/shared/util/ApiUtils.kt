@@ -108,6 +108,10 @@ fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<S
             badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
+        is AccessDeniedException ->
+            status(403)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AccessDeniedResponse(throwable.message))
         else ->
             status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)

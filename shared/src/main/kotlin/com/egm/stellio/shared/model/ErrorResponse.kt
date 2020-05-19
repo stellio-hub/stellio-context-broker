@@ -61,6 +61,13 @@ data class JsonParseErrorResponse(override val detail: String) : ErrorResponse(
         detail
     )
 
+data class AccessDeniedResponse(override val detail: String) :
+    ErrorResponse(
+        "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+        "The request tried to access an unauthorized resource",
+        detail
+    )
+
 enum class ErrorType(val type: String) {
     INVALID_REQUEST("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest"),
     BAD_REQUEST_DATA("https://uri.etsi.org/ngsi-ld/errors/BadRequestData"),

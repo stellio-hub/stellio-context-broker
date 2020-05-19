@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import TestContainersConfiguration
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.github.jsonldjava.core.JsonLdOptions
@@ -18,7 +19,7 @@ import java.time.OffsetDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(R2DBCConfiguration::class)
+@Import(TestContainersConfiguration::class)
 class TemporalEntityAttributeServiceTests {
 
     @Autowired
@@ -29,7 +30,7 @@ class TemporalEntityAttributeServiceTests {
 
     init {
         Flyway.configure()
-            .dataSource(MyPostgresqlContainer.instance.jdbcUrl, MyPostgresqlContainer.DB_USER, MyPostgresqlContainer.DB_PASSWORD)
+            .dataSource(TestContainersConfiguration.TestContainers.getPostgresqlUri(), "stellio_search", "stellio_search_db_password")
             .load()
             .migrate()
     }

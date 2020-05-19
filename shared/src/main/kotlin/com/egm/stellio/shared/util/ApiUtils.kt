@@ -64,12 +64,12 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
 }
 
 fun List<MediaType>.isAcceptable(): Boolean {
-    return this.map {
+    return this.any {
         it == MediaType("*", "*") ||
         it == MediaType("application", "*") ||
         it == MediaType("application", "json") ||
         it == MediaType("application", "ld+json")
-    }.contains(true)
+    }
 }
 
 // TODO: add check for allowed methods and return 405

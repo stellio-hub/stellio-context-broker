@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -459,101 +458,6 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
     }
 
-    @Test
-    fun `it should not accept merge-patch+json as Content-type for non patch requests`() {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
-
-        every { subscriptionService.exists(any()) } returns Mono.just(false)
-        every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/subscriptions")
-            .header(HttpHeaders.CONTENT_TYPE, "application/merge-patch+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-    }
-
-    @Test
-    fun `it should accept merge-patch+json as Content-type for patch requests`() {
-        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04"
-
-        every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
-            .header(HttpHeaders.CONTENT_TYPE, "application/merge-patch+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isNoContent
-    }
-
-    @Test
-    fun `it should return 406 if accept is not acceptable`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-            .header(HttpHeaders.ACCEPT, "unknown/*")
-            .exchange()
-            .expectStatus().isEqualTo(HttpStatus.NOT_ACCEPTABLE)
-    }
-
-    @Test
-    fun `it should accept application json Content type`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-            .header(HttpHeaders.ACCEPT, "application/json")
-            .exchange()
-            .expectStatus().isOk
-    }
-
-    @Test
-    fun `it should accept application ld+json Content type`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-            .header(HttpHeaders.ACCEPT, "application/ld+json")
-            .exchange()
-            .expectStatus().isOk
-    }
-
-    @Test
-    fun `it should accept application * Content type`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-            .header(HttpHeaders.ACCEPT, "application/*")
-            .exchange()
-            .expectStatus().isOk
-    }
-
-    @Test
-    fun `it should accept * * Content type`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-            .header(HttpHeaders.ACCEPT, "*/*")
-            .exchange()
-            .expectStatus().isOk
-    }
     @Test
     @WithAnonymousUser
     fun `it should not authorize an anonymous to call the API`() {

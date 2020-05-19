@@ -54,4 +54,94 @@ class ApiUtilsTests {
             .expectStatus().isEqualTo(HttpStatus.LENGTH_REQUIRED)
             .expectBody().isEmpty
     }
+
+    @Test
+    fun `it should return 415 if Content-Type is not supported`() {
+
+        webClient.post()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+            .expectBody().isEmpty
+    }
+
+    @Test
+    fun `it should not accept merge-patch+json as Content-type for non patch requests`() {
+
+        webClient.post()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/merge-patch+json")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    }
+
+    @Test
+    fun `it should accept merge-patch+json as Content-type for patch requests`() {
+
+        webClient.patch()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/merge-patch+json")
+            .exchange()
+            .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `it should return 406 if accept header format is not acceptable`() {
+
+        webClient.get()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .header(HttpHeaders.ACCEPT, "unknown/*")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_ACCEPTABLE)
+    }
+
+    @Test
+    fun `it should accept application|json accept header`() {
+
+        webClient.get()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "application/json")
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    @Test
+    fun `it should accept application|ld+json accept header`() {
+
+        webClient.get()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "application/ld+json")
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    @Test
+    fun `it should accept application|* accept header`() {
+
+        webClient.get()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "application/*")
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    @Test
+    fun `it should accept *|* accept header`() {
+
+        webClient.get()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "*/*")
+            .exchange()
+            .expectStatus().isOk
+    }
 }

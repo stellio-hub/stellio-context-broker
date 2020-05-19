@@ -63,7 +63,6 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
         NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 }
 
-// relaunch tests
 fun getNotAllowedMethods(): List<HttpMethod> {
     return HttpMethod.values().filterNot {
         it == HttpMethod.GET ||

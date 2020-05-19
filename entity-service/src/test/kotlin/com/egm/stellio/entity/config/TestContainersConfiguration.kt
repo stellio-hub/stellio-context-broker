@@ -1,4 +1,4 @@
-package com.egm.stellio.entity
+package com.egm.stellio.entity.config
 
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -21,10 +21,14 @@ class TestContainersConfiguration {
         private val instance: KDockerComposeContainer by lazy { defineDockerCompose() }
 
         private fun defineDockerCompose() =
-            KDockerComposeContainer(DOCKER_COMPOSE_FILE).withLocalCompose(true).withExposedService(NEO4J_SERVICE_NAME, 7687)
+            KDockerComposeContainer(
+                DOCKER_COMPOSE_FILE
+            ).withLocalCompose(true).withExposedService(NEO4J_SERVICE_NAME, 7687)
 
         fun getNeo4jUri(): String {
-            return "bolt://" + instance.getServiceHost(NEO4J_SERVICE_NAME, 7687) + ":" + instance.getServicePort(NEO4J_SERVICE_NAME, 7687)
+            return "bolt://" + instance.getServiceHost(
+                NEO4J_SERVICE_NAME, 7687) + ":" + instance.getServicePort(
+                NEO4J_SERVICE_NAME, 7687)
         }
 
         fun startContainers() {

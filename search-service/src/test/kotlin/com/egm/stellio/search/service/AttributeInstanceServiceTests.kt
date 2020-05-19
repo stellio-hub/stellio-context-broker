@@ -1,14 +1,12 @@
 package com.egm.stellio.search.service
 
-import TestContainersConfiguration
+import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.*
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.springframework.boot.test.context.SpringBootTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.context.annotation.Import
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
@@ -18,8 +16,7 @@ import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestContainersConfiguration::class)
-class AttributeInstanceServiceTests {
+class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -30,15 +27,6 @@ class AttributeInstanceServiceTests {
     private val observationDateTime = OffsetDateTime.now()
 
     private lateinit var temporalEntityAttribute: TemporalEntityAttribute
-
-    init {
-        val testContainersConfiguration = TestContainersConfiguration.TestContainers
-        testContainersConfiguration.startContainers()
-        Flyway.configure()
-            .dataSource(testContainersConfiguration.getPostgresqlUri(), "stellio_search", "stellio_search_db_password")
-            .load()
-            .migrate()
-    }
 
     @BeforeAll
     fun createTemporalEntityAttribute() {

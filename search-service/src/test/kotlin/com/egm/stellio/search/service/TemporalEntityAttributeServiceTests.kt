@@ -1,41 +1,29 @@
 package com.egm.stellio.search.service
 
-import TestContainersConfiguration
+import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.time.OffsetDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestContainersConfiguration::class)
-class TemporalEntityAttributeServiceTests {
+class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Autowired
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
-
-    init {
-        val testContainersConfiguration = TestContainersConfiguration.TestContainers
-        testContainersConfiguration.startContainers()
-        Flyway.configure()
-            .dataSource(testContainersConfiguration.getPostgresqlUri(), "stellio_search", "stellio_search_db_password")
-            .load()
-            .migrate()
-    }
 
     @Test
     fun `it should retrieve a persisted temporal entity attribute`() {

@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.TestContainersConfiguration
+import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Attribute
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property

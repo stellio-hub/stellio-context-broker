@@ -142,4 +142,26 @@ class ApiUtilsTests {
             .exchange()
             .expectStatus().isOk
     }
+
+    @Test
+    fun `it should return 405 when a wrong http verb is invoqued`() {
+
+        webClient.put()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "*/*")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.METHOD_NOT_ALLOWED)
+    }
+
+    @Test
+    fun `it should return 404 when an unknown uri is invoqued`() {
+
+        webClient.put()
+            .uri("/unknown")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.ACCEPT, "*/*")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.NOT_FOUND)
+    }
 }

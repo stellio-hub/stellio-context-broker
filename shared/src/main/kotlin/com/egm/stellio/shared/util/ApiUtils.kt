@@ -63,6 +63,15 @@ fun extractContextFromLinkHeader(req: ServerRequest): String {
         NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 }
 
+fun getNotAllowedMethods(): List<HttpMethod> {
+    return HttpMethod.values().filterNot {
+        it == HttpMethod.GET ||
+        it == HttpMethod.POST ||
+        it == HttpMethod.PATCH ||
+        it == HttpMethod.DELETE
+    }
+}
+
 fun List<MediaType>.isAcceptable(): Boolean {
     return this.any {
         it == MediaType("*", "*") ||
@@ -72,7 +81,6 @@ fun List<MediaType>.isAcceptable(): Boolean {
     }
 }
 
-// TODO: add check for allowed methods and return 405
 fun httpRequestPreconditions(request: ServerRequest, next: (ServerRequest) -> Mono<ServerResponse>): Mono<ServerResponse> {
     return when (request.method()) {
         HttpMethod.GET -> httpGetRequestPreconditions(request, next)

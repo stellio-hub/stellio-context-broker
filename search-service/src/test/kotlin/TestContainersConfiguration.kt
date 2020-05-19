@@ -34,19 +34,16 @@ class TestContainersConfiguration {
         }
 
         fun getPostgresqlUri(): String {
-            return "jdbc:postgresql://" + getPostgresqlHost() + ":" + getPostgresqlPort()
+            return "jdbc:postgresql://" + getPostgresqlHost() + ":" + getPostgresqlPort() + '/'
         }
 
         fun startContainers() {
             instance.start()
         }
-
     }
 
     @Bean
     fun configuration(): ConnectionFactory {
-        TestContainers.startContainers()
-
         val options = ConnectionFactoryOptions.builder()
             .option(ConnectionFactoryOptions.DATABASE, DB_NAME)
             .option(ConnectionFactoryOptions.HOST, TestContainers.getPostgresqlHost())

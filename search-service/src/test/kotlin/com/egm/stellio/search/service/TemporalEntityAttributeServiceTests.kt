@@ -29,8 +29,10 @@ class TemporalEntityAttributeServiceTests {
     val apicContext: String? = null
 
     init {
+        val testContainersConfiguration = TestContainersConfiguration.TestContainers
+        testContainersConfiguration.startContainers()
         Flyway.configure()
-            .dataSource(TestContainersConfiguration.TestContainers.getPostgresqlUri(), "stellio_search", "stellio_search_db_password")
+            .dataSource(testContainersConfiguration.getPostgresqlUri(), "stellio_search", "stellio_search_db_password")
             .load()
             .migrate()
     }

@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.util.config
 
+import com.egm.stellio.shared.util.getNotAllowedMethods
 import com.egm.stellio.shared.util.httpRequestPreconditions
 import com.egm.stellio.shared.util.transformErrorResponse
 import org.springframework.boot.test.context.TestConfiguration
@@ -19,6 +20,10 @@ class RouterConfiguration {
             GET("/mockkedroute") { status(HttpStatus.OK).build() }
             POST("/mockkedroute") { status(HttpStatus.CREATED).build() }
             PATCH("/mockkedroute") { status(HttpStatus.NO_CONTENT).build() }
+
+            getNotAllowedMethods().forEach {
+                method(it) { ServerResponse.status(HttpStatus.METHOD_NOT_ALLOWED).build() }
+            }
         }
         onError<Throwable> { throwable, request ->
             transformErrorResponse(throwable, request)

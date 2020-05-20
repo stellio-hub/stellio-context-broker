@@ -72,6 +72,12 @@ class RepositoryEventsListener(
 
     private fun getEntityById(entityId: String): String {
         val entity = entityService.getFullEntityById(entityId)
-        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions()))
+        return mapper.writeValueAsString(
+            JsonLdProcessor.compact(
+                entity.rawJsonLdProperties,
+                mapOf("@context" to entity.contexts),
+                JsonLdOptions()
+            )
+        )
     }
 }

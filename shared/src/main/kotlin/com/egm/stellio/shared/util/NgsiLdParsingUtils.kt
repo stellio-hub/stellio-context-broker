@@ -1,6 +1,9 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.Observation
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -340,7 +343,7 @@ object NgsiLdParsingUtils {
 
     fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
         try {
-            val location = expandValueAsMap(parsedEntity.attributes[NGSILD_LOCATION_PROPERTY]!!)
+            val location = expandValueAsMap(parsedEntity.rawJsonLdProperties[NGSILD_LOCATION_PROPERTY]!!)
             val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
             val geoPropertyType = locationValue["@type"]!![0] as String
             val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!

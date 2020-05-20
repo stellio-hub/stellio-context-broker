@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Either
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
@@ -8,8 +9,6 @@ import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import org.jgrapht.Graph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
@@ -56,6 +55,87 @@ class EntityOperationService(
         val errors = invalidRelationsErrors.plus(naiveBatchResult.errors).plus(circularCreateErrors)
 
         return BatchOperationResult(ArrayList(success), ArrayList(errors))
+    }
+
+    /**
+     * Update a batch of [entities].
+     * Only entities with relations linked to existing entities will be updated.
+     *
+     * @return a [BatchOperationResult] with list of updated ids and list of errors (either not totally updated or
+     * linked to invalid entity).
+     */
+    fun update(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+        val existingEntitiesIds = createBatchResult.success.plus(entities.map { it.id })
+        val nonExistingEntitiesIds = createBatchResult.errors.map { it.entityId }
+        return entities.parallelStream().map { entity ->
+            updateEntity(entity, existingEntitiesIds, nonExistingEntitiesIds)
+        }.collect(
+            { BatchOperationResult() },
+            { batchOperationResult, updateResult ->
+                updateResult.fold({
+                    batchOperationResult.errors.add(it)
+                }, {
+                    batchOperationResult.success.add(it)
+                })
+            },
+            BatchOperationResult::plusAssign
+        )
+    }
+
+    private fun updateEntity(
+        entity: ExpandedEntity,
+        existingEntitiesIds: List<String>,
+        nonExistingEntitiesIds: List<String>
+    ): Either<BatchEntityError, String> {
+        // All new attributes linked entities should be existing in the DB.
+        val linkedEntitiesIds = entity.getLinkedEntitiesIds()
+        val invalidLinkedEntityId =
+            findInvalidEntityId(linkedEntitiesIds, existingEntitiesIds, nonExistingEntitiesIds)
+
+        // If there's a link to an invalid entity, then avoid calling the processor and return an error
+        if (invalidLinkedEntityId != null) {
+            return Either.left(
+                BatchEntityError(
+                    entity.id,
+                    arrayListOf("Target entity $invalidLinkedEntityId does not exist.")
+                )
+            )
+        }
+
+        return try {
+            val (_, notUpdated) = entityService.appendEntityAttributes(
+                entity.id,
+                entity.attributes,
+                false
+            )
+
+            if (notUpdated.isEmpty()) {
+                Either.right(entity.id)
+            } else {
+                Either.left(
+                    BatchEntityError(
+                        entity.id,
+                        ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
+                    )
+                )
+            }
+        } catch (e: BadRequestDataException) {
+            Either.left(BatchEntityError(entity.id, arrayListOf(e.message)))
+        }
+    }
+
+    private fun findInvalidEntityId(
+        entitiesIds: List<String>,
+        existingEntitiesIds: List<String>,
+        nonExistingEntitiesIds: List<String>
+    ): String? {
+        val invalidEntityId = entitiesIds.intersect(nonExistingEntitiesIds).firstOrNull()
+        if (invalidEntityId == null) {
+            val unknownEntitiesIds = entitiesIds.minus(existingEntitiesIds)
+            return unknownEntitiesIds
+                .minus(neo4jRepository.filterExistingEntitiesIds(unknownEntitiesIds)).firstOrNull()
+        }
+        return invalidEntityId
     }
 
     private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity, DefaultEdge>): Pair<BatchOperationResult, Set<ExpandedEntity>> {
@@ -110,9 +190,7 @@ class EntityOperationService(
             try {
                 entityService.appendEntityAttributes(
                     entity.id,
-                    entity.attributes.filterKeys {
-                        !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
-                    },
+                    entity.attributes,
                     false
                 )
 

@@ -300,7 +300,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
         subscriptionService.updateSubscriptionNotification(subscription, Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()), true).block()
 
-        val persistedSubscription = subscriptionService.getById(subscription.id, MOCK_USER_SUB)
+        val persistedSubscription = subscriptionService.getById(subscription.id)
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {

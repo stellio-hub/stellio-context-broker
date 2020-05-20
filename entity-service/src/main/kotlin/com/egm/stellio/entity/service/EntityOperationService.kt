@@ -8,8 +8,6 @@ import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import org.jgrapht.Graph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
@@ -56,6 +54,66 @@ class EntityOperationService(
         val errors = invalidRelationsErrors.plus(naiveBatchResult.errors).plus(circularCreateErrors)
 
         return BatchOperationResult(ArrayList(success), ArrayList(errors))
+    }
+
+    /**
+     * Update a batch of [entities].
+     * Only entities with relations linked to existing entities will be updated.
+     *
+     * @return a [BatchOperationResult] with list of updated ids and list of errors (either not totally updated or
+     * linked to invalid entity).
+     */
+    fun update(entities: List<ExpandedEntity>): BatchOperationResult {
+        return entities.parallelStream().map { entity ->
+            updateEntity(entity)
+        }.collect(
+            { BatchOperationResult(ArrayList(), ArrayList()) },
+            { batchOperationResult, (update, error) ->
+                update?.let { batchOperationResult.success.add(it) }
+                error?.let { batchOperationResult.errors.add(it) }
+            },
+            BatchOperationResult::plusAssign
+        )
+    }
+
+    private fun updateEntity(entity: ExpandedEntity): Pair<String?, BatchEntityError?> {
+        // All new attributes linked entities should be existing in the DB.
+        val linkedEntitiesIds = entity.getLinkedEntitiesIds()
+        val nonExistingLinkedEntitiesIds = linkedEntitiesIds
+            .minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))
+
+        // If there's a link to a non existing entity, then avoid calling the processor and return an error
+        if (nonExistingLinkedEntitiesIds.isNotEmpty()) {
+            return Pair(
+                null,
+                BatchEntityError(
+                    entity.id,
+                    arrayListOf("Target entities $nonExistingLinkedEntitiesIds does not exist.")
+                )
+            )
+        }
+
+        return try {
+            val (_, notUpdated) = entityService.appendEntityAttributes(
+                entity.id,
+                entity.attributesWithoutTypeAndId,
+                false
+            )
+
+            if (notUpdated.isEmpty()) {
+                Pair(entity.id, null)
+            } else {
+                Pair(
+                    null,
+                    BatchEntityError(
+                        entity.id,
+                        ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
+                    )
+                )
+            }
+        } catch (e: BadRequestDataException) {
+            Pair(null, BatchEntityError(entity.id, arrayListOf(e.message)))
+        }
     }
 
     private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity, DefaultEdge>): Pair<BatchOperationResult, Set<ExpandedEntity>> {
@@ -110,9 +168,7 @@ class EntityOperationService(
             try {
                 entityService.appendEntityAttributes(
                     entity.id,
-                    entity.attributes.filterKeys {
-                        !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
-                    },
+                    entity.attributesWithoutTypeAndId,
                     false
                 )
 

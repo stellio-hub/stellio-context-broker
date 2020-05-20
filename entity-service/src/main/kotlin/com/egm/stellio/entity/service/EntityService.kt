@@ -65,9 +65,7 @@ class EntityService(
         val entity = entityRepository.save(rawEntity)
 
         // filter the unwanted entries and expand all attributes for easier later processing
-        val propertiesAndRelationshipsMap = expandedEntity.attributes.filterKeys {
-            !listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE).contains(it)
-        }.mapValues {
+        val propertiesAndRelationshipsMap = expandedEntity.attributesWithoutTypeAndId.mapValues {
             expandValueAsMap(it.value)
         }
 

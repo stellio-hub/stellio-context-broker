@@ -46,6 +46,31 @@ class EntityOperationHandler(
             }
     }
 
+    /**
+     * Implements 6.15.3.1 - Upsert Batch of Entities
+     */
+    @PostMapping("/upsert", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun upsert(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+        return body
+            .map {
+                extractAndParseBatchOfEntities(it)
+            }
+            .map {
+                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
+
+                val createBatchOperationResult = entityOperationService.create(newEntities)
+                val updateBatchOperationResult = entityOperationService.update(existingEntities)
+
+                BatchOperationResult(
+                    ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
+                    ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
+                )
+            }
+            .map {
+                ResponseEntity.status(HttpStatus.OK).body(it)
+            }
+    }
+
     private fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
         val extractedEntities = extractEntitiesFromJsonPayload(payload)
         return NgsiLdParsingUtils.parseEntities(extractedEntities)

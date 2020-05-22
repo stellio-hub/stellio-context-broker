@@ -7,10 +7,10 @@ import org.springframework.context.annotation.Import
 open class TimescaleBasedTests {
 
     init {
-        val testContainersConfiguration = TestContainersConfiguration.TestContainers
-        testContainersConfiguration.startContainers()
+        val testContainers = TestContainersConfiguration.SubscriptionServiceTestContainers
+        testContainers.startContainers()
         Flyway.configure()
-            .dataSource(testContainersConfiguration.getPostgresqlUri(), "stellio_subscription", "stellio_subscription_db_password")
+            .dataSource(testContainers.getPostgresqlUri(), "stellio_subscription", "stellio_subscription_db_password")
             .load()
             .migrate()
     }

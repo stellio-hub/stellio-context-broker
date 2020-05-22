@@ -12,5 +12,7 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
+    implementation("org.testcontainers:testcontainers:1.12.3")
+
     testImplementation("org.hamcrest:hamcrest:2.1")
 }

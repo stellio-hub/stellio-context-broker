@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
-class RestControllerAdvice {
+class ExceptionHandler {
 
     @ExceptionHandler
     fun transformErrorResponse(throwable: Throwable): ResponseEntity<String> =

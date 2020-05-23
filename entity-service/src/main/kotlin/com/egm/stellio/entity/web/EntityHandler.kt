@@ -112,9 +112,9 @@ class EntityHandler(
      *
      */
     @PostMapping("/{entityId}/attrs")
-    fun appendEntityAttributes(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestParam(required = false) options: String?, @RequestBody attributes: Mono<String>): Mono<ResponseEntity<String>> {
+    fun appendEntityAttributes(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestParam options: Optional<String>, @RequestBody attributes: Mono<String>): Mono<ResponseEntity<String>> {
 
-        val disallowOverwrite = Optional.ofNullable(options).map { it == "noOverwrite" }.orElse(false)
+        val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return attributes
             .doOnNext {

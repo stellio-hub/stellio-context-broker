@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.web.CustomWebFilter
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
-import com.egm.stellio.shared.util.config.RouterConfiguration
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -15,8 +15,9 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ ApiUtils::class ])
 @ActiveProfiles("test")
 class ApiUtilsTests {
-
-    private val webClient = WebTestClient.bindToRouterFunction(RouterConfiguration().router()).build()
+    private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(
+        CustomWebFilter()
+    ).build()
 
     @Test
     fun `it should not find a value if there is no options query param`() {
@@ -54,6 +55,17 @@ class ApiUtilsTests {
     }
 
     @Test
+    fun `it should accept Content-type with params`() {
+
+        webClient.post()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/ld+json; charset=utf-8; version=1.2.3")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.CREATED)
+    }
+
+    @Test
     fun `it should return 415 if Content-Type is not supported`() {
 
         webClient.post()
@@ -62,7 +74,6 @@ class ApiUtilsTests {
             .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-            .expectBody().isEmpty
     }
 
     @Test

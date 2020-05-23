@@ -55,8 +55,7 @@ class SubscriptionHandler(
      * Implements 6.10.3.2 - Query Subscriptions
      */
     @GetMapping
-    fun getSubscriptions(@RequestParam(required = false, defaultValue = "1") page: Int,
-                         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int): Mono<ResponseEntity<String>> {
+    fun getSubscriptions(@RequestParam(required = false, defaultValue = "1") page: Int, @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int): Mono<ResponseEntity<String>> {
         return if (limit <= 0 || page <= 0)
             ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
                 .body(serializeObject(BadRequestDataResponse("Page number and Limit must be greater than zero")))

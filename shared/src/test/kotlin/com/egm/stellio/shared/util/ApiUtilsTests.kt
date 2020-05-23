@@ -56,6 +56,17 @@ class ApiUtilsTests {
     }
 
     @Test
+    fun `it should accept Content-type with params`() {
+
+        webClient.post()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_LENGTH, "3495")
+            .header(HttpHeaders.CONTENT_TYPE, "application/ld+json; charset=utf-8; version=1.2.3")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.CREATED)
+    }
+
+    @Test
     fun `it should return 415 if Content-Type is not supported`() {
 
         webClient.post()
@@ -64,7 +75,6 @@ class ApiUtilsTests {
             .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-            .expectBody().isEmpty
     }
 
     @Test

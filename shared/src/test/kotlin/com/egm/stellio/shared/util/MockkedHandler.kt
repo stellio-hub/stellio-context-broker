@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -9,6 +8,15 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/router/mockkedroute")
 class MockkedHandler {
 
-    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping
+    fun get() = ResponseEntity.status(HttpStatus.OK).build<String>()
+
+    @PostMapping
     fun post() = ResponseEntity.status(HttpStatus.CREATED).build<String>()
+
+    @PatchMapping
+    fun patch() = ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+
+    @DeleteMapping
+    fun delete() = ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
 }

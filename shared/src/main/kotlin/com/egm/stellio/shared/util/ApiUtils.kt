@@ -2,9 +2,11 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -136,3 +138,35 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
         .map { it.split(",") }
         .filter { it.any { option -> option == optionValue.value } }
         .isPresent
+
+fun transformErrorResponse(throwable: Throwable, request: ServerRequest): Mono<ServerResponse> =
+    when (throwable) {
+        is AlreadyExistsException ->
+            status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AlreadyExistsResponse(throwable.message))
+        is ResourceNotFoundException ->
+            status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(ResourceNotFoundResponse(throwable.message))
+        is BadRequestDataException ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(BadRequestDataResponse(throwable.message))
+        is JsonLdError ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty()))
+        is JsonParseException ->
+            badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
+        is AccessDeniedException ->
+            status(403)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(AccessDeniedResponse(throwable.message))
+        else ->
+            status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
+    }

@@ -15,17 +15,14 @@ import com.egm.stellio.shared.web.extractJwT
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
-import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.ServerRequest
-import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.*
-import org.springframework.web.reactive.function.server.bodyToMono
-import org.springframework.web.reactive.function.server.queryParamOrNull
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 import java.net.URI
 
-@Component
+@RestController
+@RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
     private val subscriptionService: SubscriptionService
 ) {
@@ -35,33 +32,35 @@ class SubscriptionHandler(
     /**
      * Implements 6.10.3.1 - Create Subscription
      */
-    fun create(req: ServerRequest): Mono<ServerResponse> {
-        return req.bodyToMono<String>()
-                .map {
-                    val context = NgsiLdParsingUtils.getContextOrThrowError(it)
-                    parseSubscription(it, context)
-                }
-                .flatMap {
-                    checkSubscriptionNotExists(it)
-                }
-                .zipWith(extractJwT())
-                .flatMap { subscriptionAndSubject ->
-                    subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject).map { subscriptionAndSubject.t1 }
-                }
-                .flatMap {
-                    created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build()
-                }
+    @PostMapping
+    fun create(@RequestBody subscription: Mono<String>): Mono<ResponseEntity<String>> {
+        return subscription
+            .map {
+                val context = NgsiLdParsingUtils.getContextOrThrowError(it)
+                parseSubscription(it, context)
+            }
+            .flatMap {
+                checkSubscriptionNotExists(it)
+            }
+            .zipWith(extractJwT())
+            .flatMap { subscriptionAndSubject ->
+                subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject).map { subscriptionAndSubject.t1 }
+            }
+            .map {
+                ResponseEntity.created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build<String>()
+            }
     }
 
     /**
      * Implements 6.10.3.2 - Query Subscriptions
      */
-    fun getSubscriptions(req: ServerRequest): Mono<ServerResponse> {
-        val pageNumber = req.queryParamOrNull("page")?.toInt() ?: 1
-        val limit = req.queryParamOrNull("limit")?.toInt() ?: SUBSCRIPTION_QUERY_PAGING_LIMIT
-
-        return if (limit <= 0 || pageNumber <= 0)
-            badRequest().contentType(MediaType.APPLICATION_JSON).bodyValue(BadRequestDataResponse("Page number and Limit must be greater than zero"))
+    @GetMapping
+    fun getSubscriptions(@RequestParam(required = false, defaultValue = "1") page: Int,
+                         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int): Mono<ResponseEntity<String>> {
+        return if (limit <= 0 || page <= 0)
+            ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
+                .body(serializeObject(BadRequestDataResponse("Page number and Limit must be greater than zero")))
+                .toMono()
 
         else extractJwT()
             .flatMap {
@@ -70,32 +69,32 @@ class SubscriptionHandler(
                 }
             }
             .flatMap { subscriptionsCountAndSubject ->
-                subscriptionService.getSubscriptions(limit, (pageNumber - 1) * limit, subscriptionsCountAndSubject.second).collectList().flatMap {
+                subscriptionService.getSubscriptions(limit, (page - 1) * limit, subscriptionsCountAndSubject.second).collectList().flatMap {
                     Mono.just(Pair(subscriptionsCountAndSubject.first, it))
                 }
             }
             .map {
-                val prevLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).first
-                val nextLink = getSubscriptionsPagingLinks(it.first, pageNumber, limit).second
+                val prevLink = getSubscriptionsPagingLinks(it.first, page, limit).first
+                val nextLink = getSubscriptionsPagingLinks(it.first, page, limit).second
                 Triple(serializeObject(it.second), prevLink, nextLink)
             }
-            .flatMap {
+            .map {
                 if (it.second != null && it.third != null)
-                    ok().header("Link", it.second).header("Link", it.third).body(BodyInserters.fromValue(it.first))
+                    ResponseEntity.ok().header("Link", it.second).header("Link", it.third).body(it.first)
                 else if (it.second != null)
-                    ok().header("Link", it.second).body(BodyInserters.fromValue(it.first))
+                    ResponseEntity.ok().header("Link", it.second).body(it.first)
                 else if (it.third != null)
-                    ok().header("Link", it.third).body(BodyInserters.fromValue(it.first))
+                    ResponseEntity.ok().header("Link", it.third).body(it.first)
                 else
-                    ok().body(BodyInserters.fromValue(it.first))
+                    ResponseEntity.ok().body(it.first)
             }
     }
 
     /**
      * Implements 6.11.3.1 - Retrieve Subscription
      */
-    fun getByURI(req: ServerRequest): Mono<ServerResponse> {
-        val subscriptionId = req.pathVariable("subscriptionId")
+    @GetMapping("/{subscriptionId}")
+    fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<String>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -106,16 +105,16 @@ class SubscriptionHandler(
             .flatMap {
                 subscriptionService.getById(subscriptionId)
             }
-            .flatMap {
-                ok().body(BodyInserters.fromValue(serializeObject(it)))
+            .map {
+                ResponseEntity.ok().body(serializeObject(it))
             }
     }
 
     /**
      * Implements 6.11.3.2 - Update Subscription
      */
-    fun update(req: ServerRequest): Mono<ServerResponse> {
-        val subscriptionId = req.pathVariable("subscriptionId")
+    @PatchMapping("/{subscriptionId}")
+    fun update(@PathVariable subscriptionId: String, @RequestBody subscription: Mono<String>): Mono<ResponseEntity<String>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -124,23 +123,22 @@ class SubscriptionHandler(
                 checkIsAllowed(subscriptionId, it.subject)
             }
             .flatMap {
-                req.bodyToMono<String>()
+                subscription
             }
             .flatMap {
                 val parsedInput = parseSubscriptionUpdate(it)
                 subscriptionService.update(subscriptionId, parsedInput)
             }
-            .flatMap {
-                noContent().build()
+            .map {
+                ResponseEntity.noContent().build<String>()
             }
     }
 
     /**
      * Implements 6.11.3.3 - Delete Subscription
      */
-    fun delete(req: ServerRequest): Mono<ServerResponse> {
-        val subscriptionId = req.pathVariable("subscriptionId")
-
+    @DeleteMapping("/{subscriptionId}")
+    fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<String>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -151,8 +149,8 @@ class SubscriptionHandler(
             .flatMap {
                 subscriptionService.delete(subscriptionId)
             }
-            .flatMap {
-                noContent().build()
+            .map {
+                ResponseEntity.noContent().build<String>()
             }
     }
 

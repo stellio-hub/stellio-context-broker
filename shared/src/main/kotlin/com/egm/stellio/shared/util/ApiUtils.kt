@@ -56,9 +56,9 @@ val JSON_MERGE_PATCH_MEDIA_TYPE = MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYP
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
  * JSON-LD @context.
  */
-fun extractContextFromLinkHeader(req: ServerRequest): String {
-    return if (req.headers().header("Link").isNotEmpty() && req.headers().header("Link").get(0) != null)
-        req.headers().header("Link")[0].split(";")[0].removePrefix("<").removeSuffix(">")
+fun extractContextFromLinkHeader(linkHeader: List<String>): String {
+    return if (linkHeader.isNotEmpty())
+        linkHeader[0].split(";")[0].removePrefix("<").removeSuffix(">")
     else
         NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 }

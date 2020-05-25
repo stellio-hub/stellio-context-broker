@@ -64,7 +64,7 @@ class TemporalEntityHandler(
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
-    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,

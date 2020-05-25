@@ -59,7 +59,7 @@ class EntityHandler(
     /**
      * Implements 6.4.3.2 - Query Entities
      */
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
             Mono<ResponseEntity<String>> {
         val type = params.getFirst("type") ?: ""
@@ -94,7 +94,7 @@ class EntityHandler(
     /**
      * Implements 6.5.3.1 - Retrieve Entity
      */
-    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<String>> {
         return entityId.toMono()
             .map {

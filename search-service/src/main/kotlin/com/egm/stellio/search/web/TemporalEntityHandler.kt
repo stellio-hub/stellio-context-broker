@@ -36,11 +36,12 @@ class TemporalEntityHandler(
      *
      * Implements 6.20.3.1
      */
-    @PostMapping("/{entityId}/attrs")
-    fun addAttrs(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestBody attributes: Mono<String>): Mono<ResponseEntity<String>> {
+    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun addAttrs(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestBody body: Mono<String>):
+            Mono<ResponseEntity<String>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        return attributes
+        return body
             .flatMapMany {
                 Flux.fromIterable(expandJsonLdFragment(it, contextLink).asIterable())
             }
@@ -64,7 +65,11 @@ class TemporalEntityHandler(
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
     @GetMapping("/{entityId}")
-    fun getForEntity(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestParam params: MultiValueMap<String, String>): Mono<ResponseEntity<String>> {
+    fun getForEntity(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam params: MultiValueMap<String, String>
+    ): Mono<ResponseEntity<String>> {
 
         val withTemporalValues = hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))

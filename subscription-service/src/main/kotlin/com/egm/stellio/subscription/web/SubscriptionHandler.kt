@@ -11,6 +11,8 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.web.extractJwT
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
@@ -32,9 +34,9 @@ class SubscriptionHandler(
     /**
      * Implements 6.10.3.1 - Create Subscription
      */
-    @PostMapping
-    fun create(@RequestBody subscription: Mono<String>): Mono<ResponseEntity<String>> {
-        return subscription
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+        return body
             .map {
                 val context = NgsiLdParsingUtils.getContextOrThrowError(it)
                 parseSubscription(it, context)
@@ -55,7 +57,10 @@ class SubscriptionHandler(
      * Implements 6.10.3.2 - Query Subscriptions
      */
     @GetMapping
-    fun getSubscriptions(@RequestParam(required = false, defaultValue = "1") page: Int, @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int): Mono<ResponseEntity<String>> {
+    fun getSubscriptions(
+        @RequestParam(required = false, defaultValue = "1") page: Int,
+        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
+    ): Mono<ResponseEntity<String>> {
         return if (limit <= 0 || page <= 0)
             ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
                 .body(serializeObject(BadRequestDataResponse("Page number and Limit must be greater than zero")))
@@ -112,8 +117,8 @@ class SubscriptionHandler(
     /**
      * Implements 6.11.3.2 - Update Subscription
      */
-    @PatchMapping("/{subscriptionId}")
-    fun update(@PathVariable subscriptionId: String, @RequestBody subscription: Mono<String>): Mono<ResponseEntity<String>> {
+    @PatchMapping("/{subscriptionId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -122,7 +127,7 @@ class SubscriptionHandler(
                 checkIsAllowed(subscriptionId, it.subject)
             }
             .flatMap {
-                subscription
+                body
             }
             .flatMap {
                 val parsedInput = parseSubscriptionUpdate(it)

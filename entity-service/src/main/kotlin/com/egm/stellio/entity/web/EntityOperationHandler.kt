@@ -4,7 +4,9 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -13,7 +15,8 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 
 @RestController
-@RequestMapping("/ngsi-ld/v1/entityOperations")class EntityOperationHandler(
+@RequestMapping("/ngsi-ld/v1/entityOperations")
+class EntityOperationHandler(
     private val entityService: EntityService,
     private val validationUtils: ValidationUtils
 ) {
@@ -23,10 +26,10 @@ import reactor.core.publisher.Mono
     /**
      * Implements 6.14.3.1 - Create Batch of Entities
      */
-    @PostMapping("/create")
-    fun create(@RequestBody entities: Mono<String>): Mono<ResponseEntity<String>> {
+    @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
 
-        return entities
+        return body
             .map {
                 extractAndParseBatchOfEntities(it)
             }

@@ -1,6 +1,7 @@
-package com.egm.stellio.shared.util
+package com.egm.stellio.shared.web
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ApiUtils
 import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpStatus
@@ -35,6 +36,10 @@ class ExceptionHandler {
                 ResponseEntity.badRequest()
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(ApiUtils.serializeObject(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing")))
+            is AccessDeniedException ->
+                ResponseEntity.status(403)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ApiUtils.serializeObject(AccessDeniedResponse(throwable.message)))
             else ->
                 ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)

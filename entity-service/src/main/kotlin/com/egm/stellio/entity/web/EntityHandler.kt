@@ -9,6 +9,8 @@ import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -32,10 +34,9 @@ class EntityHandler(
     /**
      * Implements 6.4.3.1 - Create Entity
      */
-    @PostMapping
-    fun create(@RequestBody entity: Mono<String>): Mono<ResponseEntity<String>> {
-
-        return entity
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+        return body
             .map {
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
             }
@@ -59,7 +60,8 @@ class EntityHandler(
      * Implements 6.4.3.2 - Query Entities
      */
     @GetMapping
-    fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>): Mono<ResponseEntity<String>> {
+    fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
+            Mono<ResponseEntity<String>> {
         val type = params.getFirst("type") ?: ""
         val q = params.getOrDefault("q", emptyList())
 
@@ -111,12 +113,16 @@ class EntityHandler(
      * Implements 6.6.3.1 - Append Entity Attributes
      *
      */
-    @PostMapping("/{entityId}/attrs")
-    fun appendEntityAttributes(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestParam options: Optional<String>, @RequestBody attributes: Mono<String>): Mono<ResponseEntity<String>> {
-
+    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun appendEntityAttributes(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam options: Optional<String>,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<String>> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
-        return attributes
+        return body
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
@@ -139,11 +145,15 @@ class EntityHandler(
      * Implements 6.6.3.2 - Update Entity Attributes
      *
      */
-    @PatchMapping("/{entityId}/attrs")
-    fun updateEntityAttributes(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestBody attributes: Mono<String>): Mono<ResponseEntity<String>> {
+    @PatchMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    fun updateEntityAttributes(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<String>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        return attributes
+        return body
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
@@ -163,11 +173,16 @@ class EntityHandler(
      * Implements 6.7.3.1 - Partial Attribute Update
      * Current implementation is basic and only update the value of a property.
      */
-    @PatchMapping("/{entityId}/attrs/{attrId}")
-    fun partialAttributeUpdate(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @PathVariable attrId: String, @RequestBody attribute: Mono<String>): Mono<ResponseEntity<String>> {
+    @PatchMapping("/{entityId}/attrs/{attrId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    fun partialAttributeUpdate(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<String>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        return attribute
+        return body
             .map {
                 entityService.updateEntityAttribute(entityId, attrId, it, contextLink)
             }

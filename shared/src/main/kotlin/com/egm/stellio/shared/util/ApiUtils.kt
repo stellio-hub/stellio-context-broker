@@ -43,7 +43,6 @@ fun String.parseTimeParameter(errorMsg: String): ZonedDateTime =
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
-val JSON_MERGE_PATCH_MEDIA_TYPE = MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
 
 /**
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default

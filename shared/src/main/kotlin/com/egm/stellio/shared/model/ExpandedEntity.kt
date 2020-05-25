@@ -25,11 +25,13 @@ class ExpandedEntity private constructor(
 
     val id = attributes["@id"]!! as String
     val type = (attributes["@type"]!! as List<String>)[0]
+    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) }
+    val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) }
 
     fun compact(): Map<String, Any> =
         JsonLdProcessor.compact(attributes, mapOf("@context" to contexts), JsonLdOptions())
 
-    private fun getAttributeOfType(type: AttributeType) =
+    private fun getAttributesOfType(type: AttributeType) =
         attributes.filterKeys {
             !listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {
@@ -48,17 +50,13 @@ class ExpandedEntity private constructor(
         getLinkedEntitiesIdsByProperties().plus(getLinkedEntitiesIdsByRelations())
 
     private fun getLinkedEntitiesIdsByRelations(): List<String> {
-        val relationships = getAttributeOfType(NGSILD_RELATIONSHIP_TYPE)
-
         return relationships.map {
             NgsiLdParsingUtils.getRelationshipObjectId(it.value)
         }.plus(getLinkedEntitiesByAttribute(relationships))
     }
 
     private fun getLinkedEntitiesIdsByProperties(): List<String> {
-        val attributes = getAttributeOfType(NGSILD_PROPERTY_TYPE)
-
-        return getLinkedEntitiesByAttribute(attributes)
+        return getLinkedEntitiesByAttribute(properties)
     }
 
     private fun getLinkedEntitiesByAttribute(attributes: Map<String, Map<String, List<Any>>>): List<String> {

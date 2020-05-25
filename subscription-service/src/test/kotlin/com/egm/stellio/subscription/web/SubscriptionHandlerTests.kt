@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.subscription.config.WebSecurityConfig
 import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
@@ -13,7 +14,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
@@ -24,8 +26,9 @@ import reactor.core.publisher.Mono
 import java.lang.RuntimeException
 
 @AutoConfigureWebTestClient(timeout = "30000")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@WebFluxTest(SubscriptionHandler::class)
+@Import(WebSecurityConfig::class)
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
 

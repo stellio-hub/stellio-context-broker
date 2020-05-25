@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import com.egm.stellio.search.config.WebSecurityConfig
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.EntityService
@@ -18,7 +19,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
@@ -31,8 +33,9 @@ import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@WebFluxTest(TemporalEntityHandler::class)
+@Import(WebSecurityConfig::class)
 @WithMockUser
 class TemporalEntityHandlerTests {
 

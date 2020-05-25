@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.web
 
+import com.egm.stellio.entity.config.WebSecurityConfig
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -10,15 +11,17 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
 @AutoConfigureWebTestClient(timeout = "30000")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@WebFluxTest(EntityOperationHandler::class)
+@Import(WebSecurityConfig::class)
 @WithMockUser
 class EntityOperationHandlerTests {
 

@@ -64,7 +64,7 @@ class TemporalEntityHandler(
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
-    @GetMapping("/{entityId}")
+    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
     fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
@@ -76,11 +76,7 @@ class TemporalEntityHandler(
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
-        val bearerToken =
-            if (httpHeaders.containsKey("Authorization"))
-                httpHeaders["Authorization"]!!.first()
-            else
-                ""
+        val bearerToken = httpHeaders.getOrEmpty("Authorization").firstOrNull() ?: ""
 
         val temporalQuery = try {
             buildTemporalQuery(params)

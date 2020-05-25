@@ -55,15 +55,6 @@ fun extractContextFromLinkHeader(linkHeader: List<String>): String {
         NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 }
 
-fun List<MediaType>.isAcceptable(): Boolean {
-    return this.any {
-        it == MediaType("*", "*") ||
-        it == MediaType("application", "*") ||
-        it == MediaType("application", "json") ||
-        it == MediaType("application", "ld+json")
-    }
-}
-
 enum class OptionsParamValue(val value: String) {
     TEMPORAL_VALUES("temporalValues")
 }

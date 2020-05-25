@@ -16,33 +16,17 @@ class ExceptionHandler {
     @ExceptionHandler
     fun transformErrorResponse(throwable: Throwable): ResponseEntity<String> =
         when (throwable) {
-            is AlreadyExistsException ->
-                ResponseEntity.status(HttpStatus.CONFLICT)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(AlreadyExistsResponse(throwable.message)))
-            is ResourceNotFoundException ->
-                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(ResourceNotFoundResponse(throwable.message)))
-            is BadRequestDataException ->
-                ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(BadRequestDataResponse(throwable.message)))
-            is JsonLdError ->
-                ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty())))
-            is JsonParseException ->
-                ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing")))
-            is AccessDeniedException ->
-                ResponseEntity.status(403)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(AccessDeniedResponse(throwable.message)))
-            else ->
-                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiUtils.serializeObject(InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution")))
+            is AlreadyExistsException -> generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(throwable.message))
+            is ResourceNotFoundException -> generateErrorResponse(HttpStatus.NOT_FOUND, ResourceNotFoundResponse(throwable.message))
+            is BadRequestDataException -> generateErrorResponse(HttpStatus.BAD_REQUEST, BadRequestDataResponse(throwable.message))
+            is JsonLdError -> generateErrorResponse(HttpStatus.BAD_REQUEST, JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty()))
+            is JsonParseException -> generateErrorResponse(HttpStatus.BAD_REQUEST, JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing"))
+            is AccessDeniedException -> generateErrorResponse(HttpStatus.FORBIDDEN, AccessDeniedResponse(throwable.message))
+            else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution"))
         }
+
+    private fun generateErrorResponse(status: HttpStatus, exception: Any) =
+        ResponseEntity.status(status)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ApiUtils.serializeObject(exception))
 }

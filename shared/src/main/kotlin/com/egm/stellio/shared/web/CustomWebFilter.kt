@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.web
 
-import com.egm.stellio.shared.util.isAcceptable
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.server.reactive.ServerHttpRequest
@@ -17,21 +16,10 @@ class CustomWebFilter : WebFilter {
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request: ServerHttpRequest = exchange.request
         return when (request.method) {
-            HttpMethod.GET -> httpGetRequestPreconditions(exchange, chain)
             HttpMethod.POST -> httpPostRequestPreconditions(exchange, chain)
             HttpMethod.PATCH -> httpPatchRequestPreconditions(exchange, chain)
             else -> chain.filter(exchange)
         }
-    }
-
-    private fun httpGetRequestPreconditions(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        val request: ServerHttpRequest = exchange.request
-        val accept = request.headers.accept
-
-        if (accept.isNotEmpty() && !accept.isAcceptable())
-            throw ResponseStatusException(HttpStatus.NOT_ACCEPTABLE)
-
-        return chain.filter(exchange)
     }
 
     private fun httpPostRequestPreconditions(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {

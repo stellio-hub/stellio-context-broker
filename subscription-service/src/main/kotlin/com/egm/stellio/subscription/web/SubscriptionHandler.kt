@@ -56,7 +56,7 @@ class SubscriptionHandler(
     /**
      * Implements 6.10.3.2 - Query Subscriptions
      */
-    @GetMapping
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
     fun getSubscriptions(
         @RequestParam(required = false, defaultValue = "1") page: Int,
         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
@@ -97,7 +97,7 @@ class SubscriptionHandler(
     /**
      * Implements 6.11.3.1 - Retrieve Subscription
      */
-    @GetMapping("/{subscriptionId}")
+    @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
     fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<String>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {

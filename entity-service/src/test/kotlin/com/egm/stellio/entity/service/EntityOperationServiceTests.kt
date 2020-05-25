@@ -2,15 +2,16 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.util.GraphBuilder
+import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.entity.repository.Neo4jRepository
+import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockkClass
+import io.mockk.*
+import org.jgrapht.graph.DefaultEdge
+import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -26,7 +27,13 @@ class EntityOperationServiceTests {
     private lateinit var entityService: EntityService
 
     @MockkBean
-    private lateinit var graphBuilder: GraphBuilder
+    private lateinit var neo4jRepository: Neo4jRepository
+
+    @MockkBean
+    private lateinit var entityRepository: EntityRepository
+
+    @MockkBean
+    private lateinit var entitiesGraphBuilder: EntitiesGraphBuilder
 
     @Autowired
     private lateinit var entityOperationService: EntityOperationService
@@ -38,21 +45,12 @@ class EntityOperationServiceTests {
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
 
-        every { entityService.exists("1") } returns true
-        every { entityService.exists("2") } returns false
+        every { neo4jRepository.filterExistingEntitiesIds(listOf("1", "2")) } returns listOf("1")
 
         val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(listOf(firstEntity, secondEntity))
 
         assertEquals(listOf(firstEntity), exist)
         assertEquals(listOf(secondEntity), doNotExist)
-    }
-
-    @Test
-    fun `it should split empty list`() {
-        val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(listOf())
-
-        assertTrue(exist.isEmpty())
-        assertTrue(doNotExist.isEmpty())
     }
 
     @Test
@@ -62,11 +60,11 @@ class EntityOperationServiceTests {
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
 
-        val acyclicGraph = com.google.common.graph.GraphBuilder.directed().build<ExpandedEntity>()
-        acyclicGraph.addNode(firstEntity)
-        acyclicGraph.addNode(secondEntity)
+        val acyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        acyclicGraph.addVertex(firstEntity)
+        acyclicGraph.addVertex(secondEntity)
 
-        every { graphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(acyclicGraph, listOf())
+        every { entitiesGraphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(acyclicGraph, listOf())
 
         every { entityService.createEntity(firstEntity) } returns mockkClass(Entity::class)
         every { entityService.createEntity(secondEntity) } returns mockkClass(Entity::class)
@@ -84,11 +82,11 @@ class EntityOperationServiceTests {
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
 
-        val acyclicGraph = com.google.common.graph.GraphBuilder.directed().build<ExpandedEntity>()
-        acyclicGraph.addNode(firstEntity)
-        acyclicGraph.addNode(secondEntity)
+        val acyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        acyclicGraph.addVertex(firstEntity)
+        acyclicGraph.addVertex(secondEntity)
 
-        every { graphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(acyclicGraph, listOf())
+        every { entitiesGraphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(acyclicGraph, listOf())
 
         every { entityService.createEntity(firstEntity) } returns mockkClass(Entity::class)
         every { entityService.createEntity(secondEntity) } throws BadRequestDataException("Invalid entity")
@@ -106,19 +104,17 @@ class EntityOperationServiceTests {
         val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
 
-        val cyclicGraph = com.google.common.graph.GraphBuilder.directed().build<ExpandedEntity>()
-        cyclicGraph.addNode(firstEntity)
-        cyclicGraph.addNode(secondEntity)
-        cyclicGraph.putEdge(firstEntity, secondEntity)
-        cyclicGraph.putEdge(secondEntity, firstEntity)
+        val cyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        cyclicGraph.addVertex(firstEntity)
+        cyclicGraph.addVertex(secondEntity)
+        cyclicGraph.addEdge(firstEntity, secondEntity)
+        cyclicGraph.addEdge(secondEntity, firstEntity)
 
-        every { graphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(cyclicGraph, listOf())
-
-        every { entityService.createTempEntityInBatch(eq("1"), any(), any()) } returns mockkClass(Entity::class)
-        every { entityService.createTempEntityInBatch(eq("2"), any(), any()) } returns mockkClass(Entity::class)
+        every { entitiesGraphBuilder.build(listOf(firstEntity, secondEntity)) } returns Pair(cyclicGraph, listOf())
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns mockkClass(UpdateResult::class)
         every { entityService.appendEntityAttributes(eq("2"), any(), any()) } returns mockkClass(UpdateResult::class)
         every { entityService.publishCreationEvent(any()) } just Runs
+        every { entityRepository.save<Entity>(any()) } returns mockk<Entity>()
 
         val batchOperationResult = entityOperationService.create(listOf(firstEntity, secondEntity))
 

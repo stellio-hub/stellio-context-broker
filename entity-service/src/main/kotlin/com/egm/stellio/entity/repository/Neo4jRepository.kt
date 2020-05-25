@@ -286,6 +286,20 @@ class Neo4jRepository(
             .first()
     }
 
+    fun filterExistingEntitiesIds(entitiesIds: List<String>): List<String> {
+        if (entitiesIds.isEmpty()) {
+            return listOf()
+        }
+        
+        val query = """
+            MATCH (entity:Entity)
+            WHERE entity.id IN {entitiesIds}
+            RETURN entity.id as id
+        """
+
+        return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
+    }
+
     fun getPropertyOfSubject(subjectId: String, propertyName: String): Property {
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })

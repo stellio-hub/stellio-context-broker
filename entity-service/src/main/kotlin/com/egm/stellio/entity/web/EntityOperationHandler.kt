@@ -1,6 +1,9 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityOperationService
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import org.slf4j.LoggerFactory
@@ -40,8 +43,8 @@ class EntityOperationHandler(
                 val batchOperationResult = entityOperationService.create(newEntities)
 
                 batchOperationResult.errors.addAll(
-                    existingEntities.map {
-                        BatchEntityError(it.id, arrayListOf("Entity already exists"))
+                    existingEntities.map { entity ->
+                        BatchEntityError(entity.id, arrayListOf("Entity already exists"))
                     })
 
                 batchOperationResult
@@ -49,5 +52,18 @@ class EntityOperationHandler(
             .map {
                 ResponseEntity.status(HttpStatus.OK).body(it)
             }
+    }
+
+    fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
+        val extractedEntities = extractEntitiesFromJsonPayload(payload)
+        return NgsiLdParsingUtils.parseEntities(extractedEntities)
+    }
+
+    private fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {
+        val mapper = jacksonObjectMapper()
+        return mapper.readValue(
+            payload,
+            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+        )
     }
 }

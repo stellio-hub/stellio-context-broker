@@ -1,14 +1,19 @@
 [
   {
-    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-    "type": "Sensor",
-    "deviceParameter": {
+    "id": "urn:ngsi-ld:DeadFishes:019BN",
+    "type": "DeadFishes",
+    "fishNumber": {
       "type": "Property",
-      "value": "temperature"
+      "value": 500
     },
-    "connectsTo": {
+    "observedAt": "2018-10-25T21:32:52.98601Z",
+    "removedFrom": {
       "type": "Relationship",
-      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+      "object": "urn:ngsi-ld:FishContainment:0012",
+      "executedBy": {
+        "type": "Relationship",
+        "object": "urn:ngsi-ld:MortalityService:014YFA9Z"
+      }
     },
     "@context": [
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
@@ -17,15 +22,16 @@
     ]
   },
   {
-    "id": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-    "type": "Sensor",
-    "deviceParameter": {
-      "type": "Property",
-      "value": "dissolvedOxygen"
-    },
-    "connectsTo": {
-      "type": "Relationship",
-      "object": "urn:ngsi-ld:Device:HCMR-AQUABOX2"
+    "id":"urn:ngsi-ld:MortalityService:014YFA9Z",
+    "type":"MortalityService",
+    "foodQuantity":{
+      "type":"Property",
+      "value":"100",
+      "unitCode":"kg",
+      "executedBy":{
+        "type":"Relationship",
+        "object":"urn:ngsi-ld:BreedingService:0214"
+      }
     },
     "@context": [
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
@@ -34,12 +40,8 @@
     ]
   },
   {
-    "id": "urn:ngsi-ld:Device:HCMR-AQUABOX1",
-    "type": "Device",
-    "brandName": {
-      "type": "Property",
-      "value": "BIOCEANOR"
-    },
+    "id": "urn:ngsi-ld:FishContainment:0012",
+    "type": "FishContainment",
     "@context": [
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",

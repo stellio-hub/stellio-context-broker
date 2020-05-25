@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.util
 
-import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -14,28 +14,28 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [GraphBuilder::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesGraphBuilder::class])
 @ActiveProfiles("test")
-class GraphBuilderTest {
+class EntitiesGraphBuilderTest {
 
-    @MockkBean
-    private lateinit var entityService: EntityService
+    @MockkBean(relaxed = true)
+    private lateinit var neo4jRepository: Neo4jRepository
 
     @Autowired
-    private lateinit var graphBuilder: GraphBuilder
+    private lateinit var entitiesGraphBuilder: EntitiesGraphBuilder
 
     @Test
     fun `it should create graph based on given entities`() {
         val firstEntity = mockkClass(ExpandedEntity::class)
         every { firstEntity.id } returns "1"
-        every { firstEntity.getRelationships() } returns listOf()
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
-        every { secondEntity.getRelationships() } returns listOf()
+        every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
-        val (graph, errors) = graphBuilder.build(listOf(firstEntity, secondEntity))
+        val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity))
 
-        assertEquals(setOf(firstEntity, secondEntity), graph.nodes())
+        assertEquals(setOf(firstEntity, secondEntity), graph.vertexSet())
         assertTrue(errors.isEmpty())
     }
 
@@ -43,16 +43,14 @@ class GraphBuilderTest {
     fun `it should create graph based on given entities with relationships`() {
         val firstEntity = mockkClass(ExpandedEntity::class)
         every { firstEntity.id } returns "1"
-        every { firstEntity.getRelationships() } returns listOf("2")
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf("2")
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
-        every { secondEntity.getRelationships() } returns listOf("1")
+        every { secondEntity.getLinkedEntitiesIds() } returns listOf("1")
 
-        every { entityService.exists(any()) } returns false
+        val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity))
 
-        val (graph, errors) = graphBuilder.build(listOf(firstEntity, secondEntity))
-
-        assertEquals(setOf(firstEntity, secondEntity), graph.nodes())
+        assertEquals(setOf(firstEntity, secondEntity), graph.vertexSet())
         assertTrue(errors.isEmpty())
     }
 
@@ -60,14 +58,14 @@ class GraphBuilderTest {
     fun `it should create graph based on given entities with errors`() {
         val firstEntity = mockkClass(ExpandedEntity::class)
         every { firstEntity.id } returns "1"
-        every { firstEntity.getRelationships() } returns listOf()
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
-        every { secondEntity.getRelationships() } throws BadRequestDataException("Invalid entity")
+        every { secondEntity.getLinkedEntitiesIds() } throws BadRequestDataException("Invalid entity")
 
-        val (graph, errors) = graphBuilder.build(listOf(firstEntity, secondEntity))
+        val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity))
 
-        assertEquals(setOf(firstEntity), graph.nodes())
+        assertEquals(setOf(firstEntity), graph.vertexSet())
         assertEquals(listOf(BatchEntityError("2", arrayListOf("Invalid entity"))), errors)
     }
 
@@ -75,24 +73,28 @@ class GraphBuilderTest {
     fun `it should not create entities for which child entity has an invalid relationship`() {
         val firstEntity = mockkClass(ExpandedEntity::class)
         every { firstEntity.id } returns "1"
-        every { firstEntity.getRelationships() } returns listOf("2")
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf("2")
         val secondEntity = mockkClass(ExpandedEntity::class)
         every { secondEntity.id } returns "2"
-        every { secondEntity.getRelationships() } returns listOf("3")
+        every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
         val thirdEntity = mockkClass(ExpandedEntity::class)
         every { thirdEntity.id } returns "3"
-        every { thirdEntity.getRelationships() } throws BadRequestDataException("Target entity 4 does not exist")
+        every { thirdEntity.getLinkedEntitiesIds() } throws BadRequestDataException("Target entity 4 does not exist")
 
-        every { entityService.exists(any()) } returns false
+        val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity, thirdEntity))
 
-        val (graph, errors) = graphBuilder.build(listOf(firstEntity, secondEntity, thirdEntity))
-
-        assertTrue(graph.nodes().isEmpty())
+        assertTrue(graph.vertexSet().isEmpty())
         assertEquals(
             listOf(
-                BatchEntityError("3", arrayListOf("Target entity 4 does not exist")),
-                BatchEntityError("2", arrayListOf("Target entity 4 does not exist")),
-                BatchEntityError("1", arrayListOf("Target entity 4 does not exist"))
+                BatchEntityError("3", arrayListOf("Target entity 4 does not exist.")),
+                BatchEntityError(
+                    "2",
+                    arrayListOf("Target entity 3 failed to be created because of an invalid relationship.")
+                ),
+                BatchEntityError(
+                    "1",
+                    arrayListOf("Target entity 2 failed to be created because of an invalid relationship.")
+                )
             ), errors
         )
     }

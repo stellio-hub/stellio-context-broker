@@ -1,19 +1,20 @@
 package com.egm.stellio.entity.util
 
-import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
-import com.google.common.graph.Graph
-import com.google.common.graph.GraphBuilder
+import org.jgrapht.Graph
+import org.jgrapht.graph.DefaultEdge
+import org.jgrapht.graph.DirectedPseudograph
 import org.springframework.stereotype.Component
 
 /**
  * Builder for [Graph].
  */
 @Component
-class GraphBuilder(
-    private val entityService: EntityService
+class EntitiesGraphBuilder(
+    private val neo4jRepository: Neo4jRepository
 ) {
 
     /**
@@ -21,9 +22,9 @@ class GraphBuilder(
      *
      * @return a [Pair] :  a [Graph] of [ExpandedEntity] and a [List] of [BatchEntityError]
      */
-    fun build(entities: List<ExpandedEntity>): Pair<Graph<ExpandedEntity>, List<BatchEntityError>> {
+    fun build(entities: List<ExpandedEntity>): Pair<Graph<ExpandedEntity, DefaultEdge>, List<BatchEntityError>> {
         val left = entities.toMutableList()
-        val graph = GraphBuilder.directed().build<ExpandedEntity>()
+        val graph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
         val errors = mutableListOf<BatchEntityError>()
 
         @Throws(BadRequestDataException::class)
@@ -39,19 +40,19 @@ class GraphBuilder(
                  * nor added to the graph.
                  */
 
-                val relationships = getValidRelationshipsFromEntities(entity, entities)
+                val relationships = getValidLinkedEntities(entity, entities)
 
-                graph.addNode(entity)
+                graph.addVertex(entity)
 
                 relationships.forEach {
                     iterateOverRelationships(it)
-                    graph.putEdge(entity, it)
+                    graph.addEdge(entity, it)
                 }
             } catch (e: BadRequestDataException) {
-                graph.removeNode(entity)
+                graph.removeVertex(entity)
                 errors.add(BatchEntityError(entity.id, arrayListOf(e.message)))
                 // pass exception to remove parent nodes that don't need to be created because related to an invalid node
-                throw e
+                throw BadRequestDataException("Target entity " + entity.id + " failed to be created because of an invalid relationship.")
             }
         }
 
@@ -66,12 +67,12 @@ class GraphBuilder(
         return Pair(graph, errors)
     }
 
-    private fun getValidRelationshipsFromEntities(entity: ExpandedEntity, entities: List<ExpandedEntity>): List<ExpandedEntity> {
-        return entity.getRelationships().filter {
-            !entityService.exists(it)
-        }.map {
+    private fun getValidLinkedEntities(entity: ExpandedEntity, entities: List<ExpandedEntity>): List<ExpandedEntity> {
+        val linkedEntities = entity.getLinkedEntitiesIds()
+        val existingLinkedEntities = linkedEntities.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntities))
+        return existingLinkedEntities.map {
             entities.find { entity -> entity.id == it }
-                ?: throw BadRequestDataException("Target entity $it does not exist")
+                ?: throw BadRequestDataException("Target entity $it does not exist.")
         }
     }
 }

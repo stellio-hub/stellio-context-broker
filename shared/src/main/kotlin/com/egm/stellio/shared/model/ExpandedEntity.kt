@@ -39,29 +39,29 @@ class ExpandedEntity private constructor(
         }
 
     /**
-     * Gets relationships of [entity]
-     * Relationships can either be direct, or from a property.
+     * Gets linked entities ids.
+     * Entities can be linked either by a relation or a property.
      *
      * @return a subset of [entities]
      */
-    fun getRelationships(): List<String> =
-        getRelationshipsFromProperties().plus(getRelationshipsFromRelations())
+    fun getLinkedEntitiesIds(): List<String> =
+        getLinkedEntitiesIdsByProperties().plus(getLinkedEntitiesIdsByRelations())
 
-    private fun getRelationshipsFromRelations(): List<String> {
+    private fun getLinkedEntitiesIdsByRelations(): List<String> {
         val relationships = getAttributeOfType(NGSILD_RELATIONSHIP_TYPE)
 
         return relationships.map {
             NgsiLdParsingUtils.getRelationshipObjectId(it.value)
-        }.plus(getRelationshipFromAttributes(relationships))
+        }.plus(getLinkedEntitiesByAttribute(relationships))
     }
 
-    private fun getRelationshipsFromProperties(): List<String> {
+    private fun getLinkedEntitiesIdsByProperties(): List<String> {
         val attributes = getAttributeOfType(NGSILD_PROPERTY_TYPE)
 
-        return getRelationshipFromAttributes(attributes)
+        return getLinkedEntitiesByAttribute(attributes)
     }
 
-    private fun getRelationshipFromAttributes(attributes: Map<String, Map<String, List<Any>>>): List<String> {
+    private fun getLinkedEntitiesByAttribute(attributes: Map<String, Map<String, List<Any>>>): List<String> {
         return attributes.flatMap { attribute ->
             attribute.value
                 .map {

@@ -1,14 +1,19 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.util.GraphBuilder
+import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.entity.repository.Neo4jRepository
+import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.google.common.graph.Graph
-import com.google.common.graph.Graphs.copyOf
+import org.jgrapht.Graph
+import org.jgrapht.Graphs
+import org.jgrapht.graph.DefaultEdge
+import org.jgrapht.graph.DirectedPseudograph
 import org.springframework.stereotype.Component
 import kotlin.streams.toList
 
@@ -17,17 +22,22 @@ import kotlin.streams.toList
  */
 @Component
 class EntityOperationService(
+    private val neo4jRepository: Neo4jRepository,
+    private val entityRepository: EntityRepository,
     private val entityService: EntityService,
-    private val graphBuilder: GraphBuilder
+    private val entitiesEntitiesGraphBuilder: EntitiesGraphBuilder
 ) {
 
     /**
      * Splits [entities] by their existence in the DB.
      */
-    fun splitEntitiesByExistence(entities: List<ExpandedEntity>): Pair<List<ExpandedEntity>, List<ExpandedEntity>> =
-        entities.partition {
-            entityService.exists(it.id)
+    fun splitEntitiesByExistence(entities: List<ExpandedEntity>): Pair<List<ExpandedEntity>, List<ExpandedEntity>> {
+        val existingEntitiesIds =
+            neo4jRepository.filterExistingEntitiesIds(entities.map { it.id })
+        return entities.partition {
+            existingEntitiesIds.contains(it.id)
         }
+    }
 
     /**
      * Creates a batch of [entities].
@@ -35,28 +45,31 @@ class EntityOperationService(
      * @return a [BatchOperationResult]
      */
     fun create(entities: List<ExpandedEntity>): BatchOperationResult {
-        val (graph, invalidRelationsErrors) = graphBuilder.build(entities)
+        val (graph, invalidRelationsErrors) = entitiesEntitiesGraphBuilder.build(entities)
 
-        val (naiveBatchOperationResult, entitiesLeft) = createEntitiesWithoutCircularDependencies(graph)
-        val (createSuccess, circularCreateErrors) = createEntitiesWithCircularDependencies(entitiesLeft.toList())
+        val (naiveBatchResult, entitiesWithCircularDependencies) = createEntitiesWithoutCircularDependencies(graph)
+        val (circularCreateSuccess, circularCreateErrors) = createEntitiesWithCircularDependencies(
+            entitiesWithCircularDependencies.toList()
+        )
 
-        val success = naiveBatchOperationResult.success.plus(createSuccess)
-        val errors = invalidRelationsErrors.plus(naiveBatchOperationResult.errors).plus(circularCreateErrors)
+        val success = naiveBatchResult.success.plus(circularCreateSuccess)
+        val errors = invalidRelationsErrors.plus(naiveBatchResult.errors).plus(circularCreateErrors)
 
         return BatchOperationResult(ArrayList(success), ArrayList(errors))
     }
 
-    private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity>): Pair<BatchOperationResult, MutableSet<ExpandedEntity>> {
+    private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity, DefaultEdge>): Pair<BatchOperationResult, Set<ExpandedEntity>> {
         val batchOperationResult = BatchOperationResult(arrayListOf(), arrayListOf())
-        val mutableGraph = copyOf(graph)
+        val temporaryGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        Graphs.addGraph(temporaryGraph, graph)
 
         /**
-         * Gets a list of leaves, with 0 successors.
+         * Gets a list of leaves (i.e. with 0 successors).
          */
-        fun <T> Graph<T>.getLeaves(): List<T> = nodes().filter { outDegree(it) == 0 }
+        fun <T, E> Graph<T, E>.getLeaves(): List<T> = vertexSet().filter { outDegreeOf(it) == 0 }
 
         do {
-            val leaves = mutableGraph.getLeaves()
+            val leaves = temporaryGraph.getLeaves()
 
             val res = leaves.parallelStream().map {
                 try {
@@ -74,11 +87,11 @@ class EntityOperationService(
             })
 
             leaves.forEach {
-                mutableGraph.removeNode(it)
+                temporaryGraph.removeVertex(it)
             }
         } while (leaves.isNotEmpty())
 
-        return Pair(batchOperationResult, mutableGraph.nodes())
+        return Pair(batchOperationResult, temporaryGraph.vertexSet())
     }
 
     /*
@@ -89,7 +102,7 @@ class EntityOperationService(
      */
     private fun createEntitiesWithCircularDependencies(entities: List<ExpandedEntity>): BatchOperationResult {
         entities.forEach { entity ->
-            entityService.createTempEntityInBatch(entity.id, entity.type, entity.contexts)
+            createTempEntityInBatch(entity.id, entity.type, entity.contexts)
         }
 
         // TODO improve process, if an entity update fails, we should check linked entities to also not delete them
@@ -112,5 +125,15 @@ class EntityOperationService(
 
             BatchOperationResult(creations, errors)
         })
+    }
+
+    private fun createTempEntityInBatch(
+        entityId: String,
+        entityType: String,
+        contexts: List<String> = listOf()
+    ): Entity {
+        val entity = Entity(id = entityId, type = listOf(entityType), contexts = contexts)
+        entityRepository.save(entity)
+        return entity
     }
 }

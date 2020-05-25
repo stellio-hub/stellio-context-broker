@@ -602,11 +602,6 @@ class EntityService(
         return neo4jRepository.deleteEntity(entityId)
     }
 
-    fun createTempEntityInBatch(entityId: String, entityType: String, contexts: List<String> = listOf()): Entity {
-        val entity = Entity(id = entityId, type = listOf(entityType), contexts = contexts)
-        entityRepository.save(entity)
-        return entity
-    }
 
     fun updateEntityLastMeasure(observation: Observation) {
         val observingEntity = neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)

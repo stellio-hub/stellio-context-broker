@@ -86,7 +86,7 @@ class EntitiesGraphBuilderTest {
         assertTrue(graph.vertexSet().isEmpty())
         assertEquals(
             listOf(
-                BatchEntityError("3", arrayListOf("Target entity 4 does not exist.")),
+                BatchEntityError("3", arrayListOf("Target entity 4 does not exist")),
                 BatchEntityError(
                     "2",
                     arrayListOf("Target entity 3 failed to be created because of an invalid relationship.")

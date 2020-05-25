@@ -1,6 +1,6 @@
 package com.egm.stellio.search.config
 
-import com.egm.stellio.shared.config.TestContainers
+import com.egm.stellio.shared.TestContainers
 import io.r2dbc.spi.ConnectionFactories
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.ConnectionFactoryOptions
@@ -30,7 +30,7 @@ class TestContainersConfiguration {
     }
 
     @Bean
-    fun configuration(): ConnectionFactory {
+    fun connectionFactory(): ConnectionFactory {
         val options = ConnectionFactoryOptions.builder()
             .option(ConnectionFactoryOptions.DATABASE, DB_NAME)
             .option(ConnectionFactoryOptions.HOST, SearchServiceTestContainers.getPostgresqlHost())

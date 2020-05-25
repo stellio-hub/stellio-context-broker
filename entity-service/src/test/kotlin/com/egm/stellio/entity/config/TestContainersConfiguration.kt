@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.config
 
-import com.egm.stellio.shared.config.TestContainers
+import com.egm.stellio.shared.TestContainers
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 
@@ -18,7 +18,7 @@ class TestContainersConfiguration {
     }
 
     @Bean
-    fun configuration(): org.neo4j.ogm.config.Configuration {
+    fun connectionFactory(): org.neo4j.ogm.config.Configuration {
         EntityServiceTestContainers.startContainers()
 
         return org.neo4j.ogm.config.Configuration.Builder()

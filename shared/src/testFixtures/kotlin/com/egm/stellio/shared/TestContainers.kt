@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.config
+package com.egm.stellio.shared
 
 import org.testcontainers.containers.DockerComposeContainer
 import java.io.File

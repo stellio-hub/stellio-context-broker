@@ -20,13 +20,10 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.test.web.reactive.server.*
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
@@ -99,16 +96,6 @@ class TemporalEntityHandlerTests {
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                 "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
                 "\"detail\":\"Unable to expand JSON-LD fragment : { \\\"id\\\": \\\"bad\\\" }\"}")
-    }
-
-    @Test
-    fun `it should return a 415 if Content-Type is not supported`() {
-        webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-            .header(HttpHeaders.CONTENT_TYPE, "application/pdf")
-            .exchange()
-            .expectStatus().isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-            .expectBody<String>().isEqualTo("Content-Type header must be one of 'application/json' or 'application/ld+json' (was application/pdf)")
     }
 
     @Test

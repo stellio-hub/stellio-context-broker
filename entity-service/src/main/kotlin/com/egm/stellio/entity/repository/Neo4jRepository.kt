@@ -290,7 +290,6 @@ class Neo4jRepository(
         if (entitiesIds.isEmpty()) {
             return listOf()
         }
-        
         val query = """
             MATCH (entity:Entity)
             WHERE entity.id IN {entitiesIds}

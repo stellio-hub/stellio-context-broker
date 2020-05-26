@@ -602,7 +602,6 @@ class EntityService(
         return neo4jRepository.deleteEntity(entityId)
     }
 
-
     fun updateEntityLastMeasure(observation: Observation) {
         val observingEntity = neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
         if (observingEntity == null) {

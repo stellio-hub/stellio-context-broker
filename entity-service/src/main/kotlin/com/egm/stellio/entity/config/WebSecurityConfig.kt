@@ -1,18 +1,13 @@
 package com.egm.stellio.entity.config
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.web.server.ServerHttpSecurity
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders
 import org.springframework.security.web.server.SecurityWebFilterChain
 
 @Configuration
 class WebSecurityConfig {
-    @Value("\${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    val issuerUri: String? = null
 
     @Bean
     @ConditionalOnProperty("application.authentication.enabled")
@@ -38,10 +33,5 @@ class WebSecurityConfig {
             .authorizeExchange().pathMatchers("/**").permitAll()
 
         return http.build()
-    }
-
-    @Bean
-    fun jwtDecoder(): ReactiveJwtDecoder {
-        return ReactiveJwtDecoders.fromOidcIssuerLocation(issuerUri)
     }
 }

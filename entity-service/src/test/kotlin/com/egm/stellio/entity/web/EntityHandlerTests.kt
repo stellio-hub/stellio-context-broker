@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.config.WebSecurityConfig
+import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
@@ -40,7 +40,7 @@ import java.time.*
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
-@Import(WebSecurityConfig::class)
+@Import(WebSecurityTestConfig::class)
 @WithMockUser
 class EntityHandlerTests {
 

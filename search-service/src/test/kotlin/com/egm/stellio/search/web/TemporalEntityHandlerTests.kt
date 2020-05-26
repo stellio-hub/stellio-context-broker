@@ -1,6 +1,6 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.search.config.WebSecurityConfig
+import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.EntityService
@@ -35,7 +35,7 @@ import java.util.*
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
-@Import(WebSecurityConfig::class)
+@Import(WebSecurityTestConfig::class)
 @WithMockUser
 class TemporalEntityHandlerTests {
 

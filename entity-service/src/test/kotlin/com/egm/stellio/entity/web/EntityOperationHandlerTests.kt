@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.config.WebSecurityConfig
+import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -21,7 +21,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
-@Import(WebSecurityConfig::class)
+@Import(WebSecurityTestConfig::class)
 @WithMockUser
 class EntityOperationHandlerTests {
 

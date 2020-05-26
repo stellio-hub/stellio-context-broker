@@ -28,7 +28,6 @@ class EntityOperationHandler(
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        
         return body
             .map {
                 extractAndParseBatchOfEntities(it)

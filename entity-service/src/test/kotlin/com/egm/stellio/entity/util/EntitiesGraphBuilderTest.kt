@@ -55,6 +55,24 @@ class EntitiesGraphBuilderTest {
     }
 
     @Test
+    fun `it should create graph based on given entities with relationships to entities in DB`() {
+        val firstEntity = mockkClass(ExpandedEntity::class)
+        every { firstEntity.id } returns "1"
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf("4")
+        val secondEntity = mockkClass(ExpandedEntity::class)
+        every { secondEntity.id } returns "2"
+        every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
+
+        every { neo4jRepository.filterExistingEntitiesIds(listOf("4")) } returns listOf("4")
+        every { neo4jRepository.filterExistingEntitiesIds(listOf("3")) } returns listOf("3")
+
+        val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity))
+
+        assertEquals(setOf(firstEntity, secondEntity), graph.vertexSet())
+        assertTrue(errors.isEmpty())
+    }
+
+    @Test
     fun `it should create graph based on given entities with errors`() {
         val firstEntity = mockkClass(ExpandedEntity::class)
         every { firstEntity.id } returns "1"

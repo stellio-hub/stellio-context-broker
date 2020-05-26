@@ -68,9 +68,10 @@ class EntitiesGraphBuilder(
     }
 
     private fun getValidLinkedEntities(entity: ExpandedEntity, entities: List<ExpandedEntity>): List<ExpandedEntity> {
-        val linkedEntities = entity.getLinkedEntitiesIds()
-        val existingLinkedEntities = linkedEntities.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntities))
-        return existingLinkedEntities.map {
+        val linkedEntitiesIds = entity.getLinkedEntitiesIds()
+        val nonExistingLinkedEntitiesIds =
+            linkedEntitiesIds.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))
+        return nonExistingLinkedEntitiesIds.map {
             entities.find { entity -> entity.id == it }
                 ?: throw BadRequestDataException("Target entity $it does not exist.")
         }

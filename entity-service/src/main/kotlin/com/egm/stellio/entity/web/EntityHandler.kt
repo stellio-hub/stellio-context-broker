@@ -6,9 +6,9 @@ import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import org.slf4j.LoggerFactory
@@ -35,7 +35,7 @@ class EntityHandler(
      * Implements 6.4.3.1 - Create Entity
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
@@ -61,7 +61,7 @@ class EntityHandler(
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
-            Mono<ResponseEntity<String>> {
+            Mono<ResponseEntity<*>> {
         val type = params.getFirst("type") ?: ""
         val q = params.getOrDefault("q", emptyList())
 
@@ -70,12 +70,12 @@ class EntityHandler(
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isEmpty())
             return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
-                .body(serializeObject(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2")))
+                .body(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
                 .toMono()
 
         if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink))
             return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
-                .body(serializeObject(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header")))
+                .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
                 .toMono()
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
@@ -95,7 +95,7 @@ class EntityHandler(
      * Implements 6.5.3.1 - Retrieve Entity
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<String>> {
+    fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
@@ -119,7 +119,7 @@ class EntityHandler(
         @PathVariable entityId: String,
         @RequestParam options: Optional<String>,
         @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<*>> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return body
@@ -137,7 +137,7 @@ class EntityHandler(
                 if (it.notUpdated.isEmpty())
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body<String>(serializeObject(it))
+                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
             }
     }
 
@@ -150,7 +150,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
@@ -165,7 +165,7 @@ class EntityHandler(
                 if (it.notUpdated.isEmpty())
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(serializeObject(it))
+                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
             }
     }
 
@@ -179,7 +179,7 @@ class EntityHandler(
         @PathVariable entityId: String,
         @PathVariable attrId: String,
         @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
@@ -195,7 +195,7 @@ class EntityHandler(
      * Implements 6.5.3.2 - Delete Entity
      */
     @DeleteMapping("/{entityId}")
-    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<String>> {
+    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
         return entityId.toMono()
             .map {
                 entityService.deleteEntity(entityId)

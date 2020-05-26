@@ -38,7 +38,7 @@ class TemporalEntityHandler(
      */
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun addAttrs(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestBody body: Mono<String>):
-            Mono<ResponseEntity<String>> {
+            Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
@@ -69,7 +69,7 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<*>> {
 
         val withTemporalValues = hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
@@ -82,7 +82,7 @@ class TemporalEntityHandler(
             buildTemporalQuery(params)
         } catch (e: BadRequestDataException) {
             return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
-                .body(serializeObject(BadRequestDataResponse(e.message)))
+                .body(BadRequestDataResponse(e.message))
                 .toMono()
         }
 

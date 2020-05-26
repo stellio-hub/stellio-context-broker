@@ -3,7 +3,6 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -27,7 +26,7 @@ class EntityOperationHandler(
      * Implements 6.14.3.1 - Create Batch of Entities
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
 
         return body
             .map {
@@ -43,7 +42,7 @@ class EntityOperationHandler(
                     entityService.processBatchOfEntities(it.first, it.second, it.third)
             }
             .map {
-                ResponseEntity.ok().body(serializeObject(it))
+                ResponseEntity.ok().body(it)
             }
     }
 }

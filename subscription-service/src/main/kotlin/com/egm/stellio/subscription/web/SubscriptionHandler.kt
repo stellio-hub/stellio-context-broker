@@ -4,13 +4,13 @@ import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.web.extractJwT
@@ -35,7 +35,7 @@ class SubscriptionHandler(
      * Implements 6.10.3.1 - Create Subscription
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
                 val context = NgsiLdParsingUtils.getContextOrThrowError(it)
@@ -60,10 +60,10 @@ class SubscriptionHandler(
     fun getSubscriptions(
         @RequestParam(required = false, defaultValue = "1") page: Int,
         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
-    ): Mono<ResponseEntity<String>> {
+    ): Mono<ResponseEntity<*>> {
         return if (limit <= 0 || page <= 0)
             ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
-                .body(serializeObject(BadRequestDataResponse("Page number and Limit must be greater than zero")))
+                .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
                 .toMono()
 
         else extractJwT()
@@ -98,7 +98,7 @@ class SubscriptionHandler(
      * Implements 6.11.3.1 - Retrieve Subscription
      */
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<String>> {
+    fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -118,7 +118,7 @@ class SubscriptionHandler(
      * Implements 6.11.3.2 - Update Subscription
      */
     @PatchMapping("/{subscriptionId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
-    fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<String>> {
+    fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()
@@ -142,7 +142,7 @@ class SubscriptionHandler(
      * Implements 6.11.3.3 - Delete Subscription
      */
     @DeleteMapping("/{subscriptionId}")
-    fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<String>> {
+    fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractJwT()

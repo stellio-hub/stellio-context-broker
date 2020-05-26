@@ -1,8 +1,6 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.TestContainersConfiguration
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
@@ -14,8 +12,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource

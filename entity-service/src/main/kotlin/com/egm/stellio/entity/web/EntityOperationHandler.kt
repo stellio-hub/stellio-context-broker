@@ -2,11 +2,9 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -14,12 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.ServerRequest
-import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.ok
-import org.springframework.web.reactive.function.server.bodyToMono
 import reactor.core.publisher.Mono
 
 @RestController

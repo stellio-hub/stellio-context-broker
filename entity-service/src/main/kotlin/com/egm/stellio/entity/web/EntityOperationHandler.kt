@@ -5,6 +5,7 @@ import com.egm.stellio.entity.util.ValidationUtils
 import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -42,7 +43,7 @@ class EntityOperationHandler(
                     entityService.processBatchOfEntities(it.first, it.second, it.third)
             }
             .map {
-                ResponseEntity.ok().body(it)
+                ResponseEntity.status(HttpStatus.OK).body(it)
             }
     }
 }

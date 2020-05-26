@@ -13,6 +13,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
@@ -57,7 +58,7 @@ class TemporalEntityHandler(
             }
             .collectList()
             .map {
-                ResponseEntity.noContent().build<String>()
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
@@ -81,7 +82,7 @@ class TemporalEntityHandler(
         val temporalQuery = try {
             buildTemporalQuery(params)
         } catch (e: BadRequestDataException) {
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse(e.message))
                 .toMono()
         }
@@ -109,7 +110,7 @@ class TemporalEntityHandler(
                 it.compact()
             }
             .map {
-                ResponseEntity.ok().body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 

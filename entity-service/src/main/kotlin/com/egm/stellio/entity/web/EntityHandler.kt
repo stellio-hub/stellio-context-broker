@@ -52,7 +52,7 @@ class EntityHandler(
                 entityService.createEntity(it)
             }
             .map {
-                ResponseEntity.created(URI("/ngsi-ld/v1/entities/${it.id}")).build<String>()
+                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/entities/${it.id}")).build<String>()
             }
     }
 
@@ -69,12 +69,12 @@ class EntityHandler(
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isEmpty())
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
                 .toMono()
 
         if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink))
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
                 .toMono()
 
@@ -87,7 +87,7 @@ class EntityHandler(
                 compactEntities(it)
             }
             .map {
-                ResponseEntity.ok().body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 
@@ -105,7 +105,7 @@ class EntityHandler(
                 it.compact()
             }
             .map {
-                ResponseEntity.ok().body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 
@@ -202,9 +202,9 @@ class EntityHandler(
             }
             .map {
                 if (it.first >= 1)
-                    ResponseEntity.noContent().build<String>()
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    ResponseEntity.notFound().build<String>()
+                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
             }
     }
 }

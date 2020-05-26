@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.web.extractJwT
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -49,7 +50,7 @@ class SubscriptionHandler(
                 subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject).map { subscriptionAndSubject.t1 }
             }
             .map {
-                ResponseEntity.created(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build<String>()
+                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build<String>()
             }
     }
 
@@ -62,7 +63,7 @@ class SubscriptionHandler(
         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
     ): Mono<ResponseEntity<*>> {
         return if (limit <= 0 || page <= 0)
-            ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
                 .toMono()
 
@@ -84,13 +85,13 @@ class SubscriptionHandler(
             }
             .map {
                 if (it.second != null && it.third != null)
-                    ResponseEntity.ok().header("Link", it.second).header("Link", it.third).body(it.first)
+                    ResponseEntity.status(HttpStatus.OK).header("Link", it.second).header("Link", it.third).body(it.first)
                 else if (it.second != null)
-                    ResponseEntity.ok().header("Link", it.second).body(it.first)
+                    ResponseEntity.status(HttpStatus.OK).header("Link", it.second).body(it.first)
                 else if (it.third != null)
-                    ResponseEntity.ok().header("Link", it.third).body(it.first)
+                    ResponseEntity.status(HttpStatus.OK).header("Link", it.third).body(it.first)
                 else
-                    ResponseEntity.ok().body(it.first)
+                    ResponseEntity.status(HttpStatus.OK).body(it.first)
             }
     }
 
@@ -110,7 +111,7 @@ class SubscriptionHandler(
                 subscriptionService.getById(subscriptionId)
             }
             .map {
-                ResponseEntity.ok().body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 
@@ -134,7 +135,7 @@ class SubscriptionHandler(
                 subscriptionService.update(subscriptionId, parsedInput)
             }
             .map {
-                ResponseEntity.noContent().build<String>()
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
@@ -154,7 +155,7 @@ class SubscriptionHandler(
                 subscriptionService.delete(subscriptionId)
             }
             .map {
-                ResponseEntity.noContent().build<String>()
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 

@@ -31,7 +31,7 @@ class ExpandedEntity private constructor(
     fun compact(): Map<String, Any> =
         JsonLdProcessor.compact(attributes, mapOf("@context" to contexts), JsonLdOptions())
 
-    private fun getAttributesOfType(type: AttributeType) =
+    private fun getAttributesOfType(type: AttributeType): Map<String, Map<String, List<Any>>> =
         attributes.filterKeys {
             !listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE).contains(it)
         }.mapValues {

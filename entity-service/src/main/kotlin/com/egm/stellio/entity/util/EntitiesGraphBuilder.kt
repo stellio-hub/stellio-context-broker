@@ -20,7 +20,7 @@ class EntitiesGraphBuilder(
     /**
      * Builds a graph based on given [entities].
      *
-     * @return a [Pair] :  a [Graph] of [ExpandedEntity] and a [List] of [BatchEntityError]
+     * @return a graph containing only entities linked to entities in the input or in the DB.
      */
     fun build(entities: List<ExpandedEntity>): Pair<Graph<ExpandedEntity, DefaultEdge>, List<BatchEntityError>> {
         val left = entities.toMutableList()

@@ -20,7 +20,8 @@ class EntitiesGraphBuilder(
     /**
      * Builds a graph based on given [entities].
      *
-     * @return a graph containing only entities linked to entities in the input or in the DB.
+     * @return a graph containing only entities linked to entities in the input or in the DB and a list of errors
+     * for the entities that have not been created
      */
     fun build(entities: List<ExpandedEntity>): Pair<Graph<ExpandedEntity, DefaultEdge>, List<BatchEntityError>> {
         val left = entities.toMutableList()

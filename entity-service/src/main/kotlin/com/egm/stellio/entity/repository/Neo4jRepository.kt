@@ -175,6 +175,48 @@ class Neo4jRepository(
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
+    @Transactional
+    fun deleteEntityProperty(entityId: String, propertyName: String): Pair<Int, Int> {
+        /**
+         * Delete :
+         *
+         * 1. the property
+         * 2. the properties of the property
+         * 3. the relationships of the property
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(prop:Attribute { name: "$propertyName" })
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
+            DETACH DELETE prop,propOfProp,relOfProp
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted property $propertyName : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
+    @Transactional
+    fun deleteEntityRelationship(entityId: String, relationshipType: String): Pair<Int, Int> {
+        /**
+         * Delete :
+         *
+         * 1. the relationship
+         * 2. the properties of the relationship
+         * 3. the relationships of the relationship
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel)
+            DETACH DELETE rel,propOfRel,relOfRel
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted relationship $relationshipType : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
     fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>): List<String> {
         val propertiesFilter =
             if (query.second.isNotEmpty())

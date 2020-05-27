@@ -164,29 +164,29 @@ class EntityService(
         values.filterValues {
             it[0] is Map<*, *>
         }
-        .mapValues {
-            expandValueAsMap(it.value)
-        }
-        .filter {
-            !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
-                    isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
-        }
-        .forEach { entry ->
-            logger.debug("Creating property ${entry.key} with values ${entry.value}")
+            .mapValues {
+                expandValueAsMap(it.value)
+            }
+            .filter {
+                !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
+                        isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
+            }
+            .forEach { entry ->
+                logger.debug("Creating property ${entry.key} with values ${entry.value}")
 
-            // for short-handed properties, the value is directly accessible from the map under the @value key
-            val propertyValue = getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
+                // for short-handed properties, the value is directly accessible from the map under the @value key
+                val propertyValue = getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
 
-            val rawProperty = Property(
-                name = entry.key, value = propertyValue,
-                unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
-                observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
-            )
+                val rawProperty = Property(
+                    name = entry.key, value = propertyValue,
+                    unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
+                    observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
+                )
 
-            val property = propertyRepository.save(rawProperty)
-            subject.properties.add(property)
-            attributeRepository.save(subject)
-        }
+                val property = propertyRepository.save(rawProperty)
+                subject.properties.add(property)
+                attributeRepository.save(subject)
+            }
     }
 
     private fun createAttributeRelationships(subject: Attribute, values: Map<String, List<Any>>) {
@@ -426,7 +426,7 @@ class EntityService(
                 Triple(it.key, false, "Unknown attribute type $attributeType")
             }
         }
-        .toList()
+            .toList()
 
         val updated = updateStatuses.filter { it.second }.map { it.first }
         val notUpdated = updateStatuses.filter { !it.second }.map { NotUpdatedDetails(it.first, it.third!!) }
@@ -549,18 +549,18 @@ class EntityService(
         values.filterValues {
             it[0] is Map<*, *>
         }
-        .mapValues {
-            expandValueAsMap(it.value)
-        }
-        .filter {
-            !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
-                    isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
-        }
-        .forEach { entry ->
-            if (!neo4jRepository.hasPropertyOfName(subject.id, entry.key))
-                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} does not exist")
-            updatePropertyValues(subject.id, entry.key, entry.value)
-        }
+            .mapValues {
+                expandValueAsMap(it.value)
+            }
+            .filter {
+                !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
+                        isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
+            }
+            .forEach { entry ->
+                if (!neo4jRepository.hasPropertyOfName(subject.id, entry.key))
+                    throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} does not exist")
+                updatePropertyValues(subject.id, entry.key, entry.value)
+            }
     }
 
     private fun updateRelationshipsOfAttribute(subject: Attribute, values: Map<String, List<Any>>) {
@@ -600,6 +600,16 @@ class EntityService(
 
     fun deleteEntity(entityId: String): Pair<Int, Int> {
         return neo4jRepository.deleteEntity(entityId)
+    }
+
+    fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Pair<Int, Int> {
+        val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
+
+        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName))
+            return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName)
+        else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName()))
+            return neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName())
+        throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }
 
     fun updateEntityLastMeasure(observation: Observation) {

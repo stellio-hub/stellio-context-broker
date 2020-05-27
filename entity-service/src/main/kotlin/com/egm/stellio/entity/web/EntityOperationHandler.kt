@@ -46,7 +46,7 @@ class EntityOperationHandler(
             }
     }
 
-    fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
+    private fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
         val extractedEntities = extractEntitiesFromJsonPayload(payload)
         return NgsiLdParsingUtils.parseEntities(extractedEntities)
     }

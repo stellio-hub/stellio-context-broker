@@ -288,7 +288,7 @@ class Neo4jRepository(
 
     fun filterExistingEntitiesIds(entitiesIds: List<String>): List<String> {
         if (entitiesIds.isEmpty()) {
-            return listOf()
+            return emptyList()
         }
         val query = """
             MATCH (entity:Entity)

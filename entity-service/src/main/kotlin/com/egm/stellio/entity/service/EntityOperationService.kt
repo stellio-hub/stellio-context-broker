@@ -25,7 +25,7 @@ class EntityOperationService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
     private val entityService: EntityService,
-    private val entitiesEntitiesGraphBuilder: EntitiesGraphBuilder
+    private val entitiesGraphBuilder: EntitiesGraphBuilder
 ) {
 
     /**
@@ -45,7 +45,7 @@ class EntityOperationService(
      * @return a [BatchOperationResult]
      */
     fun create(entities: List<ExpandedEntity>): BatchOperationResult {
-        val (graph, invalidRelationsErrors) = entitiesEntitiesGraphBuilder.build(entities)
+        val (graph, invalidRelationsErrors) = entitiesGraphBuilder.build(entities)
 
         val (naiveBatchResult, entitiesWithCircularDependencies) = createEntitiesWithoutCircularDependencies(graph)
         val (circularCreateSuccess, circularCreateErrors) = createEntitiesWithCircularDependencies(

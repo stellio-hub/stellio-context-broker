@@ -361,6 +361,26 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(entity.id)
     }
 
+    @Test
+    fun `it should delete entity attributes`() {
+        val sensor = createEntity(
+            "urn:ngsi-ld:Sensor:1233",
+            listOf("Sensor"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
+        createRelationship(sensor, EGM_OBSERVED_BY, device.id)
+
+        neo4jRepository.deleteEntityAttributes(sensor.id)
+
+        val entity = entityRepository.findById(sensor.id).get()
+        assertEquals(entity.relationships.size, 0)
+        assertEquals(entity.properties.size, 0)
+
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
+    }
+
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)

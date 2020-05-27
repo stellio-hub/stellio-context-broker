@@ -156,6 +156,34 @@ class Neo4jRepository(
     }
 
     @Transactional
+    fun deleteEntityAttributes(entityId: String): Pair<Int, Int> {
+        /**
+         * Delete :
+         *
+         * 1. the properties
+         * 2. the properties of properties
+         * 3. the relationships of properties
+         * 4. the relationships
+         * 5. the properties of relationships
+         * 6. the relationships of relationships
+         */
+        val query = """
+            MATCH (n:Entity { id: '$entityId' }) 
+            OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop)
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
+            OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel)
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
+            DETACH DELETE prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
+    @Transactional
     fun deleteEntityProperty(entityId: String, propertyName: String): Int {
         /**
          * Delete :
@@ -177,9 +205,9 @@ class Neo4jRepository(
     }
 
     /**
-     Given an entity E1 having a relationship R1 with an entity E2
-     When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
-     Otherwise, it will delete not only the relationships of R1 but also the entity E2
+    Given an entity E1 having a relationship R1 with an entity E2
+    When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
+    Otherwise, it will delete not only the relationships of R1 but also the entity E2
      */
     @Transactional
     fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
@@ -202,7 +230,10 @@ class Neo4jRepository(
         return queryStatistics.nodesDeleted
     }
 
-    fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>): List<String> {
+    fun getEntitiesByTypeAndQuery(
+        type: String,
+        query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>
+    ): List<String> {
         val propertiesFilter =
             if (query.second.isNotEmpty())
                 query.second.joinToString(" AND ") {

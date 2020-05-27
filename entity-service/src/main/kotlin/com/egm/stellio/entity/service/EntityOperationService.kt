@@ -14,6 +14,7 @@ import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import kotlin.streams.toList
 
 /**
@@ -58,17 +59,36 @@ class EntityOperationService(
     }
 
     /**
-     * Update a batch of [entities].
+     * Replaces a batch of [entities]
+     * Only entities with relations linked to existing entities will be replaced.
+     *
+     * @return a [BatchOperationResult] with list of replaced ids and list of errors (either not replaced or
+     * linked to invalid entity).
+     */
+    fun replace(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+        return processEntities(entities, createBatchResult, ::replaceEntity)
+    }
+
+    /**
+     * Updates a batch of [entities].
      * Only entities with relations linked to existing entities will be updated.
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors (either not totally updated or
      * linked to invalid entity).
      */
     fun update(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+        return processEntities(entities, createBatchResult, ::updateEntity)
+    }
+
+    private fun processEntities(
+        entities: List<ExpandedEntity>,
+        createBatchResult: BatchOperationResult,
+        processor: (ExpandedEntity) -> Either<BatchEntityError, String>
+    ): BatchOperationResult {
         val existingEntitiesIds = createBatchResult.success.plus(entities.map { it.id })
         val nonExistingEntitiesIds = createBatchResult.errors.map { it.entityId }
-        return entities.parallelStream().map { entity ->
-            updateEntity(entity, existingEntitiesIds, nonExistingEntitiesIds)
+        return entities.parallelStream().map {
+            processEntity(it, processor, existingEntitiesIds, nonExistingEntitiesIds)
         }.collect(
             { BatchOperationResult() },
             { batchOperationResult, updateResult ->
@@ -82,8 +102,9 @@ class EntityOperationService(
         )
     }
 
-    private fun updateEntity(
+    private fun processEntity(
         entity: ExpandedEntity,
+        processor: (ExpandedEntity) -> Either<BatchEntityError, String>,
         existingEntitiesIds: List<String>,
         nonExistingEntitiesIds: List<String>
     ): Either<BatchEntityError, String> {
@@ -103,24 +124,39 @@ class EntityOperationService(
         }
 
         return try {
-            val (_, notUpdated) = entityService.appendEntityAttributes(
-                entity.id,
-                entity.attributes,
-                false
-            )
-
-            if (notUpdated.isEmpty()) {
-                Either.right(entity.id)
-            } else {
-                Either.left(
-                    BatchEntityError(
-                        entity.id,
-                        ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
-                    )
-                )
-            }
+            processor(entity)
         } catch (e: BadRequestDataException) {
             Either.left(BatchEntityError(entity.id, arrayListOf(e.message)))
+        }
+    }
+
+    /*
+     * Transactional because it should not delete entity attributes if new ones could not be appended.
+     */
+    @Transactional(rollbackFor = [BadRequestDataException::class])
+    @Throws(BadRequestDataException::class)
+    private fun replaceEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
+        neo4jRepository.deleteEntityAttributes(entity.id)
+        entityService.appendEntityAttributes(entity.id, entity.attributes, false)
+        return Either.right(entity.id)
+    }
+
+    private fun updateEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
+        val (_, notUpdated) = entityService.appendEntityAttributes(
+            entity.id,
+            entity.attributes,
+            false
+        )
+
+        return if (notUpdated.isEmpty()) {
+            Either.right(entity.id)
+        } else {
+            Either.left(
+                BatchEntityError(
+                    entity.id,
+                    ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
+                )
+            )
         }
     }
 

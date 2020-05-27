@@ -8,10 +8,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
 @RestController
@@ -50,7 +47,10 @@ class EntityOperationHandler(
      * Implements 6.15.3.1 - Upsert Batch of Entities
      */
     @PostMapping("/upsert", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun upsert(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+    fun upsert(
+        @RequestBody body: Mono<String>,
+        @RequestParam(required = false) options: String?
+    ): Mono<ResponseEntity<*>> {
         return body
             .map {
                 extractAndParseBatchOfEntities(it)
@@ -59,8 +59,11 @@ class EntityOperationHandler(
                 val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
 
                 val createBatchOperationResult = entityOperationService.create(newEntities)
-                val updateBatchOperationResult =
-                    entityOperationService.update(existingEntities, createBatchOperationResult)
+
+                val updateBatchOperationResult = when (options) {
+                    "update" -> entityOperationService.update(existingEntities, createBatchOperationResult)
+                    else -> entityOperationService.replace(existingEntities, createBatchOperationResult)
+                }
 
                 BatchOperationResult(
                     ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),

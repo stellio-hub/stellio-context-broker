@@ -1,6 +1,6 @@
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 extra["springCloudVersion"] = "Hoxton.SR2"
 

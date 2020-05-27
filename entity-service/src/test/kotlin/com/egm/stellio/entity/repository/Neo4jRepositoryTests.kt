@@ -12,10 +12,10 @@ import com.egm.stellio.shared.util.toRelationshipTypeName
 import junit.framework.TestCase.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -288,8 +288,29 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should create modifiedAt property with time zone related information equal to the character "Z"`() {
-        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
         assertTrue(entity.modifiedAt.toString().endsWith("Z"))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should filter existing entityIds`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+
+        val entitiesIds = listOf("urn:ngsi-ld:Beekeeper:1233", "urn:ngsi-ld:Beekeeper:1234")
+
+        assertEquals(
+            listOf("urn:ngsi-ld:Beekeeper:1233"),
+            neo4jRepository.filterExistingEntitiesIds(entitiesIds)
+        )
         neo4jRepository.deleteEntity(entity.id)
     }
 

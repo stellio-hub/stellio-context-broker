@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean

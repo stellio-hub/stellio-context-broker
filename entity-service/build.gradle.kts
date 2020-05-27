@@ -25,6 +25,7 @@ dependencies {
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.hamcrest:hamcrest:2.1")
+    testImplementation(testFixtures(project(":shared")))
 }
 
 defaultTasks("bootRun")

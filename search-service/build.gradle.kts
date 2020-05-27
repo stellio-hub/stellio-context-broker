@@ -28,8 +28,8 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
-    testImplementation("org.testcontainers:postgresql:1.12.3")
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
+    testImplementation(testFixtures(project(":shared")))
 }
 
 dependencyManagement {

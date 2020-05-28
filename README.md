@@ -1,10 +1,20 @@
 # Stellio context broker
 
-[![License: Apache-2.0](https://img.shields.io/badge/license-APL%202.0-blue.svg)](https://spdx.org/licenses/Apache-2.0.html)
+[![FIWARE Core Context Management](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/core.svg)](https://www.fiware.org/developers/catalogue/)
+[![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
+[![Docker badge](https://img.shields.io/docker/pulls/stellio/stellio-entity-service.svg)](https://hub.docker.com/r/stellio/repositories)
+[![SOF support badge](https://nexus.lab.fiware.org/repository/raw/public/badges/stackoverflow/fiware.svg)](http://stackoverflow.com/questions/tagged/fiware)
+[![NGSI-LD badge](https://img.shields.io/badge/NGSI-LD-red.svg)](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.01_60/gs_CIM009v010201p.pdf)
+<br>
+[![Documentation badge](https://readthedocs.org/projects/stellio/badge/?version=latest)](http://stellio.readthedocs.io/en/latest/?badge=latest)
 ![Release Drafter](https://github.com/stellio-hub/stellio-context-broker/workflows/Release%20Drafter/badge.svg)
+![Status](https://nexus.lab.fiware.org/static/badges/statuses/incubating.svg)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
 context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.02_60/gs_CIM009v010202p.pdf).
+
+This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for
+[Core Context](https://github.com/Fiware/catalogue/tree/master/core).
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) |
 | ------------------------------------------------- | ---------------------------------------------------------------------- |

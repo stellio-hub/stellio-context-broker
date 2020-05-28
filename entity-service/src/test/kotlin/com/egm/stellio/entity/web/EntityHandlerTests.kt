@@ -599,7 +599,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns Pair(1, 1)
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")

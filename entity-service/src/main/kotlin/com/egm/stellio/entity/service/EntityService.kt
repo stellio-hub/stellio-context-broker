@@ -387,7 +387,7 @@ class EntityService(
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                     Triple(it.key, false, "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                 } else {
-                    neo4jRepository.deleteRelationshipFromEntity(entityId, relationshipTypeName.toRelationshipTypeName())
+                    neo4jRepository.deleteEntityRelationship(entityId, relationshipTypeName.toRelationshipTypeName())
                     createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 }
@@ -403,7 +403,7 @@ class EntityService(
                         "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
                     )
                 } else {
-                    neo4jRepository.deletePropertyFromEntity(entityId, it.key)
+                    neo4jRepository.deleteEntityProperty(entityId, it.key)
                     createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 }
@@ -602,13 +602,17 @@ class EntityService(
         return neo4jRepository.deleteEntity(entityId)
     }
 
-    fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Pair<Int, Int> {
+    fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
-        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName))
-            return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName)
-        else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName()))
-            return neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName())
+        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName)) {
+            neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName)
+            return true
+        } else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName())) {
+            neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName())
+            return true
+        }
+
         throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }
 

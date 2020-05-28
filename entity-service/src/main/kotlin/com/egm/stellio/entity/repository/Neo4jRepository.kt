@@ -176,6 +176,11 @@ class Neo4jRepository(
         return queryStatistics.nodesDeleted
     }
 
+    /**
+     Given an entity E1 having a relationship R1 with an entity E2
+     When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
+     Otherwise, it will delete not only the relationships of R1 but also the entity E2
+     */
     @Transactional
     fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
         /**

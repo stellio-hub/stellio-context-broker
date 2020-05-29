@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Either
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
@@ -67,16 +68,19 @@ class EntityOperationService(
         return entities.parallelStream().map { entity ->
             updateEntity(entity)
         }.collect(
-            { BatchOperationResult(ArrayList(), ArrayList()) },
-            { batchOperationResult, (update, error) ->
-                update?.let { batchOperationResult.success.add(it) }
-                error?.let { batchOperationResult.errors.add(it) }
+            { BatchOperationResult() },
+            { batchOperationResult, updateResult ->
+                updateResult.fold({
+                    batchOperationResult.errors.add(it)
+                }, {
+                    batchOperationResult.success.add(it)
+                })
             },
             BatchOperationResult::plusAssign
         )
     }
 
-    private fun updateEntity(entity: ExpandedEntity): Pair<String?, BatchEntityError?> {
+    private fun updateEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
         // All new attributes linked entities should be existing in the DB.
         val linkedEntitiesIds = entity.getLinkedEntitiesIds()
         val nonExistingLinkedEntitiesIds = linkedEntitiesIds
@@ -84,8 +88,7 @@ class EntityOperationService(
 
         // If there's a link to a non existing entity, then avoid calling the processor and return an error
         if (nonExistingLinkedEntitiesIds.isNotEmpty()) {
-            return Pair(
-                null,
+            return Either.left(
                 BatchEntityError(
                     entity.id,
                     arrayListOf("Target entities $nonExistingLinkedEntitiesIds does not exist.")
@@ -101,10 +104,9 @@ class EntityOperationService(
             )
 
             if (notUpdated.isEmpty()) {
-                Pair(entity.id, null)
+                Either.right(entity.id)
             } else {
-                Pair(
-                    null,
+                Either.left(
                     BatchEntityError(
                         entity.id,
                         ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
@@ -112,7 +114,7 @@ class EntityOperationService(
                 )
             }
         } catch (e: BadRequestDataException) {
-            Pair(null, BatchEntityError(entity.id, arrayListOf(e.message)))
+            Either.left(BatchEntityError(entity.id, arrayListOf(e.message)))
         }
     }
 

@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.web
 
 data class BatchOperationResult(
-    val success: ArrayList<String>,
-    val errors: ArrayList<BatchEntityError>
+    val success: ArrayList<String> = arrayListOf(),
+    val errors: ArrayList<BatchEntityError> = arrayListOf()
 ) {
 
     operator fun plusAssign(other: BatchOperationResult) {

@@ -226,7 +226,11 @@ class EntityHandler(
                 entityService.deleteEntityAttribute(entityId, attrId, contextLink)
             }
             .map {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+                if (it)
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+                else
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                        .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
             }
     }
 }

@@ -605,13 +605,10 @@ class EntityService(
     fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
-        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName)) {
-            neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName)
-            return true
-        } else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName())) {
-            neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName())
-            return true
-        }
+        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName))
+            return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName) >= 1
+        else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName()))
+            return neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName()) >= 1
 
         throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }

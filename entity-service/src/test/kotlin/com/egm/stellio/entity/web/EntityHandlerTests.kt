@@ -646,18 +646,18 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `delete entity attribute should return a 400 if the attribute could not be deleted`() {
+    fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any()) } throws BadRequestDataException("The requested attribute cannot be deleted")
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns false
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST)
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"The requested attribute cannot be deleted\"}")
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"An error occurred while deleting fishNumber from urn:ngsi-ld:DeadFishes:019BN\"}")
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }

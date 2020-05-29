@@ -8,6 +8,7 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
@@ -593,6 +594,74 @@ class EntityHandlerTests {
             .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                 "\"title\":\"There has been an error during the operation execution\"," +
                 "\"detail\":\"Unexpected server error\"}")
+    }
+
+    @Test
+    fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns true
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should return a 404 if the entity is not found`() {
+        every { entityService.exists(any()) } returns false
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Entity Not Found\"}")
+    }
+
+    @Test
+    fun `delete entity attribute should return a 404 if the attribute is not found`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } throws ResourceNotFoundException("Attribute Not Found")
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Attribute Not Found\"}")
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns false
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"An error occurred while deleting fishNumber from urn:ngsi-ld:DeadFishes:019BN\"}")
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        confirmVerified(entityService)
     }
 
     @Test

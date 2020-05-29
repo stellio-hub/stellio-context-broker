@@ -560,7 +560,7 @@ class EntityServiceTests {
         every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
-        every { neo4jRepository.deleteRelationshipFromEntity(any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { relationshipRepository.save(match<Relationship> {
             it.type == listOf("https://ontology.eglobalmark.com/egm#connectsTo")
@@ -571,7 +571,7 @@ class EntityServiceTests {
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
         verify { neo4jRepository.hasRelationshipOfType(eq(entityId), "CONNECTS_TO") }
-        verify { neo4jRepository.deleteRelationshipFromEntity(eq(entityId), "CONNECTS_TO") }
+        verify { neo4jRepository.deleteEntityRelationship(eq(entityId), "CONNECTS_TO") }
         verify { entityRepository.findById(eq(entityId)) }
         verify { neo4jRepository.createRelationshipToEntity(eq(relationshipId), "CONNECTS_TO", eq(targetEntityId)) }
 

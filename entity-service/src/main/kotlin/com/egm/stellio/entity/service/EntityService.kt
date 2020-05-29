@@ -387,7 +387,7 @@ class EntityService(
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                     Triple(it.key, false, "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
                 } else {
-                    neo4jRepository.deleteRelationshipFromEntity(entityId, relationshipTypeName.toRelationshipTypeName())
+                    neo4jRepository.deleteEntityRelationship(entityId, relationshipTypeName.toRelationshipTypeName())
                     createEntityRelationship(entityRepository.findById(entityId).get(), it.key, attributeValue, getRelationshipObjectId(attributeValue))
                     Triple(it.key, true, null)
                 }
@@ -403,7 +403,7 @@ class EntityService(
                         "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
                     )
                 } else {
-                    neo4jRepository.deletePropertyFromEntity(entityId, it.key)
+                    neo4jRepository.deleteEntityProperty(entityId, it.key)
                     createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 }
@@ -600,6 +600,17 @@ class EntityService(
 
     fun deleteEntity(entityId: String): Pair<Int, Int> {
         return neo4jRepository.deleteEntity(entityId)
+    }
+
+    fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
+        val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
+
+        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName))
+            return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName) >= 1
+        else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName()))
+            return neo4jRepository.deleteEntityRelationship(entityId, expandedAttributeName.toRelationshipTypeName()) >= 1
+
+        throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }
 
     fun updateEntityLastMeasure(observation: Observation) {

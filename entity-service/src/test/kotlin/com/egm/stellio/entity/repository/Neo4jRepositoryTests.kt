@@ -198,7 +198,7 @@ class Neo4jRepositoryTests {
     fun `it should find a sensor by vendor id and measured property`() {
         val vendorId = "urn:something:9876"
         val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
         val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
         val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
         assertNotNull(persistedEntity)
@@ -211,7 +211,7 @@ class Neo4jRepositoryTests {
     fun `it should find a sensor by vendor id with case not matching and measured property`() {
         val vendorId = "urn:something:9876"
         val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
         val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
         val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId.toUpperCase(), EGM_VENDOR_ID, "outgoing")
         assertNotNull(persistedEntity)
@@ -226,7 +226,7 @@ class Neo4jRepositoryTests {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf())
         val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
         val sensorToDeviceRelationship = createRelationship(sensor, EGM_IS_CONTAINED_IN, device.id)
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
         val propertyToDeviceRelationship = createRelationship(property, EGM_OBSERVED_BY, sensor.id)
         val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
         assertNotNull(persistedEntity)
@@ -241,7 +241,7 @@ class Neo4jRepositoryTests {
     fun `it should not find a sensor by vendor id if measured property does not exist`() {
         val vendorId = "urn:something:9876"
         val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
         val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
         val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "incoming")
         assertNull(persistedEntity)
@@ -254,7 +254,7 @@ class Neo4jRepositoryTests {
     fun `it should not find a sensor if measured property exists but not the vendor id`() {
         val vendorId = "urn:something:9876"
         val entity = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId)))
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing")
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
         val relationship = createRelationship(property, EGM_OBSERVED_BY, entity.id)
         val persistedEntity = neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:Unknown", EGM_VENDOR_ID, "outgoing")
         assertNull(persistedEntity)
@@ -314,13 +314,60 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(entity.id)
     }
 
+    @Test
+    fun `it should delete an entity property`() {
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "firstName", value = "Scalpa"), Property(name = "lastName", value = "Charity"))
+        )
+
+        neo4jRepository.deleteEntityProperty(entity.id, "lastName")
+
+        assertEquals(entityRepository.findById(entity.id).get().properties.size, 1)
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should delete an entity relationship`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233", listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
+        createRelationship(sensor, EGM_OBSERVED_BY, device.id)
+
+        neo4jRepository.deleteEntityRelationship(sensor.id, "OBSERVED_BY")
+
+        assertEquals(entityRepository.findById(sensor.id).get().relationships.size, 0)
+
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
+    }
+
+    @Test
+    fun `it should delete an entity attribute and its properties`() {
+        val lastNameProperty = createProperty("lastName", "Charity")
+        val originProperty = createProperty("origin", "Latin")
+        lastNameProperty.properties.add(originProperty)
+        propertyRepository.save(lastNameProperty)
+        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "firstName", value = "Scalpa"), lastNameProperty)
+        )
+
+        neo4jRepository.deleteEntityProperty(entity.id, "lastName")
+
+        assertTrue(propertyRepository.findById(originProperty.id).isEmpty)
+        assertTrue(propertyRepository.findById(lastNameProperty.id).isEmpty)
+        assertEquals(entityRepository.findById(entity.id).get().properties.size, 1)
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)
     }
 
-    fun createProperty(name: String): Property {
-        val property = Property(name = name, value = 1.0)
+    fun createProperty(name: String, value: Any): Property {
+        val property = Property(name = name, value = value)
         return propertyRepository.save(property)
     }
 

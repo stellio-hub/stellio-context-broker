@@ -110,6 +110,23 @@ class EntityHandler(
     }
 
     /**
+     * Implements 6.5.3.2 - Delete Entity
+     */
+    @DeleteMapping("/{entityId}")
+    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
+        return entityId.toMono()
+            .map {
+                entityService.deleteEntity(entityId)
+            }
+            .map {
+                if (it.first >= 1)
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+                else
+                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
+            }
+    }
+
+    /**
      * Implements 6.6.3.1 - Append Entity Attributes
      *
      */
@@ -192,19 +209,28 @@ class EntityHandler(
     }
 
     /**
-     * Implements 6.5.3.2 - Delete Entity
+     * Implements 6.7.3.2 - Delete Entity Attribute
+     * Current implementation is basic since there is no support for Multi-Attribute (4.5.5).
      */
-    @DeleteMapping("/{entityId}")
-    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
+    @DeleteMapping("/{entityId}/attrs/{attrId}")
+    fun deleteEntityAttribute(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String
+    ): Mono<ResponseEntity<*>> {
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
+
         return entityId.toMono()
             .map {
-                entityService.deleteEntity(entityId)
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
             }
             .map {
-                if (it.first >= 1)
+                if (it)
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                        .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
             }
     }
 }

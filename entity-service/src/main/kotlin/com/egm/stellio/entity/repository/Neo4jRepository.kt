@@ -91,26 +91,6 @@ class Neo4jRepository(
     }
 
     @Transactional
-    fun deleteRelationshipFromEntity(entityId: String, relationshipType: String): Int {
-        val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
-            DETACH DELETE rel 
-        """.trimIndent()
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
-    }
-
-    @Transactional
-    fun deletePropertyFromEntity(entityId: String, propertyName: String): Int {
-        val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
-            DETACH DELETE property
-        """.trimIndent()
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
-    }
-
-    @Transactional
     fun updateRelationshipTargetOfAttribute(
         attributeId: String,
         relationshipType: String,
@@ -173,6 +153,53 @@ class Neo4jRepository(
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
+    @Transactional
+    fun deleteEntityProperty(entityId: String, propertyName: String): Int {
+        /**
+         * Delete :
+         *
+         * 1. the property
+         * 2. the properties of the property
+         * 3. the relationships of the property
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(prop:Attribute { name: "$propertyName" })
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
+            DETACH DELETE prop,propOfProp,relOfProp
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted property $propertyName : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return queryStatistics.nodesDeleted
+    }
+
+    /**
+     Given an entity E1 having a relationship R1 with an entity E2
+     When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
+     Otherwise, it will delete not only the relationships of R1 but also the entity E2
+     */
+    @Transactional
+    fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
+        /**
+         * Delete :
+         *
+         * 1. the relationship
+         * 2. the properties of the relationship
+         * 3. the relationships of the relationship
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
+            DETACH DELETE rel,propOfRel,relOfRel
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted relationship $relationshipType : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return queryStatistics.nodesDeleted
     }
 
     fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>): List<String> {

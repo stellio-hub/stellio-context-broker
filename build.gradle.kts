@@ -1,6 +1,6 @@
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 extra["springCloudVersion"] = "Hoxton.SR2"
 
@@ -68,6 +68,7 @@ subprojects {
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
         testImplementation("org.springframework.security:spring-security-test")
+        testImplementation("org.testcontainers:testcontainers:1.12.3")
     }
 
     tasks.withType<KotlinCompile> {

@@ -27,8 +27,8 @@ class NotificationService(
 
     fun notifyMatchingSubscribers(rawEntity: String, expandedEntity: ExpandedEntity, updatedAttributes: Set<String>):
             Mono<List<Triple<Subscription, Notification, Boolean>>> {
-        val id = expandedEntity.getId()
-        val type = expandedEntity.getType()
+        val id = expandedEntity.id
+        val type = expandedEntity.type
         return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
                 .filter {
                     subscriptionService.isMatchingQuery(it.q, rawEntity)
@@ -46,7 +46,7 @@ class NotificationService(
         val notification = Notification(subscriptionId = subscription.id, data = compactEntities(entities))
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
-            val entityId = entities[0].getId()
+            val entityId = entities[0].id
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {

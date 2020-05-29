@@ -49,7 +49,7 @@ class EntityServiceTests {
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)
-            .expectNextMatches { it.getId() == "urn:ngsi-ld:BeeHive:TESTC" }
+            .expectNextMatches { it.id == "urn:ngsi-ld:BeeHive:TESTC" }
             .expectComplete()
             .verify()
 

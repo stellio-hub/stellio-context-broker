@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 @Component
 @EnableBinding(ObservationsSink::class)
 class EntitiesListener(
-    private val neo4jService: Neo4jService
+    private val entityService: EntityService
 ) {
 
     private val logger = LoggerFactory.getLogger(EntitiesListener::class.java)
@@ -45,7 +45,7 @@ class EntitiesListener(
             val observation = NgsiLdParsingUtils.parseTemporalPropertyUpdate(content)
             observation?.let {
                 logger.debug("Parsed observation: $observation")
-                neo4jService.updateEntityLastMeasure(observation)
+                entityService.updateEntityLastMeasure(observation)
             }
         } catch (e: Exception) {
             logger.error("Received a non-parseable measure : $content", e)

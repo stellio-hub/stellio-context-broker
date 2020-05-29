@@ -11,7 +11,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 
 @Component
 class EntityListener(
@@ -51,7 +51,7 @@ class EntityListener(
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it,
-                            observedAt = OffsetDateTime.parse(rawParsedData[attributeName]["observedAt"].asText()),
+                            observedAt = ZonedDateTime.parse(rawParsedData[attributeName]["observedAt"].asText()),
                             measuredValue = rawParsedData[attributeName]["value"].asDouble()
                         )
                         attributeInstanceService.create(attributeInstance)

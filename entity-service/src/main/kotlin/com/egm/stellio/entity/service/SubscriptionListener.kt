@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 @EnableBinding(SubscriptionSink::class)
 class SubscriptionListener(
-    private val neo4jService: Neo4jService
+    private val entityService: EntityService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -32,7 +32,7 @@ class SubscriptionListener(
         when (entityEvent.operationType) {
             EventType.CREATE -> {
                 val parsedSubscription = parseJsonLdFragment(entityEvent.payload!!).minus("id").minus("type")
-                neo4jService.createSubscriptionEntity(entityEvent.entityId, entityEvent.entityType, parsedSubscription)
+                entityService.createSubscriptionEntity(entityEvent.entityId, entityEvent.entityType, parsedSubscription)
             }
             EventType.APPEND -> logger.warn("Append operation is not yet implemented for subscriptions")
             EventType.UPDATE -> logger.warn("Update operation is not yet implemented for subscriptions")
@@ -59,7 +59,7 @@ class SubscriptionListener(
                 val subscriptionId = parsedNotification["subscriptionId"] as String
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
-                neo4jService.createNotificationEntity(entityEvent.entityId, entityEvent.entityType, subscriptionId, parsedNotification)
+                entityService.createNotificationEntity(entityEvent.entityId, entityEvent.entityType, subscriptionId, parsedNotification)
             }
             else -> logger.warn("Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}")
         }

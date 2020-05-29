@@ -11,7 +11,7 @@
    },
    "calibrationDate":{
       "type":"Property",
-      "value":"2018-10-26T21:32:52+02:00"
+      "value":"2018-10-26T21:32:52.98601Z"
    },
    "location":{
       "type":"GeoProperty",

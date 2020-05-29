@@ -11,7 +11,8 @@ import org.neo4j.ogm.session.event.EventListenerAdapter
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.OffsetDateTime
+import java.time.Instant
+import java.time.ZoneOffset
 import javax.annotation.PostConstruct
 
 @Component
@@ -56,7 +57,7 @@ class Neo4jRepository(
         val query = """
             MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
             ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
-                         property.modifiedAt = "${OffsetDateTime.now()}"
+                         property.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
@@ -87,26 +88,6 @@ class Neo4jRepository(
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
-    }
-
-    @Transactional
-    fun deleteRelationshipFromEntity(entityId: String, relationshipType: String): Int {
-        val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
-            DETACH DELETE rel 
-        """.trimIndent()
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
-    }
-
-    @Transactional
-    fun deletePropertyFromEntity(entityId: String, propertyName: String): Int {
-        val query = """
-            MATCH (n:Entity { id: '$entityId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
-            DETACH DELETE property
-        """.trimIndent()
-
-        return session.query(query, emptyMap<String, String>()).queryStatistics().nodesDeleted
     }
 
     @Transactional
@@ -172,6 +153,53 @@ class Neo4jRepository(
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+    }
+
+    @Transactional
+    fun deleteEntityProperty(entityId: String, propertyName: String): Int {
+        /**
+         * Delete :
+         *
+         * 1. the property
+         * 2. the properties of the property
+         * 3. the relationships of the property
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(prop:Attribute { name: "$propertyName" })
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
+            DETACH DELETE prop,propOfProp,relOfProp
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted property $propertyName : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return queryStatistics.nodesDeleted
+    }
+
+    /**
+     Given an entity E1 having a relationship R1 with an entity E2
+     When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
+     Otherwise, it will delete not only the relationships of R1 but also the entity E2
+     */
+    @Transactional
+    fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
+        /**
+         * Delete :
+         *
+         * 1. the relationship
+         * 2. the properties of the relationship
+         * 3. the relationships of the relationship
+         */
+        val query = """
+            MATCH (entity:Entity { id: "$entityId" })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
+            DETACH DELETE rel,propOfRel,relOfRel
+        """.trimIndent()
+
+        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        logger.debug("Deleted relationship $relationshipType : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        return queryStatistics.nodesDeleted
     }
 
     fun getEntitiesByTypeAndQuery(type: String, query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>): List<String> {
@@ -285,6 +313,19 @@ class Neo4jRepository(
             .first()
     }
 
+    fun filterExistingEntitiesIds(entitiesIds: List<String>): List<String> {
+        if (entitiesIds.isEmpty()) {
+            return emptyList()
+        }
+        val query = """
+            MATCH (entity:Entity)
+            WHERE entity.id IN {entitiesIds}
+            RETURN entity.id as id
+        """
+
+        return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
+    }
+
     fun getPropertyOfSubject(subjectId: String, propertyName: String): Property {
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
@@ -336,15 +377,15 @@ class PreSaveEventListener : EventListenerAdapter() {
         when (event.getObject()) {
             is Entity -> {
                 val entity = event.getObject() as Entity
-                entity.modifiedAt = OffsetDateTime.now()
+                entity.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
             }
             is Property -> {
                 val property = event.getObject() as Property
-                property.modifiedAt = OffsetDateTime.now()
+                property.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
             }
             is Relationship -> {
                 val relationship = event.getObject() as Relationship
-                relationship.modifiedAt = OffsetDateTime.now()
+                relationship.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
             }
         }
     }

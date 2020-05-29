@@ -5,7 +5,7 @@
   "name" : "Alerte frelons",
   "notification" : {
     "type" : "Property",
-    "values" : [ ["urn:ngsi-ld:Beehive:1234","2020-03-25T08:29:17.965206+01:00"], ["urn:ngsi-ld:Beehive:5678","2020-03-25T08:33:17.965206+01:00"] ]
+    "values" : [ ["urn:ngsi-ld:Beehive:1234","2020-03-25T08:29:17.965206Z"], ["urn:ngsi-ld:Beehive:5678","2020-03-25T08:33:17.965206Z"] ]
   },
   "@context" : "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
 }

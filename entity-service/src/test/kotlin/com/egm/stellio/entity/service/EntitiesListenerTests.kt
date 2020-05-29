@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.OffsetDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntitiesListener::class ])
@@ -20,7 +20,7 @@ class EntitiesListenerTests {
     private lateinit var entitiesListener: EntitiesListener
 
     @MockkBean
-    private lateinit var neo4jService: Neo4jService
+    private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
@@ -30,11 +30,11 @@ class EntitiesListenerTests {
         val observation = ClassPathResource("/ngsild/aquac/Observation.json")
 
         every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty()
-        every { neo4jService.updateEntityLastMeasure(any()) } just Runs
+        every { entityService.updateEntityLastMeasure(any()) } just Runs
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { neo4jService.updateEntityLastMeasure(match { observation ->
+        verify { entityService.updateEntityLastMeasure(match { observation ->
             observation.attributeName == "incoming" &&
             observation.unitCode == "CEL" &&
             observation.value == 20.7 &&
@@ -43,7 +43,7 @@ class EntitiesListenerTests {
             observation.longitude == 24.30623 &&
             observation.latitude == 60.07966
         }) }
-        confirmVerified(neo4jService)
+        confirmVerified(entityService)
     }
 
     @Test
@@ -51,11 +51,11 @@ class EntitiesListenerTests {
         val observation = ClassPathResource("/ngsild/aquac/ObservationWithoutLocation.json")
 
         every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty(withLocation = false)
-        every { neo4jService.updateEntityLastMeasure(any()) } just Runs
+        every { entityService.updateEntityLastMeasure(any()) } just Runs
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { neo4jService.updateEntityLastMeasure(match { observation ->
+        verify { entityService.updateEntityLastMeasure(match { observation ->
             observation.attributeName == "incoming" &&
                     observation.unitCode == "CEL" &&
                     observation.value == 20.7 &&
@@ -64,7 +64,7 @@ class EntitiesListenerTests {
                     observation.latitude == null &&
                     observation.longitude == null
         }) }
-        confirmVerified(neo4jService)
+        confirmVerified(entityService)
     }
 
     @Test
@@ -73,7 +73,7 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { neo4jService wasNot Called }
+        verify { entityService wasNot Called }
     }
 
     private fun gimmeTemporalProperty(withLocation: Boolean = true): Observation {
@@ -86,7 +86,7 @@ class EntitiesListenerTests {
             attributeName = "incoming",
             value = 20.7,
             unitCode = "CEL",
-            observedAt = OffsetDateTime.parse("2019-10-18T07:31:39.77Z"),
+            observedAt = ZonedDateTime.parse("2019-10-18T07:31:39.77Z"),
             latitude = location?.second,
             longitude = location?.first,
             observedBy = "urn:sosa:Sensor:10e2073a01080065"

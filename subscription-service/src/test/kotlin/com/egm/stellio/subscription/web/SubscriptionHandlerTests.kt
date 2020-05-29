@@ -1,7 +1,8 @@
 package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
@@ -9,13 +10,14 @@ import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
+import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -23,8 +25,10 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.lang.RuntimeException
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
+@WebFluxTest(SubscriptionHandler::class)
+@Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
 
@@ -34,30 +38,68 @@ class SubscriptionHandlerTests {
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
 
+    @BeforeAll
+    fun configureWebClientDefaults() {
+        webClient = webClient.mutate()
+            .defaultHeaders {
+                it.accept = listOf(JSON_LD_MEDIA_TYPE)
+                it.contentType = JSON_LD_MEDIA_TYPE
+            }
+            .build()
+    }
+
     @Test
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getById(any(), any()) } returns Mono.just(subscription)
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
 
         webClient.get()
-                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:${subscription.id}")
-                .accept(MediaType.valueOf("application/ld+json"))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
                 .exchange()
                 .expectStatus().isOk
+
+        verify { subscriptionService.exists(subscription.id) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.getById(subscription.id) }
     }
 
     @Test
     fun `get subscription by id should return 404 when subscription does not exist`() {
-        every { subscriptionService.getById(any(), any()) } returns Mono.error(ResourceNotFoundException("Subscription Not Found"))
+        every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.get()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .accept(MediaType.valueOf("application/ld+json"))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isNotFound
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}")
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+    }
+
+    @Test
+    fun `get subscription by id should return a 403 if subscription does not belong to the user`() {
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
     }
 
     @Test
@@ -69,8 +111,6 @@ class SubscriptionHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
-                .header("Link:rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isCreated
@@ -85,11 +125,12 @@ class SubscriptionHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
-                .header("Link:rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(409)
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
+                    "\"title\":\"The referred element already exists\"," +
+                    "\"detail\":\"A subscription with id urn:ngsi-ld:Subscription:04 already exists\"}")
     }
 
     @Test
@@ -101,11 +142,12 @@ class SubscriptionHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
-                .header("Link:rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isEqualTo(500)
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Internal Server Exception\"}")
     }
 
     @Test
@@ -114,11 +156,12 @@ class SubscriptionHandlerTests {
 
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
-                .header("Link:rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .bodyValue(jsonLdFile)
                 .exchange()
                 .expectStatus().isBadRequest
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Context not provided\"}")
     }
 
     @Test
@@ -130,8 +173,6 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectHeader().doesNotExist("Link")
@@ -146,8 +187,6 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
@@ -162,8 +201,6 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
@@ -178,8 +215,6 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals("Link",
@@ -194,8 +229,6 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=9")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -210,10 +243,11 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
     }
 
     @Test
@@ -225,10 +259,11 @@ class SubscriptionHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
-            .accept(MediaType.valueOf("application/ld+json"))
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
     }
 
     @Test
@@ -238,39 +273,43 @@ class SubscriptionHandlerTests {
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } returns Mono.just(1)
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
 
     @Test
-    fun `update subscription should return a 400 if update in DB failed`() {
+    fun `update subscription should return a 500 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json("{\"ProblemDetails\":[\"Update failed\"]}")
+            .expectStatus().is5xxServerError
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Update failed\"}")
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, "mock-user") }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
 
@@ -283,12 +322,14 @@ class SubscriptionHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}")
 
-        verify { subscriptionService.exists(eq("urn:ngsi-ld:Subscription:04")) }
+        verify { subscriptionService.exists(eq(subscriptionId)) }
     }
 
     @Test
@@ -297,52 +338,127 @@ class SubscriptionHandlerTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04"
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
-            .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Context not provided\"}")
+
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+    }
+
+    @Test
+    fun `update subscription should return a 403 if subscription does not belong to the user`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:04",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
+
+        verify { subscriptionService.exists(eq(subscriptionId)) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+
+        confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 204 if a subscription has been successfully deleted`() {
         val subscription = gimmeRawSubscription()
-        every { subscriptionService.delete(any(), any()) } returns Mono.just(1)
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.delete(any()) } returns Mono.just(1)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isNoContent
                 .expectBody().isEmpty
 
-        verify { subscriptionService.delete(eq(subscription.id), "mock-user") }
+        verify { subscriptionService.exists(subscription.id) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.delete(eq(subscription.id)) }
+
         confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 404 if subscription to be deleted has not been found`() {
-        every { subscriptionService.delete(any(), any()) } returns Mono.just(0)
+        every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isNotFound
-                .expectBody().isEmpty
+                .expectBody().json("""
+                    {
+                        "detail":"Could not find a subscription with id urn:ngsi-ld:Subscription:1",
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found"
+                    }
+                """.trimIndent())
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+
+        confirmVerified(subscriptionService)
     }
 
     @Test
     fun `delete subscription should return a 500 if subscription could not be deleted`() {
-        every { subscriptionService.delete(any(), any()) } throws RuntimeException("Unexpected server error")
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
                 .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-                .expectBody().json("{\"ProblemDetails\":[\"Unexpected server error\"]}")
+                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Unexpected server error\"}")
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
+        verify { subscriptionService.delete(eq("urn:ngsi-ld:Subscription:1")) }
+    }
+
+    @Test
+    fun `delete subscription should return a 403 if subscription does not belong to the user`() {
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json("""
+                {
+                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title":"The request tried to access an unauthorized resource"
+                }
+            """.trimIndent())
+
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
     }
 
     @Test
@@ -350,8 +466,6 @@ class SubscriptionHandlerTests {
     fun `it should not authorize an anonymous to call the API`() {
         webClient.post()
                 .uri("/ngsi-ld/v1/subscriptions")
-                .header("Link:rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .accept(MediaType.valueOf("application/ld+json"))
                 .exchange()
                 .expectStatus().isForbidden
     }

@@ -15,7 +15,6 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.OffsetDateTime
 import java.time.ZonedDateTime
 import javax.annotation.PostConstruct
 import kotlin.reflect.full.safeCast
@@ -111,7 +110,12 @@ object NgsiLdParsingUtils {
 
     @Deprecated("Deprecated in favor of the method accepting the contexts as separate arguments, as it allow for more genericity")
     fun parseEntity(input: String): ExpandedEntity {
-        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))[0]
+        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
+        if (expandedEntity.isEmpty())
+            throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
+
+        val expandedResult = JsonUtils.toPrettyString(expandedEntity[0])
+        logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
@@ -124,7 +128,7 @@ object NgsiLdParsingUtils {
             else
                 listOf(parsedInput["@context"] as String)
 
-        return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
+        return ExpandedEntity(expandedEntity[0] as Map<String, Any>, contexts)
     }
 
     fun parseEntities(entities: List<Map<String, Any>>): List<ExpandedEntity> {
@@ -147,23 +151,6 @@ object NgsiLdParsingUtils {
         (value as List<Any>)[0] as Map<String, List<Any>>
 
     /**
-     * Expects an JSON-LD expanded fragment like this :
-     *
-     * [{
-     *    https://uri.etsi.org/ngsi-ld/hasObject=[{
-     *      @id=urn:ngsi-ld:FishContainment:1234
-     *    }],
-     *    @type=[
-     *      https://uri.etsi.org/ngsi-ld/Relationship
-     *    ]
-     *  }]
-     *
-     *  @return the raw value of the #propertyKey (typically a map or a string)
-     */
-    fun getRawPropertyValueFromList(value: Any, propertyKey: String): Any =
-        (expandValueAsMap(value)[propertyKey]!!)[0]
-
-    /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
      * @param value a map similar to:
@@ -176,7 +163,7 @@ object NgsiLdParsingUtils {
      *     @value=kg
      *   }],
      *   https://uri.etsi.org/ngsi-ld/observedAt=[{
-     *     @value=2019-12-18T10:45:44.248755+01:00
+     *     @value=2019-12-18T10:45:44.248755Z
      *   }]
      * }
      *
@@ -207,10 +194,10 @@ object NgsiLdParsingUtils {
         } else
             null
 
-    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): OffsetDateTime? {
+    fun getPropertyValueFromMapAsDateTime(values: Map<String, List<Any>>, propertyKey: String): ZonedDateTime? {
         val observedAt = ZonedDateTime::class.safeCast(getPropertyValueFromMap(values, propertyKey))
         return observedAt?.run {
-            OffsetDateTime.parse(this.toString())
+            ZonedDateTime.parse(this.toString())
         }
     }
 
@@ -231,9 +218,6 @@ object NgsiLdParsingUtils {
 
         return objectId
     }
-
-    fun extractTypeFromPayload(payload: Map<String, Any>): String =
-        (payload["@type"] as List<String>)[0]
 
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
         // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
@@ -282,7 +266,7 @@ object NgsiLdParsingUtils {
         val expandedFragment = JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
         logger.debug("Expanded fragment $fragment to $expandedFragment")
         if (expandedFragment.isEmpty())
-            throw InvalidNgsiLdPayloadException("Unable to expand JSON-LD fragment : $fragment")
+            throw BadRequestDataException("Unable to expand JSON-LD fragment : $fragment")
         return expandedFragment[0] as Map<String, Any>
     }
 
@@ -300,17 +284,10 @@ object NgsiLdParsingUtils {
         return mapper.writeValueAsString(compactedFragment)
     }
 
-    fun compactEntity(entity: ExpandedEntity): Map<String, Any> =
-        JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions())
-
     fun compactEntities(entities: List<ExpandedEntity>): List<Map<String, Any>> =
         entities.map {
-            compactEntity(it)
+            it.compact()
         }
-
-    fun getTypeFromURI(uri: String): String {
-        return uri.split(":")[2]
-    }
 
     fun parseTemporalPropertyUpdate(content: String): Observation? {
         val rawParsedData = mapper.readTree(content)
@@ -338,7 +315,7 @@ object NgsiLdParsingUtils {
         return Observation(
             attributeName = propertyName,
             observedBy = propertyValues["observedBy"]["object"].asText(),
-            observedAt = OffsetDateTime.parse(propertyValues["observedAt"].asText()),
+            observedAt = ZonedDateTime.parse(propertyValues["observedAt"].asText()),
             value = propertyValues["value"].asDouble(),
             unitCode = propertyValues["unitCode"].asText(),
             latitude = location?.second,
@@ -354,7 +331,11 @@ object NgsiLdParsingUtils {
         val rawParsedData = mapper.readTree(input) as ObjectNode
         val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided")
 
-        return mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+        return try {
+            mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+        } catch (e: Exception) {
+            throw BadRequestDataException(e.message ?: "Unable to parse the provided context")
+        }
     }
 
     fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
@@ -396,7 +377,7 @@ object NgsiLdParsingUtils {
             try {
                 node = node.get(it)
             } catch (e: Exception) {
-                throw InvalidQueryException(e.message ?: "Unresolved value $it")
+                throw BadRequestDataException(e.message ?: "Unresolved value $it")
             }
         }
 

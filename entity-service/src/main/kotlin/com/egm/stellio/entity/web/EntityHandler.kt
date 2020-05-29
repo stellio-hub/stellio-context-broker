@@ -1,128 +1,128 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.service.Neo4jService
+import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getTypeFromURI
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
-import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.ServerRequest
-import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.*
-import org.springframework.web.reactive.function.server.bodyToMono
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.lang.reflect.UndeclaredThrowableException
 import java.net.URI
+import java.util.*
 
-@Component
+@RestController
+@RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
-    private val neo4jService: Neo4jService
+    private val entityService: EntityService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun generatesProblemDetails(list: List<String>): String {
-        return objectMapper().writeValueAsString(mapOf("ProblemDetails" to list))
-    }
-
     /**
      * Implements 6.4.3.1 - Create Entity
      */
-    fun create(req: ServerRequest): Mono<ServerResponse> {
-
-        return req.bodyToMono<String>()
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+        return body
             .map {
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
             }
             .map {
                 // TODO validation (https://redmine.eglobalmark.com/issues/853)
-                val urn = it.getId()
-                if (neo4jService.exists(urn)) {
+                if (entityService.exists(it.id)) {
                     throw AlreadyExistsException("Already Exists")
                 }
 
                 it
             }
             .map {
-                neo4jService.createEntity(it.attributes, it.contexts)
+                entityService.createEntity(it)
             }
-            .flatMap {
-                created(URI("/ngsi-ld/v1/entities/${it.id}")).build()
-            }.onErrorResume {
-                when (it) {
-                    is AlreadyExistsException -> status(HttpStatus.CONFLICT).build()
-                    is InternalErrorException -> status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
-                    is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.undeclaredThrowable.message.toString()))))
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
+            .map {
+                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/entities/${it.id}")).build<String>()
             }
     }
 
     /**
      * Implements 6.4.3.2 - Query Entities
      */
-    fun getEntities(req: ServerRequest): Mono<ServerResponse> {
-        val type = req.queryParam("type").orElse("")
-        val q = req.queryParams()["q"].orEmpty()
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
+            Mono<ResponseEntity<*>> {
+        val type = params.getFirst("type") ?: ""
+        val q = params.getOrDefault("q", emptyList())
 
-        val contextLink = extractContextFromLinkHeader(req)
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
-        if (q.isNullOrEmpty() && type.isNullOrEmpty()) {
-            return badRequest().body(BodyInserters.fromValue("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
-        }
+        if (q.isNullOrEmpty() && type.isEmpty())
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
+                .toMono()
 
-        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-            return badRequest().body(BodyInserters.fromValue("Unable to resolve 'type' parameter from the provided Link header"))
-        }
+        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
+                .toMono()
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
         return "".toMono()
             .map {
-                neo4jService.searchEntities(type, q.decode(), contextLink)
+                entityService.searchEntities(type, q.decode(), contextLink)
             }
             .map {
                 compactEntities(it)
             }
-            .flatMap {
-                ok().body(BodyInserters.fromValue(serializeObject(it)))
-            }
-            .onErrorResume {
-                badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
+            .map {
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 
     /**
      * Implements 6.5.3.1 - Retrieve Entity
      */
-    fun getByURI(req: ServerRequest): Mono<ServerResponse> {
-        val uri = req.pathVariable("entityId")
-        return uri.toMono()
+    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
+        return entityId.toMono()
             .map {
-                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity Not Found")
-                neo4jService.getFullEntityById(it)
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+                entityService.getFullEntityById(it)
             }
             .map {
-                compactEntity(it)
+                it.compact()
             }
-            .flatMap {
-                ok().body(BodyInserters.fromValue(serializeObject(it)))
+            .map {
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).build()
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
+    }
+
+    /**
+     * Implements 6.5.3.2 - Delete Entity
+     */
+    @DeleteMapping("/{entityId}")
+    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
+        return entityId.toMono()
+            .map {
+                entityService.deleteEntity(entityId)
+            }
+            .map {
+                if (it.first >= 1)
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+                else
+                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
             }
     }
 
@@ -130,37 +130,31 @@ class EntityHandler(
      * Implements 6.6.3.1 - Append Entity Attributes
      *
      */
-    fun appendEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
-        val entityId = req.pathVariable("entityId")
-        val disallowOverwrite = req.queryParam("options").map { it == "noOverwrite" }.orElse(false)
-        val type = getTypeFromURI(entityId)
-        val contextLink = extractContextFromLinkHeader(req)
-        return req.bodyToMono<String>()
+    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun appendEntityAttributes(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam options: Optional<String>,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<*>> {
+        val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
+        return body
             .doOnNext {
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
-
-                if (!neo4jService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
                 NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
             }
             .map {
-                neo4jService.appendEntityAttributes(entityId, it, disallowOverwrite)
+                entityService.appendEntityAttributes(entityId, it, disallowOverwrite)
             }
-            .flatMap {
+            .map {
                 logger.debug("Appended $it attributes on entity $entityId")
                 if (it.notUpdated.isEmpty())
-                    status(HttpStatus.NO_CONTENT).build()
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
-            }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
+                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
             }
     }
 
@@ -168,34 +162,27 @@ class EntityHandler(
      * Implements 6.6.3.2 - Update Entity Attributes
      *
      */
-    fun updateEntityAttributes(req: ServerRequest): Mono<ServerResponse> {
-        val uri = req.pathVariable("entityId")
-        val type = getTypeFromURI(uri)
-        val contextLink = extractContextFromLinkHeader(req)
+    @PatchMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    fun updateEntityAttributes(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<*>> {
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        return req.bodyToMono<String>()
+        return body
             .doOnNext {
-                if (!neo4jService.exists(uri)) throw ResourceNotFoundException("Entity $uri does not exist")
-
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
-                neo4jService.updateEntityAttributes(uri, it, contextLink)
+                entityService.updateEntityAttributes(entityId, it, contextLink)
             }
-            .flatMap {
-                logger.debug("Update $it attributes on entity $uri")
+            .map {
+                logger.debug("Update $it attributes on entity $entityId")
                 if (it.notUpdated.isEmpty())
-                    status(HttpStatus.NO_CONTENT).build()
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    status(HttpStatus.MULTI_STATUS).body(BodyInserters.fromValue(it))
-            }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
+                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
             }
     }
 
@@ -203,49 +190,47 @@ class EntityHandler(
      * Implements 6.7.3.1 - Partial Attribute Update
      * Current implementation is basic and only update the value of a property.
      */
-    fun partialAttributeUpdate(req: ServerRequest): Mono<ServerResponse> {
-        val attr = req.pathVariable("attrId")
-        val uri = req.pathVariable("entityId")
-        val type = getTypeFromURI(uri)
+    @PatchMapping("/{entityId}/attrs/{attrId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    fun partialAttributeUpdate(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<*>> {
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        val contextLink = extractContextFromLinkHeader(req)
-
-        return req.bodyToMono<String>()
+        return body
             .map {
-                if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink)) {
-                    throw BadRequestDataException("Unable to resolve 'type' parameter from the provided Link header")
-                }
-                neo4jService.updateEntityAttribute(uri, attr, it, contextLink)
+                entityService.updateEntityAttribute(entityId, attrId, it, contextLink)
             }
-            .flatMap {
-                status(HttpStatus.NO_CONTENT).build()
-            }
-            .onErrorResume {
-                when (it) {
-                    is ResourceNotFoundException -> status(HttpStatus.NOT_FOUND).body(BodyInserters.fromValue(it.localizedMessage))
-                    else -> badRequest().body(BodyInserters.fromValue(it.localizedMessage))
-                }
+            .map {
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
     /**
-     * Implements 6.5.3.2 - Delete Entity
+     * Implements 6.7.3.2 - Delete Entity Attribute
+     * Current implementation is basic since there is no support for Multi-Attribute (4.5.5).
      */
-    fun delete(req: ServerRequest): Mono<ServerResponse> {
-        val entityId = req.pathVariable("entityId")
+    @DeleteMapping("/{entityId}/attrs/{attrId}")
+    fun deleteEntityAttribute(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @PathVariable attrId: String
+    ): Mono<ResponseEntity<*>> {
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return entityId.toMono()
             .map {
-                neo4jService.deleteEntity(entityId)
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
             }
-            .flatMap {
-                if (it.first >= 1)
-                    noContent().build()
+            .map {
+                if (it)
+                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    notFound().build()
-            }
-            .onErrorResume {
-                status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.localizedMessage))))
+                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                        .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
             }
     }
 }

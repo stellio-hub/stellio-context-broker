@@ -1,60 +1,61 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.service.Neo4jService
-import com.egm.stellio.entity.util.ValidationUtils
-import com.egm.stellio.entity.util.extractAndParseBatchOfEntities
-import com.egm.stellio.shared.model.BadRequestDataException
-import org.neo4j.ogm.config.ObjectMapperFactory.objectMapper
-import org.slf4j.LoggerFactory
+import com.egm.stellio.entity.service.EntityOperationService
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.ServerRequest
-import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.*
-import org.springframework.web.reactive.function.server.bodyToMono
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.lang.reflect.UndeclaredThrowableException
 
-@Component
+@RestController
+@RequestMapping("/ngsi-ld/v1/entityOperations")
 class EntityOperationHandler(
-    private val neo4jService: Neo4jService,
-    private val validationUtils: ValidationUtils
+    private val entityOperationService: EntityOperationService
 ) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
-
-    fun generatesProblemDetails(list: List<String>): String {
-        return objectMapper().writeValueAsString(mapOf("ProblemDetails" to list))
-    }
 
     /**
      * Implements 6.14.3.1 - Create Batch of Entities
      */
-    fun create(req: ServerRequest): Mono<ServerResponse> {
+    @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
 
-        return req.bodyToMono<String>()
+        return body
             .map {
                 extractAndParseBatchOfEntities(it)
             }
             .map {
-                val existingEntities = validationUtils.getExistingEntities(it)
-                val newEntities = validationUtils.getNewEntities(it)
-                val validEntities = validationUtils.getValidEntities(newEntities)
-                Triple(existingEntities, newEntities, validEntities)
+                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
+                val batchOperationResult = entityOperationService.create(newEntities)
+
+                batchOperationResult.errors.addAll(
+                    existingEntities.map { entity ->
+                        BatchEntityError(entity.id, arrayListOf("Entity already exists"))
+                    })
+
+                batchOperationResult
             }
             .map {
-                    neo4jService.processBatchOfEntities(it.first, it.second, it.third)
+                ResponseEntity.status(HttpStatus.OK).body(it)
             }
-            .flatMap {
-                ok().body(BodyInserters.fromValue(it))
-            }
-            .onErrorResume {
-                when (it) {
-                    is BadRequestDataException -> status(HttpStatus.BAD_REQUEST).body(BodyInserters.fromValue(it.message.toString()))
-                    is UndeclaredThrowableException -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.undeclaredThrowable.message.toString()))))
-                    else -> badRequest().body(BodyInserters.fromValue(generatesProblemDetails(listOf(it.message.toString()))))
-                }
-            }
+    }
+
+    private fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
+        val extractedEntities = extractEntitiesFromJsonPayload(payload)
+        return NgsiLdParsingUtils.parseEntities(extractedEntities)
+    }
+
+    private fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {
+        val mapper = jacksonObjectMapper()
+        return mapper.readValue(
+            payload,
+            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+        )
     }
 }

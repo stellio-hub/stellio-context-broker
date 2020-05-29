@@ -5,28 +5,27 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
-import org.springframework.stereotype.Component
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.server.ServerRequest
-import org.springframework.web.reactive.function.server.ServerResponse
-import org.springframework.web.reactive.function.server.ServerResponse.*
-import org.springframework.web.reactive.function.server.bodyToMono
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.toMono
 import java.lang.IllegalArgumentException
+import java.util.*
 
-@Component
+@RestController
+@RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
@@ -38,11 +37,12 @@ class TemporalEntityHandler(
      *
      * Implements 6.20.3.1
      */
-    fun addAttrs(req: ServerRequest): Mono<ServerResponse> {
-        val entityId = req.pathVariable("entityId")
-        val contextLink = extractContextFromLinkHeader(req)
+    @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun addAttrs(@RequestHeader httpHeaders: HttpHeaders, @PathVariable entityId: String, @RequestBody body: Mono<String>):
+            Mono<ResponseEntity<*>> {
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
-        return req.bodyToMono<String>()
+        return body
             .flatMapMany {
                 Flux.fromIterable(expandJsonLdFragment(it, contextLink).asIterable())
             }
@@ -57,31 +57,34 @@ class TemporalEntityHandler(
                     expandValueAsMap(it.second.value))
             }
             .collectList()
-            .flatMap {
-                noContent().build()
+            .map {
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
-    fun getForEntity(req: ServerRequest): Mono<ServerResponse> {
-        val entityId = req.pathVariable("entityId")
-        val withTemporalValues = hasValueInOptionsParam(req.queryParam("options"), OptionsParamValue.TEMPORAL_VALUES)
-        val contextLink = extractContextFromLinkHeader(req)
+    @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun getForEntity(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam params: MultiValueMap<String, String>
+    ): Mono<ResponseEntity<*>> {
+
+        val withTemporalValues = hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
+        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
-        val bearerToken =
-            if (req.headers().asHttpHeaders().containsKey("Authorization"))
-                req.headers().header("Authorization").first()
-            else
-                ""
+        val bearerToken = httpHeaders.getOrEmpty("Authorization").firstOrNull() ?: ""
 
         val temporalQuery = try {
-            buildTemporalQuery(req.queryParams())
+            buildTemporalQuery(params)
         } catch (e: BadRequestDataException) {
-            return badRequest().body(BodyInserters.fromValue(e.message.orEmpty()))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse(e.message))
+                .toMono()
         }
 
         // FIXME this is way too complex, refactor it later
@@ -104,10 +107,10 @@ class TemporalEntityHandler(
                 temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
             }
             .map {
-                compactEntity(it)
+                it.compact()
             }
-            .flatMap {
-                ok().body(BodyInserters.fromValue(serializeObject(it)))
+            .map {
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
             }
     }
 
@@ -119,7 +122,7 @@ class TemporalEntityHandler(
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
                     .doOnSuccess {
-                        val entityPayload = compactEntity(it)
+                        val entityPayload = it.compact()
                         temporalEntityAttributeService.addEntityPayload(temporalEntityAttribute, serializeObject(entityPayload)).subscribe()
                     }
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))

@@ -372,7 +372,7 @@
     },
     "calibrationDate": {
       "type": "Property",
-      "value": "2020-01-13T10:00:00+02:00"
+      "value": "2020-01-13T10:00:00.98601Z"
     },
     "@context": [
       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",

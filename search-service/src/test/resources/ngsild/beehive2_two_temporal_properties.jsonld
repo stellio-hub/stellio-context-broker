@@ -27,7 +27,7 @@
   },
   "connectsTo": {
     "type": "Relationship",
-    "createdAt": "2010-10-26T21:32:52+02:00",
+    "createdAt": "2010-10-26T21:32:52.98601Z",
     "object": "urn:ngsi-ld:Beekeeper:Pascal"
   },
   "@context": [

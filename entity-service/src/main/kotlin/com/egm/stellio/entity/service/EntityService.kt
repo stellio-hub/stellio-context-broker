@@ -65,7 +65,7 @@ class EntityService(
         val entity = entityRepository.save(rawEntity)
 
         // filter the unwanted entries and expand all attributes for easier later processing
-        val propertiesAndRelationshipsMap = expandedEntity.attributesWithoutTypeAndId.mapValues {
+        val propertiesAndRelationshipsMap = expandedEntity.attributes.mapValues {
             expandValueAsMap(it.value)
         }
 
@@ -100,8 +100,14 @@ class EntityService(
     }
 
     fun publishCreationEvent(expandedEntity: ExpandedEntity) {
-        val entityType = extractShortTypeFromPayload(expandedEntity.attributes)
-        val entityEvent = EntityEvent(EventType.CREATE, expandedEntity.id, entityType, getSerializedEntityById(expandedEntity.id), null)
+        val entityType = extractShortTypeFromPayload(expandedEntity.rawJsonLdProperties)
+        val entityEvent = EntityEvent(
+            EventType.CREATE,
+            expandedEntity.id,
+            entityType,
+            getSerializedEntityById(expandedEntity.id),
+            null
+        )
         applicationEventPublisher.publishEvent(entityEvent)
     }
 
@@ -334,7 +340,13 @@ class EntityService(
     fun getSerializedEntityById(entityId: String): String {
         val mapper = jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         val entity = getFullEntityById(entityId)
-        return mapper.writeValueAsString(JsonLdProcessor.compact(entity.attributes, mapOf("@context" to entity.contexts), JsonLdOptions()))
+        return mapper.writeValueAsString(
+            JsonLdProcessor.compact(
+                entity.rawJsonLdProperties,
+                mapOf("@context" to entity.contexts),
+                JsonLdOptions()
+            )
+        )
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<ExpandedEntity> =

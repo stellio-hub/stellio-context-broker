@@ -2,10 +2,13 @@ package com.egm.stellio.search.web
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
@@ -21,7 +24,6 @@ import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.lang.IllegalArgumentException
 import java.util.*
 
 @RestController
@@ -128,7 +130,7 @@ class TemporalEntityHandler(
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(parseEntity(temporalEntityAttribute.entityPayload))
             else -> {
                 val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
-                Mono.just(ExpandedEntity(parsedEntity.attributes, listOf(NGSILD_CORE_CONTEXT)))
+                Mono.just(ExpandedEntity(parsedEntity.rawJsonLdProperties, listOf(NGSILD_CORE_CONTEXT)))
             }
         }
 }

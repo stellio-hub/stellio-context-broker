@@ -181,10 +181,16 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val createdEntitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+        )
         val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        )
+        val createdBatchResult = BatchOperationResult(
+            createdEntitiesIds,
+            arrayListOf()
         )
 
         val existingEntities = mockk<List<ExpandedEntity>>()
@@ -194,11 +200,9 @@ class EntityOperationHandlerTests {
             existingEntities,
             nonExistingEntities
         )
-        every { entityOperationService.create(nonExistingEntities) } returns BatchOperationResult(
-            arrayListOf(),
-            arrayListOf()
-        )
-        every { entityOperationService.update(existingEntities) } returns BatchOperationResult(
+
+        every { entityOperationService.create(nonExistingEntities) } returns createdBatchResult
+        every { entityOperationService.update(existingEntities, createdBatchResult) } returns BatchOperationResult(
             entitiesIds,
             arrayListOf()
         )
@@ -244,7 +248,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { entityOperationService.update(any()) } returns BatchOperationResult(
+        every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
         )
@@ -258,7 +262,7 @@ class EntityOperationHandlerTests {
             .expectBody().json(
                 """
                 { 
-                    "errors": [" 
+                    "errors": [
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
                             "error": [ 
@@ -270,7 +274,8 @@ class EntityOperationHandlerTests {
                             "error": [ 
                                 "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
                             ] 
-                        }], 
+                        }
+                    ], 
                     "success": [] 
                 }
                 """.trimIndent()

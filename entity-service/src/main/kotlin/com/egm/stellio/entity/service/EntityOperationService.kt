@@ -64,9 +64,11 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of updated ids and list of errors (either not totally updated or
      * linked to invalid entity).
      */
-    fun update(entities: List<ExpandedEntity>): BatchOperationResult {
+    fun update(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+        val existingEntitiesIds = createBatchResult.success.plus(entities.map { it.id })
+        val nonExistingEntitiesIds = createBatchResult.errors.map { it.entityId }
         return entities.parallelStream().map { entity ->
-            updateEntity(entity)
+            updateEntity(entity, existingEntitiesIds, nonExistingEntitiesIds)
         }.collect(
             { BatchOperationResult() },
             { batchOperationResult, updateResult ->
@@ -80,18 +82,22 @@ class EntityOperationService(
         )
     }
 
-    private fun updateEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
+    private fun updateEntity(
+        entity: ExpandedEntity,
+        existingEntitiesIds: List<String>,
+        nonExistingEntitiesIds: List<String>
+    ): Either<BatchEntityError, String> {
         // All new attributes linked entities should be existing in the DB.
         val linkedEntitiesIds = entity.getLinkedEntitiesIds()
-        val nonExistingLinkedEntitiesIds = linkedEntitiesIds
-            .minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))
+        val invalidLinkedEntityId =
+            findInvalidEntityId(linkedEntitiesIds, existingEntitiesIds, nonExistingEntitiesIds)
 
-        // If there's a link to a non existing entity, then avoid calling the processor and return an error
-        if (nonExistingLinkedEntitiesIds.isNotEmpty()) {
+        // If there's a link to an invalid entity, then avoid calling the processor and return an error
+        if (invalidLinkedEntityId != null) {
             return Either.left(
                 BatchEntityError(
                     entity.id,
-                    arrayListOf("Target entities $nonExistingLinkedEntitiesIds does not exist.")
+                    arrayListOf("Target entity $invalidLinkedEntityId does not exist.")
                 )
             )
         }
@@ -99,7 +105,7 @@ class EntityOperationService(
         return try {
             val (_, notUpdated) = entityService.appendEntityAttributes(
                 entity.id,
-                entity.attributesWithoutTypeAndId,
+                entity.attributes,
                 false
             )
 
@@ -116,6 +122,20 @@ class EntityOperationService(
         } catch (e: BadRequestDataException) {
             Either.left(BatchEntityError(entity.id, arrayListOf(e.message)))
         }
+    }
+
+    private fun findInvalidEntityId(
+        entitiesIds: List<String>,
+        existingEntitiesIds: List<String>,
+        nonExistingEntitiesIds: List<String>
+    ): String? {
+        val invalidEntityId = entitiesIds.intersect(nonExistingEntitiesIds).firstOrNull()
+        if (invalidEntityId == null) {
+            val unknownEntitiesIds = entitiesIds.minus(existingEntitiesIds)
+            return unknownEntitiesIds
+                .minus(neo4jRepository.filterExistingEntitiesIds(unknownEntitiesIds)).firstOrNull()
+        }
+        return invalidEntityId
     }
 
     private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity, DefaultEdge>): Pair<BatchOperationResult, Set<ExpandedEntity>> {
@@ -170,7 +190,7 @@ class EntityOperationService(
             try {
                 entityService.appendEntityAttributes(
                     entity.id,
-                    entity.attributesWithoutTypeAndId,
+                    entity.attributes,
                     false
                 )
 

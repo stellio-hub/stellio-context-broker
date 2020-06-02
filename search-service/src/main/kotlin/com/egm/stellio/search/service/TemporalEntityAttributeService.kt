@@ -1,8 +1,8 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.RawValue
+import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
@@ -63,7 +63,7 @@ class TemporalEntityAttributeService(
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
         val entity = NgsiLdParsingUtils.parseEntity(payload)
-        val rawEntity = entity.attributes
+        val rawEntity = entity.rawJsonLdProperties
 
         val temporalProperties = rawEntity
             .filter {
@@ -193,7 +193,7 @@ class TemporalEntityAttributeService(
         withTemporalValues: Boolean
     ): ExpandedEntity {
 
-        val entity = expandedEntity.attributes.toMutableMap()
+        val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
 
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results

@@ -27,12 +27,7 @@ class ExpandedEntity private constructor(
     val type = (attributes[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
     val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) }
-    val attributesWithoutTypeAndId by lazy {
-        val idAndTypeKeys = listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE)
-        attributes.filterKeys {
-            !idAndTypeKeys.contains(it)
-        }
-    }
+    val attributesWithoutTypeAndId by lazy { initAttributesWithoutTypeAndId() }
 
     fun compact(): Map<String, Any> =
         JsonLdProcessor.compact(attributes, mapOf("@context" to contexts), JsonLdOptions())
@@ -43,6 +38,13 @@ class ExpandedEntity private constructor(
         }.filter {
             NgsiLdParsingUtils.isAttributeOfType(it.value, type)
         }
+
+    private fun initAttributesWithoutTypeAndId(): Map<String, Any> {
+        val idAndTypeKeys = listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE)
+        return attributes.filterKeys {
+            !idAndTypeKeys.contains(it)
+        }
+    }
 
     /**
      * Gets linked entities ids.

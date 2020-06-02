@@ -209,14 +209,16 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\n" +
-                    "    \"errors\": [],\n" +
-                    "    \"success\": [\n" +
-                    "        \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature\",\n" +
-                    "        \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen\",\n" +
-                    "        \"urn:ngsi-ld:Device:HCMR-AQUABOX1\"\n" +
-                    "    ]\n" +
-                    "}"
+                """
+                {
+                    "errors": [],
+                    success: [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
             )
     }
 
@@ -254,22 +256,24 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\n" +
-                    "    \"errors\": [" +
-                    "        {\n" +
-                    "            \"entityId\": \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature\",\n" +
-                    "            \"error\": [\n" +
-                    "                \"Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.\"\n" +
-                    "            ]\n" +
-                    "        },\n" +
-                    "        {\n" +
-                    "            \"entityId\": \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen\",\n" +
-                    "            \"error\": [\n" +
-                    "                \"Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.\"\n" +
-                    "            ]\n" +
-                    "        }],\n" +
-                    "    \"success\": []\n" +
-                    "}"
+                """
+                { 
+                    "errors": [" 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
+                            "error": [ 
+                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                            ] 
+                        }, 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
+                            "error": [ 
+                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                            ] 
+                        }], 
+                    "success": [] 
+                }
+                """.trimIndent()
             )
     }
 

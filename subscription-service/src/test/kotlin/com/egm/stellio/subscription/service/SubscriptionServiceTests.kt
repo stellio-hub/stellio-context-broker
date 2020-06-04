@@ -3,16 +3,20 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.subscription.config.TimescaleBasedTests
-import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
+import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
+import com.jayway.jsonpath.JsonPath.read
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import com.jayway.jsonpath.JsonPath.read
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.verify
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -56,7 +60,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     private lateinit var subscription5Id: String
     private lateinit var subscription6Id: String
 
-    private val entity = ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
+    private val entity =
+        ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
 
     @BeforeAll
     fun bootstrapSubscriptions() {
@@ -143,18 +148,22 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .verify()
 
         // TODO this is not totally satisfying but well it's a first check that our inserts are triggered
-        verify { databaseClient.execute(match<String> {
-            it.startsWith("INSERT INTO subscription")
-        }) }
+        verify {
+            databaseClient.execute(match<String> {
+                it.startsWith("INSERT INTO subscription")
+            })
+        }
         verify(atLeast = 2) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
         verify(atLeast = 1) { databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)") }
-        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-            entityEvent.entityType == "Subscription" &&
-            entityEvent.entityId == subscription.id &&
-            entityEvent.operationType == EventType.CREATE &&
-            entityEvent.payload != null &&
-            entityEvent.updatedEntity == null
-        }) }
+        verify(timeout = 1000, exactly = 1) {
+            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+                entityEvent.entityType == "Subscription" &&
+                    entityEvent.entityId == subscription.id &&
+                    entityEvent.operationType == EventType.CREATE &&
+                    entityEvent.payload != null &&
+                    entityEvent.updatedEntity == null
+            })
+        }
     }
 
     @Test
@@ -165,14 +174,18 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 1" &&
-                it.description == "My beautiful subscription" &&
-                it.notification.attributes == listOf("incoming") &&
-                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
-                it.entities.size == 2 &&
-                it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
-                it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
-                it.geoQ == null
+                    it.description == "My beautiful subscription" &&
+                    it.notification.attributes == listOf("incoming") &&
+                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD,
+                    null
+                ) &&
+                    it.entities.size == 2 &&
+                    it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
+                    it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
+                    it.geoQ == null
             }
             .verifyComplete()
     }
@@ -185,12 +198,16 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 3" &&
-                it.description == "My beautiful subscription" &&
-                it.q == "speed>50;foodName==dietary fibres" &&
-                it.notification.attributes == listOf("incoming") &&
-                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
-                it.entities.size == 1
+                    it.description == "My beautiful subscription" &&
+                    it.q == "speed>50;foodName==dietary fibres" &&
+                    it.notification.attributes == listOf("incoming") &&
+                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD,
+                    null
+                ) &&
+                    it.entities.size == 1
             }
             .verifyComplete()
     }
@@ -203,16 +220,20 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 2" &&
-                it.description == "My beautiful subscription" &&
-                it.notification.attributes == listOf("incoming") &&
-                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(
+                    it.description == "My beautiful subscription" &&
+                    it.notification.attributes == listOf("incoming") &&
+                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
                     listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                 ) &&
-                it.entities.size == 2 &&
-                it.geoQ == GeoQuery(georel = "within", geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
+                    it.entities.size == 2 &&
+                    it.geoQ == GeoQuery(
+                    georel = "within",
+                    geometry = GeoQuery.GeometryType.Polygon,
+                    coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
+                )
             }
             .verifyComplete()
     }
@@ -225,16 +246,16 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 2" &&
-                it.description == "My beautiful subscription" &&
-                it.notification.attributes == listOf("incoming") &&
-                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(
+                    it.description == "My beautiful subscription" &&
+                    it.notification.attributes == listOf("incoming") &&
+                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
                     listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                 ) &&
-                it.entities.size == 2 &&
-                it.isActive
+                    it.entities.size == 2 &&
+                    it.isActive
             }
             .verifyComplete()
     }
@@ -247,12 +268,16 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 4" &&
-                it.description == "My beautiful subscription" &&
-                it.notification.attributes == listOf("incoming") &&
-                it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD, null) &&
-                it.entities.size == 1 &&
-                !it.isActive
+                    it.description == "My beautiful subscription" &&
+                    it.notification.attributes == listOf("incoming") &&
+                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD,
+                    null
+                ) &&
+                    it.entities.size == 1 &&
+                    !it.isActive
             }
             .verifyComplete()
     }
@@ -265,9 +290,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 4" &&
-                it.description == "My beautiful subscription" &&
-                it.entities.size == 1 &&
-                it.watchedAttributes!! == listOf("incoming", "outgoing")
+                    it.description == "My beautiful subscription" &&
+                    it.entities.size == 1 &&
+                    it.watchedAttributes!! == listOf("incoming", "outgoing")
             }
             .verifyComplete()
     }
@@ -280,9 +305,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 2" &&
-                it.description == "My beautiful subscription" &&
-                it.entities.size == 2 &&
-                it.watchedAttributes == null
+                    it.description == "My beautiful subscription" &&
+                    it.entities.size == 2 &&
+                    it.watchedAttributes == null
             }
             .verifyComplete()
     }
@@ -299,14 +324,18 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
-        subscriptionService.updateSubscriptionNotification(subscription, Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()), true).block()
+        subscriptionService.updateSubscriptionNotification(
+            subscription,
+            Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
+            true
+        ).block()
 
         val persistedSubscription = subscriptionService.getById(subscription.id)
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.notification.lastNotification == notifiedAt &&
-                it.notification.lastSuccess == notifiedAt
+                    it.notification.lastSuccess == notifiedAt
             }
             .verifyComplete()
     }
@@ -321,13 +350,15 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val deletionResult = subscriptionService.delete(subscription.id).block()
 
-        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-            entityEvent.entityType == "Subscription" &&
-            entityEvent.entityId == subscription.id &&
-            entityEvent.operationType == EventType.DELETE &&
-            entityEvent.payload == null &&
-            entityEvent.updatedEntity == null
-        }) }
+        verify(timeout = 1000, exactly = 1) {
+            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+                entityEvent.entityType == "Subscription" &&
+                    entityEvent.entityId == subscription.id &&
+                    entityEvent.operationType == EventType.DELETE &&
+                    entityEvent.payload == null &&
+                    entityEvent.updatedEntity == null
+            })
+        }
 
         assertEquals(deletionResult, 1)
     }
@@ -342,7 +373,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching an idPattern`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:12345678", "Beekeeper", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:12345678", "Beekeeper", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(2L)
@@ -352,7 +384,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a subscription if idPattern does not match`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:9876543", "Beekeeper", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:9876543", "Beekeeper", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
@@ -364,13 +397,17 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching a type and not one with non matching id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:ABCD", "Beehive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:ABCD", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.name == "Subscription 1" &&
-                it.notification.endpoint == Endpoint(URI("http://localhost:8089/notification"), Endpoint.AcceptType.JSONLD) &&
-                it.entities.isEmpty()
+                    it.notification.endpoint == Endpoint(
+                    URI("http://localhost:8089/notification"),
+                    Endpoint.AcceptType.JSONLD
+                ) &&
+                    it.entities.isEmpty()
             }
             .verifyComplete()
     }
@@ -378,7 +415,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching a type and an exact id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(2)
@@ -388,7 +426,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(1)
@@ -398,7 +437,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a subscription if type does not match`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Sensor:1234567890", "Sensor", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Sensor:1234567890", "Sensor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectComplete()
@@ -408,7 +448,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve an activated subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
@@ -420,7 +461,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not retrieve a deactivated subscription matching an id`() {
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(0)
@@ -441,7 +483,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(1)
@@ -464,7 +507,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(1)
@@ -487,7 +531,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
-        val persistedSubscription = subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "BeeHive", "incoming")
 
         StepVerifier.create(persistedSubscription)
             .expectNextCount(0)
@@ -499,10 +544,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should update a subscription `() {
 
-        val parsedInput = Pair(mapOf("name" to "My Subscription Updated",
+        val parsedInput = Pair(
+            mapOf(
+                "name" to "My Subscription Updated",
                 "description" to "My beautiful subscription has been updated",
                 "q" to "foodQuantity>=150",
-                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")), listOf(apicContext))
+                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
+            ), listOf(apicContext)
+        )
 
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
@@ -512,35 +561,44 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.name == "My Subscription Updated" &&
-                it.description == "My beautiful subscription has been updated" &&
-                it.q == "foodQuantity>=150" &&
-                it.geoQ!!.georel == "equals" &&
-                it.geoQ!!.geometry.name == "Point" &&
-                it.geoQ!!.coordinates == "[100.0, 0.0]"
+                    it.description == "My beautiful subscription has been updated" &&
+                    it.q == "foodQuantity>=150" &&
+                    it.geoQ!!.georel == "equals" &&
+                    it.geoQ!!.geometry.name == "Point" &&
+                    it.geoQ!!.coordinates == "[100.0, 0.0]"
             }
             .verifyComplete()
 
-        verify(timeout = 1000, exactly = 1) { subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-            entityEvent.entityType == "Subscription" &&
-            entityEvent.entityId == subscription4Id &&
-            entityEvent.operationType == EventType.UPDATE &&
-            entityEvent.payload != null &&
-            read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
-            read(entityEvent.updatedEntity, "$.description") as String == "My beautiful subscription has been updated" &&
-            read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
-        }) }
+        verify(timeout = 1000, exactly = 1) {
+            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
+                entityEvent.entityType == "Subscription" &&
+                    entityEvent.entityId == subscription4Id &&
+                    entityEvent.operationType == EventType.UPDATE &&
+                    entityEvent.payload != null &&
+                    read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
+                    read(
+                        entityEvent.updatedEntity,
+                        "$.description"
+                    ) as String == "My beautiful subscription has been updated" &&
+                    read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
+            })
+        }
     }
 
     @Test
     fun `it should update a subscription notification`() {
 
-        val parsedInput = mapOf("attributes" to listOf("outgoing"),
+        val parsedInput = mapOf(
+            "attributes" to listOf("outgoing"),
             "format" to "keyValues",
-            "endpoint" to mapOf("accept" to "application/ld+json",
+            "endpoint" to mapOf(
+                "accept" to "application/ld+json",
                 "uri" to "http://localhost:8080",
                 "info" to listOf(
                     mapOf("key" to "Authorization-token", "value" to "Authorization-token-newValue")
-                )))
+                )
+            )
+        )
 
         subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(apicContext)).block()
         val updateResult = subscriptionService.getById(subscription4Id)
@@ -548,13 +606,13 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.notification.attributes == listOf("https://ontology.eglobalmark.com/apic#outgoing") &&
-                it.notification.format.name == "KEY_VALUES" &&
-                it.notification.endpoint.accept.name == "JSONLD" &&
-                it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
-                it.notification.endpoint.info == listOf(
+                    it.notification.format.name == "KEY_VALUES" &&
+                    it.notification.endpoint.accept.name == "JSONLD" &&
+                    it.notification.endpoint.uri.toString() == "http://localhost:8080" &&
+                    it.notification.endpoint.info == listOf(
                     EndpointInfo("Authorization-token", "Authorization-token-newValue")
                 ) &&
-                it.notification.endpoint.info!!.size == 1
+                    it.notification.endpoint.info!!.size == 1
             }
             .verifyComplete()
     }
@@ -563,10 +621,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should update a subscription entities`() {
 
         val parsedInput = listOf(
-            mapOf("id" to "urn:ngsi-ld:Beehive:123",
-                "type" to "Beehive"),
-            mapOf("idPattern" to "urn:ngsi-ld:Beehive:12*",
-                "type" to "Beehive")
+            mapOf(
+                "id" to "urn:ngsi-ld:Beehive:123",
+                "type" to "Beehive"
+            ),
+            mapOf(
+                "idPattern" to "urn:ngsi-ld:Beehive:12*",
+                "type" to "Beehive"
+            )
         )
 
         subscriptionService.updateEntities(subscription4Id, parsedInput, listOf(apicContext)).doOnNext {
@@ -574,9 +636,21 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
             StepVerifier.create(updateResult)
                 .expectNextMatches {
-                    it.entities.contains(EntityInfo(id = "urn:ngsi-ld:Beehive:123", idPattern = null, type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
-                    it.entities.contains(EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beehive:12*", type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive")) &&
-                    it.entities.size == 2
+                    it.entities.contains(
+                        EntityInfo(
+                            id = "urn:ngsi-ld:Beehive:123",
+                            idPattern = null,
+                            type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive"
+                        )
+                    ) &&
+                        it.entities.contains(
+                            EntityInfo(
+                                id = null,
+                                idPattern = "urn:ngsi-ld:Beehive:12*",
+                                type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive"
+                            )
+                        ) &&
+                        it.entities.size == 2
                 }
                 .verifyComplete()
         }
@@ -612,7 +686,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should update a subscription watched attributes`() {
-        val parsedInput = Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(apicContext))
+        val parsedInput =
+            Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(apicContext))
 
         subscriptionService.update(subscription5Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription5Id)
@@ -623,6 +698,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             }
             .verifyComplete()
     }
+
     @Test
     fun `it should update a subscription with a notification result`() {
 
@@ -635,11 +711,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.id == subscription1Id &&
-                it.notification.status == NotificationParams.StatusType.OK &&
-                it.notification.timesSent == 1 &&
-                it.notification.lastNotification != null &&
-                it.notification.lastSuccess != null &&
-                it.notification.lastFailure == null
+                    it.notification.status == NotificationParams.StatusType.OK &&
+                    it.notification.timesSent == 1 &&
+                    it.notification.lastNotification != null &&
+                    it.notification.lastSuccess != null &&
+                    it.notification.lastFailure == null
             }
             .verifyComplete()
     }

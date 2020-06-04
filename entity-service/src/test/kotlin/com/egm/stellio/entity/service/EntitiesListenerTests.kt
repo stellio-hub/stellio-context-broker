@@ -3,7 +3,12 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Called
+import io.mockk.Runs
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.just
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -12,7 +17,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ EntitiesListener::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
 @ActiveProfiles("test")
 class EntitiesListenerTests {
 
@@ -34,15 +39,17 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { entityService.updateEntityLastMeasure(match { observation ->
-            observation.attributeName == "incoming" &&
-            observation.unitCode == "CEL" &&
-            observation.value == 20.7 &&
-            observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-            observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-            observation.longitude == 24.30623 &&
-            observation.latitude == 60.07966
-        }) }
+        verify {
+            entityService.updateEntityLastMeasure(match { observation ->
+                observation.attributeName == "incoming" &&
+                    observation.unitCode == "CEL" &&
+                    observation.value == 20.7 &&
+                    observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
+                    observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
+                    observation.longitude == 24.30623 &&
+                    observation.latitude == 60.07966
+            })
+        }
         confirmVerified(entityService)
     }
 
@@ -55,15 +62,17 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        verify { entityService.updateEntityLastMeasure(match { observation ->
-            observation.attributeName == "incoming" &&
+        verify {
+            entityService.updateEntityLastMeasure(match { observation ->
+                observation.attributeName == "incoming" &&
                     observation.unitCode == "CEL" &&
                     observation.value == 20.7 &&
                     observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
                     observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
                     observation.latitude == null &&
                     observation.longitude == null
-        }) }
+            })
+        }
         confirmVerified(entityService)
     }
 

@@ -1,8 +1,8 @@
 package com.egm.stellio.search.listener
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.util.loadSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -13,9 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
-import java.util.*
+import java.util.UUID
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ SubscriptionListener::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
 @ActiveProfiles("test")
 class SubscriptionListenerTest {
 
@@ -36,12 +36,14 @@ class SubscriptionListenerTest {
 
         subscriptionListener.processSubscription(subscription)
 
-        verify { temporalEntityAttributeService.create(match { entityTemporalProperty ->
-            entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
+        verify {
+            temporalEntityAttributeService.create(match { entityTemporalProperty ->
+                entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                     entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
                     entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
                     entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
-        }) }
+            })
+        }
         confirmVerified(temporalEntityAttributeService)
     }
 
@@ -57,10 +59,12 @@ class SubscriptionListenerTest {
         subscriptionListener.processNotification(notification)
 
         verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234")) }
-        verify { attributeInstanceService.create(match {
-            it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
-                it.temporalEntityAttribute == temporalEntityAttributeUuid
-        }) }
+        verify {
+            attributeInstanceService.create(match {
+                it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+            })
+        }
         confirmVerified(temporalEntityAttributeService)
         confirmVerified(attributeInstanceService)
     }

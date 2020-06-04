@@ -1,18 +1,31 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.client.WireMock.configureFor
+import com.github.tomakehurst.wiremock.client.WireMock.ok
+import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.reset
+import com.github.tomakehurst.wiremock.client.WireMock.stubFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.ninjasquad.springmockk.MockkBean
 import com.jayway.jsonpath.JsonPath.read
-import io.mockk.*
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
+import io.mockk.Runs
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.just
+import io.mockk.verify
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -104,8 +117,10 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        stubFor(post(urlMatching("/notification"))
-            .willReturn(ok()))
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
 
         val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
@@ -119,15 +134,23 @@ class NotificationServiceTests {
             .expectComplete()
             .verify()
 
-        verify(timeout = 1000, exactly = 1) { notificationsEventsListener.handleNotificationEvent(match { entityEvent ->
-            entityEvent.entityType == "Notification" &&
-            entityEvent.operationType == EventType.CREATE &&
-            read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
-            read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
-            entityEvent.updatedEntity == null
-        }) }
+        verify(timeout = 1000, exactly = 1) {
+            notificationsEventsListener.handleNotificationEvent(match { entityEvent ->
+                entityEvent.entityType == "Notification" &&
+                    entityEvent.operationType == EventType.CREATE &&
+                    read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
+                    read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
+                    entityEvent.updatedEntity == null
+            })
+        }
 
-        verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary", "name") }
+        verify {
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Apiary:XYZ01",
+                "https://ontology.eglobalmark.com/apic#Apiary",
+                "name"
+            )
+        }
         verify { subscriptionService.isMatchingQuery(subscription.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
@@ -141,14 +164,19 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(
+            subscription1,
+            subscription2
+        )
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        stubFor(post(urlMatching("/notification"))
-            .willReturn(ok()))
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
 
         val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
@@ -159,7 +187,13 @@ class NotificationServiceTests {
             .expectComplete()
             .verify()
 
-        verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary", "name") }
+        verify {
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Apiary:XYZ01",
+                "https://ontology.eglobalmark.com/apic#Apiary",
+                "name"
+            )
+        }
         verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
         verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
@@ -174,26 +208,37 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription1, subscription2)
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(
+            subscription1,
+            subscription2
+        )
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        stubFor(post(urlMatching("/notification"))
-                .willReturn(ok()))
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
 
         val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
         StepVerifier.create(notificationResult)
-                .expectNextMatches {
-                    it.size == 1
-                }
-                .expectComplete()
-                .verify()
+            .expectNextMatches {
+                it.size == 1
+            }
+            .expectComplete()
+            .verify()
 
-        verify { subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Apiary:XYZ01", "https://ontology.eglobalmark.com/apic#Apiary", "name") }
+        verify {
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Apiary:XYZ01",
+                "https://ontology.eglobalmark.com/apic#Apiary",
+                "name"
+            )
+        }
         verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
         verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
         verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
@@ -212,15 +257,17 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        stubFor(post(urlMatching("/notification"))
-            .willReturn(ok()))
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
 
         StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
-                it.second.subscriptionId == subscription.id &&
-                it.second.data.size == 1 &&
-                it.third
+                    it.second.subscriptionId == subscription.id &&
+                    it.second.data.size == 1 &&
+                    it.third
             }
             .expectComplete()
             .verify()
@@ -256,8 +303,8 @@ class NotificationServiceTests {
         StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
-                it.second.subscriptionId == subscription.id &&
-                it.third
+                    it.second.subscriptionId == subscription.id &&
+                    it.third
             }
             .expectComplete()
             .verify()
@@ -290,8 +337,8 @@ class NotificationServiceTests {
         StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
-                it.second.subscriptionId == subscription.id &&
-                !it.third
+                    it.second.subscriptionId == subscription.id &&
+                    !it.third
             }
             .expectComplete()
             .verify()

@@ -9,9 +9,11 @@ object PagingUtils {
         var nextLink: String? = null
 
         if (pageNumber > 1 && (subscriptionsCount > (pageNumber - 1) * limit))
-            prevLink = "</ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber - 1}>;rel=\"prev\";type=\"application/ld+json\""
+            prevLink =
+                "</ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber - 1}>;rel=\"prev\";type=\"application/ld+json\""
         if (subscriptionsCount > pageNumber * limit)
-            nextLink = "</ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber + 1}>;rel=\"next\";type=\"application/ld+json\""
+            nextLink =
+                "</ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber + 1}>;rel=\"next\";type=\"application/ld+json\""
 
         return Pair(prevLink, nextLink)
     }

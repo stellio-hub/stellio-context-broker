@@ -12,7 +12,7 @@ import org.neo4j.ogm.annotation.Transient
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @NodeEntity
 open class Attribute(

@@ -5,8 +5,8 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -20,7 +20,10 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
 import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.verify
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -36,8 +39,10 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.lang.RuntimeException
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
@@ -73,12 +78,12 @@ class EntityHandlerTests {
         every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
 
         webClient.post()
-                .uri("/ngsi-ld/v1/entities")
-                .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isCreated
-                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
     }
 
     @Test
@@ -88,14 +93,16 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
 
         webClient.post()
-                .uri("/ngsi-ld/v1/entities")
-                .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isEqualTo(409)
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
                     "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"Already Exists\"}")
+                    "\"detail\":\"Already Exists\"}"
+            )
     }
 
     @Test
@@ -111,9 +118,11 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(500)
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                "\"title\":\"There has been an error during the operation execution\"," +
-                "\"detail\":\"Internal Server Exception\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Internal Server Exception\"}"
+            )
     }
 
     @Test
@@ -122,7 +131,10 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -134,7 +146,10 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -150,7 +165,10 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(entityWithoutId)
             .exchange()
@@ -167,7 +185,10 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .accept(MediaType.valueOf("application/ld+json"))
             .bodyValue(entityWithoutType)
             .exchange()
@@ -191,9 +212,12 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize temporal properties`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
-            mapOf(NGSILD_CREATED_AT_PROPERTY to
-                    mapOf("@type" to NGSILD_DATE_TIME_TYPE,
-                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)),
+            mapOf(
+                NGSILD_CREATED_AT_PROPERTY to
+                    mapOf(
+                        "@type" to NGSILD_DATE_TIME_TYPE,
+                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    ),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -213,10 +237,14 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
-            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                NGSILD_PROPERTY_VALUE to mapOf(
-                    "@type" to NGSILD_DATE_TIME_TYPE,
-                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))),
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@type" to NGSILD_DATE_TIME_TYPE,
+                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    )
+                ),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -228,7 +256,9 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001Z\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json(
+                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001Z\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+            )
     }
 
     @Test
@@ -236,10 +266,14 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
-            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                NGSILD_PROPERTY_VALUE to mapOf(
-                    "@type" to NGSILD_DATE_TYPE,
-                    "@value" to LocalDate.of(2015, 10, 18))),
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@type" to NGSILD_DATE_TYPE,
+                        "@value" to LocalDate.of(2015, 10, 18)
+                    )
+                ),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -251,7 +285,9 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Date\",\"@value\":\"2015-10-18\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json(
+                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Date\",\"@value\":\"2015-10-18\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+            )
     }
 
     @Test
@@ -259,10 +295,14 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
-            mapOf("https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf("@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                NGSILD_PROPERTY_VALUE to mapOf(
-                    "@type" to NGSILD_TIME_TYPE,
-                    "@value" to LocalTime.of(11, 20, 30))),
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@type" to NGSILD_TIME_TYPE,
+                        "@value" to LocalTime.of(11, 20, 30)
+                    )
+                ),
                 "@id" to "urn:ngsi-ld:Beehive:4567",
                 "@type" to listOf("Beehive")
             ),
@@ -274,7 +314,9 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Time\",\"@value\":\"11:20:30\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json(
+                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Time\",\"@value\":\"11:20:30\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+            )
     }
 
     @Test
@@ -287,9 +329,11 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                "\"title\":\"The referred resource has not been found\"," +
-                "\"detail\":\"Entity Not Found\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Entity Not Found\"}"
+            )
     }
 
     @Test
@@ -299,9 +343,11 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2\"}")
+                    "\"detail\":\"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2\"}"
+            )
     }
 
     @Test
@@ -310,7 +356,10 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(listOf("fishNumber"), emptyList())
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
+            listOf("fishNumber"),
+            emptyList()
+        )
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -332,7 +381,12 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) }
-            .returns(UpdateResult(listOf("fishNumber"), listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))))
+            .returns(
+                UpdateResult(
+                    listOf("fishNumber"),
+                    listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
+                )
+            )
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -340,7 +394,9 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json("{\"updated\":[\"fishNumber\"],\"notUpdated\":[{\"attributeName\":\"wrongAttribute\",\"reason\":\"overwrite disallowed\"}]}")
+            .expectBody().json(
+                "{\"updated\":[\"fishNumber\"],\"notUpdated\":[{\"attributeName\":\"wrongAttribute\",\"reason\":\"overwrite disallowed\"}]}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
         verify { entityService.appendEntityAttributes(eq("urn:ngsi-ld:BreedingService:0214"), any(), eq(false)) }
@@ -361,9 +417,11 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:BreedingService:0214 does not exist\"}")
+                    "\"detail\":\"Entity urn:ngsi-ld:BreedingService:0214 does not exist\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -376,7 +434,13 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("@type not found")
+        every {
+            entityService.appendEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } throws BadRequestDataException("@type not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -384,9 +448,11 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"@type not found\"}")
+                    "\"detail\":\"@type not found\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -399,7 +465,13 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found")
+        every {
+            entityService.appendEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } throws BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -407,9 +479,11 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasValue not found\"}")
+                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasValue not found\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -418,11 +492,18 @@ class EntityHandlerTests {
 
     @Test
     fun `append entity attribute should return a 400 if the attribute is a relationship and is missing an object`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newRelationship_missing_object.json")
+        val jsonLdFile =
+            ClassPathResource("/ngsild/aquac/fragments/BreedingService_newRelationship_missing_object.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } throws BadRequestDataException("Key $NGSILD_RELATIONSHIP_HAS_OBJECT not found")
+        every {
+            entityService.appendEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } throws BadRequestDataException("Key $NGSILD_RELATIONSHIP_HAS_OBJECT not found")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -430,9 +511,11 @@ class EntityHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasObject not found\"}")
+                    "\"detail\":\"Key https://uri.etsi.org/ngsi-ld/hasObject not found\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
 
@@ -464,7 +547,13 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf())
+        every {
+            entityService.updateEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf())
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -480,11 +569,18 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 207 if some attributes are not found`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_attributeNotFound.json")
+        val jsonLdFile =
+            ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_attributeNotFound.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
         val notUpdatedAttribute = NotUpdatedDetails("unknownAttribute", "Property Not Found")
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
+        every {
+            entityService.updateEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -500,12 +596,21 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 207 if some relationships objects are not found`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json")
+        val jsonLdFile =
+            ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
-        val notUpdatedAttribute = NotUpdatedDetails("removedFrom",
-            "Target entity unknownObject in property does not exist, create it first")
+        val notUpdatedAttribute = NotUpdatedDetails(
+            "removedFrom",
+            "Target entity unknownObject in property does not exist, create it first"
+        )
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttributes(any(), any(), any()) } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
+        every {
+            entityService.updateEntityAttributes(
+                any(),
+                any(),
+                any()
+            )
+        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -525,17 +630,25 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttributes(any(), any(), any()) } throws JsonLdError(LOADING_REMOTE_CONTEXT_FAILED, "http://easyglobalmarket.com/contexts/diat.jsonld")
+        every { entityService.updateEntityAttributes(any(), any(), any()) } throws JsonLdError(
+            LOADING_REMOTE_CONTEXT_FAILED,
+            "http://easyglobalmarket.com/contexts/diat.jsonld"
+        )
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                "\"title\":\"loading remote context failed\"," +
-                "\"detail\":\"loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"loading remote context failed\"," +
+                    "\"detail\":\"loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld\"}"
+            )
     }
 
     @Test
@@ -547,13 +660,18 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(
+                "Link",
+                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+            )
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity urn:ngsi-ld:UnknownType:0022CCC does not exist\"}")
+                    "\"detail\":\"Entity urn:ngsi-ld:UnknownType:0022CCC does not exist\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:UnknownType:0022CCC")) }
     }
@@ -591,9 +709,11 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                "\"title\":\"There has been an error during the operation execution\"," +
-                "\"detail\":\"Unexpected server error\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+                    "\"title\":\"There has been an error during the operation execution\"," +
+                    "\"detail\":\"Unexpected server error\"}"
+            )
     }
 
     @Test
@@ -609,7 +729,13 @@ class EntityHandlerTests {
             .expectBody().isEmpty
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
-        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("fishNumber"),
+                eq(aquacContext!!)
+            )
+        }
         confirmVerified(entityService)
     }
 
@@ -622,26 +748,42 @@ class EntityHandlerTests {
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity Not Found\"}")
+                    "\"detail\":\"Entity Not Found\"}"
+            )
     }
 
     @Test
     fun `delete entity attribute should return a 404 if the attribute is not found`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any()) } throws ResourceNotFoundException("Attribute Not Found")
+        every {
+            entityService.deleteEntityAttribute(
+                any(),
+                any(),
+                any()
+            )
+        } throws ResourceNotFoundException("Attribute Not Found")
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Attribute Not Found\"}")
+                    "\"detail\":\"Attribute Not Found\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
-        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("fishNumber"),
+                eq(aquacContext!!)
+            )
+        }
         confirmVerified(entityService)
     }
 
@@ -655,12 +797,20 @@ class EntityHandlerTests {
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"An error occurred while deleting fishNumber from urn:ngsi-ld:DeadFishes:019BN\"}")
+                    "\"detail\":\"An error occurred while deleting fishNumber from urn:ngsi-ld:DeadFishes:019BN\"}"
+            )
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
-        verify { entityService.deleteEntityAttribute(eq("urn:ngsi-ld:DeadFishes:019BN"), eq("fishNumber"), eq(aquacContext!!)) }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("fishNumber"),
+                eq(aquacContext!!)
+            )
+        }
         confirmVerified(entityService)
     }
 

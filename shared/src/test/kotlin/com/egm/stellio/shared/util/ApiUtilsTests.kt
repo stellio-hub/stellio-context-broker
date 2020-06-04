@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.web.CustomWebFilter
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
+import com.egm.stellio.shared.web.CustomWebFilter
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -9,10 +9,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
-import java.util.*
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.util.Optional
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ ApiUtils::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ApiUtils::class])
 @ActiveProfiles("test")
 class ApiUtilsTests {
     private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(

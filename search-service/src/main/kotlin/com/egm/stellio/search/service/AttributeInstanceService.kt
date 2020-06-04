@@ -1,6 +1,8 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.*
+import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
@@ -10,7 +12,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsD
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import java.util.*
+import java.util.UUID
 
 @Service
 class AttributeInstanceService(
@@ -27,7 +29,11 @@ class AttributeInstanceService(
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances
-    fun addAttributeInstances(temporalEntityAttributeUuid: UUID, attributeKey: String, attributeValues: Map<String, List<Any>>): Mono<Int> {
+    fun addAttributeInstances(
+        temporalEntityAttributeUuid: UUID,
+        attributeKey: String,
+        attributeValues: Map<String, List<Any>>
+    ): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)!!
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
@@ -38,7 +44,10 @@ class AttributeInstanceService(
         return create(attributeInstance)
     }
 
-    fun search(temporalQuery: TemporalQuery, temporalEntityAttribute: TemporalEntityAttribute): Mono<List<Map<String, Any>>> {
+    fun search(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttribute: TemporalEntityAttribute
+    ): Mono<List<Map<String, Any>>> {
 
         var selectQuery =
             when {
@@ -61,7 +70,8 @@ class AttributeInstanceService(
             """
                 FROM attribute_instance
                 WHERE temporal_entity_attribute = '${temporalEntityAttribute.id}' 
-            """)
+            """
+        )
 
         selectQuery = when (temporalQuery.timerel) {
             TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND observed_at < '${temporalQuery.time}'")

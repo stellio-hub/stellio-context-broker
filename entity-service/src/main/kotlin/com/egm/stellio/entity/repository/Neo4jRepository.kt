@@ -39,7 +39,7 @@ class Neo4jRepository(
             MATCH (subject:Attribute { id: "$relationshipId" }), (target:Entity { id: "$entityId" })
             MERGE (subject)-[:$relationshipType]->(target)
             MERGE (subject)-[:HAS_OBJECT]->(target)
-        """
+            """
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().relationshipsCreated
     }
@@ -52,7 +52,7 @@ class Neo4jRepository(
         val query = """
             MERGE (subject:Entity { id: "$subjectId" })
             ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
-        """
+            """
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
@@ -71,7 +71,7 @@ class Neo4jRepository(
         val query = """
             MATCH (a { id: '$attributeId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
             RETURN a.id
-        """.trimIndent()
+            """.trimIndent()
 
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
@@ -80,7 +80,7 @@ class Neo4jRepository(
         val query = """
             MATCH (a { id: '$attributeId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
             RETURN a.id
-        """.trimIndent()
+            """.trimIndent()
 
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
@@ -89,7 +89,7 @@ class Neo4jRepository(
         val query = """
             MATCH (a { id: '$attributeId' }) WHERE a.$geoPropertyName IS NOT NULL
             RETURN a.id
-        """.trimIndent()
+            """.trimIndent()
 
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
@@ -106,17 +106,19 @@ class Neo4jRepository(
                   (target:Entity { id: "$newRelationshipObjectId" })
             DETACH DELETE v
             MERGE (a)-[:HAS_OBJECT]->(target)
-        """.trimIndent()
+            """.trimIndent()
 
         val relationshipTypeQuery = """
             MATCH (a:Attribute { id: "$attributeId" })-[v:$relationshipType]->(e:Entity { id: '$oldRelationshipObjectId' }),
                   (target:Entity { id: "$newRelationshipObjectId" })
             DETACH DELETE v
             MERGE (a)-[:$relationshipType]->(target)
-        """.trimIndent()
+            """.trimIndent()
 
-        val objectQueryStatistics = session.query(hasObjectQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
-        val relationshipTypeQueryStatistics = session.query(relationshipTypeQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
+        val objectQueryStatistics =
+            session.query(hasObjectQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
+        val relationshipTypeQueryStatistics =
+            session.query(relationshipTypeQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
 
         return Pair(objectQueryStatistics, relationshipTypeQueryStatistics)
     }
@@ -126,7 +128,7 @@ class Neo4jRepository(
         val query = """
             MERGE (entity:Entity { id: "$entityId" })
             ON MATCH SET entity.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
-        """
+            """
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
@@ -152,7 +154,7 @@ class Neo4jRepository(
             OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
             DETACH DELETE n,prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
-        """.trimIndent()
+            """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
@@ -180,7 +182,7 @@ class Neo4jRepository(
             OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
             DETACH DELETE prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
-        """.trimIndent()
+            """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted entity $entityId attributes : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
@@ -201,7 +203,7 @@ class Neo4jRepository(
             OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
             OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
             DETACH DELETE prop,propOfProp,relOfProp
-        """.trimIndent()
+            """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted property $propertyName : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
@@ -227,7 +229,7 @@ class Neo4jRepository(
             OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
             DETACH DELETE rel,propOfRel,relOfRel
-        """.trimIndent()
+            """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
         logger.debug("Deleted relationship $relationshipType : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
@@ -289,7 +291,7 @@ class Neo4jRepository(
                 ${if (propertiesFilter.isNotEmpty() && relationshipsFilter.isNotEmpty()) " AND " else ""}
                 $relationshipsFilter
             RETURN n.id as id
-        """
+            """
 
         logger.debug("Issuing search query $finalQuery")
         return session.query(finalQuery, emptyMap<String, Any>(), true)
@@ -316,7 +318,7 @@ class Neo4jRepository(
             AND deviceProp.name = '$propertyName' 
             AND toLower(deviceProp.value) = toLower('$observerId') 
             RETURN e
-        """.trimIndent()
+            """.trimIndent()
 
         logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
@@ -328,7 +330,7 @@ class Neo4jRepository(
         val query = """
             MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
             RETURN p
-        """.trimIndent()
+            """.trimIndent()
 
         logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
@@ -340,7 +342,7 @@ class Neo4jRepository(
         val query = """
             MATCH (n:Entity)-[:HAS_VALUE]->(p:Property { id: '${property.id}' })
             RETURN n
-        """.trimIndent()
+            """.trimIndent()
 
         logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
@@ -356,7 +358,7 @@ class Neo4jRepository(
             MATCH (entity:Entity)
             WHERE entity.id IN {entitiesIds}
             RETURN entity.id as id
-        """
+            """
 
         return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
     }
@@ -365,7 +367,7 @@ class Neo4jRepository(
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
             RETURN p
-        """.trimIndent()
+            """.trimIndent()
 
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["p"] as Property }
@@ -376,7 +378,7 @@ class Neo4jRepository(
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
             RETURN r
-        """.trimIndent()
+            """.trimIndent()
 
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["r"] as Relationship }
@@ -387,7 +389,7 @@ class Neo4jRepository(
         val query = """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
             RETURN e
-        """.trimIndent()
+            """.trimIndent()
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .firstOrNull()

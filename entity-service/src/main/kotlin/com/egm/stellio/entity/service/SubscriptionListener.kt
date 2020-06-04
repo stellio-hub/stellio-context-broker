@@ -59,7 +59,12 @@ class SubscriptionListener(
                 val subscriptionId = parsedNotification["subscriptionId"] as String
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
-                entityService.createNotificationEntity(entityEvent.entityId, entityEvent.entityType, subscriptionId, parsedNotification)
+                entityService.createNotificationEntity(
+                    entityEvent.entityId,
+                    entityEvent.entityType,
+                    subscriptionId,
+                    parsedNotification
+                )
             }
             else -> logger.warn("Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}")
         }

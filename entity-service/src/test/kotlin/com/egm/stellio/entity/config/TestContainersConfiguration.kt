@@ -13,7 +13,10 @@ class TestContainersConfiguration {
     object EntityServiceTestContainers : TestContainers("neo4j", 7687) {
 
         fun getNeo4jUri(): String {
-            return "bolt://" + instance.getServiceHost(serviceName, servicePort) + ":" + instance.getServicePort(serviceName, servicePort)
+            return "bolt://" + instance.getServiceHost(serviceName, servicePort) + ":" + instance.getServicePort(
+                serviceName,
+                servicePort
+            )
         }
     }
 
@@ -26,5 +29,5 @@ class TestContainersConfiguration {
             .credentials(DB_USER, DB_PASSWORD)
             .useNativeTypes()
             .build()
-        }
+    }
 }

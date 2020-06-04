@@ -92,11 +92,14 @@ class EntityOperationService(
         }.collect(
             { BatchOperationResult() },
             { batchOperationResult, updateResult ->
-                updateResult.fold({
-                    batchOperationResult.errors.add(it)
-                }, {
-                    batchOperationResult.success.add(it)
-                })
+                updateResult.fold(
+                    {
+                        batchOperationResult.errors.add(it)
+                    },
+                    {
+                        batchOperationResult.success.add(it)
+                    }
+                )
             },
             BatchOperationResult::plusAssign
         )

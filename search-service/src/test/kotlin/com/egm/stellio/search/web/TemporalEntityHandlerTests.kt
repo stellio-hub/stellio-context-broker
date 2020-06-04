@@ -3,9 +3,9 @@ package com.egm.stellio.search.web
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
@@ -31,7 +31,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
@@ -67,23 +67,32 @@ class TemporalEntityHandlerTests {
         val jsonLdObservation = ClassPathResource("/ngsild/observation.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(temporalEntityAttributeUuid)
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
         every { attributeInstanceService.addAttributeInstances(any(), any(), any()) } returns Mono.just(1)
 
         webClient.post()
-                .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:TESTC/attrs")
-                .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
-                .exchange()
-                .expectStatus().isNoContent
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:TESTC/attrs")
+            .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
+            .exchange()
+            .expectStatus().isNoContent
 
-        verify { temporalEntityAttributeService.getForEntityAndAttribute(eq("urn:ngsi-ld:BeeHive:TESTC"),
-            eq("incoming")) }
-        verify { attributeInstanceService.addAttributeInstances(eq(temporalEntityAttributeUuid),
-            eq("incoming"),
-            match {
-                it.size == 4
-            }
-        ) }
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq("urn:ngsi-ld:BeeHive:TESTC"),
+                eq("incoming")
+            )
+        }
+        verify {
+            attributeInstanceService.addAttributeInstances(
+                eq(temporalEntityAttributeUuid),
+                eq("incoming"),
+                match {
+                    it.size == 4
+                }
+            )
+        }
         confirmVerified(temporalEntityAttributeService)
         confirmVerified(attributeInstanceService)
     }
@@ -96,23 +105,33 @@ class TemporalEntityHandlerTests {
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                "\"detail\":\"Unable to expand JSON-LD fragment : { \\\"id\\\": \\\"bad\\\" }\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
+                    "\"detail\":\"Unable to expand JSON-LD fragment : { \\\"id\\\": \\\"bad\\\" }\"}"
+            )
     }
 
     @Test
     fun `it should return a 400 if a service throws a BadRequestDataException`() {
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } throws BadRequestDataException("Bad request")
+        every {
+            temporalEntityAttributeService.getForEntity(
+                any(),
+                any(),
+                any()
+            )
+        } throws BadRequestDataException("Bad request")
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}"
+            )
     }
 
     @Test
@@ -122,9 +141,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?time=before")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}"
+            )
     }
 
     @Test
@@ -134,9 +155,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}")
+                    "\"detail\":\"'timerel and 'time' request parameters are mandatory\"}"
+            )
     }
 
     @Test
@@ -146,9 +169,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=startTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'endTime' request parameter is mandatory if 'timerel' is 'between'\"}")
+                    "\"detail\":\"'endTime' request parameter is mandatory if 'timerel' is 'between'\"}"
+            )
     }
 
     @Test
@@ -158,9 +183,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before&time=badTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'time' parameter is not a valid date\"}")
+                    "\"detail\":\"'time' parameter is not a valid date\"}"
+            )
     }
 
     @Test
@@ -170,9 +197,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=befor&time=badTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'timerel' is not valid, it should be one of 'before', 'between', or 'after'\"}")
+                    "\"detail\":\"'timerel' is not valid, it should be one of 'before', 'between', or 'after'\"}"
+            )
     }
 
     @Test
@@ -182,9 +211,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=endTime")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'endTime' parameter is not a valid date\"}")
+                    "\"detail\":\"'endTime' parameter is not a valid date\"}"
+            )
     }
 
     @Test
@@ -194,9 +225,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'timeBucket' and 'aggregate' must both be provided for aggregated queries\"}")
+                    "\"detail\":\"'timeBucket' and 'aggregate' must both be provided for aggregated queries\"}"
+            )
     }
 
     @Test
@@ -206,9 +239,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Value 'unknown' is not supported for 'aggregate' parameter\"}")
+                    "\"detail\":\"Value 'unknown' is not supported for 'aggregate' parameter\"}"
+            )
     }
 
     @Test
@@ -220,9 +255,11 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                "\"title\":\"The referred resource has not been found\"," +
-                "\"detail\":\"Entity entityId was not found\"}")
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+                    "\"title\":\"The referred resource has not been found\"," +
+                    "\"detail\":\"Entity entityId was not found\"}"
+            )
     }
 
     @Test
@@ -235,10 +272,15 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(ExpandedEntity::class, relaxed = true)
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
+            ExpandedEntity::class,
+            relaxed = true
+        )
         every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
 
         webClient.get()
@@ -246,10 +288,12 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify { attributeInstanceService.search(match { temporalQuery ->
-            temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
+        verify {
+            attributeInstanceService.search(match { temporalQuery ->
+                temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                    temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+            }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" })
+        }
         confirmVerified(attributeInstanceService)
 
         verify { entityService.getEntityById(eq("entityId"), any()) }
@@ -257,12 +301,14 @@ class TemporalEntityHandlerTests {
 
         verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
 
-        verify(timeout = 1000) { temporalEntityAttributeService.addEntityPayload(match {
-            it.entityId == "entityId"
-        }, match {
-            // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
-            it.startsWith("{\"id\":\"urn:ngsi-ld:BeeHive:TESTC\",\"type\":\"BeeHive\"")
-        }) }
+        verify(timeout = 1000) {
+            temporalEntityAttributeService.addEntityPayload(match {
+                it.entityId == "entityId"
+            }, match {
+                // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
+                it.startsWith("{\"id\":\"urn:ngsi-ld:BeeHive:TESTC\",\"type\":\"BeeHive\"")
+            })
+        }
     }
 
     @Test
@@ -281,7 +327,10 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val rawEntity = loadAndParseSampleData()
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty1, entityTemporalProperty2)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty1,
+            entityTemporalProperty2
+        )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
@@ -292,10 +341,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
 
-        verify { attributeInstanceService.search(match { temporalQuery ->
-            temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+        verify {
+            attributeInstanceService.search(match { temporalQuery ->
+                temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                     temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
+            }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" })
+        }
         confirmVerified(attributeInstanceService)
     }
 
@@ -310,7 +361,9 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = loadAndParseSampleData()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(entityTemporalProperty)
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
@@ -321,10 +374,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
 
-        verify { attributeInstanceService.search(match { temporalQuery ->
-            temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+        verify {
+            attributeInstanceService.search(match { temporalQuery ->
+                temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                     temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-        }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }) }
+            }, match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" })
+        }
         confirmVerified(attributeInstanceService)
     }
 

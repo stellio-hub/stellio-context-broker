@@ -11,7 +11,11 @@ class FCMService {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun sendMessage(notificationData: Map<String, String?>, messageData: Map<String, String>, deviceToken: String): String? {
+    fun sendMessage(
+        notificationData: Map<String, String?>,
+        messageData: Map<String, String>,
+        deviceToken: String
+    ): String? {
         return try {
             sendAndGetResponse(
                 createMessage(messageData, createNotification(notificationData), deviceToken)
@@ -26,7 +30,11 @@ class FCMService {
         return FirebaseMessaging.getInstance().sendAsync(message).get()
     }
 
-    private fun createMessage(messageData: Map<String, String>, notification: Notification, deviceToken: String): Message {
+    private fun createMessage(
+        messageData: Map<String, String>,
+        notification: Notification,
+        deviceToken: String
+    ): Message {
         val message = Message.builder()
         messageData.forEach {
             message.putData(it.key, it.value)

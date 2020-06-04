@@ -20,7 +20,14 @@ class NotificationsEventsListener(
     fun handleNotificationEvent(notificationEvent: EntityEvent) {
 
         val result = when (notificationEvent.operationType) {
-            EventType.CREATE -> eventMessageService.sendMessage(channelName, EventType.CREATE, notificationEvent.entityId, notificationEvent.entityType, notificationEvent.payload, null)
+            EventType.CREATE -> eventMessageService.sendMessage(
+                channelName,
+                EventType.CREATE,
+                notificationEvent.entityId,
+                notificationEvent.entityType,
+                notificationEvent.payload,
+                null
+            )
             else -> {
                 logger.warn("${notificationEvent.operationType} operation not supported")
                 return

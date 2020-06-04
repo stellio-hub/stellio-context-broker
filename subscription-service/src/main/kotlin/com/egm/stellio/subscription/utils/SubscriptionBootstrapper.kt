@@ -1,6 +1,10 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.SubscriptionService
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
@@ -19,11 +23,20 @@ class SubscriptionBootstrapper(
 
     override fun run(vararg args: String) {
 
-        val subscription = Subscription(name = "My Subscription",
+        val subscription = Subscription(
+            name = "My Subscription",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
-                EntityInfo(id = "urn:ngsi-ld:FeedingService:018z59", idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
-                EntityInfo(id = null, idPattern = "urn:ngsi-ld:FeedingService:018*", type = "https://ontology.eglobalmark.com/aquac#FeedingService")
+                EntityInfo(
+                    id = "urn:ngsi-ld:FeedingService:018z59",
+                    idPattern = null,
+                    type = "https://ontology.eglobalmark.com/aquac#FeedingService"
+                ),
+                EntityInfo(
+                    id = null,
+                    idPattern = "urn:ngsi-ld:FeedingService:018*",
+                    type = "https://ontology.eglobalmark.com/aquac#FeedingService"
+                )
             ),
             geoQ = GeoQuery(
                 georel = "within",
@@ -41,7 +54,8 @@ class SubscriptionBootstrapper(
                 lastNotification = null,
                 lastFailure = null,
                 lastSuccess = null
-            ))
+            )
+        )
 
         subscriptionService.create(subscription, "subscription-bootstrapper")
             .thenEmpty {

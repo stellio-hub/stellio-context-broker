@@ -137,8 +137,12 @@ class EntityOperationService(
     @Throws(BadRequestDataException::class)
     private fun replaceEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
         neo4jRepository.deleteEntityAttributes(entity.id)
-        entityService.appendEntityAttributes(entity.id, entity.attributes, false)
-        return Either.right(entity.id)
+        val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
+        if (notUpdated.isEmpty()) {
+            return Either.right(entity.id)
+        } else {
+            throw BadRequestDataException(ArrayList(notUpdated.map { it.attributeName + " : " + it.reason }).joinToString())
+        }
     }
 
     private fun updateEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {

@@ -624,8 +624,7 @@ class EntityService(
     }
 
     fun updateEntityLastMeasure(observation: Observation) {
-        val observingEntity =
-            neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
+        val observingEntity = neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
         if (observingEntity == null) {
             logger.warn("Unable to find observing entity ${observation.observedBy} for property ${observation.attributeName}")
             return

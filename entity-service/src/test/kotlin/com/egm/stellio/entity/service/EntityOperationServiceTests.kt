@@ -11,7 +11,11 @@ import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.mockkClass
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -199,8 +203,6 @@ class EntityOperationServiceTests {
         val batchOperationResult =
             entityOperationService.update(listOf(firstEntity, secondEntity), BatchOperationResult())
 
-        val a = listOf(1, 2)
-
         assertEquals(listOf("1"), batchOperationResult.success)
         assertEquals(
             listOf(BatchEntityError("2", arrayListOf("error"))),
@@ -251,9 +253,15 @@ class EntityOperationServiceTests {
 
         every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
         every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
-        every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns mockk()
+        every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
+            emptyList(),
+            emptyList()
+        )
         every { neo4jRepository.deleteEntityAttributes("2") } returns mockk()
-        every { entityService.appendEntityAttributes(eq("2"), any(), any()) } returns mockk()
+        every { entityService.appendEntityAttributes(eq("2"), any(), any()) } returns UpdateResult(
+            emptyList(),
+            emptyList()
+        )
 
         val batchOperationResult =
             entityOperationService.replace(listOf(firstEntity, secondEntity), BatchOperationResult())
@@ -273,7 +281,10 @@ class EntityOperationServiceTests {
 
         every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
         every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
-        every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns mockk()
+        every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
+            emptyList(),
+            emptyList()
+        )
         every { neo4jRepository.deleteEntityAttributes("2") } returns mockk()
         every { entityService.appendEntityAttributes(eq("2"), any(), any()) } throws BadRequestDataException("error")
 
@@ -283,6 +294,42 @@ class EntityOperationServiceTests {
         assertEquals(listOf("1"), batchOperationResult.success)
         assertEquals(
             listOf(BatchEntityError("2", arrayListOf("error"))),
+            batchOperationResult.errors
+        )
+    }
+
+    @Test
+    fun `it should count as error entities that couldn't be replaced totally`() {
+        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        every { firstEntity.id } returns "1"
+        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
+        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        every { secondEntity.id } returns "2"
+        every { secondEntity.getLinkedEntitiesIds() } returns listOf()
+
+        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
+        every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
+        every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
+            emptyList(),
+            emptyList()
+        )
+        every { neo4jRepository.deleteEntityAttributes("2") } returns mockk()
+        every { entityService.appendEntityAttributes(eq("2"), any(), any()) } returns UpdateResult(
+            emptyList(),
+            listOf(
+                NotUpdatedDetails("attribute#1", "reason"),
+                NotUpdatedDetails("attribute#2", "reason")
+            )
+        )
+
+        val batchOperationResult = entityOperationService.replace(
+            listOf(firstEntity, secondEntity),
+            BatchOperationResult()
+        )
+
+        assertEquals(listOf("1"), batchOperationResult.success)
+        assertEquals(
+            listOf(BatchEntityError("2", arrayListOf("attribute#1 : reason, attribute#2 : reason"))),
             batchOperationResult.errors
         )
     }

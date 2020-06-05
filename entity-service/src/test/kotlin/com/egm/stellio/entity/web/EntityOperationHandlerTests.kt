@@ -312,14 +312,16 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\n" +
-                    "    \"errors\": [],\n" +
-                    "    \"success\": [\n" +
-                    "        \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature\",\n" +
-                    "        \"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen\",\n" +
-                    "        \"urn:ngsi-ld:Device:HCMR-AQUABOX1\"\n" +
-                    "    ]\n" +
-                    "}"
+                """
+                {
+                    "errors": [],
+                    success: [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
             )
     }
 

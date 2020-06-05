@@ -3,7 +3,11 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.isDate
+import com.egm.stellio.shared.util.isDateTime
+import com.egm.stellio.shared.util.isFloat
+import com.egm.stellio.shared.util.isTime
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -179,7 +183,7 @@ class Neo4jRepository(
         """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
+        logger.debug("Deleted entity $entityId attributes : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 

@@ -12,7 +12,7 @@ interface EntityRepository : Neo4jRepository<Entity, String> {
             "RETURN entity"
     )
     fun getEntityCoreById(id: String): List<Map<String, Any>>
-    
+
     @Query("MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property)" +
             "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +
             "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject:Entity)" +

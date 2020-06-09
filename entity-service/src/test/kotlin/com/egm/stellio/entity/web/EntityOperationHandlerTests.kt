@@ -32,7 +32,7 @@ class EntityOperationHandlerTests {
     @Autowired
     private lateinit var webClient: WebTestClient
 
-    @MockkBean(relaxed = true)
+    @MockkBean
     private lateinit var entityOperationService: EntityOperationService
 
     @Test
@@ -46,8 +46,8 @@ class EntityOperationHandlerTests {
         val expandedEntities = slot<List<ExpandedEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
-            listOf(),
-            listOf()
+            emptyList(),
+            emptyList()
         )
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             entitiesIds,
@@ -94,8 +94,8 @@ class EntityOperationHandlerTests {
         )
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(),
-            listOf()
+            emptyList(),
+            emptyList()
         )
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             createdEntitiesIds,
@@ -145,7 +145,7 @@ class EntityOperationHandlerTests {
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(existingEntity),
-            listOf()
+            emptyList()
         )
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             createdEntitiesIds,
@@ -179,11 +179,124 @@ class EntityOperationHandlerTests {
     }
 
     @Test
+    fun `upsert batch entity should return a 200 if JSON-LD payload is correct`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val createdEntitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+        )
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        )
+        val createdBatchResult = BatchOperationResult(
+            createdEntitiesIds,
+            arrayListOf()
+        )
+
+        val existingEntities = mockk<List<ExpandedEntity>>()
+        val nonExistingEntities = mockk<List<ExpandedEntity>>()
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            existingEntities,
+            nonExistingEntities
+        )
+
+        every { entityOperationService.create(nonExistingEntities) } returns createdBatchResult
+        every { entityOperationService.update(existingEntities, createdBatchResult) } returns BatchOperationResult(
+            entitiesIds,
+            arrayListOf()
+        )
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [],
+                    success: [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `upsert batch entity should return a 200 if JSON-LD payload contains update errors`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val errors = arrayListOf(
+            BatchEntityError(
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
+            ),
+            BatchEntityError(
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
+            )
+        )
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every { entityOperationService.create(any()) } returns BatchOperationResult(
+            arrayListOf(),
+            arrayListOf()
+        )
+        every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
+            arrayListOf(),
+            errors
+        )
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
+                            "error": [ 
+                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                            ] 
+                        }, 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
+                            "error": [ 
+                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                            ] 
+                        }
+                    ], 
+                    "success": [] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
+        shouldReturn400WithBadPayload("create")
+    }
+
+    @Test
+    fun `upsert batch entity should return a 400 if JSON-LD payload is not correct`() {
+        shouldReturn400WithBadPayload("upsert")
+    }
+
+    private fun shouldReturn400WithBadPayload(method: String) {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
+            .uri("/ngsi-ld/v1/entityOperations/" + method)
             .header(
                 "Link",
                 "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"

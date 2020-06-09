@@ -95,7 +95,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         )
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.attributes, mapOf("@context" to enrichedEntity.contexts), JsonLdOptions())
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("expectations/beehive_with_incoming_temporal_values.jsonld").trim(), finalEntity)
     }
@@ -119,7 +123,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         )
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.attributes, mapOf("@context" to enrichedEntity.contexts), JsonLdOptions())
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("expectations/subscription_with_notifications_temporal_values.jsonld").trim(), finalEntity)
     }
@@ -145,7 +153,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         )
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
-        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.attributes, mapOf("@context" to enrichedEntity.contexts), JsonLdOptions())
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("expectations/subscription_with_notifications.jsonld").trim(), finalEntity)
     }
@@ -156,7 +168,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawResults = emptyList<List<Map<String, Any>>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.attributes, mapOf("@context" to enrichedEntity.contexts), JsonLdOptions())
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
     }
@@ -167,7 +183,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawResults = listOf(listOf(emptyMap<String, Any>()))
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(enrichedEntity.attributes, mapOf("@context" to enrichedEntity.contexts), JsonLdOptions())
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
     }

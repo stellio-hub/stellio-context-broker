@@ -26,11 +26,11 @@ class EntitiesListener(
                 val updatedFragment = parseJsonLdFragment(entityEvent.payload!!)
                 val parsedEntity = parseEntity(it)
                 notificationService.notifyMatchingSubscribers(it, parsedEntity, updatedFragment.keys)
-                        .subscribe {
-                            val succeededNotifications = it.filter { it.third }.size
-                            val failedNotifications = it.filter { !it.third }.size
-                            logger.debug("Notified ${it.size} subscribers (success : $succeededNotifications / failure : $failedNotifications)")
-                        }
+                    .subscribe {
+                        val succeededNotifications = it.filter { it.third }.size
+                        val failedNotifications = it.filter { !it.third }.size
+                        logger.debug("Notified ${it.size} subscribers (success : $succeededNotifications / failure : $failedNotifications)")
+                    }
             } catch (e: Exception) {
                 logger.error("Received a non-parseable entity : $content", e)
             }

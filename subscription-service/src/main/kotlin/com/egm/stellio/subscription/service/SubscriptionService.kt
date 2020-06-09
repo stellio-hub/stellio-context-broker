@@ -4,22 +4,26 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
-import com.egm.stellio.subscription.model.*
+import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
-import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
-import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.repository.SubscriptionRepository
-import com.egm.stellio.subscription.utils.*
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntityInfo
+import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
+import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
+import com.egm.stellio.subscription.utils.QueryUtils
+import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.jayway.jsonpath.JsonPath.read
-import io.r2dbc.spi.Row
 import io.r2dbc.postgresql.codec.Json
+import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -78,7 +82,13 @@ class SubscriptionService(
             }
             .collectList()
             .doOnSuccess {
-                val subscriptionEvent = EntityEvent(EventType.CREATE, subscription.id, subscription.type, serializeObject(subscription), null)
+                val subscriptionEvent = EntityEvent(
+                    EventType.CREATE,
+                    subscription.id,
+                    subscription.type,
+                    serializeObject(subscription),
+                    null
+                )
                 applicationEventPublisher.publishEvent(subscriptionEvent)
             }
             .map {
@@ -125,12 +135,12 @@ class SubscriptionService(
         """.trimIndent()
 
         return databaseClient.execute(selectStatement)
-                .bind("id", id)
-                .map(rowToSubscription)
-                .all()
-                .reduce { t: Subscription, u: Subscription ->
-                    t.copy(entities = t.entities.plus(u.entities))
-                }
+            .bind("id", id)
+            .map(rowToSubscription)
+            .all()
+            .reduce { t: Subscription, u: Subscription ->
+                t.copy(entities = t.entities.plus(u.entities))
+            }
     }
 
     fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
@@ -172,15 +182,18 @@ class SubscriptionService(
                     val value = it.value.toSqlValue(it.key)
 
                     val updateStatement = Update.update(columnName, value)
-                    updates.add(databaseClient.update()
-                        .table("subscription")
-                        .using(updateStatement)
-                        .matching(Criteria.where("id").`is`(subscriptionId))
-                        .fetch()
-                        .rowsUpdated()
-                        .doOnError { e ->
-                            throw BadRequestDataException(e.message ?: "Could not update attribute ${it.key}")
-                        }
+                    updates.add(
+                        databaseClient.update()
+                            .table("subscription")
+                            .using(updateStatement)
+                            .matching(Criteria.where("id").`is`(subscriptionId))
+                            .fetch()
+                            .rowsUpdated()
+                            .doOnError { e ->
+                                throw BadRequestDataException(
+                                    e.message ?: "Could not update attribute ${it.key}"
+                                )
+                            }
                     )
                 }
             }
@@ -195,7 +208,13 @@ class SubscriptionService(
                 getById(subscriptionId)
             }
             .doOnSuccess {
-                val subscriptionEvent = EntityEvent(EventType.UPDATE, subscriptionId, it.t2.type, serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)), serializeObject(it.t2))
+                val subscriptionEvent = EntityEvent(
+                    EventType.UPDATE,
+                    subscriptionId,
+                    it.t2.type,
+                    serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)),
+                    serializeObject(it.t2)
+                )
                 applicationEventPublisher.publishEvent(subscriptionEvent)
             }
             .map { it.t1.size }
@@ -254,25 +273,34 @@ class SubscriptionService(
         }
     }
 
-    private fun extractParamsFromNotificationAttribute(attribute: Map.Entry<String, Any>, contexts: List<String>?): List<Pair<String, Any?>> {
+    private fun extractParamsFromNotificationAttribute(
+        attribute: Map.Entry<String, Any>,
+        contexts: List<String>?
+    ): List<Pair<String, Any?>> {
         return when (attribute.key) {
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    NgsiLdParsingUtils.expandJsonLdKey(it, contexts!!) !!
+                    NgsiLdParsingUtils.expandJsonLdKey(it, contexts!!)!!
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }
             "format" -> {
-                val format = if (attribute.value == "keyValues") NotificationParams.FormatType.KEY_VALUES.name else NotificationParams.FormatType.NORMALIZED.name
+                val format =
+                    if (attribute.value == "keyValues") NotificationParams.FormatType.KEY_VALUES.name else NotificationParams.FormatType.NORMALIZED.name
                 listOf(Pair("notif_format", format))
             }
             "endpoint" -> {
                 val endpoint = attribute.value as Map<String, Any>
-                val accept = if (endpoint["accept"] == "application/json") Endpoint.AcceptType.JSON.name else Endpoint.AcceptType.JSONLD.name
+                val accept =
+                    if (endpoint["accept"] == "application/json") Endpoint.AcceptType.JSON.name else Endpoint.AcceptType.JSONLD.name
                 val endpointInfo = endpoint["info"] as List<Map<String, String>>?
 
-                listOf(Pair("endpoint_uri", endpoint["uri"]), Pair("endpoint_accept", accept), Pair("endpoint_info", Json.of(endpointInfoMapToString(endpointInfo))))
+                listOf(
+                    Pair("endpoint_uri", endpoint["uri"]),
+                    Pair("endpoint_accept", accept),
+                    Pair("endpoint_info", Json.of(endpointInfoMapToString(endpointInfo)))
+                )
             }
             else -> {
                 throw BadRequestDataException("Could not update attribute ${attribute.key}")
@@ -295,15 +323,15 @@ class SubscriptionService(
         """.trimIndent()
 
         return databaseClient.execute(deleteStatement)
-                .bind("id", subscriptionId)
-                .fetch()
-                .rowsUpdated()
-                .doOnSuccess {
-                    if (it >= 1) {
-                        val subscriptionEvent = EntityEvent(EventType.DELETE, subscriptionId, "Subscription")
-                        applicationEventPublisher.publishEvent(subscriptionEvent)
-                    }
+            .bind("id", subscriptionId)
+            .fetch()
+            .rowsUpdated()
+            .doOnSuccess {
+                if (it >= 1) {
+                    val subscriptionEvent = EntityEvent(EventType.DELETE, subscriptionId, "Subscription")
+                    applicationEventPublisher.publishEvent(subscriptionEvent)
                 }
+            }
     }
 
     fun deleteEntityInfo(subscriptionId: String): Mono<Int> =
@@ -408,12 +436,12 @@ class SubscriptionService(
             Mono.just(true)
         else {
             getMatchingGeoQuery(subscriptionId)
-                    .map {
-                        createGeoQueryStatement(it, targetGeometry)
-                    }.flatMap {
-                        runGeoQueryStatement(it)
-                    }
-                    .switchIfEmpty(Mono.just(true))
+                .map {
+                    createGeoQueryStatement(it, targetGeometry)
+                }.flatMap {
+                    runGeoQueryStatement(it)
+                }
+                .switchIfEmpty(Mono.just(true))
         }
     }
 
@@ -424,19 +452,24 @@ class SubscriptionService(
             WHERE subscription_id = :sub_id
         """.trimIndent()
         return databaseClient.execute(selectStatement)
-                .bind("sub_id", subscriptionId)
-                .map(rowToGeoQuery)
-                .first()
+            .bind("sub_id", subscriptionId)
+            .map(rowToGeoQuery)
+            .first()
     }
 
     fun runGeoQueryStatement(geoQueryStatement: String): Mono<Boolean> {
         return databaseClient.execute(geoQueryStatement.trimIndent())
-                    .map(matchesGeoQuery)
-                    .first()
+            .map(matchesGeoQuery)
+            .first()
     }
 
-    fun updateSubscriptionNotification(subscription: Subscription, notification: Notification, success: Boolean): Mono<Int> {
-        val subscriptionStatus = if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
+    fun updateSubscriptionNotification(
+        subscription: Subscription,
+        notification: Notification,
+        success: Boolean
+    ): Mono<Int> {
+        val subscriptionStatus =
+            if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
         val lastStatusName = if (success) "last_success" else "last_failure"
         val updateStatement = Update.update("status", subscriptionStatus)
             .set("times_sent", subscription.notification.timesSent + 1)
@@ -453,33 +486,36 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-                id = row.get("sub_id", String::class.java)!!,
-                type = row.get("sub_type", String::class.java)!!,
-                name = row.get("name", String::class.java),
-                description = row.get("description", String::class.java),
-                watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
-                q = row.get("q", String::class.java),
-                entities = setOf(EntityInfo(
-                        id = row.get("entity_id", String::class.java),
-                        idPattern = row.get("id_pattern", String::class.java),
-                        type = row.get("entity_type", String::class.java)!!
-                )),
-                geoQ = rowToGeoQuery(row),
-                notification = NotificationParams(
-                        attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
-                        format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
-                        endpoint = Endpoint(
-                                uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                                accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
-                                info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
-                        ),
-                        status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
-                        timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
-                        lastNotification = row.get("last_notification", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
-                        lastFailure = row.get("last_failure", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
-                        lastSuccess = row.get("last_success", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC)
+            id = row.get("sub_id", String::class.java)!!,
+            type = row.get("sub_type", String::class.java)!!,
+            name = row.get("name", String::class.java),
+            description = row.get("description", String::class.java),
+            watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
+            q = row.get("q", String::class.java),
+            entities = setOf(
+                EntityInfo(
+                    id = row.get("entity_id", String::class.java),
+                    idPattern = row.get("id_pattern", String::class.java),
+                    type = row.get("entity_type", String::class.java)!!
+                )
+            ),
+            geoQ = rowToGeoQuery(row),
+            notification = NotificationParams(
+                attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
+                format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
+                endpoint = Endpoint(
+                    uri = URI(row.get("endpoint_uri", String::class.java)!!),
+                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
+                    info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
                 ),
-                isActive = row.get("is_active", Object::class.java).toString() == "true"
+                status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
+                timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
+                lastNotification = row.get("last_notification", ZonedDateTime::class.java)?.toInstant()
+                    ?.atZone(ZoneOffset.UTC),
+                lastFailure = row.get("last_failure", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
+                lastSuccess = row.get("last_success", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC)
+            ),
+            isActive = row.get("is_active", Object::class.java).toString() == "true"
         )
     }
 
@@ -511,9 +547,9 @@ class SubscriptionService(
     private var rowToGeoQuery: ((Row) -> GeoQuery?) = { row ->
         if (row.get("georel", String::class.java) != null)
             GeoQuery(
-                    georel = row.get("georel", String::class.java)!!,
-                    geometry = GeoQuery.GeometryType.valueOf(row.get("geometry", String::class.java)!!),
-                    coordinates = row.get("coordinates", String::class.java)!!
+                georel = row.get("georel", String::class.java)!!,
+                geometry = GeoQuery.GeometryType.valueOf(row.get("geometry", String::class.java)!!),
+                coordinates = row.get("coordinates", String::class.java)!!
             )
         else
             null

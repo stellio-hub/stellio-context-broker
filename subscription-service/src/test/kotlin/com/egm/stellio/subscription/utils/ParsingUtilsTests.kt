@@ -1,12 +1,12 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.subscription.model.EndpointInfo
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ ParsingUtils::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ParsingUtils::class])
 @ActiveProfiles("test")
 class ParsingUtilsTests {
 

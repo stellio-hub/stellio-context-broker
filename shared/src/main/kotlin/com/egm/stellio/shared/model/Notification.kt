@@ -4,7 +4,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 data class Notification(
     val id: URI = URI.create("urn:ngsi-ld:Notification:${UUID.randomUUID()}"),

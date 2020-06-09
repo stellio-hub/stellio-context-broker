@@ -1,25 +1,33 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
-import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
-import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
+import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.web.extractJwT
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.service.SubscriptionService
+import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
+import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.net.URI
@@ -47,10 +55,12 @@ class SubscriptionHandler(
             }
             .zipWith(extractJwT())
             .flatMap { subscriptionAndSubject ->
-                subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject).map { subscriptionAndSubject.t1 }
+                subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject)
+                    .map { subscriptionAndSubject.t1 }
             }
             .map {
-                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/subscriptions/${it.id}")).build<String>()
+                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/subscriptions/${it.id}"))
+                    .build<String>()
             }
     }
 
@@ -66,7 +76,6 @@ class SubscriptionHandler(
             ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
                 .toMono()
-
         else extractJwT()
             .flatMap {
                 subscriptionService.getSubscriptionsCount(it.subject).flatMap { count ->
@@ -74,9 +83,10 @@ class SubscriptionHandler(
                 }
             }
             .flatMap { subscriptionsCountAndSubject ->
-                subscriptionService.getSubscriptions(limit, (page - 1) * limit, subscriptionsCountAndSubject.second).collectList().flatMap {
-                    Mono.just(Pair(subscriptionsCountAndSubject.first, it))
-                }
+                subscriptionService.getSubscriptions(limit, (page - 1) * limit, subscriptionsCountAndSubject.second)
+                    .collectList().flatMap {
+                        Mono.just(Pair(subscriptionsCountAndSubject.first, it))
+                    }
             }
             .map {
                 val prevLink = getSubscriptionsPagingLinks(it.first, page, limit).first
@@ -85,7 +95,8 @@ class SubscriptionHandler(
             }
             .map {
                 if (it.second != null && it.third != null)
-                    ResponseEntity.status(HttpStatus.OK).header("Link", it.second).header("Link", it.third).body(it.first)
+                    ResponseEntity.status(HttpStatus.OK).header("Link", it.second).header("Link", it.third)
+                        .body(it.first)
                 else if (it.second != null)
                     ResponseEntity.status(HttpStatus.OK).header("Link", it.second).body(it.first)
                 else if (it.third != null)
@@ -118,7 +129,10 @@ class SubscriptionHandler(
     /**
      * Implements 6.11.3.2 - Update Subscription
      */
-    @PatchMapping("/{subscriptionId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @PatchMapping(
+        "/{subscriptionId}",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
     fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {

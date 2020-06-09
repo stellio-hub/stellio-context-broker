@@ -21,7 +21,8 @@ class RepositoryEventsListener(
 ) {
 
     private val logger = LoggerFactory.getLogger(RepositoryEventsListener::class.java)
-    private val mapper = jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+    private val mapper =
+        jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     // TODO: For deserialization in other modules Jackson can be used with the entityEvent model that gives a payload and an updatedEntity in a proper json format
     @Async
@@ -31,8 +32,18 @@ class RepositoryEventsListener(
 
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
-            EventType.CREATE -> sendCreateMessage(channelName, entityEvent.entityId, entityEvent.entityType, entityEvent.payload!!)
-            EventType.UPDATE -> sendUpdateMessage(channelName, entityEvent.entityId, entityEvent.entityType, entityEvent.payload!!)
+            EventType.CREATE -> sendCreateMessage(
+                channelName,
+                entityEvent.entityId,
+                entityEvent.entityType,
+                entityEvent.payload!!
+            )
+            EventType.UPDATE -> sendUpdateMessage(
+                channelName,
+                entityEvent.entityId,
+                entityEvent.entityType,
+                entityEvent.payload!!
+            )
             else -> false
         }
 
@@ -43,21 +54,26 @@ class RepositoryEventsListener(
     }
 
     private fun sendCreateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
-        val data = mapOf("operationType" to EventType.CREATE.name,
+        val data = mapOf(
+            "operationType" to EventType.CREATE.name,
             "entityId" to entityId,
             "entityType" to entityType,
             "payload" to payload
         )
 
         return resolver.resolveDestination(channelName)
-            .send(MessageBuilder.createMessage(mapper.writeValueAsString(data),
-                MessageHeaders(mapOf(MessageHeaders.ID to entityId))
-            ))
+            .send(
+                MessageBuilder.createMessage(
+                    mapper.writeValueAsString(data),
+                    MessageHeaders(mapOf(MessageHeaders.ID to entityId))
+                )
+            )
     }
 
     private fun sendUpdateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
         val entity = getEntityById(entityId)
-        val data = mapOf("operationType" to EventType.UPDATE.name,
+        val data = mapOf(
+            "operationType" to EventType.UPDATE.name,
             "entityId" to entityId,
             "entityType" to entityType,
             "payload" to payload,
@@ -65,9 +81,12 @@ class RepositoryEventsListener(
         )
 
         return resolver.resolveDestination(channelName)
-            .send(MessageBuilder.createMessage(mapper.writeValueAsString(data),
-                MessageHeaders(mapOf(MessageHeaders.ID to entityId))
-            ))
+            .send(
+                MessageBuilder.createMessage(
+                    mapper.writeValueAsString(data),
+                    MessageHeaders(mapOf(MessageHeaders.ID to entityId))
+                )
+            )
     }
 
     private fun getEntityById(entityId: String): String {

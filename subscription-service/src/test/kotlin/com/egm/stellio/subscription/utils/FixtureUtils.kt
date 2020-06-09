@@ -1,20 +1,33 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
+import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.Subscription
 import java.net.URI
 
-fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true, withEndpointInfo: Boolean = true, georel: String = "within"): Subscription {
+fun gimmeRawSubscription(
+    withQuery: Boolean = true,
+    withGeoQuery: Boolean = true,
+    withEndpointInfo: Boolean = true,
+    georel: String = "within"
+): Subscription {
     val q =
-            if (withQuery)
-                "speed>50;foodName==dietary fibres"
-            else
-                null
+        if (withQuery)
+            "speed>50;foodName==dietary fibres"
+        else
+            null
 
     val geoQuery =
-            if (withGeoQuery)
-                GeoQuery(georel = georel, geometry = GeoQuery.GeometryType.Polygon, coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]")
-            else
-                null
+        if (withGeoQuery)
+            GeoQuery(
+                georel = georel,
+                geometry = GeoQuery.GeometryType.Polygon,
+                coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
+            )
+        else
+            null
 
     val endpointInfo =
         if (withEndpointInfo)
@@ -22,7 +35,8 @@ fun gimmeRawSubscription(withQuery: Boolean = true, withGeoQuery: Boolean = true
         else
             null
 
-    return Subscription(name = "My Subscription",
+    return Subscription(
+        name = "My Subscription",
         description = "My beautiful subscription",
         q = q,
         entities = emptySet(),

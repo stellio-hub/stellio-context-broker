@@ -1,7 +1,9 @@
 package com.egm.stellio.shared.util
 
 import junit.framework.TestCase
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.core.io.ClassPathResource
 
@@ -99,13 +101,13 @@ class NgsiLdParsingUtilsTests {
         TestCase.assertEquals(
             location, mapOf(
                 "geometry" to "Polygon", "coordinates" to
-                        listOf(
-                            listOf(100.0, 0.0),
-                            listOf(101.0, 0.0),
-                            listOf(101.0, 1.0),
-                            listOf(100.0, 1.0),
-                            listOf(100.0, 0.0)
-                        )
+                    listOf(
+                        listOf(100.0, 0.0),
+                        listOf(101.0, 0.0),
+                        listOf(101.0, 1.0),
+                        listOf(100.0, 1.0),
+                        listOf(100.0, 0.0)
+                    )
             )
         )
     }

@@ -31,7 +31,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @Service
 class TemporalEntityAttributeService(
@@ -40,16 +40,20 @@ class TemporalEntityAttributeService(
 ) {
 
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
-        databaseClient.execute("""
+        databaseClient.execute(
+            """
             INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload)
             VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload)
-            """)
+            """
+        )
             .bind("id", temporalEntityAttribute.id)
             .bind("entity_id", temporalEntityAttribute.entityId)
             .bind("type", temporalEntityAttribute.type)
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
-            .bind("entity_payload", temporalEntityAttribute.entityPayload?.let { Json.of(temporalEntityAttribute.entityPayload) })
+            .bind(
+                "entity_payload",
+                temporalEntityAttribute.entityPayload?.let { Json.of(temporalEntityAttribute.entityPayload) })
             .fetch()
             .rowsUpdated()
 
@@ -121,13 +125,13 @@ class TemporalEntityAttributeService(
             SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-        """.trimIndent()
+            """.trimIndent()
 
         val expandedAttrsList =
             attrs.map {
                 expandJsonLdKey(it, contextLink)!!
             }
-            .joinToString(",") { "'$it'" }
+                .joinToString(",") { "'$it'" }
 
         val finalQuery =
             if (attrs.isNotEmpty())
@@ -147,7 +151,7 @@ class TemporalEntityAttributeService(
             SELECT id
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient
             .execute(selectQuery)
@@ -162,7 +166,7 @@ class TemporalEntityAttributeService(
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
             AND attribute_name = :attribute_name
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient
             .execute(selectQuery)
@@ -178,7 +182,12 @@ class TemporalEntityAttributeService(
             entityId = row.get("entity_id", String::class.java)!!,
             type = row.get("type", String::class.java)!!,
             attributeName = row.get("attribute_name", String::class.java)!!,
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(row.get("attribute_value_type", String::class.java)!!),
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
+                row.get(
+                    "attribute_value_type",
+                    String::class.java
+                )!!
+            ),
             entityPayload = row.get("entity_payload", String::class.java)
         )
     }
@@ -198,8 +207,7 @@ class TemporalEntityAttributeService(
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results
             it.isNotEmpty() && it[0].isNotEmpty()
-        }
-        .forEach {
+        }.forEach {
             // attribute_name is the name of the temporal property we want to update
             val attributeName = it.first()["attribute_name"]!! as String
 
@@ -223,9 +231,15 @@ class TemporalEntityAttributeService(
                 val valuesMap =
                     it.map {
                         if (it["value"] is Double)
-                            TemporalValue(it["value"] as Double, (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString())
+                            TemporalValue(
+                                it["value"] as Double,
+                                (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString()
+                            )
                         else
-                            RawValue(it["value"]!!, (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString())
+                            RawValue(
+                                it["value"]!!,
+                                (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString()
+                            )
                     }
                 propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
 
@@ -234,14 +248,16 @@ class TemporalEntityAttributeService(
             } else {
                 val valuesMap =
                     it.map {
-                        mapOf(NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                        mapOf(
+                            NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
                             NGSILD_INSTANCE_ID_PROPERTY to mapOf(
                                 NGSILD_ENTITY_ID to it["instance_id"]
                             ),
                             NGSILD_PROPERTY_VALUE to it["value"],
                             NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                 NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                JSONLD_VALUE_KW to (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString()
+                                JSONLD_VALUE_KW to (it["observed_at"] as ZonedDateTime).toInstant()
+                                    .atZone(ZoneOffset.UTC).toString()
                             )
                         )
                     }

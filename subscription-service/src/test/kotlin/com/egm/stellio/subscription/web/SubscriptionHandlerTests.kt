@@ -5,10 +5,12 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
+import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.verify
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -18,12 +20,11 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.security.test.context.support.WithAnonymousUser
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.lang.RuntimeException
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
@@ -57,9 +58,9 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getById(any()) } returns Mono.just(subscription)
 
         webClient.get()
-                .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
-                .exchange()
-                .expectStatus().isOk
+            .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
+            .exchange()
+            .expectStatus().isOk
 
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
@@ -71,12 +72,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.get()
-                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .exchange()
-                .expectStatus().isNotFound
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}")
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}"
+            )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
     }
@@ -90,13 +93,15 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
             .exchange()
             .expectStatus().isForbidden
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
         verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
@@ -110,11 +115,11 @@ class SubscriptionHandlerTests {
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
 
         webClient.post()
-                .uri("/ngsi-ld/v1/subscriptions")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isCreated
-                .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:04"))
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isCreated
+            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:04"))
     }
 
     @Test
@@ -124,13 +129,15 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
 
         webClient.post()
-                .uri("/ngsi-ld/v1/subscriptions")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isEqualTo(409)
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
                     "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"A subscription with id urn:ngsi-ld:Subscription:04 already exists\"}")
+                    "\"detail\":\"A subscription with id urn:ngsi-ld:Subscription:04 already exists\"}"
+            )
     }
 
     @Test
@@ -141,13 +148,15 @@ class SubscriptionHandlerTests {
         every { subscriptionService.create(any(), any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
-                .uri("/ngsi-ld/v1/subscriptions")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isEqualTo(500)
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(500)
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Internal Server Exception\"}")
+                    "\"detail\":\"Internal Server Exception\"}"
+            )
     }
 
     @Test
@@ -155,13 +164,15 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_incorrect_payload.json")
 
         webClient.post()
-                .uri("/ngsi-ld/v1/subscriptions")
-                .bodyValue(jsonLdFile)
-                .exchange()
-                .expectStatus().isBadRequest
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Context not provided\"}")
+                    "\"detail\":\"Context not provided\"}"
+            )
     }
 
     @Test
@@ -189,7 +200,8 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
+            .expectHeader()
+            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
     }
 
     @Test
@@ -203,7 +215,8 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
+            .expectHeader()
+            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
     }
 
     @Test
@@ -217,8 +230,11 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals("Link",
-        "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"", "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\"")
+            .expectHeader().valueEquals(
+                "Link",
+                "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\""
+            )
     }
 
     @Test
@@ -245,9 +261,11 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}"
+            )
     }
 
     @Test
@@ -261,9 +279,11 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Page number and Limit must be greater than zero\"}")
+                    "\"detail\":\"Page number and Limit must be greater than zero\"}"
+            )
     }
 
     @Test
@@ -303,9 +323,11 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().is5xxServerError
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Update failed\"}")
+                    "\"detail\":\"Update failed\"}"
+            )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
@@ -325,9 +347,11 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}")
+                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}"
+            )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
     }
@@ -345,9 +369,11 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
                     "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Context not provided\"}")
+                    "\"detail\":\"Context not provided\"}"
+            )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
@@ -366,13 +392,15 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:04",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
@@ -388,10 +416,10 @@ class SubscriptionHandlerTests {
         every { subscriptionService.delete(any()) } returns Mono.just(1)
 
         webClient.delete()
-                .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
-                .exchange()
-                .expectStatus().isNoContent
-                .expectBody().isEmpty
+            .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
 
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
@@ -405,16 +433,18 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(false)
 
         webClient.delete()
-                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .exchange()
-                .expectStatus().isNotFound
-                .expectBody().json("""
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
                     {
                         "detail":"Could not find a subscription with id urn:ngsi-ld:Subscription:1",
                         "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                         "title":"The referred resource has not been found"
                     }
-                """.trimIndent())
+                """.trimIndent()
+            )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
 
@@ -428,12 +458,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.delete(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
-                .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
-                .exchange()
-                .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
-                .expectBody().json("{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
+            .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+            .expectBody().json(
+                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Unexpected server error\"}")
+                    "\"detail\":\"Unexpected server error\"}"
+            )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
         verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
@@ -449,13 +481,15 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1")
             .exchange()
             .expectStatus().isForbidden
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent())
+            """.trimIndent()
+            )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
         verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1", "mock-user") }
@@ -465,8 +499,8 @@ class SubscriptionHandlerTests {
     @WithAnonymousUser
     fun `it should not authorize an anonymous to call the API`() {
         webClient.post()
-                .uri("/ngsi-ld/v1/subscriptions")
-                .exchange()
-                .expectStatus().isForbidden
+            .uri("/ngsi-ld/v1/subscriptions")
+            .exchange()
+            .expectStatus().isForbidden
     }
 }

@@ -1,11 +1,11 @@
 package com.egm.stellio.shared.util
 
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ PagingUtils::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [PagingUtils::class])
 @ActiveProfiles("test")
 class PagingUtilsTests {
 
@@ -22,7 +22,10 @@ class PagingUtilsTests {
 
         val links = PagingUtils.getSubscriptionsPagingLinks(8, 2, 5)
 
-        assertEquals(links, Pair("</ngsi-ld/v1/subscriptions?limit=5&page=1>;rel=\"prev\";type=\"application/ld+json\"", null))
+        assertEquals(
+            links,
+            Pair("</ngsi-ld/v1/subscriptions?limit=5&page=1>;rel=\"prev\";type=\"application/ld+json\"", null)
+        )
     }
 
     @Test
@@ -30,7 +33,10 @@ class PagingUtilsTests {
 
         val links = PagingUtils.getSubscriptionsPagingLinks(8, 1, 5)
 
-        assertEquals(links, Pair(null, "</ngsi-ld/v1/subscriptions?limit=5&page=2>;rel=\"next\";type=\"application/ld+json\""))
+        assertEquals(
+            links,
+            Pair(null, "</ngsi-ld/v1/subscriptions?limit=5&page=2>;rel=\"next\";type=\"application/ld+json\"")
+        )
     }
 
     @Test
@@ -38,7 +44,11 @@ class PagingUtilsTests {
 
         val links = PagingUtils.getSubscriptionsPagingLinks(8, 3, 1)
 
-        assertEquals(links, Pair("</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"prev\";type=\"application/ld+json\"",
-            "</ngsi-ld/v1/subscriptions?limit=1&page=4>;rel=\"next\";type=\"application/ld+json\""))
+        assertEquals(
+            links, Pair(
+                "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/subscriptions?limit=1&page=4>;rel=\"next\";type=\"application/ld+json\""
+            )
+        )
     }
 }

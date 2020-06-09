@@ -32,7 +32,11 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributes =
-            temporalEntityAttributeService.getForEntity("urn:ngsi-ld:BeeHive:TESTD", listOf("incoming", "outgoing"), apicContext!!)
+            temporalEntityAttributeService.getForEntity(
+                "urn:ngsi-ld:BeeHive:TESTD",
+                listOf("incoming", "outgoing"),
+                apicContext!!
+            )
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
@@ -129,7 +133,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             JsonLdOptions()
         )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/subscription_with_notifications_temporal_values.jsonld").trim(), finalEntity)
+        assertEquals(
+            loadSampleData("expectations/subscription_with_notifications_temporal_values.jsonld").trim(),
+            finalEntity
+        )
     }
 
     @Test

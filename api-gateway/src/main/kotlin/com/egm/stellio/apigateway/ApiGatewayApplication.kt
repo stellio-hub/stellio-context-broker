@@ -2,8 +2,8 @@ package com.egm.stellio.apigateway
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
-import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder
 import org.springframework.cloud.gateway.route.RouteLocator
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder
 import org.springframework.cloud.security.oauth2.gateway.TokenRelayGatewayFilterFactory
 import org.springframework.context.annotation.Bean
 

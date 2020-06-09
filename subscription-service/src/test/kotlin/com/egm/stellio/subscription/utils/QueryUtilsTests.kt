@@ -1,11 +1,11 @@
 package com.egm.stellio.subscription.utils
 
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ QueryUtils::class ])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryUtils::class])
 @ActiveProfiles("test")
 class QueryUtilsTests {
 
@@ -17,9 +17,11 @@ class QueryUtilsTests {
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
 
-        assertEquals(queryStatement,
-                "SELECT ST_disjoint(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
-                        "ST_GeomFromText('Point(24.30623 60.07966)')) as geoquery_result")
+        assertEquals(
+            queryStatement,
+            "SELECT ST_disjoint(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
+                "ST_GeomFromText('Point(24.30623 60.07966)')) as geoquery_result"
+        )
     }
 
     @Test
@@ -30,9 +32,11 @@ class QueryUtilsTests {
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
 
-        assertEquals(queryStatement,
-                "SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
-                        "ST_GeomFromText('Point(60.30623 30.07966)')) <= 2000 as geoquery_result")
+        assertEquals(
+            queryStatement,
+            "SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
+                "ST_GeomFromText('Point(60.30623 30.07966)')) <= 2000 as geoquery_result"
+        )
     }
 
     @Test
@@ -43,9 +47,11 @@ class QueryUtilsTests {
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
 
-        assertEquals(queryStatement,
-                "SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
-                        "ST_GeomFromText('Point(60.30623 30.07966)')) >= 15 as geoquery_result")
+        assertEquals(
+            queryStatement,
+            "SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
+                "ST_GeomFromText('Point(60.30623 30.07966)')) >= 15 as geoquery_result"
+        )
     }
 
     @Test
@@ -55,8 +61,10 @@ class QueryUtilsTests {
 
         val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
 
-        assertEquals(queryStatement,
-                "Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))")
+        assertEquals(
+            queryStatement,
+            "Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))"
+        )
     }
 
     @Test
@@ -64,10 +72,15 @@ class QueryUtilsTests {
 
         val targetGeometry = mapOf("geometry" to "Point", "coordinates" to "[60.30623, 30.07966]")
 
-        val queryStatement = QueryUtils.createSqlGeometry(targetGeometry["geometry"].toString(), targetGeometry["coordinates"].toString())
+        val queryStatement = QueryUtils.createSqlGeometry(
+            targetGeometry["geometry"].toString(),
+            targetGeometry["coordinates"].toString()
+        )
 
-        assertEquals(queryStatement,
-                "Point(60.30623 30.07966)")
+        assertEquals(
+            queryStatement,
+            "Point(60.30623 30.07966)"
+        )
     }
 
     @Test
@@ -77,8 +90,10 @@ class QueryUtilsTests {
 
         val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates)
 
-        assertEquals(parsedCoordinates,
-                listOf(listOf(100.0, 0.0), listOf(101.0, 0.0), listOf(101.0, 1.0), listOf(100.0, 1.0), listOf(100.0, 0.0)))
+        assertEquals(
+            parsedCoordinates,
+            listOf(listOf(100.0, 0.0), listOf(101.0, 0.0), listOf(101.0, 1.0), listOf(100.0, 1.0), listOf(100.0, 0.0))
+        )
     }
 
     @Test
@@ -86,9 +101,12 @@ class QueryUtilsTests {
 
         val targetGeometry = mapOf("geometry" to "Point", "coordinates" to "[90.30623, 15.07966]")
 
-        val parsedCoordinates = QueryUtils.parseCoordinates(targetGeometry["geometry"].toString(), targetGeometry["coordinates"].toString())
+        val parsedCoordinates =
+            QueryUtils.parseCoordinates(targetGeometry["geometry"].toString(), targetGeometry["coordinates"].toString())
 
-        assertEquals(parsedCoordinates,
-                listOf(listOf(90.30623, 15.07966)))
+        assertEquals(
+            parsedCoordinates,
+            listOf(listOf(90.30623, 15.07966))
+        )
     }
 }

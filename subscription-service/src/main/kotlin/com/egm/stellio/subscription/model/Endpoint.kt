@@ -17,6 +17,7 @@ data class Endpoint(
     enum class AcceptType(val accept: String) {
         @JsonProperty("application/json")
         JSON("application/json"),
+
         @JsonProperty("application/ld+json")
         JSONLD("application/ld+json")
     }

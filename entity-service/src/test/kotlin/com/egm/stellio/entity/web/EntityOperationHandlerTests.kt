@@ -207,7 +207,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -254,7 +254,7 @@ class EntityOperationHandlerTests {
         )
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -277,6 +277,49 @@ class EntityOperationHandlerTests {
                         }
                     ], 
                     "success": [] 
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `upsert batch entity without option should replace entities`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        )
+        val existingEntities = mockk<List<ExpandedEntity>>()
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            existingEntities,
+            listOf()
+        )
+        every { entityOperationService.create(any()) } returns BatchOperationResult(
+            arrayListOf(),
+            arrayListOf()
+        )
+        every { entityOperationService.replace(existingEntities, any()) } returns BatchOperationResult(
+            entitiesIds,
+            arrayListOf()
+        )
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [],
+                    success: [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
                 }
                 """.trimIndent()
             )

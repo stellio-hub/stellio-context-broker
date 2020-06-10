@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
-import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -88,12 +88,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 mapOf(
                     "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
                     "value" to 550.0,
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
                 ),
                 mapOf(
                     "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
                     "value" to 650.0,
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
                 )
             )
         )
@@ -116,12 +116,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
                 ),
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
                 )
             )
         )
@@ -148,13 +148,13 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:1234",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
                 ),
                 mapOf(
                     "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
                     "value" to "urn:ngsi-ld:Beehive:5678",
                     "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
-                    "observed_at" to ZonedDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
                 )
             )
         )

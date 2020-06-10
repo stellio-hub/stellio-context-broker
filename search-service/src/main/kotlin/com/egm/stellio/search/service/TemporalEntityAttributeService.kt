@@ -233,12 +233,12 @@ class TemporalEntityAttributeService(
                         if (it["value"] is Double)
                             TemporalValue(
                                 it["value"] as Double,
-                                (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString()
+                                ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
                             )
                         else
                             RawValue(
                                 it["value"]!!,
-                                (it["observed_at"] as ZonedDateTime).toInstant().atZone(ZoneOffset.UTC).toString()
+                                ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
                             )
                     }
                 propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
@@ -256,8 +256,7 @@ class TemporalEntityAttributeService(
                             NGSILD_PROPERTY_VALUE to it["value"],
                             NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                 NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                JSONLD_VALUE_KW to (it["observed_at"] as ZonedDateTime).toInstant()
-                                    .atZone(ZoneOffset.UTC).toString()
+                                JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
                             )
                         )
                     }

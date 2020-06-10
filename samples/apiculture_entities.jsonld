@@ -1,5 +1,17 @@
 [
     {
+       "id":"urn:ngsi-ld:Beekeeper:01",
+       "type":"Beekeeper",
+       "name":{
+           "type":"Property",
+           "value":"Scalpa"
+       },
+       "@context":[
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
+          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+       ]
+    },
+    {
        "id":"urn:ngsi-ld:Apiary:01",
        "type":"Apiary",
        "name":{
@@ -27,6 +39,10 @@
        "belongs": {
           "type": "Relationship",
           "object": "urn:ngsi-ld:Apiary:01"
+       },
+       "managedBy": {
+         "type": "Relationship",
+         "object": "urn:ngsi-ld:Beekeeper:01"
        },
        "location": {
           "type": "GeoProperty",
@@ -64,11 +80,11 @@
        ]
     },
     {
-       "id": "urn:ngsi-ld:Sensor:02",
+       "id": "urn:ngsi-ld:Sensor:01",
        "type": "Sensor",
        "deviceParameter":{
              "type":"Property",
-             "value":"temperature"
+             "value":"humidity"
        },
        "@context": [
           "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
@@ -76,11 +92,11 @@
        ]
     },
     {
-       "id": "urn:ngsi-ld:Sensor:01",
+       "id": "urn:ngsi-ld:Sensor:02",
        "type": "Sensor",
        "deviceParameter":{
              "type":"Property",
-             "value":"humidity"
+             "value":"temperature"
        },
        "@context": [
           "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",

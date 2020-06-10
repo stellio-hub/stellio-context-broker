@@ -5,6 +5,10 @@
       "type": "Relationship",
       "object": "urn:ngsi-ld:Apiary:01"
    },
+   "managedBy": {
+     "type": "Relationship",
+     "object": "urn:ngsi-ld:Beekeeper:01"
+   },
    "location": {
       "type": "GeoProperty",
       "value": {

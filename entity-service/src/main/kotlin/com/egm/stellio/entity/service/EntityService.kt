@@ -6,7 +6,6 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.repository.AttributeRepository
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
@@ -54,8 +53,6 @@ import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
 import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -68,7 +65,6 @@ class EntityService(
     private val entityRepository: EntityRepository,
     private val propertyRepository: PropertyRepository,
     private val relationshipRepository: RelationshipRepository,
-    private val attributeRepository: AttributeRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -79,33 +75,21 @@ class EntityService(
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
 
-        // filter the unwanted entries and expand all attributes for easier later processing
-        val propertiesAndRelationshipsMap = expandedEntity.attributes.mapValues {
-            expandValueAsMap(it.value)
-        }
-
-        propertiesAndRelationshipsMap.filter { entry ->
-            isAttributeOfType(entry.value, NGSILD_RELATIONSHIP_TYPE)
-        }.forEach { entry ->
+        expandedEntity.relationships.forEach { entry ->
             val relationshipType = entry.key
             val objectId = getRelationshipObjectId(entry.value)
-            val objectEntity = entityRepository.findById(objectId)
 
-            if (!objectEntity.isPresent) {
+            if (!exists(objectId))
                 throw BadRequestDataException("Target entity $objectId in relationship $relationshipType does not exist, create it first")
-            } else
-                createEntityRelationship(entity, relationshipType, entry.value, objectEntity.get().id)
+            else
+                createEntityRelationship(entity, relationshipType, entry.value, objectId)
         }
 
-        propertiesAndRelationshipsMap.filter { entry ->
-            isAttributeOfType(entry.value, NGSILD_PROPERTY_TYPE)
-        }.forEach { entry ->
+        expandedEntity.properties.forEach { entry ->
             createEntityProperty(entity, entry.key, entry.value)
         }
 
-        propertiesAndRelationshipsMap.filter { entry ->
-            isAttributeOfType(entry.value, NGSILD_GEOPROPERTY_TYPE)
-        }.forEach { entry ->
+        expandedEntity.geoProperties.forEach { entry ->
             createLocationProperty(entity, entry.key, entry.value)
         }
 
@@ -130,7 +114,7 @@ class EntityService(
         entity: Entity,
         propertyKey: String,
         propertyValues: Map<String, List<Any>>
-    ): Property {
+    ): String {
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found in $propertyValues")
 
@@ -142,15 +126,15 @@ class EntityService(
             observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
         )
 
-        val property = propertyRepository.save(rawProperty)
+        neo4jRepository.createPropertyOfSubject(
+            subjectId = entity.id,
+            property = rawProperty
+        )
 
-        entity.properties.add(property)
-        entityRepository.save(entity)
+        createAttributeProperties(rawProperty.id, propertyValues)
+        createAttributeRelationships(rawProperty.id, propertyValues)
 
-        createAttributeProperties(property, propertyValues)
-        createAttributeRelationships(property, propertyValues)
-
-        return property
+        return rawProperty.id
     }
 
     /**
@@ -164,30 +148,23 @@ class EntityService(
         relationshipType: String,
         relationshipValues: Map<String, List<Any>>,
         targetEntityId: String
-    ): Relationship {
+    ): String {
 
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
         val rawRelationship = Relationship(
             type = listOf(relationshipType),
             observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
         )
-        val relationship = relationshipRepository.save(rawRelationship)
-        entity.relationships.add(relationship)
-        entityRepository.save(entity)
 
-        neo4jRepository.createRelationshipToEntity(
-            relationship.id,
-            relationshipType.toRelationshipTypeName(),
-            targetEntityId
-        )
+        neo4jRepository.createRelationshipOfSubject(entity.id, rawRelationship, targetEntityId)
 
-        createAttributeProperties(relationship, relationshipValues)
-        createAttributeRelationships(relationship, relationshipValues)
+        createAttributeProperties(rawRelationship.id, relationshipValues)
+        createAttributeRelationships(rawRelationship.id, relationshipValues)
 
-        return relationship
+        return rawRelationship.id
     }
 
-    private fun createAttributeProperties(subject: Attribute, values: Map<String, List<Any>>) {
+    private fun createAttributeProperties(subjectId: String, values: Map<String, List<Any>>) {
         values.filterValues {
             it[0] is Map<*, *>
         }.mapValues {
@@ -208,13 +185,14 @@ class EntityService(
                 observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
             )
 
-            val property = propertyRepository.save(rawProperty)
-            subject.properties.add(property)
-            attributeRepository.save(subject)
+            neo4jRepository.createPropertyOfSubject(
+                subjectId = subjectId,
+                property = rawProperty
+            )
         }
     }
 
-    private fun createAttributeRelationships(subject: Attribute, values: Map<String, List<Any>>) {
+    private fun createAttributeRelationships(subjectId: String, values: Map<String, List<Any>>) {
         values.forEach { propEntry ->
             val propEntryValue = propEntry.value[0]
             logger.debug("Looking at prop entry ${propEntry.key} with value $propEntryValue")
@@ -222,8 +200,7 @@ class EntityService(
                 val propEntryValueMap = propEntryValue as Map<String, List<Any>>
                 if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
                     val objectId = getRelationshipObjectId(propEntryValueMap)
-                    val objectEntity = entityRepository.findById(objectId)
-                    if (objectEntity.isPresent) {
+                    if (exists(objectId)) {
                         val rawRelationship = Relationship(
                             type = listOf(propEntry.key),
                             observedAt = getPropertyValueFromMapAsDateTime(
@@ -231,17 +208,10 @@ class EntityService(
                                 NGSILD_OBSERVED_AT_PROPERTY
                             )
                         )
-                        val relationship = relationshipRepository.save(rawRelationship)
-                        subject.relationships.add(relationship)
-                        attributeRepository.save(subject)
 
-                        neo4jRepository.createRelationshipToEntity(
-                            relationship.id,
-                            propEntry.key.toRelationshipTypeName(),
-                            objectEntity.get().id
-                        )
+                        neo4jRepository.createRelationshipOfSubject(subjectId, rawRelationship, objectId)
                     } else {
-                        throw BadRequestDataException("Target entity $objectId in property $subject does not exist, create it first")
+                        throw BadRequestDataException("Target entity $objectId in property $subjectId does not exist, create it first")
                     }
                 } else {
                     logger.debug("Ignoring ${propEntry.key} entry as it can't be a relationship ($propEntryValue)")
@@ -273,14 +243,14 @@ class EntityService(
         }
     }
 
-    fun exists(entityId: String): Boolean = entityRepository.existsById(entityId)
+    fun exists(entityId: String): Boolean = entityRepository.exists(entityId) ?: false
 
     /**
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
      */
     fun getFullEntityById(entityId: String): ExpandedEntity {
-        val entity = entityRepository.getEntityCoreById(entityId)[0]["entity"] as Entity
+        val entity = entityRepository.getEntityCoreById(entityId)
         val resultEntity = entity.serializeCoreProperties()
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
@@ -374,13 +344,7 @@ class EntityService(
         val mapper =
             jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         val entity = getFullEntityById(entityId)
-        return mapper.writeValueAsString(
-            JsonLdProcessor.compact(
-                entity.rawJsonLdProperties,
-                mapOf("@context" to entity.contexts),
-                JsonLdOptions()
-            )
-        )
+        return mapper.writeValueAsString(entity.compact())
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<ExpandedEntity> =
@@ -415,6 +379,7 @@ class EntityService(
             .map { getFullEntityById(it) }
     }
 
+    @Transactional
     fun appendEntityAttributes(
         entityId: String,
         attributes: Map<String, Any>,
@@ -496,12 +461,14 @@ class EntityService(
         return UpdateResult(updated, notUpdated)
     }
 
+    @Transactional
     fun updateEntityAttribute(id: String, attribute: String, payload: String, contextLink: String): Int {
         val expandedAttributeName = expandJsonLdKey(attribute, contextLink)!!
         val attributeValue = parseJsonLdFragment(payload)["value"]!!
         return neo4jRepository.updateEntityAttribute(id, expandedAttributeName, attributeValue)
     }
 
+    @Transactional
     fun updateEntityAttributes(id: String, payload: String, contextLink: String): UpdateResult {
         val updatedAttributes = mutableListOf<String>()
         val updatedAttributesPayload = mutableListOf<String>()
@@ -681,10 +648,11 @@ class EntityService(
         }
     }
 
-    fun deleteEntity(entityId: String): Pair<Int, Int> {
-        return neo4jRepository.deleteEntity(entityId)
-    }
+    @Transactional
+    fun deleteEntity(entityId: String): Pair<Int, Int> =
+        neo4jRepository.deleteEntity(entityId)
 
+    @Transactional
     fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
@@ -699,6 +667,7 @@ class EntityService(
         throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }
 
+    @Transactional
     fun updateEntityLastMeasure(observation: Observation) {
         val observingEntity =
             neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
@@ -758,6 +727,7 @@ class EntityService(
         entityRepository.save(subscription)
     }
 
+    @Transactional
     fun createNotificationEntity(id: String, type: String, subscriptionId: String, properties: Map<String, Any>) {
         val subscription = entityRepository.findById(subscriptionId)
         if (!subscription.isPresent) {

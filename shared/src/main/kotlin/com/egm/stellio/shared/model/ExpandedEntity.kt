@@ -2,6 +2,7 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
 import com.github.jsonldjava.core.JsonLdOptions
@@ -27,6 +28,7 @@ class ExpandedEntity private constructor(
     val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
     val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) }
+    val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) }
     val attributes by lazy { initAttributesWithoutTypeAndId() }
 
     fun compact(): Map<String, Any> =

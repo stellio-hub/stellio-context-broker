@@ -196,6 +196,30 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `create entity should return a 400 if input data is not valid and creation was rejected`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
+
+        every { entityService.exists(any()) } returns false
+        every { entityService.createEntity(any()) } throws BadRequestDataException("Target entity does not exist")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(400)
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title": "The request includes input data which does not meet the requirements of the operation",
+                    "detail": "Target entity does not exist"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should return 200 when entity exists`() {
 
         every { entityService.exists(any()) } returns true

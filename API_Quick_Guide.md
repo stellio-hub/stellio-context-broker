@@ -34,7 +34,7 @@ An NGSI-LD entity is serialized in JSON-LD format. The structure has to comply w
 - a property may have properties and relationships with other entities
 - a relationship may have properties and relationships with other entities
 
-For instance, beehive.jsonld under the samples directory, represents the NGSI-LD payload of a BeeHive entity having the following NGSI-LD attributes:
+For instance, beehive.jsonld under the samples directory, represents the NGSI-LD payload of a beehive entity having the following NGSI-LD attributes:
 
 - An id: urn:ngsi-ld:BeeHive:01
 - A type: BeeHive
@@ -55,7 +55,7 @@ An NGSI-LD Subscription is serialized in JSON-LD format. The structure has to co
 - a subscription must have a notification containing the parameters that allow to convey the details of a notification (details in the following example)
 - a subscription may have other attributes: name, description, entities, q (query), geoQ (geo query) ...
 
-For instance, subscription_to_beehive.jsonld under the samples directory, represents the NGSI-LD payload of a Subscription to the previous BeeHive Entity that sends a notification when the temperature exceeds 40.
+For instance, subscription_to_beehive.jsonld under the samples directory, represents the NGSI-LD payload of a Subscription to the previous beehive Entity that sends a notification when the temperature exceeds 40.
 
 Note: The `endpoint.info` field contains optional information that may be needed when contacting the notification endpoint, the key/value pairs are added in the header of the HTTP POST request. For instance this could be Authorization headers in case of HTTP binding of the API. 
 
@@ -103,7 +103,7 @@ Most of the HTTP requests need to specify the contexts they are referring to, in
 
 The provided examples make use of the [HTTPie](https://httpie.org/) command line tool
 
-* Create an entity (with the above BeeHive example)
+* Create an entity (with the above beehive example)
 
 ```
 http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/beehive.jsonld
@@ -115,19 +115,19 @@ http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/beehive
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01 Content-Type:application/json
 ```
 
-* Search BeeHive entities
+* Search beehive entities
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* Search BeeHive entities belongs to ApiarySophia
+* Search beehive entities belongs to ApiarySophia
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive q==belongs==urn:ngsi-ld:Apiary:XYZ01 Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* Search BeeHive entities whose temperature is above 25
+* Search beehive entities whose temperature is above 25
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive q==temperature>20 Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
@@ -224,19 +224,19 @@ http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Bee
 http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entityOperations/create < samples/apiculture_entities.jsonld
 ```
 
-* The created beeHive can be retrieved by id:
+* The created beehive can be retrieved by id:
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 ```
 
-* Or by querying all entities of type beeHive:
+* Or by querying all entities of type BeeHive:
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-* We can add a name to the created beeHive: 
+* We can add a name to the created beehive: 
 
 ```
 http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Content-Type:application/json Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_addName.jsonld
@@ -248,7 +248,7 @@ http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHi
 http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Content-Type:application/json Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
-* We create a subscription to the beeHive that sends a notification when the temperature exceeds 40 
+* We create a subscription to the beehive that sends a notification when the temperature exceeds 40 
 
 ```
 http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions < samples/subscription_to_beehive.jsonld
@@ -260,13 +260,13 @@ http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions < samples/su
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Content-Type:application/json
 ```
 
-* Increasing the beeHive temperature to 42 will raise a notification  (the notification is a POST request to the provided uri when creating the subscription, please consider providing working endpoint params in order to receive the notification)
+* Increasing the beehive temperature to 42 will raise a notification  (the notification is a POST request to the provided uri when creating the subscription, please consider providing working endpoint params in order to receive the notification)
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_updateTemperature.jsonld
 ```
 
-* We can also update the beeHive humidity 
+* We can also update the beehive humidity 
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_updateHumidity.jsonld

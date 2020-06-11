@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.fasterxml.jackson.annotation.JsonRawValue
+import org.neo4j.ogm.annotation.Index
 import org.neo4j.ogm.annotation.NodeEntity
 import java.time.LocalDate
 import java.time.LocalTime
@@ -16,6 +17,7 @@ import java.time.ZonedDateTime
 
 @NodeEntity
 class Property(
+    @Index
     val name: String,
     var unitCode: String? = null,
 
@@ -39,6 +41,18 @@ class Property(
         }
 
         return resultEntity
+    }
+
+    override fun nodeProperties(): MutableMap<String, Any> {
+        val propsMap = super.nodeProperties()
+        propsMap["name"] = name
+        propsMap["value"] = value
+
+        unitCode?.run {
+            propsMap["unitCode"] = this
+        }
+
+        return propsMap
     }
 
     fun updateValues(unitCode: String?, value: Any?, observedAt: ZonedDateTime?) {

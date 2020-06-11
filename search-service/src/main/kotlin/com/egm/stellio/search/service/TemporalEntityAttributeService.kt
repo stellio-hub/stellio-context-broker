@@ -226,7 +226,7 @@ class TemporalEntityAttributeService(
                 propertyToEnrich.remove(NGSILD_PROPERTY_VALUE)
 
                 // Postgres stores the observedAt value in UTC.
-                // when retrieved, it's converted to the current timezone using the system variable timezone and with the +/- annotation.
+                // The value is retrieved as offsetDateTime and converted to the current timezone using the system variable timezone.
                 // For this reason, a cast to Instant is needed (with UTC as ZoneOffset) to return the expected dateTime with Z format.
                 val valuesMap =
                     it.map {

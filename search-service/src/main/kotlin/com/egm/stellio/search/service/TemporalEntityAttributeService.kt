@@ -227,7 +227,7 @@ class TemporalEntityAttributeService(
 
                 // Postgres stores the observedAt value in UTC.
                 // The value is retrieved as offsetDateTime and converted to the current timezone using the system variable timezone.
-                // For this reason, a cast to Instant is needed (with UTC as ZoneOffset) to return the expected dateTime with Z format.
+                // For this reason, a cast to Instant with UTC as ZoneOffset is needed to create a ZonedDateTime.
                 val valuesMap =
                     it.map {
                         if (it["value"] is Double)

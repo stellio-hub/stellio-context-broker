@@ -132,11 +132,7 @@ docker run stellio/stellio-entity-service:latest
 
 # Usage
 
-To start using Stellio, you can follow the [API quick guide](https://github.com/easy-global-market/ngsild-api-data-models/blob/master/API_Quick_Guide.md)
-published in our NGSI-LD API & Data Model repository.
-
-As the development environment does not make use of the authentication setup, you can ignore related information in the 
-API quick guide.
+To start using Stellio, you can follow the [API quick start](API_Quick_Start.md).
 
 ## License
 

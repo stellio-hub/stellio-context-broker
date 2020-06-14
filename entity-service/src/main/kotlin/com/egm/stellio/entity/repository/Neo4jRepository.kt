@@ -32,9 +32,7 @@ class Neo4jRepository(
         """
 
         return session.query(query, mapOf("props" to property.nodeProperties()))
-            .toList()
-            .map { it["id"] as String }
-            .first()
+            .first()["id"] as String
     }
 
     fun createRelationshipOfSubject(subjectId: String, relationship: Relationship, targetId: String): String {
@@ -47,9 +45,7 @@ class Neo4jRepository(
         """
 
         return session.query(query, mapOf("props" to relationship.nodeProperties()))
-            .toList()
-            .map { it["id"] as String }
-            .first()
+            .first()["id"] as String
     }
 
     /**

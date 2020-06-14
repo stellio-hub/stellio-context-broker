@@ -50,12 +50,10 @@ class ExceptionHandler {
                 HttpStatus.FORBIDDEN,
                 AccessDeniedResponse(cause.message)
             )
-            else -> {
-                generateErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")
-                )
-            }
+            else -> generateErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")
+            )
         }
 
     private fun generateErrorResponse(status: HttpStatus, exception: Any) =

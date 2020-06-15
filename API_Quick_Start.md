@@ -2,11 +2,11 @@
 
 This quickstart guide shows a real use case scenario of interaction with the API in an Apiculture context.
 
-## Prepare Your Environment
+## Prepare your environment
 
-- The provided examples make use of the HTTPie command line tool, installation instructions for HTTPie: https://httpie.org/docs#installation
+The provided examples make use of the HTTPie command line tool (installation instructions: https://httpie.org/docs#installation)
 
-## Provide Credentials
+## Provide credentials
 
 - Calls to The API must include an `Authorization` header containing a Bearer access token. It takes the following form:
 
@@ -38,7 +38,7 @@ http https://data-hub.eglobalmark.com/... Authorization:"Bearer $TOKEN" ...
 
 For brevity and clarity, the `Authorization` header is not displayed in the sample HTTP requests described below.
 
-## Case Study
+## Case study
 
 This case study is written for anyone who wants to get familiar with the API, we use a real example to make it more concrete.
 
@@ -105,7 +105,7 @@ http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions < samples/su
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:01 Content-Type:application/json
 ```
 
-* By doing this, increasing the beehive temperature to 42 will raise a notification  (the notification is a POST request to the provided uri when creating the subscription, please consider providing working endpoint params in order to receive the notification)
+* By doing this, increasing the beehive temperature to 42 will raise a notification (the notification is sent via a POST request to the provided URI when creating the subscription, please consider providing working `endpoint` params in order to receive it)
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_updateTemperature.jsonld
@@ -120,10 +120,10 @@ http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeH
 * Since we updated both temperature and humidity, we can get the temporal evolution of those properties
 
 ```
-http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 timerel==between time==2019-10-25T12:00:00Z endTime==2019-10-27T12:00:00Z Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json
 ```
 
-Sample payload returned showing the temporal evolution of temperature and humidty properties:
+Sample payload returned showing the temporal evolution of temperature and humidity properties:
 
 ```json
 {
@@ -178,4 +178,90 @@ Sample payload returned showing the temporal evolution of temperature and humidt
 }
 ```
 
-More details about the interaction with the API can be found in https://github.com/easy-global-market/ngsild-api-data-models/blob/master/API_Quick_Guide.md
+* Let's add a new temporal value (temperature) to the beehive
+
+```
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json < samples/beehive_newTemporalValue.jsonld
+```
+
+* We can get the simplified temporal representation of the beehive entity
+```
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json 
+```
+
+The sample payload returned showing the simplified temporal evolution of temperature and humidity properties:
+
+```json
+{
+    "@context": [
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
+        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ],
+    "belongs": {
+        "createdAt": "2020-06-10T13:27:52.688799Z",
+        "modifiedAt": "2020-06-10T13:27:52.695496Z",
+        "object": "urn:ngsi-ld:Apiary:01",
+        "type": "Relationship"
+    },
+    "createdAt": "2020-06-10T13:27:52.675092Z",
+    "humidity": {
+        "createdAt": "2020-06-10T13:27:52.688799Z",
+        "modifiedAt": "2020-06-10T13:27:52.695496Z",
+        "observedAt": "2019-10-26T21:32:52.98601Z",
+        "observedBy": {
+            "createdAt": "2020-06-15T11:37:25.75957Z",
+            "modifiedAt": "2020-06-15T11:37:25.765321Z",
+            "object": "urn:ngsi-ld:Sensor:02",
+            "type": "Relationship"
+        },
+        "type": "Property",
+        "unitCode": "P1",
+        "values": [
+            [
+                58.0,
+                "2019-10-26T21:35:52.986010Z"
+            ],
+            [
+                60.0,
+                "2019-10-26T21:32:52.986010Z"
+            ]
+        ]
+    },
+    "id": "urn:ngsi-ld:BeeHive:01",
+    "managedBy": {
+        "createdAt": "2020-06-10T13:27:52.732527Z",
+        "modifiedAt": "2020-06-10T13:27:52.741216Z",
+        "object": "urn:ngsi-ld:Beekeeper:01",
+        "type": "Relationship"
+    },
+    "modifiedAt": "2020-06-10T13:27:53.111526Z",
+    "temperature": {
+        "createdAt": "2020-06-15T11:37:25.803985Z",
+        "modifiedAt": "2020-06-15T11:37:25.83741Z",
+        "observedAt": "2019-10-26T21:32:52.98601Z",
+        "observedBy": {
+            "createdAt": "2020-06-15T11:37:25.830823Z",
+            "modifiedAt": "2020-06-15T11:37:25.837429Z",
+            "object": "urn:ngsi-ld:Sensor:01",
+            "type": "Relationship"
+        },
+        "type": "Property",
+        "unitCode": "CEL",
+        "values": [
+            [
+                42.0,
+                "2019-10-26T22:35:52.986010Z"
+            ],
+            [
+                22.2,
+                "2019-10-26T21:32:52.986010Z"
+            ],
+            [
+                100.0,
+                "2020-05-10:20:30.98601Z"
+            ]
+        ]
+    },
+    "type": "BeeHive"
+}
+```

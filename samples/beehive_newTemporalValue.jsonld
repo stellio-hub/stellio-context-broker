@@ -1,8 +1,0 @@
-{
-   "temperature": {
-     "type": "Property",
-     "value": 100,
-     "unitCode": "CEL",
-     "observedAt": "2020-05-10:20:30.98601Z"
-   }
-}

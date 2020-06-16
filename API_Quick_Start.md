@@ -178,15 +178,15 @@ Sample payload returned showing the temporal evolution of temperature and humidi
 }
 ```
 
-* Let's try to perform a partial update on the beehive's temperature property 
+* Let's try to update again the temperature property of the beehive 
 
 ```
-http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_secondTemperatureUpdate.jsonld
+http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_secondTemperatureUpdate.jsonld
 ```
 
-* We can get the simplified temporal representation of the beehive entity
+* We can get the simplified temporal representation of the temperature property of the beehive
 ```
-http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json 
+http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues attrs==temperature timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" Content-Type:application/json 
 ```
 
 The sample payload returned showing the simplified temporal evolution of temperature and humidity properties:
@@ -216,16 +216,7 @@ The sample payload returned showing the simplified temporal evolution of tempera
         },
         "type": "Property",
         "unitCode": "P1",
-        "values": [
-            [
-                58.0,
-                "2019-10-26T21:35:52.986010Z"
-            ],
-            [
-                60.0,
-                "2019-10-26T21:32:52.986010Z"
-            ]
-        ]
+        "value": 60
     },
     "id": "urn:ngsi-ld:BeeHive:01",
     "managedBy": {
@@ -258,7 +249,7 @@ The sample payload returned showing the simplified temporal evolution of tempera
             ],
             [
                 100.0,
-                "2020-05-10:20:30.98601Z"
+                "2020-05-10T10:20:30.98601Z"
             ]
         ]
     },

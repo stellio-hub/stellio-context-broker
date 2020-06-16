@@ -15,8 +15,9 @@ class WebSecurityConfig {
         http
             // disable CSRF as it does not fit with an HTTP REST API
             .csrf().disable()
-            // tweak Actuator health endpoint security rules to grant access to anonymous users
-            .authorizeExchange().pathMatchers("/actuator/health").permitAll().and()
+            // WARNING: this will allow access to everyone to enabled actuator endpoints
+            // by default, only health endpoint is activated, be careful when activating other ones
+            .authorizeExchange().pathMatchers("/actuator/**").permitAll().and()
             .authorizeExchange().pathMatchers("/**").authenticated().and()
             .oauth2ResourceServer().jwt()
 

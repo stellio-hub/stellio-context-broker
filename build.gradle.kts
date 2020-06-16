@@ -65,6 +65,7 @@ subprojects {
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
         runtimeOnly("de.siegmar:logback-gelf:3.0.0")
+        runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

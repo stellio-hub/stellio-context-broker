@@ -178,10 +178,10 @@ Sample payload returned showing the temporal evolution of temperature and humidi
 }
 ```
 
-* Let's try to update again the temperature property of the beehive
+* Let's try to perform a partial update on the beehive's temperature property 
 
 ```
-http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_secondTemperatureUpdate.jsonld
+http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/temperature Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" < samples/beehive_secondTemperatureUpdate.jsonld
 ```
 
 * We can get the simplified temporal representation of the beehive entity

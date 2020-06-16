@@ -28,6 +28,7 @@ class TestContainersConfiguration {
             .uri(EntityServiceTestContainers.getNeo4jUri())
             .credentials(DB_USER, DB_PASSWORD)
             .useNativeTypes()
+            .database("stellio")
             .build()
     }
 }

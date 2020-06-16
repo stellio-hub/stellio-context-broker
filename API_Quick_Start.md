@@ -79,23 +79,23 @@ http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-Content-Type:application/json
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json
 ```
 
 * Let's add a name to the created beehive: 
 
 ```
 http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Content-Type:application/json \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-< samples/beehive_addName.jsonld
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    < samples/beehive_addName.jsonld
 ```
 
 * The recently added name property can be deleted: 
 
 ```
 http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Content-Type:application/json \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 ```
 
 * Let's create a subscription to the beehive that sends a notification when the temperature exceeds 40 
@@ -114,25 +114,27 @@ http https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subsc
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-< samples/beehive_updateTemperature.jsonld
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    < samples/beehive_updateTemperature.jsonld
 ```
 
 * We can also update the beehive humidity 
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-< samples/beehive_updateHumidity.jsonld
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    < samples/beehive_updateHumidity.jsonld
 ```
 
 * Since we updated both temperature and humidity, we can get the temporal evolution of those properties
 
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01 \
-timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-Content-Type:application/json
+    timerel==between \
+    time==2019-10-25T12:00:00Z \
+    endTime==2020-10-27T12:00:00Z \
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json
 ```
 
 Sample payload returned showing the temporal evolution of temperature and humidity properties:
@@ -194,16 +196,19 @@ Sample payload returned showing the temporal evolution of temperature and humidi
 
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-< samples/beehive_secondTemperatureUpdate.jsonld
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    < samples/beehive_secondTemperatureUpdate.jsonld
 ```
 
 * We can get the simplified temporal representation of the temperature property of the beehive
 ```
 http https://data-hub.eglobalmark.com/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:01?options=temporalValues \
-attrs==temperature timerel==between time==2019-10-25T12:00:00Z endTime==2020-10-27T12:00:00Z \
-Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
-Content-Type:application/json 
+    attrs==temperature \ 
+    timerel==between \
+    time==2019-10-25T12:00:00Z \
+    endTime==2020-10-27T12:00:00Z \
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json 
 ```
 
 The sample payload returned showing the simplified temporal evolution of temperature and humidity properties:

@@ -25,11 +25,13 @@ services:
     depends_on:
       - zookeeper
   neo4j:
-    image: neo4j:3.5.14
+    image: neo4j:4.0
     container_name: stellio-neo4j
     volumes:
       - stellio-neo4j-storage:/data
     environment:
+      - NEO4J_dbms_allow__upgrade=${NEO4J_ALLOW_UPGRADE}
+      - NEO4J_dbms_default__database=${NEO4J_DEFAULT_DATABASE}
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
     ports:
       - 7474:7474

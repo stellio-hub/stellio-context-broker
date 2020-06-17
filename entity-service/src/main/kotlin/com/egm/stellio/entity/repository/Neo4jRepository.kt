@@ -354,11 +354,8 @@ class Neo4jRepository(
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }
-        val query = """
-            MATCH (entity:Entity)
-            WHERE entity.id IN {entitiesIds}
-            RETURN entity.id as id
-            """
+
+        val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
         return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
     }

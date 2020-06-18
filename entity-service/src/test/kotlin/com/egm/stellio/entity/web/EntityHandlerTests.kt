@@ -39,6 +39,7 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.lang.reflect.UndeclaredThrowableException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -200,14 +201,15 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { entityService.exists(any()) } returns false
-        every { entityService.createEntity(any()) } throws BadRequestDataException("Target entity does not exist")
+        // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
+        every { entityService.createEntity(any()) } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isEqualTo(400)
+            .expectStatus().isBadRequest
             .expectBody().json(
                 """
                 {

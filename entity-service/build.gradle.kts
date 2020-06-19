@@ -36,8 +36,7 @@ tasks.bootRun {
 
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.to.image = "stellio/stellio-entity-service"
-jib.container.entrypoint = listOf("/bin/sh")
-jib.container.args = listOf("-c", "/database/wait-for-neo4j.sh neo4j:7687 -t 40 -- " +
+jib.container.entrypoint = listOf("/bin/sh", "-c", "/database/wait-for-neo4j.sh neo4j:7687 -t 40 -- " +
     "java " + project.ext["jibContainerJvmFlag"].toString() + " -cp /app/resources:/app/classes:/app/libs/* " + mainClass)
 jib.container.ports = listOf("8082")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

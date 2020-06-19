@@ -25,34 +25,34 @@ class ExceptionHandler {
 
     @ExceptionHandler
     fun transformErrorResponse(throwable: Throwable): ResponseEntity<String> =
-        when (throwable) {
+        when (val cause = throwable.cause ?: throwable) {
             is AlreadyExistsException -> generateErrorResponse(
                 HttpStatus.CONFLICT,
-                AlreadyExistsResponse(throwable.message)
+                AlreadyExistsResponse(cause.message)
             )
             is ResourceNotFoundException -> generateErrorResponse(
                 HttpStatus.NOT_FOUND,
-                ResourceNotFoundResponse(throwable.message)
+                ResourceNotFoundResponse(cause.message)
             )
             is BadRequestDataException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                BadRequestDataResponse(throwable.message)
+                BadRequestDataResponse(cause.message)
             )
             is JsonLdError -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                JsonLdErrorResponse(throwable.type.toString(), throwable.message.orEmpty())
+                JsonLdErrorResponse(cause.type.toString(), cause.message.orEmpty())
             )
             is JsonParseException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                JsonParseErrorResponse(throwable.message ?: "There has been a problem during JSON parsing")
+                JsonParseErrorResponse(cause.message ?: "There has been a problem during JSON parsing")
             )
             is AccessDeniedException -> generateErrorResponse(
                 HttpStatus.FORBIDDEN,
-                AccessDeniedResponse(throwable.message)
+                AccessDeniedResponse(cause.message)
             )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                InternalErrorResponse(throwable.message ?: "There has been an error during the operation execution")
+                InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")
             )
         }
 

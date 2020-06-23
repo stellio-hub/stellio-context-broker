@@ -2,7 +2,6 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.InternalErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -49,14 +48,6 @@ class EntityHandler(
         return body
             .map {
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
-            }
-            .map {
-                // TODO validation (https://redmine.eglobalmark.com/issues/853)
-                if (entityService.exists(it.id)) {
-                    throw AlreadyExistsException("Already Exists")
-                }
-
-                it
             }
             .map {
                 entityService.createEntity(it)

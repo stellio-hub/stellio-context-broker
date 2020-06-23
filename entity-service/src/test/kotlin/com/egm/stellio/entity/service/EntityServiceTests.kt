@@ -7,7 +7,11 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
+import com.egm.stellio.entity.util.EntitiesGraphBuilder
+import com.egm.stellio.entity.web.BatchEntityError
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
@@ -27,7 +31,11 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockkClass
 import io.mockk.verify
+import org.jgrapht.graph.DefaultEdge
+import org.jgrapht.graph.DirectedPseudograph
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -49,6 +57,9 @@ class EntityServiceTests {
 
     @Autowired
     private lateinit var entityService: EntityService
+
+    @MockkBean(relaxed = true)
+    private lateinit var entitiesGraphBuilder: EntitiesGraphBuilder
 
     @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
@@ -78,6 +89,9 @@ class EntityServiceTests {
         val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityRemovalService_standalone.json")
         val mockedBreedingService = mockkClass(Entity::class)
 
+        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityRemovalService:014YFA9Z")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { mockedBreedingService.properties } returns mutableListOf()
@@ -175,9 +189,11 @@ class EntityServiceTests {
         val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithProp.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
-
         every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp"
 
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithProp")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
@@ -193,6 +209,27 @@ class EntityServiceTests {
         entityService.createEntity(sampleDataWithContext)
 
         confirmVerified()
+    }
+
+    @Test
+    fun `it should not create an entity referencing an unknown entity`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/FeedingService.json")
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:FeedingService:018z59")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java),
+                    listOf(
+                        BatchEntityError("urn:ngsi-ld:Feeder:018z5", arrayListOf("Invalid relationship")),
+                        BatchEntityError("urn:ngsi-ld:FishContainment:0012", arrayListOf("Invalid relationship"))
+                    )
+                )
+
+        val exception = assertThrows<BadRequestDataException>("Creation should have failed")
+            { entityService.createEntity(sampleDataWithContext) }
+        assertEquals(
+            "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
+                        "urn:ngsi-ld:Feeder:018z5,urn:ngsi-ld:FishContainment:0012",
+            exception.message)
     }
 
     @Test

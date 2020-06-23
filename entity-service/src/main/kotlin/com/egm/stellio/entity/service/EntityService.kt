@@ -10,7 +10,9 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
+import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
@@ -63,6 +65,7 @@ import org.springframework.transaction.annotation.Transactional
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
+    private val entitiesGraphBuilder: EntitiesGraphBuilder,
     private val propertyRepository: PropertyRepository,
     private val relationshipRepository: RelationshipRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
@@ -71,6 +74,16 @@ class EntityService(
 
     @Transactional
     fun createEntity(expandedEntity: ExpandedEntity): Entity {
+        if (exists(expandedEntity.id)) {
+            throw AlreadyExistsException("Already Exists")
+        }
+
+        val (_, invalidRelationsErrors) = entitiesGraphBuilder.build(listOf(expandedEntity))
+        if (invalidRelationsErrors.isNotEmpty()) {
+            val inErrorRelationships = invalidRelationsErrors.joinToString(",") { it.entityId }
+            throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
+        }
+
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)

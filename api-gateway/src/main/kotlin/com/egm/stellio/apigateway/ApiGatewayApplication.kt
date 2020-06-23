@@ -12,13 +12,13 @@ import org.springframework.context.annotation.Bean
 class ApiGatewayApplication(
     private val filterFactory: TokenRelayGatewayFilterFactory
 ) {
-    @Value("\${entity.service.url:entity-service}")
+    @Value("\${application.entity-service.url:entity-service}")
     private val entityServiceUrl: String = ""
 
-    @Value("\${search.service.url:search-service}")
+    @Value("\${application.search-service.url:search-service}")
     private val searchServiceUrl: String = ""
 
-    @Value("\${subscription.service.url:subscription-service}")
+    @Value("\${application.subscription-service.url:subscription-service}")
     private val subscriptionServiceUrl: String = ""
 
     @Bean

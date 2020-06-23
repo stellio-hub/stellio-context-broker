@@ -224,8 +224,9 @@ class EntityServiceTests {
                     )
                 )
 
-        val exception = assertThrows<BadRequestDataException>("Creation should have failed")
-            { entityService.createEntity(sampleDataWithContext) }
+        val exception = assertThrows<BadRequestDataException>("Creation should have failed") {
+            entityService.createEntity(sampleDataWithContext)
+        }
         assertEquals(
             "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
                         "urn:ngsi-ld:Feeder:018z5,urn:ngsi-ld:FishContainment:0012",

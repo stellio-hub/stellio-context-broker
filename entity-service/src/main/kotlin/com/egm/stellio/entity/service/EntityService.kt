@@ -89,13 +89,8 @@ class EntityService(
         val entity = entityRepository.save(rawEntity)
 
         expandedEntity.relationships.forEach { entry ->
-            val relationshipType = entry.key
             val objectId = getRelationshipObjectId(entry.value)
-
-            if (!exists(objectId))
-                throw BadRequestDataException("Target entity $objectId in relationship $relationshipType does not exist, create it first")
-            else
-                createEntityRelationship(entity, relationshipType, entry.value, objectId)
+            createEntityRelationship(entity, entry.key, entry.value, objectId)
         }
 
         expandedEntity.properties.forEach { entry ->

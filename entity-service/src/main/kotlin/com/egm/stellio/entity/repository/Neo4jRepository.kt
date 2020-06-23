@@ -8,13 +8,12 @@ import com.egm.stellio.shared.util.isDate
 import com.egm.stellio.shared.util.isDateTime
 import com.egm.stellio.shared.util.isFloat
 import com.egm.stellio.shared.util.isTime
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
 import org.neo4j.ogm.session.event.EventListenerAdapter
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneOffset
 import javax.annotation.PostConstruct
@@ -24,30 +23,34 @@ class Neo4jRepository(
     private val session: Session,
     private val sessionFactory: SessionFactory
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * Create the concrete relationship from a relationship to an entity.
-     *
-     * It is used for :
-     *   - relationships of relationships
-     *   - relationships of properties
-     */
-    @Transactional
-    fun createRelationshipToEntity(relationshipId: String, relationshipType: String, entityId: String): Int {
+    fun createPropertyOfSubject(subjectId: String, property: Property): String {
         val query = """
-            MATCH (subject:Attribute { id: "$relationshipId" }), (target:Entity { id: "$entityId" })
-            MERGE (subject)-[:$relationshipType]->(target)
-            MERGE (subject)-[:HAS_OBJECT]->(target)
-            """
+            MATCH (subject { id: '$subjectId' })
+            CREATE (subject)-[:HAS_VALUE]->(p:Attribute:Property ${'$'}props)
+            RETURN p.id as id
+        """
 
-        return session.query(query, emptyMap<String, String>()).queryStatistics().relationshipsCreated
+        return session.query(query, mapOf("props" to property.nodeProperties()))
+            .first()["id"] as String
+    }
+
+    fun createRelationshipOfSubject(subjectId: String, relationship: Relationship, targetId: String): String {
+        val relationshipType = relationship.type[0].toRelationshipTypeName()
+        val query = """
+            MATCH (subject { id: '$subjectId' }), (target:Entity { id: '$targetId' })
+            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:HAS_OBJECT]->(target)
+            CREATE (r)-[:$relationshipType]->(target)
+            RETURN r.id as id
+        """
+
+        return session.query(query, mapOf("props" to relationship.nodeProperties()))
+            .first()["id"] as String
     }
 
     /**
      * Add a spatial property to an entity.
      */
-    @Transactional
     fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
         val query = """
             MERGE (subject:Entity { id: "$subjectId" })
@@ -56,7 +59,6 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
-    @Transactional
     fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
         val query = """
             MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
@@ -65,6 +67,15 @@ class Neo4jRepository(
         """.trimIndent()
 
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
+    }
+
+    fun updateEntityModifiedDate(entityId: String): Int {
+        val query = """
+            MERGE (entity:Entity { id: ${'$'}entityId })
+            ON MATCH SET entity.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
+        """
+
+        return session.query(query, mapOf("entityId" to entityId)).queryStatistics().propertiesSet
     }
 
     fun hasRelationshipOfType(attributeId: String, relationshipType: String): Boolean {
@@ -94,7 +105,6 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
     }
 
-    @Transactional
     fun updateRelationshipTargetOfAttribute(
         attributeId: String,
         relationshipType: String,
@@ -123,7 +133,6 @@ class Neo4jRepository(
         return Pair(objectQueryStatistics, relationshipTypeQueryStatistics)
     }
 
-    @Transactional
     fun updateLocationPropertyOfEntity(entityId: String, coordinates: Pair<Double, Double>): Int {
         val query = """
             MERGE (entity:Entity { id: "$entityId" })
@@ -132,7 +141,6 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
-    @Transactional
     fun deleteEntity(entityId: String): Pair<Int, Int> {
         /**
          * Delete :
@@ -157,11 +165,9 @@ class Neo4jRepository(
             """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        logger.debug("Deleted entity $entityId : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
-    @Transactional
     fun deleteEntityAttributes(entityId: String): Pair<Int, Int> {
         /**
          * Delete :
@@ -185,11 +191,9 @@ class Neo4jRepository(
             """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        logger.debug("Deleted entity $entityId attributes : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
-    @Transactional
     fun deleteEntityProperty(entityId: String, propertyName: String): Int {
         /**
          * Delete :
@@ -206,7 +210,6 @@ class Neo4jRepository(
             """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        logger.debug("Deleted property $propertyName : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return queryStatistics.nodesDeleted
     }
 
@@ -215,7 +218,6 @@ class Neo4jRepository(
     When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
     Otherwise, it will delete not only the relationships of R1 but also the entity E2
      */
-    @Transactional
     fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
         /**
          * Delete :
@@ -232,7 +234,6 @@ class Neo4jRepository(
             """.trimIndent()
 
         val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        logger.debug("Deleted relationship $relationshipType : deleted ${queryStatistics.nodesDeleted} nodes, ${queryStatistics.relationshipsDeleted} relations")
         return queryStatistics.nodesDeleted
     }
 
@@ -250,7 +251,7 @@ class Neo4jRepository(
                         it.third.isTime() -> "localtime('${it.third}')"
                         else -> "'${it.third}'"
                     }
-                    "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}: Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} $comparableValue"
+                    "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}:Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} $comparableValue"
                 }
             else
                 ""
@@ -293,7 +294,6 @@ class Neo4jRepository(
             RETURN n.id as id
             """
 
-        logger.debug("Issuing search query $finalQuery")
         return session.query(finalQuery, emptyMap<String, Any>(), true)
             .map { it["id"] as String }
     }
@@ -320,7 +320,6 @@ class Neo4jRepository(
             RETURN e
             """.trimIndent()
 
-        logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .firstOrNull()
@@ -332,7 +331,6 @@ class Neo4jRepository(
             RETURN p
             """.trimIndent()
 
-        logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["p"] as Property }
             .firstOrNull()
@@ -344,7 +342,6 @@ class Neo4jRepository(
             RETURN n
             """.trimIndent()
 
-        logger.debug("Issuing query $query")
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["n"] as Entity }
             .first()

@@ -123,7 +123,6 @@ object NgsiLdParsingUtils {
             throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
 
         val expandedResult = JsonUtils.toPrettyString(expandedEntity[0])
-        logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(

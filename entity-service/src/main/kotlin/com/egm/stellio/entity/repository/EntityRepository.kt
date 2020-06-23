@@ -8,10 +8,11 @@ import org.springframework.stereotype.Repository
 @Repository
 interface EntityRepository : Neo4jRepository<Entity, String> {
 
-    @Query("MATCH (entity:Entity { id: \$id })" +
-            "RETURN entity"
+    @Query("MATCH (entity:Entity { id: \$id }) " +
+            "RETURN entity " +
+            "LIMIT 1"
     )
-    fun getEntityCoreById(id: String): List<Map<String, Any>>
+    fun getEntityCoreById(id: String): Entity
 
     @Query("MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property)" +
             "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +
@@ -36,4 +37,7 @@ interface EntityRepository : Neo4jRepository<Entity, String> {
             "RETURN rel, type(r) as relType, relObject, relOfRel, type(or) as relOfRelType, relOfRelObject"
     )
     fun getEntityRelationships(id: String): List<Map<String, Any>>
+
+    @Query("MATCH (e:Entity { id: \$id }) RETURN exists(e.id)")
+    fun exists(id: String): Boolean?
 }

@@ -5,6 +5,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
@@ -91,7 +92,7 @@ class EntityHandlerTests {
     fun `create entity should return a 409 if the entity already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { entityService.exists(any()) } returns true
+        every { entityService.createEntity(any()) } throws AlreadyExistsException("Already Exists")
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")

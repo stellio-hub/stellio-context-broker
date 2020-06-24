@@ -1,5 +1,6 @@
 package com.egm.stellio.apigateway
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.cloud.gateway.route.RouteLocator
@@ -11,6 +12,14 @@ import org.springframework.context.annotation.Bean
 class ApiGatewayApplication(
     private val filterFactory: TokenRelayGatewayFilterFactory
 ) {
+    @Value("\${application.entity-service.url:entity-service}")
+    private val entityServiceUrl: String = ""
+
+    @Value("\${application.search-service.url:search-service}")
+    private val searchServiceUrl: String = ""
+
+    @Value("\${application.subscription-service.url:subscription-service}")
+    private val subscriptionServiceUrl: String = ""
 
     @Bean
     fun myRoutes(builder: RouteLocatorBuilder): RouteLocator {
@@ -20,32 +29,28 @@ class ApiGatewayApplication(
                     .filters {
                         it.filter(filterFactory.apply())
                     }
-                    // TODO : configurable version
-                    .uri("http://entity-service:8082")
+                    .uri("http://$entityServiceUrl:8082")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/entityOperations/**")
                     .filters {
                         it.filter(filterFactory.apply())
                     }
-                    // TODO : configurable version
-                    .uri("http://entity-service:8082")
+                    .uri("http://$entityServiceUrl:8082")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/temporal/entities/**")
                     .filters {
                         it.filter(filterFactory.apply())
                     }
-                    // TODO : configurable version
-                    .uri("http://search-service:8083")
+                    .uri("http://$searchServiceUrl:8083")
             }
             .route { p ->
                 p.path("/ngsi-ld/v1/subscriptions/**")
                     .filters {
                         it.filter(filterFactory.apply())
                     }
-                    // TODO : configurable version
-                    .uri("http://subscription-service:8084")
+                    .uri("http://$subscriptionServiceUrl:8084")
             }
             .build()
     }

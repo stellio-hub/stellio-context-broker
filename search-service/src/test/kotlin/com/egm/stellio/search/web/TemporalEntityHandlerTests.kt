@@ -303,7 +303,7 @@ class TemporalEntityHandlerTests {
 
         verify(timeout = 1000) {
             temporalEntityAttributeService.addEntityPayload(match {
-                it.entityId == "entityId"
+                it == entityTemporalProperty.id
             }, match {
                 // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
                 it.startsWith("{\"id\":\"urn:ngsi-ld:BeeHive:TESTC\",\"type\":\"BeeHive\"")

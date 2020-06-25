@@ -92,6 +92,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
 
         entityListener.processMessage(content)
 
@@ -107,6 +108,12 @@ class EntityListenerTest {
                     it.measuredValue == 33869.0 &&
                     it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
                     it.temporalEntityAttribute == temporalEntityAttributeUuid
+            })
+        }
+
+        verify {
+            temporalEntityAttributeService.addEntityPayload(temporalEntityAttributeUuid, match {
+                it.contains("urn:ngsi-ld:FishContainment:1234")
             })
         }
         confirmVerified(temporalEntityAttributeService)

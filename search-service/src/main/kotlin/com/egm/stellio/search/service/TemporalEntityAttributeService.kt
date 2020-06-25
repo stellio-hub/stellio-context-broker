@@ -57,10 +57,10 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    fun addEntityPayload(temporalEntityAttribute: TemporalEntityAttribute, payload: String): Mono<Int> =
+    fun addEntityPayload(temporalEntityAttributeId: UUID, payload: String): Mono<Int> =
         databaseClient.execute("UPDATE temporal_entity_attribute SET entity_payload = :entity_payload WHERE id = :id")
             .bind("entity_payload", Json.of(payload))
-            .bind("id", temporalEntityAttribute.id)
+            .bind("id", temporalEntityAttributeId)
             .fetch()
             .rowsUpdated()
 

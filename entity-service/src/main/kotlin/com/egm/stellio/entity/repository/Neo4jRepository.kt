@@ -3,7 +3,6 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.isDate
 import com.egm.stellio.shared.util.isDateTime
 import com.egm.stellio.shared.util.isFloat
@@ -18,33 +17,45 @@ import java.time.Instant
 import java.time.ZoneOffset
 import javax.annotation.PostConstruct
 
+sealed class SubjectNodeInfo(val id: String, val label: String)
+class EntitySubjectNode(id: String) : SubjectNodeInfo(id, "Entity")
+class AttributeSubjectNode(id: String) : SubjectNodeInfo(id, "Attribute")
+
 @Component
 class Neo4jRepository(
     private val session: Session,
     private val sessionFactory: SessionFactory
 ) {
 
-    fun createPropertyOfSubject(subjectId: String, property: Property): String {
+    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
         val query = """
-            MATCH (subject { id: '$subjectId' })
+            MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
             CREATE (subject)-[:HAS_VALUE]->(p:Attribute:Property ${'$'}props)
             RETURN p.id as id
         """
 
-        return session.query(query, mapOf("props" to property.nodeProperties()))
+        val parameters = mapOf(
+            "props" to property.nodeProperties(),
+            "subjectId" to subjectNodeInfo.id
+        )
+        return session.query(query, parameters)
             .first()["id"] as String
     }
 
-    fun createRelationshipOfSubject(subjectId: String, relationship: Relationship, targetId: String): String {
+    fun createRelationshipOfSubject(subjectNodeInfo: SubjectNodeInfo, relationship: Relationship, targetId: String): String {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
         val query = """
-            MATCH (subject { id: '$subjectId' }), (target:Entity { id: '$targetId' })
-            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:HAS_OBJECT]->(target)
-            CREATE (r)-[:$relationshipType]->(target)
+            MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId }), (target:Entity { id: ${'$'}targetId })
+            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:$relationshipType]->(target)
             RETURN r.id as id
         """
 
-        return session.query(query, mapOf("props" to relationship.nodeProperties()))
+        val parameters = mapOf(
+            "props" to relationship.nodeProperties(),
+            "subjectId" to subjectNodeInfo.id,
+            "targetId" to targetId
+        )
+        return session.query(query, parameters)
             .first()["id"] as String
     }
 
@@ -53,20 +64,28 @@ class Neo4jRepository(
      */
     fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
         val query = """
-            MERGE (subject:Entity { id: "$subjectId" })
+            MERGE (subject:Entity { id: ${'$'}subjectId })
             ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
             """
-        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
+
+        val parameters = mapOf(
+            "subjectId" to subjectId
+        )
+        return session.query(query, parameters).queryStatistics().propertiesSet
     }
 
     fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
         val query = """
-            MERGE (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
+            MERGE (entity:Entity { id: ${'$'}entityId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
             ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
                          property.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
         """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
+        val parameters = mapOf(
+            "entityId" to entityId,
+            "propertyName" to propertyName
+        )
+        return session.query(query, parameters).queryStatistics().propertiesSet
     }
 
     fun updateEntityModifiedDate(entityId: String): Int {
@@ -78,31 +97,41 @@ class Neo4jRepository(
         return session.query(query, mapOf("entityId" to entityId)).queryStatistics().propertiesSet
     }
 
-    fun hasRelationshipOfType(attributeId: String, relationshipType: String): Boolean {
+    fun hasRelationshipOfType(subjectNodeInfo: SubjectNodeInfo, relationshipType: String): Boolean {
         val query = """
-            MATCH (a { id: '$attributeId' })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
             RETURN a.id
             """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
+        val parameters = mapOf(
+            "attributeId" to subjectNodeInfo.id
+        )
+        return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun hasPropertyOfName(attributeId: String, propertyName: String): Boolean {
+    fun hasPropertyOfName(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
         val query = """
-            MATCH (a { id: '$attributeId' })-[:HAS_VALUE]->(property:Property { name: "$propertyName" })
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
             RETURN a.id
             """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
+        val parameters = mapOf(
+            "attributeId" to subjectNodeInfo.id,
+            "propertyName" to propertyName
+        )
+        return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun hasGeoPropertyOfName(attributeId: String, geoPropertyName: String): Boolean {
+    fun hasGeoPropertyOfName(subjectNodeInfo: SubjectNodeInfo, geoPropertyName: String): Boolean {
         val query = """
-            MATCH (a { id: '$attributeId' }) WHERE a.$geoPropertyName IS NOT NULL
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId }) WHERE a.$geoPropertyName IS NOT NULL
             RETURN a.id
             """.trimIndent()
 
-        return session.query(query, emptyMap<String, String>(), true).toList().isNotEmpty()
+        val parameters = mapOf(
+            "attributeId" to subjectNodeInfo.id
+        )
+        return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
     fun updateRelationshipTargetOfAttribute(
@@ -110,27 +139,20 @@ class Neo4jRepository(
         relationshipType: String,
         oldRelationshipObjectId: String,
         newRelationshipObjectId: String
-    ): Pair<Int, Int> {
-        val hasObjectQuery = """
-            MATCH (a:Attribute { id: "$attributeId" })-[v:HAS_OBJECT]->(e:Entity { id: '$oldRelationshipObjectId' }),
-                  (target:Entity { id: "$newRelationshipObjectId" })
-            DETACH DELETE v
-            MERGE (a)-[:HAS_OBJECT]->(target)
-            """.trimIndent()
-
+    ): Int {
         val relationshipTypeQuery = """
-            MATCH (a:Attribute { id: "$attributeId" })-[v:$relationshipType]->(e:Entity { id: '$oldRelationshipObjectId' }),
-                  (target:Entity { id: "$newRelationshipObjectId" })
+            MATCH (a:Attribute { id: ${'$'}attributeId })-[v:$relationshipType]->(e:Entity { id: ${'$'}oldRelationshipObjectId }),
+                  (target:Entity { id: ${'$'}newRelationshipObjectId })
             DETACH DELETE v
             MERGE (a)-[:$relationshipType]->(target)
-            """.trimIndent()
+        """.trimIndent()
 
-        val objectQueryStatistics =
-            session.query(hasObjectQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
-        val relationshipTypeQueryStatistics =
-            session.query(relationshipTypeQuery, emptyMap<String, String>()).queryStatistics().nodesDeleted
-
-        return Pair(objectQueryStatistics, relationshipTypeQueryStatistics)
+        val parameters = mapOf(
+            "attributeId" to attributeId,
+            "oldRelationshipObjectId" to oldRelationshipObjectId,
+            "newRelationshipObjectId" to newRelationshipObjectId
+        )
+        return session.query(relationshipTypeQuery, parameters).queryStatistics().nodesDeleted
     }
 
     fun updateLocationPropertyOfEntity(entityId: String, coordinates: Pair<Double, Double>): Int {
@@ -154,17 +176,25 @@ class Neo4jRepository(
          * 7. the relationships of relationships
          */
         val query = """
-            MATCH (n:Entity { id: '$entityId' }) 
-            OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop)
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
-            OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel)
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            MATCH (n:Entity { id: ${'$'}entityId }) 
+            OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop:Property)
+            WITH n, prop
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
+            WITH n, prop, relOfProp
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
+            WITH n, prop, relOfProp, propOfProp
+            OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel:Relationship)
+            WITH n, prop, relOfProp, propOfProp, rel
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
+            WITH n, prop, relOfProp, propOfProp, rel, propOfRel
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE n,prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
+            DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
             """.trimIndent()
 
-        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        val parameters = mapOf(
+            "entityId" to entityId
+        )
+        val queryStatistics = session.query(query, parameters).queryStatistics()
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
@@ -180,17 +210,25 @@ class Neo4jRepository(
          * 6. the relationships of relationships
          */
         val query = """
-            MATCH (n:Entity { id: '$entityId' }) 
-            OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop)
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
-            OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel)
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            MATCH (n:Entity { id: ${'$'}entityId }) 
+            OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop:Property)
+            WITH n, prop
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
+            WITH n, prop, relOfProp
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
+            WITH n, prop, relOfProp, propOfProp
+            OPTIONAL MATCH (n)-[:HAS_OBJECT]->(rel:Relationship)
+            WITH n, prop, relOfProp, propOfProp, rel
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
+            WITH n, prop, relOfProp, propOfProp, rel, propOfRel
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE prop,relOfProp,propOfProp,rel,propOfRel,relOfRel
+            DETACH DELETE prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
             """.trimIndent()
 
-        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        val parameters = mapOf(
+            "entityId" to entityId
+        )
+        val queryStatistics = session.query(query, parameters).queryStatistics()
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
@@ -203,21 +241,21 @@ class Neo4jRepository(
          * 3. the relationships of the property
          */
         val query = """
-            MATCH (entity:Entity { id: "$entityId" })-[:HAS_VALUE]->(prop:Attribute { name: "$propertyName" })
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp)
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp)
-            DETACH DELETE prop,propOfProp,relOfProp
+            MATCH (entity:Entity { id: ${'$'}entityId })-[:HAS_VALUE]->(prop:Property { name: ${'$'}propertyName })
+            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
+            WITH prop, propOfProp
+            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
+            DETACH DELETE prop, propOfProp, relOfProp
             """.trimIndent()
 
-        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
+        val parameters = mapOf(
+            "entityId" to entityId,
+            "propertyName" to propertyName
+        )
+        val queryStatistics = session.query(query, parameters).queryStatistics()
         return queryStatistics.nodesDeleted
     }
 
-    /**
-    Given an entity E1 having a relationship R1 with an entity E2
-    When matching the relationships of R1 (to be deleted with R1), a check on :Relationship is necessary since R1 has a link also called HAS_OBJECT with the target entity E2
-    Otherwise, it will delete not only the relationships of R1 but also the entity E2
-     */
     fun deleteEntityRelationship(entityId: String, relationshipType: String): Int {
         /**
          * Delete :
@@ -227,14 +265,17 @@ class Neo4jRepository(
          * 3. the relationships of the relationship
          */
         val query = """
-            MATCH (entity:Entity { id: "$entityId" })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel)
+            MATCH (entity:Entity { id: ${'$'}entityId })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
+            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
+            WITH rel, propOfRel
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE rel,propOfRel,relOfRel
-            """.trimIndent()
+            DETACH DELETE rel, propOfRel, relOfRel
+        """.trimIndent()
 
-        val queryStatistics = session.query(query, emptyMap<String, Any>()).queryStatistics()
-        return queryStatistics.nodesDeleted
+        val parameters = mapOf(
+            "entityId" to entityId
+        )
+        return session.query(query, parameters).queryStatistics().nodesDeleted
     }
 
     fun getEntitiesByTypeAndQuery(
@@ -251,15 +292,13 @@ class Neo4jRepository(
                         it.third.isTime() -> "localtime('${it.third}')"
                         else -> "'${it.third}'"
                     }
-                    "(n)-[:HAS_VALUE]->(${it.first.extractShortTypeFromExpanded()}:Property { name: '${it.first}'}) and ${it.first.extractShortTypeFromExpanded()}.value ${it.second} $comparableValue"
-                }
-            else
-                ""
-
-        val propertiesVariables =
-            if (query.second.isNotEmpty())
-                query.second.joinToString(", ") {
-                    "(${it.first.extractShortTypeFromExpanded()})"
+                    """
+                       EXISTS {
+                           MATCH (n)-[:HAS_VALUE]->(p:Property)
+                           WHERE p.name = '${it.first}' 
+                           AND p.value ${it.second} $comparableValue
+                       }
+                    """.trimIndent()
                 }
             else
                 ""
@@ -274,13 +313,10 @@ class Neo4jRepository(
 
         val matchClause =
             if (type.isEmpty())
-                "MATCH (n)"
-            else {
-                if (propertiesVariables.isEmpty())
-                    "MATCH (n:`$type`)"
-                else
-                    "MATCH (n:`$type`), $propertiesVariables"
-            }
+                "MATCH (n:Entity)"
+            else
+                "MATCH (n:`$type`)"
+
         val whereClause =
             if (propertiesFilter.isNotEmpty() || relationshipsFilter.isNotEmpty()) " WHERE "
             else ""

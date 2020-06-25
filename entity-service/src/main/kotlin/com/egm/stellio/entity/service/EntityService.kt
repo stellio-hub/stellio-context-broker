@@ -6,7 +6,9 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
@@ -138,7 +140,7 @@ class EntityService(
         )
 
         neo4jRepository.createPropertyOfSubject(
-            subjectId = entity.id,
+            subjectNodeInfo = EntitySubjectNode(entity.id),
             property = rawProperty
         )
 
@@ -167,7 +169,7 @@ class EntityService(
             observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
         )
 
-        neo4jRepository.createRelationshipOfSubject(entity.id, rawRelationship, targetEntityId)
+        neo4jRepository.createRelationshipOfSubject(EntitySubjectNode(entity.id), rawRelationship, targetEntityId)
 
         createAttributeProperties(rawRelationship.id, relationshipValues)
         createAttributeRelationships(rawRelationship.id, relationshipValues)
@@ -197,7 +199,7 @@ class EntityService(
             )
 
             neo4jRepository.createPropertyOfSubject(
-                subjectId = subjectId,
+                subjectNodeInfo = AttributeSubjectNode(subjectId),
                 property = rawProperty
             )
         }
@@ -220,7 +222,11 @@ class EntityService(
                             )
                         )
 
-                        neo4jRepository.createRelationshipOfSubject(subjectId, rawRelationship, objectId)
+                        neo4jRepository.createRelationshipOfSubject(
+                            AttributeSubjectNode(subjectId),
+                            rawRelationship,
+                            objectId
+                        )
                     } else {
                         throw BadRequestDataException("Target entity $objectId in property $subjectId does not exist, create it first")
                     }
@@ -404,7 +410,10 @@ class EntityService(
             logger.debug("Fragment is of type $attributeType")
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
-                if (!neo4jRepository.hasRelationshipOfType(entityId, relationshipTypeName.toRelationshipTypeName())) {
+                if (!neo4jRepository.hasRelationshipOfType(
+                    EntitySubjectNode(entityId),
+                    relationshipTypeName.toRelationshipTypeName())
+                ) {
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
@@ -430,7 +439,7 @@ class EntityService(
                     Triple(it.key, true, null)
                 }
             } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                if (!neo4jRepository.hasPropertyOfName(entityId, it.key)) {
+                if (!neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), it.key)) {
                     createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
@@ -446,7 +455,10 @@ class EntityService(
                     Triple(it.key, true, null)
                 }
             } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
-                if (!neo4jRepository.hasGeoPropertyOfName(entityId, it.key.extractShortTypeFromExpanded())) {
+                if (!neo4jRepository.hasGeoPropertyOfName(
+                    EntitySubjectNode(entityId),
+                    it.key.extractShortTypeFromExpanded())
+                ) {
                     createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
                     Triple(it.key, true, null)
                 } else if (disallowOverwrite) {
@@ -499,7 +511,7 @@ class EntityService(
                 val attributeType = attributeValue["@type"]!![0]
                 logger.debug("Trying to update attribute $shortAttributeName of type $attributeType")
                 if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
-                    if (neo4jRepository.hasRelationshipOfType(id, it.key.toRelationshipTypeName())) {
+                    if (neo4jRepository.hasRelationshipOfType(EntitySubjectNode(id), it.key.toRelationshipTypeName())) {
                         updateRelationshipOfEntity(
                             entity,
                             it.key,
@@ -511,14 +523,14 @@ class EntityService(
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                    if (neo4jRepository.hasPropertyOfName(id, it.key)) {
+                    if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(id), it.key)) {
                         updatePropertyOfEntity(entity, it.key, attributeValue)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
                 } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
-                    if (neo4jRepository.hasGeoPropertyOfName(id, shortAttributeName)) {
+                    if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(entity, it.key, attributeValue)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
@@ -618,7 +630,7 @@ class EntityService(
             !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
                 isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
         }.forEach { entry ->
-            if (!neo4jRepository.hasPropertyOfName(subject.id, entry.key))
+            if (!neo4jRepository.hasPropertyOfName(AttributeSubjectNode(subject.id), entry.key))
                 throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} does not exist")
             updatePropertyValues(subject.id, entry.key, entry.value)
         }
@@ -631,7 +643,10 @@ class EntityService(
             if (propEntryValue is Map<*, *>) {
                 val propEntryValueMap = propEntryValue as Map<String, List<Any>>
                 if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
-                    if (!neo4jRepository.hasRelationshipOfType(subject.id, propEntry.key.toRelationshipTypeName()))
+                    if (!neo4jRepository.hasRelationshipOfType(
+                        AttributeSubjectNode(subject.id),
+                        propEntry.key.toRelationshipTypeName())
+                    )
                         throw BadRequestDataException("Relationship ${propEntry.key.toRelationshipTypeName()} does not exist")
                     val objectId = getRelationshipObjectId(propEntryValueMap)
                     updateRelationshipValues(subject.id, propEntry.key, propEntryValueMap, objectId)
@@ -671,9 +686,12 @@ class EntityService(
     fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
-        if (neo4jRepository.hasPropertyOfName(entityId, expandedAttributeName))
+        if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
             return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName) >= 1
-        else if (neo4jRepository.hasRelationshipOfType(entityId, expandedAttributeName.toRelationshipTypeName()))
+        else if (neo4jRepository.hasRelationshipOfType(
+            EntitySubjectNode(entityId),
+            expandedAttributeName.toRelationshipTypeName())
+        )
             return neo4jRepository.deleteEntityRelationship(
                 entityId,
                 expandedAttributeName.toRelationshipTypeName()

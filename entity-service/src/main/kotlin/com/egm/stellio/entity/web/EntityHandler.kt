@@ -80,10 +80,7 @@ class EntityHandler(
                 .toMono()
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
-        return "".toMono()
-            .map {
-                entityService.searchEntities(type, q.decode(), contextLink)
-            }
+        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink))
             .map {
                 compactEntities(it)
             }

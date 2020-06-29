@@ -12,8 +12,16 @@ class EventMessageService(
     private val resolver: BinderAwareChannelResolver
 ) {
 
-    fun sendMessage(channelName: String, eventType: EventType, entityId: String, entityType: String, payload: String?, updatedEntity: String?): Boolean {
-        val data = mapOf("operationType" to eventType.name,
+    fun sendMessage(
+        channelName: String,
+        eventType: EventType,
+        entityId: String,
+        entityType: String,
+        payload: String?,
+        updatedEntity: String?
+    ): Boolean {
+        val data = mapOf(
+            "operationType" to eventType.name,
             "entityId" to entityId,
             "entityType" to entityType,
             "payload" to payload,
@@ -26,6 +34,7 @@ class EventMessageService(
                 MessageBuilder.createMessage(
                     serializeObject(data),
                     MessageHeaders(mapOf(MessageHeaders.ID to entityId))
-                ))
+                )
+            )
     }
 }

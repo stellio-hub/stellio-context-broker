@@ -108,6 +108,14 @@ If you want to build only one of the services, you can launch:
 ./gradlew entity-service:build
 ```
 
+### Formatting the code
+
+To format the code, we use Intellij built-in formatter with settings that can be found in the `config/settings` directory.
+
+Import settings with `File/Manage IDE Settings/Import Settings...`.
+
+You can use plugins like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) that applies changed code refactoring and optimized imports on a save.
+
 ### Working locally with Docker images
 
 To work locally with a Docker image of a service without publishing it to Docker Hub, you can follow the below instructions:
@@ -132,11 +140,7 @@ docker run stellio/stellio-entity-service:latest
 
 # Usage
 
-To start using Stellio, you can follow the [API quick guide](https://github.com/easy-global-market/ngsild-api-data-models/blob/master/API_Quick_Guide.md)
-published in our NGSI-LD API & Data Model repository.
-
-As the development environment does not make use of the authentication setup, you can ignore related information in the 
-API quick guide.
+To start using Stellio, you can follow the [API quick start](API_Quick_Start.md).
 
 ## License
 

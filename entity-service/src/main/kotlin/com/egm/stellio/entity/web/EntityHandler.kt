@@ -1,27 +1,36 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.InternalErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.extractContextFromLinkHeader
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
-import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
+import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.net.URI
-import java.util.*
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -41,14 +50,6 @@ class EntityHandler(
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
             }
             .map {
-                // TODO validation (https://redmine.eglobalmark.com/issues/853)
-                if (entityService.exists(it.id)) {
-                    throw AlreadyExistsException("Already Exists")
-                }
-
-                it
-            }
-            .map {
                 entityService.createEntity(it)
             }
             .map {
@@ -61,7 +62,7 @@ class EntityHandler(
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
-            Mono<ResponseEntity<*>> {
+        Mono<ResponseEntity<*>> {
         val type = params.getFirst("type") ?: ""
         val q = params.getOrDefault("q", emptyList())
 
@@ -79,10 +80,7 @@ class EntityHandler(
                 .toMono()
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
-        return "".toMono()
-            .map {
-                entityService.searchEntities(type, q.decode(), contextLink)
-            }
+        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink))
             .map {
                 compactEntities(it)
             }
@@ -162,7 +160,10 @@ class EntityHandler(
      * Implements 6.6.3.2 - Update Entity Attributes
      *
      */
-    @PatchMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @PatchMapping(
+        "/{entityId}/attrs",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
     fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
@@ -190,7 +191,10 @@ class EntityHandler(
      * Implements 6.7.3.1 - Partial Attribute Update
      * Current implementation is basic and only update the value of a property.
      */
-    @PatchMapping("/{entityId}/attrs/{attrId}", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE])
+    @PatchMapping(
+        "/{entityId}/attrs/{attrId}",
+        consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
+    )
     fun partialAttributeUpdate(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,

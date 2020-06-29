@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import java.util.*
+import java.util.UUID
 
 data class TemporalEntityAttribute(
     val id: UUID = UUID.randomUUID(),

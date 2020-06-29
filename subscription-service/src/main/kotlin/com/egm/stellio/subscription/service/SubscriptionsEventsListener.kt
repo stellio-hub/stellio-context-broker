@@ -20,9 +20,30 @@ class SubscriptionsEventsListener(
     fun handleSubscriptionEvent(subscriptionEvent: EntityEvent) {
 
         val result = when (subscriptionEvent.operationType) {
-            EventType.CREATE -> eventMessageService.sendMessage(channelName, EventType.CREATE, subscriptionEvent.entityId, subscriptionEvent.entityType, subscriptionEvent.payload, null)
-            EventType.UPDATE -> eventMessageService.sendMessage(channelName, EventType.UPDATE, subscriptionEvent.entityId, subscriptionEvent.entityType, subscriptionEvent.payload, subscriptionEvent.updatedEntity)
-            EventType.DELETE -> eventMessageService.sendMessage(channelName, EventType.DELETE, subscriptionEvent.entityId, subscriptionEvent.entityType, null, null)
+            EventType.CREATE -> eventMessageService.sendMessage(
+                channelName,
+                EventType.CREATE,
+                subscriptionEvent.entityId,
+                subscriptionEvent.entityType,
+                subscriptionEvent.payload,
+                null
+            )
+            EventType.UPDATE -> eventMessageService.sendMessage(
+                channelName,
+                EventType.UPDATE,
+                subscriptionEvent.entityId,
+                subscriptionEvent.entityType,
+                subscriptionEvent.payload,
+                subscriptionEvent.updatedEntity
+            )
+            EventType.DELETE -> eventMessageService.sendMessage(
+                channelName,
+                EventType.DELETE,
+                subscriptionEvent.entityId,
+                subscriptionEvent.entityType,
+                null,
+                null
+            )
             else -> false
         }
 

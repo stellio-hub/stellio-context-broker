@@ -1,9 +1,9 @@
 package com.egm.stellio.search.listener
 
 import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
@@ -55,6 +55,7 @@ class EntityListener(
                             measuredValue = rawParsedData[attributeName]["value"].asDouble()
                         )
                         attributeInstanceService.create(attributeInstance)
+                            .then(temporalEntityAttributeService.addEntityPayload(it, entityEvent.updatedEntity!!))
                     }
                     .doOnError {
                         logger.error("Failed to persist new attribute instance, ignoring it", it)

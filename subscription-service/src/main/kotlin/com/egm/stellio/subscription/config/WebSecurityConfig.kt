@@ -13,12 +13,13 @@ class WebSecurityConfig {
     @ConditionalOnProperty("application.authentication.enabled")
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http
-                // disable CSRF as it does not fit with an HTTP REST API
-                .csrf().disable()
-                // tweak Actuator health endpoint security rules to grant access to anonymous users
-                .authorizeExchange().pathMatchers("/actuator/health").permitAll().and()
-                .authorizeExchange().pathMatchers("/**").authenticated().and()
-                .oauth2ResourceServer().jwt()
+            // disable CSRF as it does not fit with an HTTP REST API
+            .csrf().disable()
+            // WARNING: this will allow access to everyone to enabled actuator endpoints
+            // by default, only health endpoint is activated, be careful when activating other ones
+            .authorizeExchange().pathMatchers("/actuator/**").permitAll().and()
+            .authorizeExchange().pathMatchers("/**").authenticated().and()
+            .oauth2ResourceServer().jwt()
 
         return http.build()
     }
@@ -27,10 +28,10 @@ class WebSecurityConfig {
     @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
     fun springNoSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {
         http
-                // disable CSRF as it does not fit with an HTTP REST API
-                .csrf().disable()
-                // explicitly disable authentication to override Spring Security defaults
-                .authorizeExchange().pathMatchers("/**").permitAll()
+            // disable CSRF as it does not fit with an HTTP REST API
+            .csrf().disable()
+            // explicitly disable authentication to override Spring Security defaults
+            .authorizeExchange().pathMatchers("/**").permitAll()
 
         return http.build()
     }

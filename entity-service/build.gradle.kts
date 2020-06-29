@@ -1,4 +1,6 @@
 val developmentOnly by configurations.creating
+val mainClass = "com.egm.stellio.entity.EntityServiceApplicationKt"
+
 configurations {
     runtimeClasspath {
         extendsFrom(developmentOnly)
@@ -17,7 +19,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
     implementation("org.jgrapht:jgrapht-core:1.4.0")
-    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.11")
+    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.12")
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -34,6 +36,9 @@ tasks.bootRun {
 
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.to.image = "stellio/stellio-entity-service"
-jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
+jib.container.entrypoint = listOf("/bin/sh", "-c", "/database/wait-for-neo4j.sh neo4j:7687 -t \$NEO4J_WAIT_TIMEOUT -- " +
+    "java " + project.ext["jibContainerJvmFlag"].toString() + " -cp /app/resources:/app/classes:/app/libs/* " + mainClass)
+jib.container.environment = mapOf("NEO4J_WAIT_TIMEOUT" to "100")
 jib.container.ports = listOf("8082")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
+jib.extraDirectories.permissions = mapOf("/database/wait-for-neo4j.sh" to "775")

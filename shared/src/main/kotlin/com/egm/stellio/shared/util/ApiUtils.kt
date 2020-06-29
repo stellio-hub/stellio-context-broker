@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.model.Subscription
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -8,7 +10,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.MediaType
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util.*
+import java.util.Optional
 
 object ApiUtils {
 

@@ -2,13 +2,14 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 
 class ExpandedEntity private constructor(
-    val attributes: Map<String, Any>,
+    val rawJsonLdProperties: Map<String, Any>,
     val contexts: List<String>
 ) {
     companion object {
@@ -23,22 +24,29 @@ class ExpandedEntity private constructor(
         }
     }
 
-    val id = attributes["@id"]!! as String
-    val type = (attributes["@type"]!! as List<String>)[0]
+    val id = rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_ID]!! as String
+    val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
     val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) }
+    val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) }
+    val attributes by lazy { initAttributesWithoutTypeAndId() }
 
     fun compact(): Map<String, Any> =
-        JsonLdProcessor.compact(attributes, mapOf("@context" to contexts), JsonLdOptions())
+        JsonLdProcessor.compact(rawJsonLdProperties, mapOf("@context" to contexts), JsonLdOptions())
 
     private fun getAttributesOfType(type: AttributeType): Map<String, Map<String, List<Any>>> =
-        attributes.filterKeys {
-            !listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE).contains(it)
-        }.mapValues {
+        attributes.mapValues {
             NgsiLdParsingUtils.expandValueAsMap(it.value)
         }.filter {
             NgsiLdParsingUtils.isAttributeOfType(it.value, type)
         }
+
+    private fun initAttributesWithoutTypeAndId(): Map<String, Any> {
+        val idAndTypeKeys = listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE)
+        return rawJsonLdProperties.filterKeys {
+            !idAndTypeKeys.contains(it)
+        }
+    }
 
     /**
      * Gets linked entities ids.

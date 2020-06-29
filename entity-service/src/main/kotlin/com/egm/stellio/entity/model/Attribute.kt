@@ -12,7 +12,7 @@ import org.neo4j.ogm.annotation.Transient
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @NodeEntity
 open class Attribute(
@@ -61,5 +61,25 @@ open class Attribute(
         }
 
         return resultEntity
+    }
+
+    /**
+     * Return a map of the properties to store with the Property node in neo4j
+     */
+    open fun nodeProperties(): MutableMap<String, Any> {
+        val nodeProperties = mutableMapOf<String, Any>(
+            "id" to id,
+            "createdAt" to createdAt
+        )
+
+        modifiedAt?.run {
+            nodeProperties["modifiedAt"] = this
+        }
+
+        observedAt?.run {
+            nodeProperties["observedAt"] = this
+        }
+
+        return nodeProperties
     }
 }

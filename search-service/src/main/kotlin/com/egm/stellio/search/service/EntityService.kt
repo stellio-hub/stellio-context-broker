@@ -14,7 +14,8 @@ class EntityService(
     entityServiceProperties: EntityServiceProperties
 ) {
 
-    private final val consumer: (ClientCodecConfigurer) -> Unit = { configurer -> configurer.defaultCodecs().enableLoggingRequestDetails(true) }
+    private final val consumer: (ClientCodecConfigurer) -> Unit =
+        { configurer -> configurer.defaultCodecs().enableLoggingRequestDetails(true) }
 
     private var webClient = WebClient.builder()
         .exchangeStrategies(ExchangeStrategies.builder().codecs(consumer).build())

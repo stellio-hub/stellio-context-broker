@@ -14,6 +14,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.61" apply false
     id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
     id("com.google.cloud.tools.jib") version "1.6.1" apply false
+    kotlin("kapt") version "1.3.61" apply false
 }
 
 subprojects {
@@ -21,12 +22,14 @@ subprojects {
         mavenCentral()
         maven { url = uri("https://repo.spring.io/milestone") }
         jcenter()
+        maven { url = uri("https://dl.bintray.com/arrow-kt/arrow-kt/") }
     }
 
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
+    apply(plugin = "kotlin-kapt")
 
     java.sourceCompatibility = JavaVersion.VERSION_11
 
@@ -55,9 +58,14 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.0")
 
+        implementation("io.arrow-kt:arrow-fx:0.10.4")
+        implementation("io.arrow-kt:arrow-syntax:0.10.4")
+        "kapt"("io.arrow-kt:arrow-meta:0.10.4")
+
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
         runtimeOnly("de.siegmar:logback-gelf:3.0.0")
+        runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
             exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

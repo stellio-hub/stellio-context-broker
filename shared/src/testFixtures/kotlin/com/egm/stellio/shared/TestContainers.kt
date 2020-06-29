@@ -8,6 +8,7 @@ open class TestContainers(
     val servicePort: Int
 ) {
     class KDockerComposeContainer(file: File) : DockerComposeContainer<KDockerComposeContainer>(file)
+
     private val DOCKER_COMPOSE_FILE = File("docker-compose.yml")
     protected val instance: KDockerComposeContainer by lazy { defineDockerCompose() }
 

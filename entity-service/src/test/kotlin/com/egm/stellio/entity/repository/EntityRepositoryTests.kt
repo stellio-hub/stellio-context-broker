@@ -3,7 +3,9 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,7 +25,11 @@ class EntityRepositoryTests {
 
     @Test
     fun `it should add modifiedAt value when creating new entity`() {
-        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
         assertNotNull(entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt)
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -40,7 +46,11 @@ class EntityRepositoryTests {
 
     @Test
     fun `it should not retrieve an entity from an unknown property id`() {
-        val entity = createEntity("urn:ngsi-ld:Beekeeper:1233", listOf("Beekeeper"), mutableListOf(Property(name = "name", value = "Scalpa")))
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
         val loadedProperty = entityRepository.getEntitySpecificProperty(entity.id, "unknown-property-id")
         assertTrue(loadedProperty.isEmpty())
         neo4jRepository.deleteEntity(entity.id)

@@ -1,10 +1,10 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.subscription.model.GeoQuery
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
+import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 
 object QueryUtils {
@@ -38,8 +38,8 @@ object QueryUtils {
         query!!.split(';', '|').forEach { predicate ->
             val predicateParams = predicate.split("==", "!=", ">", ">=", "<", "<=")
             val attribute = predicateParams[0]
-                            .replace("(", "")
-                            .replace(")", "")
+                .replace("(", "")
+                .replace(")", "")
 
             val jsonPathAttribute = if ((attribute.isCompoundAttribute())) {
                 when (NgsiLdParsingUtils.getAttributeType(attribute, parsedEntity, "[").toString()) {
@@ -66,14 +66,15 @@ object QueryUtils {
     }
 
     fun String.isCompoundAttribute(): Boolean =
-            this.contains("\\[.*?]".toRegex())
+        this.contains("\\[.*?]".toRegex())
 
     fun String.addQuotesToBrackets(): String =
-            this.replace("[", "['").replace("]", "']")
+        this.replace("[", "['").replace("]", "']")
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, targetGeometry: Map<String, Any>): String {
         val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
-        val targetGeometryStatement = createSqlGeometry(targetGeometry.get("geometry").toString(), targetGeometry.get("coordinates").toString())
+        val targetGeometryStatement =
+            createSqlGeometry(targetGeometry.get("geometry").toString(), targetGeometry.get("coordinates").toString())
         val georelParams = extractGeorelParams(geoQuery.georel)
 
         if (georelParams.first == DISTANCE_QUERY_CLAUSE)
@@ -109,7 +110,10 @@ object QueryUtils {
         else
             coordinates.append(initialCoordinates)
 
-        return mapper.readValue(coordinates.toString(), mapper.typeFactory.constructCollectionType(List::class.java, Any::class.java))
+        return mapper.readValue(
+            coordinates.toString(),
+            mapper.typeFactory.constructCollectionType(List::class.java, Any::class.java)
+        )
     }
 
     fun extractGeorelParams(georel: String): Triple<String, String?, String?> {

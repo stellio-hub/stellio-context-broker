@@ -16,6 +16,7 @@ data class NotificationParams(
     enum class FormatType(val format: String) {
         @JsonProperty("keyValues")
         KEY_VALUES("keyValues"),
+
         @JsonProperty("normalized")
         NORMALIZED("normalized")
     }
@@ -23,6 +24,7 @@ data class NotificationParams(
     enum class StatusType(val status: String) {
         @JsonProperty("ok")
         OK("ok"),
+
         @JsonProperty("failed")
         FAILED("failed")
     }

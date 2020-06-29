@@ -9,7 +9,9 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity

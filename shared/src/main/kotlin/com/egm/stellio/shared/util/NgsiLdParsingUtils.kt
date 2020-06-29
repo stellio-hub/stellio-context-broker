@@ -1,6 +1,9 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.Observation
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -25,7 +28,8 @@ data class AttributeType(val uri: String)
 object NgsiLdParsingUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-    const val NGSILD_EGM_CONTEXT = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld"
+    const val NGSILD_EGM_CONTEXT =
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -82,15 +86,18 @@ object NgsiLdParsingUtils {
             .findAndRegisterModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    private val localCoreContextPayload = ClassPathResource("/ngsild/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+    private val localCoreContextPayload =
+        ClassPathResource("/ngsild/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
 
     @PostConstruct
     private fun loadCoreContext() {
         val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
-        val coreContext: Map<String, Any> = mapper.readValue(coreContextPayload, mapper.typeFactory.constructMapLikeType(
-            Map::class.java, String::class.java, Any::class.java
-        ))
+        val coreContext: Map<String, Any> = mapper.readValue(
+            coreContextPayload, mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
         BASE_CONTEXT = coreContext.get("@context") as Map<String, Any>
         logger.info("Core context loaded")
     }
@@ -103,7 +110,8 @@ object NgsiLdParsingUtils {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
 
-        val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
+        val expandedEntity =
+            JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
 
         return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
     }
@@ -115,12 +123,13 @@ object NgsiLdParsingUtils {
             throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
 
         val expandedResult = JsonUtils.toPrettyString(expandedEntity[0])
-        logger.debug("Expanded entity is $expandedResult")
 
         // TODO find a way to avoid this extra parsing
-        val parsedInput: Map<String, Any> = mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
-            Map::class.java, String::class.java, Any::class.java
-        ))
+        val parsedInput: Map<String, Any> = mapper.readValue(
+            input, mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
 
         val contexts =
             if (parsedInput["@context"] is List<*>)
@@ -142,9 +151,11 @@ object NgsiLdParsingUtils {
     }
 
     fun parseJsonLdFragment(input: String): Map<String, Any> {
-        return mapper.readValue(input, mapper.typeFactory.constructMapLikeType(
-            Map::class.java, String::class.java, Any::class.java
-        ))
+        return mapper.readValue(
+            input, mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
     }
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
@@ -220,8 +231,10 @@ object NgsiLdParsingUtils {
     }
 
     fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
-        // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
-        // TODO do a clean implementation using info from @context
+        /*
+         * TODO do a clean implementation using info from @context
+         * TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
+         */
         (payload["@type"] as List<String>)[0].substringAfterLast("/").substringAfterLast("#")
 
     /**
@@ -263,7 +276,8 @@ object NgsiLdParsingUtils {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
-        val expandedFragment = JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
+        val expandedFragment =
+            JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
         logger.debug("Expanded fragment $fragment to $expandedFragment")
         if (expandedFragment.isEmpty())
             throw BadRequestDataException("Unable to expand JSON-LD fragment : $fragment")
@@ -275,12 +289,14 @@ object NgsiLdParsingUtils {
     }
 
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String {
-        val compactedFragment = JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
+        val compactedFragment =
+            JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
         return mapper.writeValueAsString(compactedFragment)
     }
 
     fun compactAndStringifyFragment(key: String, value: Any, context: String): String {
-        val compactedFragment = JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
+        val compactedFragment =
+            JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
         return mapper.writeValueAsString(compactedFragment)
     }
 
@@ -332,7 +348,10 @@ object NgsiLdParsingUtils {
         val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided")
 
         return try {
-            mapper.readValue(context.toString(), mapper.typeFactory.constructCollectionType(List::class.java, String::class.java))
+            mapper.readValue(
+                context.toString(),
+                mapper.typeFactory.constructCollectionType(List::class.java, String::class.java)
+            )
         } catch (e: Exception) {
             throw BadRequestDataException(e.message ?: "Unable to parse the provided context")
         }
@@ -340,14 +359,17 @@ object NgsiLdParsingUtils {
 
     fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
         try {
-            val location = expandValueAsMap(parsedEntity.attributes[NGSILD_LOCATION_PROPERTY]!!)
+            val location = expandValueAsMap(parsedEntity.rawJsonLdProperties[NGSILD_LOCATION_PROPERTY]!!)
             val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
             val geoPropertyType = locationValue["@type"]!![0] as String
             val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!
             if (geoPropertyType.extractShortTypeFromExpanded() == NGSILD_POINT_PROPERTY) {
                 val longitude = (geoPropertyValue[0] as Map<String, Double>)["@value"]
                 val latitude = (geoPropertyValue[1] as Map<String, Double>)["@value"]
-                return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to listOf(longitude, latitude))
+                return mapOf(
+                    "geometry" to geoPropertyType.extractShortTypeFromExpanded(),
+                    "coordinates" to listOf(longitude, latitude)
+                )
             } else {
                 val res = arrayListOf<List<Double?>>()
                 var count = 1
@@ -357,7 +379,7 @@ object NgsiLdParsingUtils {
                         val latitude = (geoPropertyValue[count] as Map<String, Double>)["@value"]
                         res.add(listOf(longitude, latitude))
                     }
-                    count ++
+                    count++
                 }
                 return mapOf("geometry" to geoPropertyType.extractShortTypeFromExpanded(), "coordinates" to res)
             }
@@ -386,8 +408,10 @@ object NgsiLdParsingUtils {
 }
 
 fun String.extractShortTypeFromExpanded(): String =
-    // TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
-    // TODO do a clean implementation using info from @context
+    /*
+     * TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
+     * TODO do a clean implementation using info from @context
+     */
     this.substringAfterLast("/").substringAfterLast("#")
 
 fun String.toRelationshipTypeName(): String =

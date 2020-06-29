@@ -2,7 +2,7 @@ package com.egm.stellio.search.model
 
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 data class AttributeInstance(
     val temporalEntityAttribute: UUID,

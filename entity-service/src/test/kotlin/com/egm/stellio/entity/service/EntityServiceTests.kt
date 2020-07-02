@@ -477,6 +477,34 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should correctly parse location property no matter how the geoProperty type is expanded`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val geoPropertyMap = mapOf(
+                NGSILD_PROPERTY_VALUE to listOf(
+                        mapOf(
+                                "@type" to listOf("https://uri.fiware.org/ns/data-models#Point"),
+                                NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
+                                        mapOf("@value" to 23.45),
+                                        mapOf("@value" to 67.87)
+                                )
+
+                        )
+                )
+        )
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
+
+        entityService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
+
+        verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should create a temporal property with all provided attributes`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"

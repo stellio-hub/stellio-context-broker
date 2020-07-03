@@ -247,7 +247,7 @@ class EntityService(
         val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
         val geoPropertyType = geoPropertyValue["@type"]!![0] as String
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        return if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/Point") {
+        return if (geoPropertyType.endsWith("Point")) {
             val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
             val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
             val latitude = (geoPropertyCoordinates[1] as Map<String, Double>)["@value"]
@@ -666,7 +666,7 @@ class EntityService(
         val geoPropertyValue = expandValueAsMap(propertyValues[NGSILD_GEOPROPERTY_VALUE]!!)
         val geoPropertyType = geoPropertyValue["@type"]!![0] as String
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        if (geoPropertyType == "https://uri.etsi.org/ngsi-ld/default-context/Point") {
+        if (geoPropertyType.endsWith("Point")) {
             val geoPropertyCoordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
             val longitude = (geoPropertyCoordinates[0] as Map<String, Double>)["@value"]
             val latitude = (geoPropertyCoordinates[1] as Map<String, Double>)["@value"]

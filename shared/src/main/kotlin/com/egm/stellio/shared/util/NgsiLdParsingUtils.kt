@@ -53,6 +53,7 @@ object NgsiLdParsingUtils {
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
     const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
+    const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
@@ -161,6 +162,8 @@ object NgsiLdParsingUtils {
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
         (value as List<Any>)[0] as Map<String, List<Any>>
 
+    fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
+            value as List<Map<String, List<Any>>>
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
@@ -194,8 +197,10 @@ object NgsiLdParsingUtils {
                         NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
                         else -> firstListEntry["@value"]
                     }
-                } else {
+                } else if (firstListEntry["@value"] != null) {
                     firstListEntry["@value"]
+                } else {
+                    firstListEntry["@id"]
                 }
             } else {
                 intermediateList.map {
@@ -245,6 +250,15 @@ object NgsiLdParsingUtils {
         values.containsKey(NGSILD_ENTITY_TYPE) &&
             values[NGSILD_ENTITY_TYPE] is List<*> &&
             values.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == type.uri
+
+    /**
+     * Given an entity's attribute, returns whether all its instances are of the given attribute type
+     * (i.e. property)
+     */
+    fun isAttributeOfType(values: List<Map<String, List<Any>>>, type: AttributeType): Boolean =
+        values.all {
+            isAttributeOfType(it, type)
+        }
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()

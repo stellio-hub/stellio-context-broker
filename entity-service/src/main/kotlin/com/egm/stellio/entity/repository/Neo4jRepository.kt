@@ -425,6 +425,19 @@ class Neo4jRepository(
             .firstOrNull()
     }
 
+    fun hasPropertyWithDefaultInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
+        val query = """
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: "default" })
+            RETURN a.id
+            """.trimIndent()
+
+        val parameters = mapOf(
+                "attributeId" to subjectNodeInfo.id,
+                "propertyName" to propertyName
+        )
+        return session.query(query, parameters, true).toList().isNotEmpty()
+    }
+
     private fun escapePropertyValue(value: Any): Any {
         return when (value) {
             is String -> "\"$value\""

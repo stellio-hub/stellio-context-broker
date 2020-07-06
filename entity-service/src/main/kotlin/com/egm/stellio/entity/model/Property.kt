@@ -24,8 +24,11 @@ class Property(
     @JsonRawValue
     var value: Any,
 
-    observedAt: ZonedDateTime? = null
-) : Attribute(attributeType = "Property", observedAt = observedAt) {
+    observedAt: ZonedDateTime? = null,
+
+    datasetId: String? = null
+
+) : Attribute(attributeType = "Property", observedAt = observedAt, datasetId = datasetId) {
 
     override fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = super.serializeCoreProperties()

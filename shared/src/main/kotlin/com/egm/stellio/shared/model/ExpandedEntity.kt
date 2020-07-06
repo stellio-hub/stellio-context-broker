@@ -26,19 +26,26 @@ class ExpandedEntity private constructor(
 
     val id = rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_ID]!! as String
     val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
-    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) }
-    val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) }
-    val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) }
+    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, Map<String, List<Any>>>}
+    val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) as Map<String, List<Map<String, List<Any>>>> }
+    val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) as Map<String, Map<String, List<Any>>> }
     val attributes by lazy { initAttributesWithoutTypeAndId() }
 
     fun compact(): Map<String, Any> =
         JsonLdProcessor.compact(rawJsonLdProperties, mapOf("@context" to contexts), JsonLdOptions())
 
-    private fun getAttributesOfType(type: AttributeType): Map<String, Map<String, List<Any>>> =
-        attributes.mapValues {
-            NgsiLdParsingUtils.expandValueAsMap(it.value)
-        }.filter {
-            NgsiLdParsingUtils.isAttributeOfType(it.value, type)
+    private fun getAttributesOfType(type: AttributeType): Any =
+        when (type) {
+            NGSILD_PROPERTY_TYPE -> attributes.mapValues {
+                NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
+            }.filter {
+                NgsiLdParsingUtils.isAttributeOfType(it.value, type)
+            }
+            else -> attributes.mapValues {
+                NgsiLdParsingUtils.expandValueAsMap(it.value)
+            }.filter {
+                NgsiLdParsingUtils.isAttributeOfType(it.value, type)
+            }
         }
 
     private fun initAttributesWithoutTypeAndId(): Map<String, Any> {
@@ -60,14 +67,14 @@ class ExpandedEntity private constructor(
     private fun getLinkedEntitiesIdsByRelations(): List<String> {
         return relationships.map {
             NgsiLdParsingUtils.getRelationshipObjectId(it.value)
-        }.plus(getLinkedEntitiesByAttribute(relationships))
+        }.plus(getLinkedEntitiesByRelationship(relationships))
     }
 
     private fun getLinkedEntitiesIdsByProperties(): List<String> {
-        return getLinkedEntitiesByAttribute(properties)
+        return getLinkedEntitiesByProperty(properties)
     }
 
-    private fun getLinkedEntitiesByAttribute(attributes: Map<String, Map<String, List<Any>>>): List<String> {
+    private fun getLinkedEntitiesByRelationship(attributes: Map<String, Map<String, List<Any>>>): List<String> {
         return attributes.flatMap { attribute ->
             attribute.value
                 .map {
@@ -80,4 +87,20 @@ class ExpandedEntity private constructor(
                 }
         }
     }
+
+    private fun getLinkedEntitiesByProperty(attributes: Map<String, List<Map<String, List<Any>>>>): List<String> {
+        return attributes.flatMap { attribute ->
+            attribute.value.flatMap { instance ->
+                instance.map {
+                    it.value[0]
+                }.filterIsInstance<Map<String, List<Any>>>()
+                .filter {
+                    NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
+                }.map {
+                    NgsiLdParsingUtils.getRelationshipObjectId(it)
+                }
+            }
+        }
+    }
+
 }

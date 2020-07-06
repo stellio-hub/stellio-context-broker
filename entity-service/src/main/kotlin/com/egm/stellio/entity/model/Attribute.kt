@@ -28,6 +28,8 @@ open class Attribute(
     @JsonIgnore
     var modifiedAt: ZonedDateTime? = null,
 
+    var datasetId: String? = null,
+
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
 
@@ -60,6 +62,10 @@ open class Attribute(
             )
         }
 
+        datasetId?.run {
+            resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = this
+        }
+
         return resultEntity
     }
 
@@ -78,6 +84,10 @@ open class Attribute(
 
         observedAt?.run {
             nodeProperties["observedAt"] = this
+        }
+
+        datasetId?.run {
+            nodeProperties["datasetId"] = this
         }
 
         return nodeProperties

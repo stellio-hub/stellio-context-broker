@@ -100,7 +100,6 @@ class EntityHandler(
                 entityService.getFullEntityById(it)
             }
             .map {
-                logger.debug("here expanded ${it.rawJsonLdProperties}")
                 it.compact()
             }
             .map {

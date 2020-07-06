@@ -26,7 +26,7 @@ class ExpandedEntity private constructor(
 
     val id = rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_ID]!! as String
     val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
-    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, Map<String, List<Any>>>}
+    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, Map<String, List<Any>>> }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) as Map<String, List<Map<String, List<Any>>>> }
     val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) as Map<String, Map<String, List<Any>>> }
     val attributes by lazy { initAttributesWithoutTypeAndId() }
@@ -102,5 +102,4 @@ class ExpandedEntity private constructor(
             }
         }
     }
-
 }

@@ -19,7 +19,7 @@ An access token can be obtained in two ways:
 - If a client has its service account enabled, an access token can be obtained with the following request:
 
 ```
-http --form POST https://data-hub.eglobalmark.com/auth/realms/datahub/protocol/openid-connect/token client_id=<client_id> client_secret=<client_secret> grant_type=client_credentials
+http --form POST https://sso.eglobalmark.com/auth/realms/stellio/protocol/openid-connect/token client_id=<client_id> client_secret=<client_secret> grant_type=client_credentials
 ```
 
 - If a client wants to make API calls on behalf of an end user, an access token can be obtained in exchange of the authorization code contained in the redirect URL after a user authenticates on the authentication server. This process, called the Authorization Code Flow, is described exhaustively in the OpenID Connect specification: https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth.
@@ -27,7 +27,7 @@ http --form POST https://data-hub.eglobalmark.com/auth/realms/datahub/protocol/o
 One simple way to have the access token without copy-pasting is to keep it in a variable:
 
 ```
-export TOKEN=$(http --form POST https://data-hub.eglobalmark.com/auth/realms/datahub/protocol/openid-connect/token client_id=<client_id> client_secret=<client_secret> grant_type=client_credentials | jq -r .access_token)
+export TOKEN=$(http --form POST https://sso.eglobalmark.com/auth/realms/stellio/protocol/openid-connect/token client_id=<client_id> client_secret=<client_secret> grant_type=client_credentials | jq -r .access_token)
 ```
 
 Then to simply use it in the HTTP requests:

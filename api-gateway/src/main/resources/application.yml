@@ -12,11 +12,11 @@ spring:
             scope: openid,profile,email,resource.read
         provider:
           keycloak:
-            authorization-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/auth
-            token-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/token
-            user-info-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/userinfo
+            authorization-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/auth
+            token-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/token
+            user-info-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/userinfo
             user-name-attribute: sub
-            jwk-set-uri: http://127.0.0.1:8081/auth/realms/datahub/protocol/openid-connect/certs
+            jwk-set-uri: http://127.0.0.1:8081/auth/realms/stellio/protocol/openid-connect/certs
   cloud:
     gateway:
       routes:

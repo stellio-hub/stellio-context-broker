@@ -137,7 +137,7 @@ class EntityService(
 
         val datasetId = getPropertyValueFromMapAsString(propertyValues, NGSILD_DATASET_ID_PROPERTY)
         if (datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode(entity.id), propertyKey))
-            throw BadRequestDataException("Property $propertyKey already has default datasetId")
+            throw BadRequestDataException("Property $propertyKey already has default instance")
 
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
@@ -198,7 +198,7 @@ class EntityService(
             entry.value.forEach { instance ->
                 val datasetId = getPropertyValueFromMapAsString(instance, NGSILD_DATASET_ID_PROPERTY)
                 if (datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(AttributeSubjectNode(subjectId), entry.key))
-                    throw BadRequestDataException("Property ${entry.key} already has default datasetId")
+                    throw BadRequestDataException("Property ${entry.key} already has default instance")
 
                 logger.debug("Creating property ${entry.key} with values $instance")
 

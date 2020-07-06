@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
@@ -543,6 +544,140 @@ class EntityServiceTests {
                 it.unitCode == "kg" &&
                 it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
             })
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a property instance with a default datasetId`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val temperatureMap = mapOf(
+                NGSILD_PROPERTY_VALUE to listOf(
+                        mapOf(
+                                "@type" to listOf(NGSILD_PROPERTY_TYPE),
+                                "@value" to 250
+                        )
+                ),
+                NGSILD_UNIT_CODE_PROPERTY to listOf(
+                        mapOf("@value" to "kg")
+                ),
+                NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                        mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to "2019-12-18T10:45:44.248755Z"
+                        )
+                )
+        )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+
+        entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
+
+        verify { neo4jRepository.hasPropertyWithDefaultInstance(
+                match {
+                    it.id == entityId &&
+                            it.label == "Entity"
+                }, "temperature")
+        }
+        verify { neo4jRepository.createPropertyOfSubject(match {
+            it.id == entityId &&
+                    it.label == "Entity"
+        }, match {
+            it.name == "temperature" &&
+                    it.value == 250 &&
+                    it.unitCode == "kg" &&
+                    it.datasetId == "default" &&
+                    it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
+        })
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a property instance with the provided datasetId`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val temperatureMap = mapOf(
+                NGSILD_PROPERTY_VALUE to listOf(
+                        mapOf(
+                                "@type" to listOf(NGSILD_PROPERTY_TYPE),
+                                "@value" to 250
+                        )
+                ),
+                NGSILD_UNIT_CODE_PROPERTY to listOf(
+                        mapOf("@value" to "kg")
+                ),
+                NGSILD_DATASET_ID_PROPERTY to listOf(
+                        mapOf("@id" to "urn:ngsi-ld:Property:sensor1-temperature")
+                ),
+                NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                        mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to "2019-12-18T10:45:44.248755Z"
+                        )
+                )
+        )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+
+        entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
+
+        verify { neo4jRepository.createPropertyOfSubject(match {
+            it.id == entityId &&
+                    it.label == "Entity"
+        }, match {
+            it.name == "temperature" &&
+                    it.value == 250 &&
+                    it.unitCode == "kg" &&
+                    it.datasetId == "urn:ngsi-ld:Property:sensor1-temperature" &&
+                    it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
+        })
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create a default property if another default already exist`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val temperatureMap = mapOf(
+                NGSILD_PROPERTY_VALUE to listOf(
+                        mapOf(
+                                "@type" to listOf(NGSILD_PROPERTY_TYPE),
+                                "@value" to 250
+                        )
+                ),
+                NGSILD_UNIT_CODE_PROPERTY to listOf(
+                        mapOf("@value" to "kg")
+                ),
+                NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                        mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to "2019-12-18T10:45:44.248755Z"
+                        )
+                )
+        )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+        every { neo4jRepository.hasPropertyWithDefaultInstance(any(), any()) } returns true
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        assertThrows<BadRequestDataException>("Property temperature already has default instance") {
+            entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
         }
 
         confirmVerified()

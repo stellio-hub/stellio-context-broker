@@ -63,7 +63,8 @@ open class Attribute(
         }
 
         datasetId?.run {
-            resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = this
+            if (this != "default")
+                resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = this
         }
 
         return resultEntity

@@ -533,6 +533,28 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(device.id)
     }
 
+    @Test
+    fun `it should return true if entity has a default property instance`() {
+        val entity = createEntity(
+                "urn:ngsi-ld:Beekeeper:1233",
+                listOf("Beekeeper"),
+                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = "default"))
+        )
+        assertTrue(neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode("urn:ngsi-ld:Beekeeper:1233"), "name"))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return false if entity doesn't have a default property instance`() {
+        val entity = createEntity(
+                "urn:ngsi-ld:Beekeeper:1233",
+                listOf("Beekeeper"),
+                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = "urn:ngsi-ld:Property:language1-name"))
+        )
+        assertFalse(neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode("urn:ngsi-ld:Beekeeper:1233"), "name"))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)

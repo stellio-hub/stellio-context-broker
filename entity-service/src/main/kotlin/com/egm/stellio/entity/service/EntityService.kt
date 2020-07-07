@@ -197,22 +197,22 @@ class EntityService(
             !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
                 isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
         }.forEach { entry ->
-                logger.debug("Creating property ${entry.key} with values ${entry.value}")
+            logger.debug("Creating property ${entry.key} with values ${entry.value}")
 
-                // for short-handed properties, the value is directly accessible from the map under the @value key
-                val propertyValue =
-                    getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
+            // for short-handed properties, the value is directly accessible from the map under the @value key
+            val propertyValue =
+                getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
 
-                val rawProperty = Property(
-                    name = entry.key, value = propertyValue,
-                    unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
-                    observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
-                )
+            val rawProperty = Property(
+                name = entry.key, value = propertyValue,
+                unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
+                observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
+            )
 
-                neo4jRepository.createPropertyOfSubject(
-                    subjectNodeInfo = AttributeSubjectNode(subjectId),
-                    property = rawProperty
-                )
+            neo4jRepository.createPropertyOfSubject(
+                subjectNodeInfo = AttributeSubjectNode(subjectId),
+                property = rawProperty
+            )
         }
     }
 

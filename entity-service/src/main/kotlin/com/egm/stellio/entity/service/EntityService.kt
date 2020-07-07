@@ -283,14 +283,14 @@ class EntityService(
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId)
-        .groupBy {
-            (it["property"] as Property).id
-        }
-        .values
-        .forEach {
-            val (propertyKey, propertyValues) = buildInstanceFragment(it, entity.contexts)
-            resultEntity = buildPropertyFragment(resultEntity, propertyKey, propertyValues)
-        }
+            .groupBy {
+                (it["property"] as Property).id
+            }
+            .values
+            .forEach {
+                val (propertyKey, propertyValues) = buildInstanceFragment(it, entity.contexts)
+                resultEntity = buildPropertyFragment(resultEntity, propertyKey, propertyValues)
+            }
 
         entityRepository.getEntityRelationships(entityId)
             .groupBy {
@@ -328,8 +328,8 @@ class EntityService(
                     relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
                 }
 
-            resultEntity[primaryRelType] = relationshipValues
-        }
+                resultEntity[primaryRelType] = relationshipValues
+            }
         return ExpandedEntity(resultEntity, entity.contexts)
     }
 
@@ -342,28 +342,28 @@ class EntityService(
         val propertyValues = property.serializeCoreProperties()
 
         rawProperty.filter { relEntry -> relEntry["propValue"] != null }
-        .forEach {
-            val propertyOfProperty = it["propValue"] as Property
-            propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
-        }
+            .forEach {
+                val propertyOfProperty = it["propValue"] as Property
+                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
+            }
 
         rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
-        .forEach {
-            val relationship = it["relOfProp"] as Relationship
-            val targetEntity = it["relOfPropObject"] as Entity
-            val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
-            logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
+            .forEach {
+                val relationship = it["relOfProp"] as Relationship
+                val targetEntity = it["relOfPropObject"] as Entity
+                val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
+                logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
 
-            val relationshipValue = mapOf(
-                NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
-            )
-            val relationshipValues = relationship.serializeCoreProperties()
-            relationshipValues.putAll(relationshipValue)
-            val expandedRelationshipKey =
-                expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
-            propertyValues[expandedRelationshipKey] = relationshipValues
-        }
+                val relationshipValue = mapOf(
+                    NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
+                )
+                val relationshipValues = relationship.serializeCoreProperties()
+                relationshipValues.putAll(relationshipValue)
+                val expandedRelationshipKey =
+                    expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
+                propertyValues[expandedRelationshipKey] = relationshipValues
+            }
 
         return Pair(propertyKey, propertyValues)
     }

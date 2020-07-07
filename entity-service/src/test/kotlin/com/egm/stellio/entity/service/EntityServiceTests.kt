@@ -594,7 +594,7 @@ class EntityServiceTests {
             it.name == "temperature" &&
                     it.value == 250 &&
                     it.unitCode == "kg" &&
-                    it.datasetId == NGSILD_DATASET_ID_DEFAULT_VALUE &&
+                    it.datasetId == URI.create(NGSILD_DATASET_ID_DEFAULT_VALUE) &&
                     it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
         })
         }

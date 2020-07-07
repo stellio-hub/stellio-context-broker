@@ -540,7 +540,7 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
                 "urn:ngsi-ld:Beekeeper:1233",
                 listOf("Beekeeper"),
-                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = NGSILD_DATASET_ID_DEFAULT_VALUE))
+                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = URI.create(NGSILD_DATASET_ID_DEFAULT_VALUE)))
         )
         assertTrue(neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode("urn:ngsi-ld:Beekeeper:1233"), "name"))
         neo4jRepository.deleteEntity(entity.id)

@@ -358,7 +358,9 @@ class EntityHandlerTests {
                                 mapOf(
                                         NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
                                         NGSILD_PROPERTY_VALUE to "ruche",
-                                        NGSILD_DATASET_ID_PROPERTY to "urn:ngsi-ld:Property:french-name"
+                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:french-name"
+                                        )
                                 ),
                         NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
                         NGSILD_ENTITY_TYPE to listOf("Beehive")
@@ -371,7 +373,7 @@ class EntityHandlerTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isOk
-                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":{\"type\":\"Property\",\"data:setId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test
@@ -383,12 +385,17 @@ class EntityHandlerTests {
                                 listOf(mapOf(
                                         NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
                                         NGSILD_PROPERTY_VALUE to "beehive",
-                                        NGSILD_DATASET_ID_PROPERTY to "urn:ngsi-ld:Property:english-name"
+                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:english-name"
+                                        )
                                     ),
                                     mapOf(
                                             NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
                                             NGSILD_PROPERTY_VALUE to "ruche",
-                                            NGSILD_DATASET_ID_PROPERTY to "urn:ngsi-ld:Property:french-name")
+                                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:french-name"
+                                            )
+                                    )
                                 ),
                         NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
                         NGSILD_ENTITY_TYPE to listOf("Beehive")
@@ -401,7 +408,7 @@ class EntityHandlerTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isOk
-                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":[{\"type\":\"Property\",\"data:setId\":\"urn:ngsi-ld:Property:english-name\",\"value\":\"beehive\"},{\"type\":\"Property\",\"data:setId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}],\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":[{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:english-name\",\"value\":\"beehive\"},{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}],\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
     }
 
     @Test

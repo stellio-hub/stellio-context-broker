@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_DEFAULT_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -43,6 +44,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -592,7 +594,7 @@ class EntityServiceTests {
             it.name == "temperature" &&
                     it.value == 250 &&
                     it.unitCode == "kg" &&
-                    it.datasetId == "default" &&
+                    it.datasetId == NGSILD_DATASET_ID_DEFAULT_VALUE &&
                     it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
         })
         }
@@ -640,7 +642,7 @@ class EntityServiceTests {
             it.name == "temperature" &&
                     it.value == 250 &&
                     it.unitCode == "kg" &&
-                    it.datasetId == "urn:ngsi-ld:Property:sensor1-temperature" &&
+                    it.datasetId == URI.create("urn:ngsi-ld:Property:sensor1-temperature") &&
                     it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
         })
         }

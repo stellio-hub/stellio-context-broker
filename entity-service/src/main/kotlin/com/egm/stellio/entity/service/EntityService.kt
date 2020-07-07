@@ -27,6 +27,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_DEFAULT_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
@@ -45,12 +46,12 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactAndStringifyFragmen
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandRelationshipType
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayload
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
@@ -135,7 +136,7 @@ class EntityService(
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found in $propertyValues")
 
-        val datasetId = getPropertyValueFromMapAsString(propertyValues, NGSILD_DATASET_ID_PROPERTY)
+        val datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY)
         if (datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode(entity.id), propertyKey))
             throw BadRequestDataException("Property $propertyKey already has default instance")
 
@@ -145,7 +146,7 @@ class EntityService(
             name = propertyKey, value = propertyValue,
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
             observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY),
-            datasetId = datasetId ?: "default"
+            datasetId = datasetId ?: NGSILD_DATASET_ID_DEFAULT_VALUE
         )
 
         neo4jRepository.createPropertyOfSubject(
@@ -190,34 +191,27 @@ class EntityService(
         values.filterValues {
             it[0] is Map<*, *>
         }.mapValues {
-            expandValueAsListOfMap(it.value)
+            expandValueAsMap(it.value)
         }.filter {
             !(NGSILD_PROPERTIES_CORE_MEMBERS.plus(NGSILD_RELATIONSHIPS_CORE_MEMBERS)).contains(it.key) &&
                 isAttributeOfType(it.value, NGSILD_PROPERTY_TYPE)
         }.forEach { entry ->
-            entry.value.forEach { instance ->
-                val datasetId = getPropertyValueFromMapAsString(instance, NGSILD_DATASET_ID_PROPERTY)
-                if (datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(AttributeSubjectNode(subjectId), entry.key))
-                    throw BadRequestDataException("Property ${entry.key} already has default instance")
+            logger.debug("Creating property ${entry.key} with values ${entry.value}")
 
-                logger.debug("Creating property ${entry.key} with values $instance")
+            // for short-handed properties, the value is directly accessible from the map under the @value key
+            val propertyValue =
+                getPropertyValueFromMap(entry.value, NGSILD_PROPERTY_VALUE) ?: entry.value["@value"]!!
 
-                // for short-handed properties, the value is directly accessible from the map under the @value key
-                val propertyValue =
-                        getPropertyValueFromMap(instance, NGSILD_PROPERTY_VALUE) ?: instance["@value"]!!
+            val rawProperty = Property(
+                name = entry.key, value = propertyValue,
+                unitCode = getPropertyValueFromMapAsString(entry.value, NGSILD_UNIT_CODE_PROPERTY),
+                observedAt = getPropertyValueFromMapAsDateTime(entry.value, NGSILD_OBSERVED_AT_PROPERTY)
+            )
 
-                val rawProperty = Property(
-                        name = entry.key, value = propertyValue,
-                        unitCode = getPropertyValueFromMapAsString(instance, NGSILD_UNIT_CODE_PROPERTY),
-                        observedAt = getPropertyValueFromMapAsDateTime(instance, NGSILD_OBSERVED_AT_PROPERTY),
-                        datasetId = getPropertyValueFromMapAsString(instance, NGSILD_DATASET_ID_PROPERTY) ?: "default"
-                )
-
-                neo4jRepository.createPropertyOfSubject(
-                        subjectNodeInfo = AttributeSubjectNode(subjectId),
-                        property = rawProperty
-                )
-            }
+            neo4jRepository.createPropertyOfSubject(
+                subjectNodeInfo = AttributeSubjectNode(subjectId),
+                property = rawProperty
+            )
         }
     }
 
@@ -288,53 +282,53 @@ class EntityService(
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId)
-            .groupBy {
-                (it["property"] as Property).id
-            }
-            .values
-            .forEach {
-                val (propertyKey, propertyValues) = buildInstanceFragment(it, entity.contexts)
-                resultEntity = buildPropertyFragment(resultEntity, propertyKey, propertyValues)
-            }
+        .groupBy {
+            (it["property"] as Property).id
+        }
+        .values
+        .forEach {
+            val (propertyKey, propertyValues) = buildInstanceFragment(it, entity.contexts)
+            resultEntity = buildPropertyFragment(resultEntity, propertyKey, propertyValues)
+        }
 
         entityRepository.getEntityRelationships(entityId)
-            .groupBy {
-                (it["rel"] as Relationship).id
-            }.values
-            .forEach {
-                val relationship = it[0]["rel"] as Relationship
-                val primaryRelType = (it[0]["rel"] as Relationship).type[0]
-                val primaryRelation =
-                    it.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-                val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
-                val relationshipValue = mapOf(
+        .groupBy {
+            (it["rel"] as Relationship).id
+        }.values
+        .forEach {
+            val relationship = it[0]["rel"] as Relationship
+            val primaryRelType = (it[0]["rel"] as Relationship).type[0]
+            val primaryRelation =
+                it.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
+            val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
+            val relationshipValue = mapOf(
+                NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to relationshipTargetId)
+            )
+
+            val relationshipValues = relationship.serializeCoreProperties()
+            relationshipValues.putAll(relationshipValue)
+
+            it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
+                val relationship = it["relOfRel"] as Relationship
+                val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
+                val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
+
+                val innerRelationship = mapOf(
                     NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to relationshipTargetId)
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to innerTargetEntityId)
                 )
 
-                val relationshipValues = relationship.serializeCoreProperties()
-                relationshipValues.putAll(relationshipValue)
+                val innerRelationshipValues = relationship.serializeCoreProperties()
+                innerRelationshipValues.putAll(innerRelationship)
+                val expandedInnerRelationshipType =
+                    expandRelationshipType(mapOf(innerRelType to relationshipValue), entity.contexts)
 
-                it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
-                    val relationship = it["relOfRel"] as Relationship
-                    val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
-                    val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
-
-                    val innerRelationship = mapOf(
-                        NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to innerTargetEntityId)
-                    )
-
-                    val innerRelationshipValues = relationship.serializeCoreProperties()
-                    innerRelationshipValues.putAll(innerRelationship)
-                    val expandedInnerRelationshipType =
-                        expandRelationshipType(mapOf(innerRelType to relationshipValue), entity.contexts)
-
-                    relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
-                }
-
-                resultEntity[primaryRelType] = relationshipValues
+                relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
             }
+
+            resultEntity[primaryRelType] = relationshipValues
+        }
         return ExpandedEntity(resultEntity, entity.contexts)
     }
 
@@ -344,30 +338,31 @@ class EntityService(
     ): Pair<String, Map<String, Any>> {
         val property = rawProperty[0]["property"]!! as Property
         val propertyKey = property.name
-        var propertyValues = property.serializeCoreProperties()
+        val propertyValues = property.serializeCoreProperties()
+
         rawProperty.filter { relEntry -> relEntry["propValue"] != null }
-            .forEach {
-                val propertyOfProperty = it["propValue"] as Property
-                propertyValues = buildPropertyFragment(propertyValues, propertyOfProperty.name, propertyOfProperty.serializeCoreProperties())
-            }
+        .forEach {
+            val propertyOfProperty = it["propValue"] as Property
+            propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
+        }
 
         rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
-            .forEach {
-                val relationship = it["relOfProp"] as Relationship
-                val targetEntity = it["relOfPropObject"] as Entity
-                val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
-                logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
+        .forEach {
+            val relationship = it["relOfProp"] as Relationship
+            val targetEntity = it["relOfPropObject"] as Entity
+            val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
+            logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
 
-                val relationshipValue = mapOf(
-                    NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
-                )
-                val relationshipValues = relationship.serializeCoreProperties()
-                relationshipValues.putAll(relationshipValue)
-                val expandedRelationshipKey =
-                    expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
-                propertyValues[expandedRelationshipKey] = relationshipValues
-            }
+            val relationshipValue = mapOf(
+                NGSILD_ENTITY_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(NGSILD_ENTITY_ID to targetEntity.id)
+            )
+            val relationshipValues = relationship.serializeCoreProperties()
+            relationshipValues.putAll(relationshipValue)
+            val expandedRelationshipKey =
+                expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
+            propertyValues[expandedRelationshipKey] = relationshipValues
+        }
 
         return Pair(propertyKey, propertyValues)
     }

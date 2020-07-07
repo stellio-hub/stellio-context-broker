@@ -7,6 +7,7 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_DEFAULT_VALUE
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -538,7 +540,7 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
                 "urn:ngsi-ld:Beekeeper:1233",
                 listOf("Beekeeper"),
-                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = "default"))
+                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = NGSILD_DATASET_ID_DEFAULT_VALUE))
         )
         assertTrue(neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode("urn:ngsi-ld:Beekeeper:1233"), "name"))
         neo4jRepository.deleteEntity(entity.id)
@@ -549,7 +551,7 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
                 "urn:ngsi-ld:Beekeeper:1233",
                 listOf("Beekeeper"),
-                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = "urn:ngsi-ld:Property:language1-name"))
+                mutableListOf(Property(name = "name", value = "Scalpa", datasetId = URI.create("urn:ngsi-ld:Property:language1-name")))
         )
         assertFalse(neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode("urn:ngsi-ld:Beekeeper:1233"), "name"))
         neo4jRepository.deleteEntity(entity.id)

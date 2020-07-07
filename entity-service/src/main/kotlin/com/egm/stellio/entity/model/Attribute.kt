@@ -9,6 +9,8 @@ import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.annotation.Transient
+import org.neo4j.ogm.annotation.typeconversion.Convert
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -28,7 +30,8 @@ open class Attribute(
     @JsonIgnore
     var modifiedAt: ZonedDateTime? = null,
 
-    var datasetId: String? = null,
+    @Convert(UriConverter::class)
+    var datasetId: URI? = null,
 
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
@@ -63,7 +66,7 @@ open class Attribute(
         }
 
         datasetId?.run {
-            if (this != "default")
+            if (this.toString() != "default")
                 resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = this
         }
 

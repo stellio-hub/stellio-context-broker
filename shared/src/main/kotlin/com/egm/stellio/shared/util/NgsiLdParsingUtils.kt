@@ -16,6 +16,7 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -54,6 +55,7 @@ object NgsiLdParsingUtils {
     const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
+    val NGSILD_DATASET_ID_DEFAULT_VALUE = URI.create("default")
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
@@ -219,6 +221,11 @@ object NgsiLdParsingUtils {
 
     fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =
         String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+
+    fun getPropertyValueFromMapAsUri(values: Map<String, List<Any>>, propertyKey: String): URI? =
+        getPropertyValueFromMapAsString(values, propertyKey)?.let {
+            URI.create(it)
+        }
 
     fun getRelationshipObjectId(relationshipValues: Map<String, List<Any>>): String {
         if (!relationshipValues.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))

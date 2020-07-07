@@ -1,0 +1,19 @@
+{
+   "id":"urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance",
+   "type":"BreedingService",
+   "fishName": [
+      {
+         "type": "Property",
+         "value": 12
+      },
+      {
+         "type": "Property",
+         "value": 20
+      }
+   ],
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

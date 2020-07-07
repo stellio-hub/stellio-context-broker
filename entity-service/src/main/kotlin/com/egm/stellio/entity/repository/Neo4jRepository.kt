@@ -3,11 +3,7 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.isDate
-import com.egm.stellio.shared.util.isDateTime
-import com.egm.stellio.shared.util.isFloat
-import com.egm.stellio.shared.util.isTime
-import com.egm.stellio.shared.util.toRelationshipTypeName
+import com.egm.stellio.shared.util.*
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -423,19 +419,6 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .firstOrNull()
-    }
-
-    fun hasPropertyWithDefaultInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
-        val query = """
-            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: "default" })
-            RETURN a.id
-            """.trimIndent()
-
-        val parameters = mapOf(
-                "attributeId" to subjectNodeInfo.id,
-                "propertyName" to propertyName
-        )
-        return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
     private fun escapePropertyValue(value: Any): Any {

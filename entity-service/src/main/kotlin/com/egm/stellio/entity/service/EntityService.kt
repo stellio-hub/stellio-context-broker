@@ -100,6 +100,9 @@ class EntityService(
         }
 
         expandedEntity.properties.forEach { entry ->
+            if (entry.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
+                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} already has default instance")
+
             entry.value.forEach { instance ->
                 createEntityProperty(entity, entry.key, instance)
             }
@@ -137,17 +140,13 @@ class EntityService(
         val propertyValue = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Key $NGSILD_PROPERTY_VALUE not found in $propertyValues")
 
-        val datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY)
-        if (datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode(entity.id), propertyKey))
-            throw BadRequestDataException("Property $propertyKey already has default instance")
-
         logger.debug("Creating property $propertyKey with value $propertyValue")
 
         val rawProperty = Property(
             name = propertyKey, value = propertyValue,
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
             observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY),
-            datasetId = datasetId ?: URI.create(NGSILD_DATASET_ID_DEFAULT_VALUE)
+            datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY) ?: URI.create(NGSILD_DATASET_ID_DEFAULT_VALUE)
         )
 
         neo4jRepository.createPropertyOfSubject(
@@ -279,7 +278,7 @@ class EntityService(
      */
     fun getFullEntityById(entityId: String): ExpandedEntity {
         val entity = entityRepository.getEntityCoreById(entityId)
-        var resultEntity = entity.serializeCoreProperties()
+        val resultEntity = entity.serializeCoreProperties()
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId)
@@ -287,9 +286,15 @@ class EntityService(
                 (it["property"] as Property).id
             }
             .values
+            .map { buildInstanceFragment(it, entity.contexts) }
+            .groupBy { it.first }
+            .mapValues {
+                it.value.map {
+                    it.second
+                }
+            }
             .forEach {
-                val (propertyKey, propertyValues) = buildInstanceFragment(it, entity.contexts)
-                resultEntity = buildPropertyFragment(resultEntity, propertyKey, propertyValues)
+                resultEntity[it.key] = it.value
             }
 
         entityRepository.getEntityRelationships(entityId)
@@ -368,15 +373,6 @@ class EntityService(
         return Pair(propertyKey, propertyValues)
     }
 
-    private fun buildPropertyFragment(resultEntity: MutableMap<String, Any>, propertyKey: String, propertyValues: Map<String, Any>): MutableMap<String, Any> =
-        if (resultEntity.containsKey(propertyKey)) {
-            val instances = resultEntity[propertyKey] as List<Any>
-            resultEntity[propertyKey] = instances.plus(propertyValues)
-            resultEntity
-        } else {
-            resultEntity[propertyKey] = listOf(propertyValues)
-            resultEntity
-        }
     fun getSerializedEntityById(entityId: String): String {
         val mapper =
             jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)

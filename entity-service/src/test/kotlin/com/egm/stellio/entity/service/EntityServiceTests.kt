@@ -237,6 +237,35 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should not create an entity having a property with more than one default instance`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanDefaultInstance.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
+        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+            "@id" to "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance",
+            "@type" to listOf("BreedingService")
+        )
+        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
+        every { entityRepository.getEntityRelationships(any()) } returns listOf()
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
+
+        assertThrows<BadRequestDataException>("Property fishName already has default instance") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 
@@ -581,12 +610,6 @@ class EntityServiceTests {
 
         entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
 
-        verify { neo4jRepository.hasPropertyWithDefaultInstance(
-                match {
-                    it.id == entityId &&
-                            it.label == "Entity"
-                }, "temperature")
-        }
         verify { neo4jRepository.createPropertyOfSubject(match {
             it.id == entityId &&
                     it.label == "Entity"
@@ -645,41 +668,6 @@ class EntityServiceTests {
                     it.datasetId == URI.create("urn:ngsi-ld:Property:sensor1-temperature") &&
                     it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
         })
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create a default property if another default already exist`() {
-
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val temperatureMap = mapOf(
-                NGSILD_PROPERTY_VALUE to listOf(
-                        mapOf(
-                                "@type" to listOf(NGSILD_PROPERTY_TYPE),
-                                "@value" to 250
-                        )
-                ),
-                NGSILD_UNIT_CODE_PROPERTY to listOf(
-                        mapOf("@value" to "kg")
-                ),
-                NGSILD_OBSERVED_AT_PROPERTY to listOf(
-                        mapOf(
-                                "@type" to NGSILD_DATE_TIME_TYPE,
-                                "@value" to "2019-12-18T10:45:44.248755Z"
-                        )
-                )
-        )
-
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
-        every { mockkedEntity.properties } returns mutableListOf()
-        every { neo4jRepository.hasPropertyWithDefaultInstance(any(), any()) } returns true
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
-        assertThrows<BadRequestDataException>("Property temperature already has default instance") {
-            entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
         }
 
         confirmVerified()

@@ -110,13 +110,13 @@ class ExpandedEntity private constructor(
     }
 
     fun propertiesHaveAtMostOneDefaultInstance(): Boolean {
-        return this.properties.all { property ->
+        return properties.all { property ->
             property.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } < 2
         }
     }
 
     fun propertiesHaveUniqueDatasetId(): Boolean {
-        return this.properties.all { property ->
+        return properties.all { property ->
             val datasetIds = property.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?
                 datasetId?.get(NGSILD_ENTITY_ID)

@@ -374,9 +374,14 @@ class EntityHandlerTests {
                 .exchange()
                 .expectStatus().isOk
                 .expectBody().json(
-                    "{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\"," +
-                        "\"name\":{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}," +
-                        "\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                    """
+                    {
+                        "id":"urn:ngsi-ld:Beehive:4567",
+                        "type":"Beehive",
+                        "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
+                        "@context":"$NGSILD_CORE_CONTEXT"
+                    }
+                    """.trimIndent()
                 )
     }
 
@@ -413,10 +418,21 @@ class EntityHandlerTests {
                 .exchange()
                 .expectStatus().isOk
                 .expectBody().json(
-                    "{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\"," +
-                        "\"name\":[{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:english-name\",\"value\":\"beehive\"}," +
-                        "{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}]," +
-                        "\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                """
+                 {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "name":[
+                        {
+                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
+                        },
+                        {
+                            "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
+                        }
+                    ],
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                }
+                """.trimIndent()
             )
     }
 

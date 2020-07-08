@@ -2,6 +2,8 @@ package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
@@ -100,6 +102,23 @@ class ExpandedEntity private constructor(
                     NgsiLdParsingUtils.getRelationshipObjectId(it)
                 }
             }
+        }
+    }
+
+    fun propertiesHaveAtMostOneDefaultInstance(): Boolean {
+        return this.properties.all { property ->
+            property.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } < 2
+        }
+    }
+
+    fun propertiesHaveNoDuplicatedDatasetId(): Boolean {
+        return this.properties.all { property ->
+            val datasetIds = property.value.map {
+                val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?
+                datasetId?.get(NGSILD_ENTITY_ID)
+            }
+
+            datasetIds.distinct().count() == datasetIds.count()
         }
     }
 }

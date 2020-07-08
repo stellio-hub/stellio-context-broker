@@ -90,6 +90,12 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
+        if (! expandedEntity.propertiesHaveAtMostOneDefaultInstance())
+            throw BadRequestDataException("Properties can't have more than one default instance")
+
+        if (! expandedEntity.propertiesHaveNoDuplicatedDatasetId())
+            throw BadRequestDataException("Properties can't have duplicated datasetId")
+
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
@@ -100,9 +106,6 @@ class EntityService(
         }
 
         expandedEntity.properties.forEach { entry ->
-            if (entry.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
-                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} can't have more than one default instance")
-
             entry.value.forEach { instance ->
                 createEntityProperty(entity, entry.key, instance)
             }
@@ -288,13 +291,13 @@ class EntityService(
             .values
             .map { buildInstanceFragment(it, entity.contexts) }
             .groupBy { it.first }
-            .mapValues {
-                it.value.map {
-                    it.second
+            .mapValues { propertyInstances ->
+                propertyInstances.value.map { instanceFragment ->
+                    instanceFragment.second
                 }
             }
-            .forEach {
-                resultEntity[it.key] = it.value
+            .forEach { property ->
+                resultEntity[property.key] = property.value
             }
 
         entityRepository.getEntityRelationships(entityId)

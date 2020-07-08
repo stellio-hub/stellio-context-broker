@@ -115,7 +115,7 @@ class ExpandedEntity private constructor(
         }
     }
 
-    fun propertiesHaveNoDuplicatedDatasetId(): Boolean {
+    fun propertiesHaveUniqueDatasetId(): Boolean {
         return this.properties.all { property ->
             val datasetIds = property.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?

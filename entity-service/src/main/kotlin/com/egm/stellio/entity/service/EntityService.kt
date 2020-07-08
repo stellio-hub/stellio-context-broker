@@ -91,7 +91,7 @@ class EntityService(
         if (!expandedEntity.propertiesHaveAtMostOneDefaultInstance())
             throw BadRequestDataException("Properties can't have more than one default instance")
 
-        if (!expandedEntity.propertiesHaveNoDuplicatedDatasetId())
+        if (!expandedEntity.propertiesHaveUniqueDatasetId())
             throw BadRequestDataException("Properties can't have duplicated datasetId")
 
         val rawEntity =

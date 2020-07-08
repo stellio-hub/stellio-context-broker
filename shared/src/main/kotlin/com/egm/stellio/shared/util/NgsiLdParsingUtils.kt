@@ -55,7 +55,6 @@ object NgsiLdParsingUtils {
     const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
-    const val NGSILD_DATASET_ID_DEFAULT_VALUE = "default"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
@@ -254,6 +253,7 @@ object NgsiLdParsingUtils {
      * (i.e. property, geo property or relationship)
      */
     fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
+        // TODO move some of these checks to isValidAttribute()
         values.containsKey(NGSILD_ENTITY_TYPE) &&
             values[NGSILD_ENTITY_TYPE] is List<*> &&
             values.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == type.uri
@@ -266,6 +266,19 @@ object NgsiLdParsingUtils {
         values.all {
             isAttributeOfType(it, type)
         }
+
+    /**
+     * Given an entity's attribute
+     * If all its instances are of the same attribute type returns true
+     * Else throws BadRequestDataException
+     */
+    fun isValidAttribute(values: List<Map<String, List<Any>>>): Boolean {
+        val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0]
+        if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
+            throw BadRequestDataException("Attribute instances must have the same type")
+
+        return true
+    }
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()

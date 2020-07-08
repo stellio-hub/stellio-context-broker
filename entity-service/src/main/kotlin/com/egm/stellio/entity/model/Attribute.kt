@@ -2,7 +2,6 @@ package com.egm.stellio.entity.model
 
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_DEFAULT_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
@@ -68,10 +67,9 @@ open class Attribute(
         }
 
         datasetId?.run {
-            if (this.toString() != NGSILD_DATASET_ID_DEFAULT_VALUE)
-                resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
-                    NGSILD_ENTITY_ID to this.toString()
-                )
+            resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                NGSILD_ENTITY_ID to this.toString()
+            )
         }
 
         return resultEntity

@@ -27,7 +27,6 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_DEFAULT_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
@@ -65,7 +64,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.net.URI
 
 @Component
 class EntityService(
@@ -90,10 +88,10 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
-        if (! expandedEntity.propertiesHaveAtMostOneDefaultInstance())
+        if (!expandedEntity.propertiesHaveAtMostOneDefaultInstance())
             throw BadRequestDataException("Properties can't have more than one default instance")
 
-        if (! expandedEntity.propertiesHaveNoDuplicatedDatasetId())
+        if (!expandedEntity.propertiesHaveNoDuplicatedDatasetId())
             throw BadRequestDataException("Properties can't have duplicated datasetId")
 
         val rawEntity =
@@ -149,7 +147,7 @@ class EntityService(
             name = propertyKey, value = propertyValue,
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
             observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY),
-            datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY) ?: URI.create(NGSILD_DATASET_ID_DEFAULT_VALUE)
+            datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY)
         )
 
         neo4jRepository.createPropertyOfSubject(

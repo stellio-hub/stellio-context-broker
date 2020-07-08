@@ -26,7 +26,7 @@ class ExpandedEntity private constructor(
         }
     }
 
-    val id = rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_ID]!! as String
+    val id = rawJsonLdProperties[NGSILD_ENTITY_ID]!! as String
     val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
     val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, Map<String, List<Any>>> }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) as Map<String, List<Map<String, List<Any>>>> }
@@ -40,7 +40,11 @@ class ExpandedEntity private constructor(
         when (type) {
             NGSILD_PROPERTY_TYPE -> attributes.mapValues {
                 NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
-            }.filter {
+            }
+            .filter {
+                NgsiLdParsingUtils.isValidAttribute(it.value)
+            }
+            .filter {
                 NgsiLdParsingUtils.isAttributeOfType(it.value, type)
             }
             else -> attributes.mapValues {
@@ -118,7 +122,7 @@ class ExpandedEntity private constructor(
                 datasetId?.get(NGSILD_ENTITY_ID)
             }
 
-            datasetIds.distinct().count() == datasetIds.count()
+            datasetIds.toSet().count() == datasetIds.count()
         }
     }
 }

@@ -292,6 +292,35 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should not create an entity having a property with different instances type`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDifferentInstancesType.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
+        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+            "@id" to "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType",
+            "@type" to listOf("BreedingService")
+        )
+        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
+        every { entityRepository.getEntityRelationships(any()) } returns listOf()
+        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
+
+        assertThrows<BadRequestDataException>("Attribute instances must have the same type") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 

@@ -373,7 +373,11 @@ class EntityHandlerTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isOk
-                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"},\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+                .expectBody().json(
+                    "{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\"," +
+                        "\"name\":{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}," +
+                        "\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                )
     }
 
     @Test
@@ -408,7 +412,12 @@ class EntityHandlerTests {
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchange()
                 .expectStatus().isOk
-                .expectBody().json("{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\",\"name\":[{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:english-name\",\"value\":\"beehive\"},{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}],\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+                .expectBody().json(
+                    "{\"id\":\"urn:ngsi-ld:Beehive:4567\",\"type\":\"Beehive\"," +
+                        "\"name\":[{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:english-name\",\"value\":\"beehive\"}," +
+                        "{\"type\":\"Property\",\"datasetId\":\"urn:ngsi-ld:Property:french-name\",\"value\":\"ruche\"}]," +
+                        "\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+            )
     }
 
     @Test

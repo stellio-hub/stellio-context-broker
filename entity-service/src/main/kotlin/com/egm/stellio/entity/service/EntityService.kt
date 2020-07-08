@@ -101,7 +101,7 @@ class EntityService(
 
         expandedEntity.properties.forEach { entry ->
             if (entry.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
-                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} already has default instance")
+                throw BadRequestDataException("Property ${entry.key.extractShortTypeFromExpanded()} can't have more than one default instance")
 
             entry.value.forEach { instance ->
                 createEntityProperty(entity, entry.key, instance)

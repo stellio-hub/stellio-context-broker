@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 
@@ -42,7 +43,7 @@ class ExpandedEntity private constructor(
                 NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
             }
             .filter {
-                NgsiLdParsingUtils.isValidAttribute(it.value)
+                NgsiLdParsingUtils.isValidAttribute(it.key, it.value)
             }
             .filter {
                 NgsiLdParsingUtils.isAttributeOfType(it.value, type)
@@ -109,20 +110,22 @@ class ExpandedEntity private constructor(
         }
     }
 
-    fun propertiesHaveAtMostOneDefaultInstance(): Boolean {
-        return properties.all { property ->
-            property.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } < 2
+    fun checkPropertiesHaveAtMostOneDefaultInstance() {
+        properties.forEach { property ->
+            if (property.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
+                throw BadRequestDataException("Property ${property.key.extractShortTypeFromExpanded()} can't have more than one default instance")
         }
     }
 
-    fun propertiesHaveUniqueDatasetId(): Boolean {
-        return properties.all { property ->
+    fun checkPropertiesHaveUniqueDatasetId() {
+        properties.forEach { property ->
             val datasetIds = property.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?
                 datasetId?.get(NGSILD_ENTITY_ID)
             }
 
-            datasetIds.toSet().count() == datasetIds.count()
+            if (datasetIds.toSet().count() != datasetIds.count())
+                throw BadRequestDataException("Property ${property.key.extractShortTypeFromExpanded()} can't have duplicated datasetId")
         }
     }
 }

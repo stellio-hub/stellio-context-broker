@@ -88,11 +88,8 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
-        if (!expandedEntity.propertiesHaveAtMostOneDefaultInstance())
-            throw BadRequestDataException("Properties can't have more than one default instance")
-
-        if (!expandedEntity.propertiesHaveUniqueDatasetId())
-            throw BadRequestDataException("Properties can't have duplicated datasetId")
+        expandedEntity.checkPropertiesHaveAtMostOneDefaultInstance()
+        expandedEntity.checkPropertiesHaveUniqueDatasetId()
 
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)

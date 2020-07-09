@@ -201,6 +201,7 @@ object NgsiLdParsingUtils {
                 } else if (firstListEntry["@value"] != null) {
                     firstListEntry["@value"]
                 } else {
+                    // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
                     firstListEntry["@id"]
                 }
             } else {
@@ -272,10 +273,10 @@ object NgsiLdParsingUtils {
      * If all its instances are of the same attribute type returns true
      * Else throws BadRequestDataException
      */
-    fun isValidAttribute(values: List<Map<String, List<Any>>>): Boolean {
+    fun isValidAttribute(key: String, values: List<Map<String, List<Any>>>): Boolean {
         val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0]
         if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
-            throw BadRequestDataException("Attribute instances must have the same type")
+            throw BadRequestDataException("${key.extractShortTypeFromExpanded()} attribute instances must have the same type")
 
         return true
     }

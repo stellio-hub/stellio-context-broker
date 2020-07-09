@@ -235,7 +235,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should not create an entity having a property with more than one default instance`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanDefaultInstance.json")
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanOneDefaultInstance.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
         every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance"
@@ -243,19 +243,8 @@ class EntityServiceTests {
         every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
             Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance",
-            "@type" to listOf("BreedingService")
-        )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        assertThrows<BadRequestDataException>("Properties can't have more than one default instance") {
+        assertThrows<BadRequestDataException>("Property fishName can't have more than one default instance") {
             entityService.createEntity(sampleDataWithContext)
         }
 
@@ -272,19 +261,8 @@ class EntityServiceTests {
         every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
             Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId",
-            "@type" to listOf("BreedingService")
-        )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        assertThrows<BadRequestDataException>("Properties can't have duplicated datasetId") {
+        assertThrows<BadRequestDataException>("Property fishName can't have duplicated datasetId") {
             entityService.createEntity(sampleDataWithContext)
         }
 
@@ -301,19 +279,8 @@ class EntityServiceTests {
         every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
             Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType",
-            "@type" to listOf("BreedingService")
-        )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        assertThrows<BadRequestDataException>("Attribute instances must have the same type") {
+        assertThrows<BadRequestDataException>("fishName attribute instances must have the same type") {
             entityService.createEntity(sampleDataWithContext)
         }
 

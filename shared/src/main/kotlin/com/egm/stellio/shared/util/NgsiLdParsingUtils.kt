@@ -165,6 +165,7 @@ object NgsiLdParsingUtils {
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
             value as List<Map<String, List<Any>>>
+
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
@@ -201,6 +202,7 @@ object NgsiLdParsingUtils {
                 } else if (firstListEntry["@value"] != null) {
                     firstListEntry["@value"]
                 } else {
+                    // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
                     firstListEntry["@id"]
                 }
             } else {

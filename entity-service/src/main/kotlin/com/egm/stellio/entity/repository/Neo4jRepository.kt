@@ -135,12 +135,19 @@ class Neo4jRepository(
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun hasPropertyWithDatasetIdInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: String): Boolean {
-        val query = """
-            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId })
-            
-            RETURN a.id
-            """.trimIndent()
+    fun hasPropertyInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: String?): Boolean {
+        val query =
+            if (datasetId == null)
+                """
+                MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
+                WHERE NOT EXISTS (property.datasetId)
+                RETURN a.id
+                """.trimIndent()
+            else
+                """
+                MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId })
+                RETURN a.id
+                """.trimIndent()
 
         val parameters = mapOf(
             "attributeId" to subjectNodeInfo.id,
@@ -148,20 +155,6 @@ class Neo4jRepository(
             "datasetId" to datasetId
         )
 
-        return session.query(query, parameters, true).toList().isNotEmpty()
-    }
-
-    fun hasPropertyWithDefaultInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
-        val query = """
-            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
-            WHERE NOT EXISTS (property.datasetId)
-            RETURN a.id
-            """.trimIndent()
-
-        val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id,
-            "propertyName" to propertyName
-        )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
 

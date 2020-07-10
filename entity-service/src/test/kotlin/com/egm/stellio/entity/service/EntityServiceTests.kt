@@ -138,7 +138,7 @@ class EntityServiceTests {
         val mockedFishSizeProperty = mockkClass(Property::class)
 
         every { entityRepository.findById(any()) } returns Optional.of(mockedBreedingService)
-        every { neo4jRepository.hasPropertyWithDefaultInstance(any(), any()) } returns true
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:0214"
         every {
             neo4jRepository.getPropertyOfSubject(
@@ -448,7 +448,7 @@ class EntityServiceTests {
         every { mockkedPropertyEntity setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
-        every { neo4jRepository.hasPropertyWithDefaultInstance(any(), any()) } returns true
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.getPropertyOfSubject(any(), any()) } returns mockkedPropertyEntity
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
@@ -457,7 +457,7 @@ class EntityServiceTests {
         entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
-        verify { neo4jRepository.hasPropertyWithDefaultInstance(any(), any()) }
+        verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
         verify { neo4jRepository.getPropertyOfSubject(any(), any()) }
         verify { entityRepository.findById(eq(sensorId)) }
         verify { propertyRepository.save(mockkedPropertyEntity) }
@@ -490,7 +490,7 @@ class EntityServiceTests {
         every { mockkedPropertyEntity setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
-        every { neo4jRepository.hasPropertyWithDatasetIdInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.getPropertyOfSubject(any(), any(), any()) } returns mockkedPropertyEntity
         every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
@@ -499,7 +499,7 @@ class EntityServiceTests {
         entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
-        verify { neo4jRepository.hasPropertyWithDatasetIdInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1") }
+        verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1") }
         verify { neo4jRepository.getPropertyOfSubject(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
         verify { entityRepository.findById(eq(sensorId)) }
         verify { propertyRepository.save(mockkedPropertyEntity) }

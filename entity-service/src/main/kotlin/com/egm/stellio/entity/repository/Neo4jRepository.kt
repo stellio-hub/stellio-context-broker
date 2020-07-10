@@ -136,18 +136,17 @@ class Neo4jRepository(
     }
 
     fun hasPropertyInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: String?): Boolean {
-        val query =
-            if (datasetId == null)
-                """
-                MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
-                WHERE NOT EXISTS (property.datasetId)
-                RETURN a.id
-                """.trimIndent()
-            else
-                """
-                MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId })
-                RETURN a.id
-                """.trimIndent()
+        val query = if (datasetId == null)
+            """
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
+            WHERE NOT EXISTS (property.datasetId)
+            RETURN a.id
+            """.trimIndent()
+        else
+            """
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId })
+            RETURN a.id
+            """.trimIndent()
 
         val parameters = mapOf(
             "attributeId" to subjectNodeInfo.id,

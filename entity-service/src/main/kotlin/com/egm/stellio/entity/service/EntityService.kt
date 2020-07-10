@@ -543,9 +543,8 @@ class EntityService(
                         updatePropertyOfEntity(entity, it.key, attributeValue, datasetId)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
-                    } else {
+                    } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
-                    }
                 } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                     if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(entity, it.key, attributeValue)

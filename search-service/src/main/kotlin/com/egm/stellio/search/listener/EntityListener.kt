@@ -53,8 +53,13 @@ class EntityListener(
                     else
                         Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
                 val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.contexts)!!
+                val datasetId =
+                    if (rawParsedData[attributeName].has("datasetId"))
+                        rawParsedData[attributeName]["datasetId"].asText()
+                    else
+                        null
 
-                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName)
+                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName, datasetId)
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it,

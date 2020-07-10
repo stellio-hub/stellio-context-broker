@@ -158,18 +158,20 @@ class TemporalEntityAttributeService(
             .first()
     }
 
-    fun getForEntityAndAttribute(id: String, attritbuteName: String): Mono<UUID> {
+    fun getForEntityAndAttribute(id: String, attributeName: String, datasetId: String? = null): Mono<UUID> {
         val selectQuery = """
             SELECT id
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
+            ${if (datasetId != null) "AND dataset_id = :dataset_id" else ""}
             AND attribute_name = :attribute_name
             """.trimIndent()
 
         return databaseClient
             .execute(selectQuery)
             .bind("entity_id", id)
-            .bind("attribute_name", attritbuteName)
+            .bind("attribute_name", attributeName)
+            .bind("dataset_id", datasetId)
             .map(rowToId)
             .one()
     }

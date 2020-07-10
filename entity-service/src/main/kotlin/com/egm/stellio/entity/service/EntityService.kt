@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 
 @Component
 class EntityService(
@@ -537,12 +538,15 @@ class EntityService(
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                    if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(id), it.key)) {
-                        updatePropertyOfEntity(entity, it.key, attributeValue)
+                    val datasetId = getPropertyValueFromMapAsUri(attributeValue, NGSILD_DATASET_ID_PROPERTY)
+                    if ((datasetId == null && neo4jRepository.hasPropertyWithDefaultInstance(EntitySubjectNode(id), it.key)) ||
+                        (datasetId != null && neo4jRepository.hasPropertyWithDatasetIdInstance(EntitySubjectNode(id), it.key, datasetId.toString()))) {
+                        updatePropertyOfEntity(entity, it.key, attributeValue, datasetId)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
-                    } else
+                    } else {
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
+                    }
                 } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                     if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(entity, it.key, attributeValue)
@@ -575,9 +579,10 @@ class EntityService(
     private fun updatePropertyOfEntity(
         entity: Entity,
         propertyKey: String,
-        propertyValues: Map<String, List<Any>>
+        propertyValues: Map<String, List<Any>>,
+        datasetId: URI?
     ): Property {
-        val property = updatePropertyValues(entity.id, propertyKey, propertyValues)
+        val property = updatePropertyValues(entity.id, propertyKey, propertyValues, datasetId)
         updatePropertiesOfAttribute(property, propertyValues)
         updateRelationshipsOfAttribute(property, propertyValues)
 
@@ -587,14 +592,15 @@ class EntityService(
     private fun updatePropertyValues(
         subjectId: String,
         propertyKey: String,
-        propertyValues: Map<String, List<Any>>
+        propertyValues: Map<String, List<Any>>,
+        datasetId: URI? = null
     ): Property {
         val unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY)
         val value = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE) ?: propertyValues["@value"]!!
         val observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
 
-        val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey)
-        property.updateValues(unitCode, value, observedAt)
+        val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey, datasetId)
+        property!!.updateValues(unitCode, value, observedAt)
 
         return propertyRepository.save(property)
     }

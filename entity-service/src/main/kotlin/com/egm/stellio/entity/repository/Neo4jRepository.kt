@@ -13,6 +13,7 @@ import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
 import org.neo4j.ogm.session.event.EventListenerAdapter
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import javax.annotation.PostConstruct
@@ -130,6 +131,36 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "attributeId" to subjectNodeInfo.id
+        )
+        return session.query(query, parameters, true).toList().isNotEmpty()
+    }
+
+    fun hasPropertyWithDatasetIdInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: String): Boolean {
+        val query = """
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId })
+            
+            RETURN a.id
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "attributeId" to subjectNodeInfo.id,
+            "propertyName" to propertyName,
+            "datasetId" to datasetId
+        )
+
+        return session.query(query, parameters, true).toList().isNotEmpty()
+    }
+
+    fun hasPropertyWithDefaultInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
+        val query = """
+            MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
+            WHERE NOT EXISTS (property.datasetId)
+            RETURN a.id
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "attributeId" to subjectNodeInfo.id,
+            "propertyName" to propertyName
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
@@ -393,15 +424,22 @@ class Neo4jRepository(
         return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
     }
 
-    fun getPropertyOfSubject(subjectId: String, propertyName: String): Property {
-        val query = """
+    fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property? {
+        val query = if (datasetId == null)
+            """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
+            WHERE NOT EXISTS (p.datasetId)
+            RETURN p
+            """.trimIndent()
+        else
+            """
+            MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName", datasetId: "$datasetId" })
             RETURN p
             """.trimIndent()
 
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["p"] as Property }
-            .first()
+            .firstOrNull()
     }
 
     fun getRelationshipOfSubject(subjectId: String, relationshipType: String): Relationship {

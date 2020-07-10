@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -257,7 +258,7 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
         neo4jRepository.updateEntityAttribute(entity.id, "name", "new name")
-        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
+        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name")!!.value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -269,7 +270,7 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = 100L))
         )
         neo4jRepository.updateEntityAttribute(entity.id, "name", 200L)
-        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
+        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name")!!.value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -531,6 +532,54 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
+    }
+
+    @Test
+    fun `it should return the default property instance`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L))
+        )
+
+        assertNotNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", null))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not return a default property instance`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", null))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return the property instance with the given datasetId`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertNotNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should not return the property instance with the given datasetId`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", datasetId = URI.create("urn:ngsi-ld:Dataset:name:2")))
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {

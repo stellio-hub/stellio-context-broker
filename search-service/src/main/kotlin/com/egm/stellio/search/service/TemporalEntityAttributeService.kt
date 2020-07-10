@@ -10,6 +10,7 @@ import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
@@ -22,6 +23,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -67,26 +69,21 @@ class TemporalEntityAttributeService(
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
         val entity = NgsiLdParsingUtils.parseEntity(payload)
-        val rawEntity = entity.rawJsonLdProperties
 
-        val temporalProperties = rawEntity
+        val temporalProperties = entity.properties
             .filter {
-                it.value is List<*>
-            }
-            .filter {
-                // TODO abstract this crap into an NgsiLdParsingUtils function
-                val entryValue = (it.value as List<*>)[0]
-                if (entryValue is Map<*, *>) {
-                    val values = (it.value as List<*>)[0] as Map<String, Any>
-                    values.containsKey("https://uri.etsi.org/ngsi-ld/observedAt")
-                } else {
-                    false
+                // for now, let's say that if the 1st instance is temporal, all instances are temporal
+                // let's also consider that a temporal property is one having an observedAt property
+                it.value[0].containsKey(NGSILD_OBSERVED_AT_PROPERTY)
+            }.flatMapTo(arrayListOf(), {
+                it.value.map { instance ->
+                    Pair(it.key, instance)
                 }
-            }
+            })
 
         return Flux.fromIterable(temporalProperties.asIterable())
             .map {
-                val expandedValues = expandValueAsMap(it.value)
+                val expandedValues = it.second
                 val attributeValue = getPropertyValueFromMap(expandedValues, NGSILD_PROPERTY_VALUE)!!
                 val attributeValueType =
                     if (isAttributeOfMeasureType(attributeValue))
@@ -94,10 +91,11 @@ class TemporalEntityAttributeService(
                     else
                         TemporalEntityAttribute.AttributeValueType.ANY
                 val temporalEntityAttribute = TemporalEntityAttribute(
-                    entityId = rawEntity["@id"] as String,
-                    type = (rawEntity["@type"] as List<*>)[0] as String,
-                    attributeName = it.key,
+                    entityId = entity.id,
+                    type = entity.type,
+                    attributeName = it.first,
                     attributeValueType = attributeValueType,
+                    datasetId = getPropertyValueFromMapAsUri(expandedValues, NGSILD_DATASET_ID_PROPERTY),
                     entityPayload = payload
                 )
 

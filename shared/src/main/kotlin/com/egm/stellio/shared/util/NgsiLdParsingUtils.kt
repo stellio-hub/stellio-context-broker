@@ -60,6 +60,11 @@ object NgsiLdParsingUtils {
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
+    val NGSILD_ENTITY_CORE_MEMBERS = listOf(
+        NGSILD_CREATED_AT_PROPERTY,
+        NGSILD_MODIFIED_AT_PROPERTY
+    )
+    
     val NGSILD_ATTRIBUTES_CORE_MEMBERS = listOf(
         NGSILD_CREATED_AT_PROPERTY,
         NGSILD_MODIFIED_AT_PROPERTY,
@@ -123,8 +128,6 @@ object NgsiLdParsingUtils {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
         if (expandedEntity.isEmpty())
             throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
-
-        val expandedResult = JsonUtils.toPrettyString(expandedEntity[0])
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(

@@ -3,6 +3,7 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_CORE_MEMBERS
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
@@ -43,7 +44,8 @@ class ExpandedEntity private constructor(
                 NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
             }
             .filter {
-                NgsiLdParsingUtils.isValidAttribute(it.key, it.value)
+                !NGSILD_ENTITY_CORE_MEMBERS.contains(it.key) &&
+                    NgsiLdParsingUtils.isValidAttribute(it.key, it.value)
             }
             .filter {
                 NgsiLdParsingUtils.isAttributeOfType(it.value, type)

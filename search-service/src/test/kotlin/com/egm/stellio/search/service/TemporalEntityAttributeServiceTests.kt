@@ -67,7 +67,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create two entries for an entity with a multi-instance property`() {
+    fun `it should create two entries for an entity with a two instances property`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
@@ -82,7 +82,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should create two entries for an entity with two temporal properties`() {
-        val rawEntity = loadSampleData("beehive2_two_temporal_properties.jsonld")
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
 

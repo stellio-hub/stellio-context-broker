@@ -102,8 +102,8 @@ object NgsiLdParsingUtils {
         val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
         val coreContext: Map<String, Any> = mapper.readValue(
             coreContextPayload, mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
+            Map::class.java, String::class.java, Any::class.java
+        )
         )
         BASE_CONTEXT = coreContext.get("@context") as Map<String, Any>
         logger.info("Core context loaded")
@@ -132,8 +132,8 @@ object NgsiLdParsingUtils {
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(
             input, mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
+            Map::class.java, String::class.java, Any::class.java
+        )
         )
 
         val contexts =
@@ -158,8 +158,8 @@ object NgsiLdParsingUtils {
     fun parseJsonLdFragment(input: String): Map<String, Any> {
         return mapper.readValue(
             input, mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
+            Map::class.java, String::class.java, Any::class.java
+        )
         )
     }
 
@@ -167,7 +167,7 @@ object NgsiLdParsingUtils {
         (value as List<Any>)[0] as Map<String, List<Any>>
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
-            value as List<Map<String, List<Any>>>
+        value as List<Map<String, List<Any>>>
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *

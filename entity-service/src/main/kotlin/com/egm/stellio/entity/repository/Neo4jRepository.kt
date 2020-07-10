@@ -416,7 +416,7 @@ class Neo4jRepository(
         return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
     }
 
-    fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property? {
+    fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property {
         val query = if (datasetId == null)
             """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
@@ -431,7 +431,7 @@ class Neo4jRepository(
 
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["p"] as Property }
-            .firstOrNull()
+            .first()
     }
 
     fun getRelationshipOfSubject(subjectId: String, relationshipType: String): Relationship {

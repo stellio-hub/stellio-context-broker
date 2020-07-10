@@ -481,13 +481,10 @@ class EntityServiceTests {
         """.trimIndent()
 
         val mockkedSensor = mockkClass(Entity::class)
-        val mockkedPropertyEntity = mockkClass(Property::class)
+        val mockkedPropertyEntity = mockkClass(Property::class, relaxed = true)
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-        every { mockkedPropertyEntity setProperty "value" value any<Double>() } answers { value }
-        every { mockkedPropertyEntity setProperty "unitCode" value any<String>() } answers { value }
-        every { mockkedPropertyEntity setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true

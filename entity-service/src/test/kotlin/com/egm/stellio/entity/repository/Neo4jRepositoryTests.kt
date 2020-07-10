@@ -14,6 +14,7 @@ import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -258,7 +259,7 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
         neo4jRepository.updateEntityAttribute(entity.id, "name", "new name")
-        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name")!!.value)
+        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -270,7 +271,7 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = 100L))
         )
         neo4jRepository.updateEntityAttribute(entity.id, "name", 200L)
-        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name")!!.value)
+        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -535,7 +536,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should return the default property instance`() {
+    fun `it should return the default property instance if no datasetId is provided`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
@@ -547,14 +548,16 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should not return a default property instance`() {
+    fun `it should not return a default property instance if a datasetId is provided`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
         )
 
-        assertNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", null))
+        assertThrows<NoSuchElementException>("List is empty") {
+            neo4jRepository.getPropertyOfSubject(entity.id, "name", null)
+        }
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -571,14 +574,16 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should not return the property instance with the given datasetId`() {
+    fun `it should not return the property instance if the given datasetId does not match`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
         )
 
-        assertNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", datasetId = URI.create("urn:ngsi-ld:Dataset:name:2")))
+        assertThrows<NoSuchElementException>("List is empty") {
+            neo4jRepository.getPropertyOfSubject(entity.id, "name", datasetId = URI.create("urn:ngsi-ld:Dataset:name:2"))
+        }
         neo4jRepository.deleteEntity(entity.id)
     }
 

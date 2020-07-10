@@ -598,7 +598,7 @@ class EntityService(
         val observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
 
         val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey, datasetId)
-        property!!.updateValues(unitCode, value, observedAt)
+        property.updateValues(unitCode, value, observedAt)
 
         return propertyRepository.save(property)
     }

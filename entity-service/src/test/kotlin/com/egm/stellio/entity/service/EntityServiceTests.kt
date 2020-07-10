@@ -234,6 +234,60 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should not create an entity having a property with more than one default instance`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanOneDefaultInstance.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("Property fishName can't have more than one default instance") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create an entity having a property with duplicated datasetId`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDuplicatedDatasetId.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("Property fishName can't have duplicated datasetId") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create an entity having a property with different instances type`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDifferentInstancesType.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("fishName attribute instances must have the same type") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 

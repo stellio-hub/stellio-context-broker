@@ -16,6 +16,7 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -53,6 +54,7 @@ object NgsiLdParsingUtils {
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
     const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
+    const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
     const val NGSILD_DATE_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/DateTime"
     const val NGSILD_DATE_TYPE = "https://uri.etsi.org/ngsi-ld/Date"
@@ -161,6 +163,8 @@ object NgsiLdParsingUtils {
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
         (value as List<Any>)[0] as Map<String, List<Any>>
 
+    fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
+            value as List<Map<String, List<Any>>>
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
@@ -194,8 +198,11 @@ object NgsiLdParsingUtils {
                         NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
                         else -> firstListEntry["@value"]
                     }
-                } else {
+                } else if (firstListEntry["@value"] != null) {
                     firstListEntry["@value"]
+                } else {
+                    // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
+                    firstListEntry["@id"]
                 }
             } else {
                 intermediateList.map {
@@ -214,6 +221,11 @@ object NgsiLdParsingUtils {
 
     fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =
         String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+
+    fun getPropertyValueFromMapAsUri(values: Map<String, List<Any>>, propertyKey: String): URI? =
+        getPropertyValueFromMapAsString(values, propertyKey)?.let {
+            URI.create(it)
+        }
 
     fun getRelationshipObjectId(relationshipValues: Map<String, List<Any>>): String {
         if (!relationshipValues.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
@@ -242,9 +254,32 @@ object NgsiLdParsingUtils {
      * (i.e. property, geo property or relationship)
      */
     fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
+        // TODO move some of these checks to isValidAttribute()
         values.containsKey(NGSILD_ENTITY_TYPE) &&
             values[NGSILD_ENTITY_TYPE] is List<*> &&
             values.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == type.uri
+
+    /**
+     * Given an entity's attribute, returns whether all its instances are of the given attribute type
+     * (i.e. property)
+     */
+    fun isAttributeOfType(values: List<Map<String, List<Any>>>, type: AttributeType): Boolean =
+        values.all {
+            isAttributeOfType(it, type)
+        }
+
+    /**
+     * Given an entity's attribute
+     * If all its instances are of the same attribute type returns true
+     * Else throws BadRequestDataException
+     */
+    fun isValidAttribute(key: String, values: List<Map<String, List<Any>>>): Boolean {
+        val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0]
+        if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
+            throw BadRequestDataException("${key.extractShortTypeFromExpanded()} attribute instances must have the same type")
+
+        return true
+    }
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()

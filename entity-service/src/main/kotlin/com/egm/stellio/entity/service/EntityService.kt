@@ -27,6 +27,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
@@ -49,6 +50,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayloa
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
@@ -86,6 +88,9 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
+        expandedEntity.checkPropertiesHaveAtMostOneDefaultInstance()
+        expandedEntity.checkPropertiesHaveUniqueDatasetId()
+
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
@@ -96,7 +101,9 @@ class EntityService(
         }
 
         expandedEntity.properties.forEach { entry ->
-            createEntityProperty(entity, entry.key, entry.value)
+            entry.value.forEach { instance ->
+                createEntityProperty(entity, entry.key, instance)
+            }
         }
 
         expandedEntity.geoProperties.forEach { entry ->
@@ -136,7 +143,8 @@ class EntityService(
         val rawProperty = Property(
             name = propertyKey, value = propertyValue,
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
-            observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
+            observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY),
+            datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY)
         )
 
         neo4jRepository.createPropertyOfSubject(
@@ -276,9 +284,15 @@ class EntityService(
                 (it["property"] as Property).id
             }
             .values
-            .forEach {
-                val (propertyKey, propertyValues) = buildPropertyFragment(it, entity.contexts)
-                resultEntity[propertyKey] = propertyValues
+            .map { buildInstanceFragment(it, entity.contexts) }
+            .groupBy { it.first }
+            .mapValues { propertyInstances ->
+                propertyInstances.value.map { instanceFragment ->
+                    instanceFragment.second
+                }
+            }
+            .forEach { property ->
+                resultEntity[property.key] = property.value
             }
 
         entityRepository.getEntityRelationships(entityId)
@@ -322,7 +336,7 @@ class EntityService(
         return ExpandedEntity(resultEntity, entity.contexts)
     }
 
-    private fun buildPropertyFragment(
+    private fun buildInstanceFragment(
         rawProperty: List<Map<String, Any>>,
         contexts: List<String>
     ): Pair<String, Map<String, Any>> {
@@ -724,7 +738,7 @@ class EntityService(
 
             val entity = neo4jRepository.getEntityByProperty(observedProperty)
             val rawProperty = entityRepository.getEntitySpecificProperty(entity.id, observedProperty.id)
-            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
+            val propertyFragment = buildInstanceFragment(rawProperty, entity.contexts)
             val propertyPayload = compactAndStringifyFragment(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts

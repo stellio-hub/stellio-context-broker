@@ -170,6 +170,35 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should gracefully handle null values in the history of a non-numeric temporal attribute`() {
+        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawResults = listOf(
+            listOf(
+                mapOf(
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
+                    "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                ),
+                mapOf(
+                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
+                    "value" to "urn:ngsi-ld:Beehive:5678",
+                    "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
+                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                )
+            )
+        )
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("expectations/subscription_with_notifications_with_null_values.jsonld").trim(), finalEntity)
+    }
+
+    @Test
     fun `it should return the entity untouched if it has no temporal history`() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = emptyList<List<Map<String, Any>>>()

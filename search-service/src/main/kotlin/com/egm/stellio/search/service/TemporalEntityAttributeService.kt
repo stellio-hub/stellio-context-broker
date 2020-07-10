@@ -237,7 +237,9 @@ class TemporalEntityAttributeService(
                             )
                         else
                             RawValue(
-                                it["value"]!!,
+                                // value is not expected to be null ... if everything goes well
+                                // so let's prevent from bad surprises
+                                it["value"] ?: "",
                                 ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
                             )
                     }

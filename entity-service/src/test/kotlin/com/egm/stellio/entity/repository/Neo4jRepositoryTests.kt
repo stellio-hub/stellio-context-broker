@@ -587,6 +587,54 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(entity.id)
     }
 
+    @Test
+    fun `it should return true if no datasetId is provided and a default instance exists`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L))
+        )
+
+        assertTrue(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", null))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return false if no datasetId is provided and there is no default instance`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertFalse(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", null))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return true if there is an instance with the provided datasetId`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertTrue(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", URI.create("urn:ngsi-ld:Dataset:name:1")))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return false if there is no instance with the provided datasetId`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+
+        assertFalse(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", URI.create("urn:ngsi-ld:Dataset:name:2")))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)

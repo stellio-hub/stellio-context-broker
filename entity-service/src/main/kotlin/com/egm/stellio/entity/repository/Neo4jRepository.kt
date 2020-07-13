@@ -135,7 +135,7 @@ class Neo4jRepository(
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun hasPropertyInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: String?): Boolean {
+    fun hasPropertyInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: URI? = null): Boolean {
         val query = if (datasetId == null)
             """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
@@ -151,7 +151,7 @@ class Neo4jRepository(
         val parameters = mapOf(
             "attributeId" to subjectNodeInfo.id,
             "propertyName" to propertyName,
-            "datasetId" to datasetId
+            "datasetId" to datasetId?.toString()
         )
 
         return session.query(query, parameters, true).toList().isNotEmpty()

@@ -539,7 +539,7 @@ class EntityService(
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
                     val datasetId = getPropertyValueFromMapAsUri(attributeValue, NGSILD_DATASET_ID_PROPERTY)
-                    if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), it.key, datasetId?.toString())) {
+                    if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), it.key, datasetId)) {
                         updatePropertyOfEntity(entity, it.key, attributeValue, datasetId)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))

@@ -496,7 +496,7 @@ class EntityServiceTests {
         entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
 
         verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
-        verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1") }
+        verify { neo4jRepository.hasPropertyInstance(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
         verify { neo4jRepository.getPropertyOfSubject(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
         verify { entityRepository.findById(eq(sensorId)) }
         verify { propertyRepository.save(mockkedPropertyEntity) }

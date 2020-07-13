@@ -3,12 +3,15 @@ package com.egm.stellio.entity.model
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.annotation.Transient
+import org.neo4j.ogm.annotation.typeconversion.Convert
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -27,6 +30,9 @@ open class Attribute(
 
     @JsonIgnore
     var modifiedAt: ZonedDateTime? = null,
+
+    @Convert(UriConverter::class)
+    var datasetId: URI? = null,
 
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
@@ -60,6 +66,12 @@ open class Attribute(
             )
         }
 
+        datasetId?.run {
+            resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                NGSILD_ENTITY_ID to this.toString()
+            )
+        }
+
         return resultEntity
     }
 
@@ -78,6 +90,10 @@ open class Attribute(
 
         observedAt?.run {
             nodeProperties["observedAt"] = this
+        }
+
+        datasetId?.run {
+            nodeProperties["datasetId"] = this
         }
 
         return nodeProperties

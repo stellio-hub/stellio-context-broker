@@ -794,7 +794,7 @@ class EntityServiceTests {
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
 
-        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
+        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { mockkedEntity.id } returns entityId
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
@@ -802,7 +802,7 @@ class EntityServiceTests {
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
         verify {
-            neo4jRepository.hasPropertyOfName(
+            neo4jRepository.hasPropertyInstance(
                 match {
                     it.id == entityId &&
                         it.label == "Entity"
@@ -822,6 +822,131 @@ class EntityServiceTests {
             })
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should create a new multi attribute property`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newProperty = """
+            {
+              "fishNumber": [{
+                "type": "Property",
+                "value": 500,
+                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
+              },
+              {
+                "type": "Property",
+                "value": 600
+              }]
+            }
+        """.trimIndent()
+        val expandedNewProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newProperty,
+                aquacContext!!
+            )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { mockkedEntity.properties } returns mutableListOf()
+
+        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+        every { mockkedEntity.id } returns entityId
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+
+        verify {
+            neo4jRepository.hasPropertyInstance(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                "https://ontology.eglobalmark.com/aquac#fishNumber",
+                datasetId = URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
+            )
+        }
+        verify {
+            neo4jRepository.hasPropertyInstance(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                "https://ontology.eglobalmark.com/aquac#fishNumber",
+                datasetId = null
+            )
+        }
+
+        verify { entityRepository.findById(eq(entityId)) }
+        verify { neo4jRepository.createPropertyOfSubject(
+            match {
+                it.id == entityId &&
+                    it.label == "Entity"
+            },
+            match {
+                it.value == 500 &&
+                it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
+            })
+        }
+        verify { neo4jRepository.createPropertyOfSubject(
+            match {
+                it.id == entityId &&
+                    it.label == "Entity"
+            },
+            match {
+                it.value == 600 &&
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                it.datasetId == null
+            })
+        }
+        verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not override the default instance if if overwrite is disallowed`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newProperty = """
+            {
+              "fishNumber": [{
+                "type": "Property",
+                "value": 600
+              }]
+            }
+        """.trimIndent()
+        val expandedNewProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newProperty,
+                aquacContext!!
+            )
+
+        val mockkedEntity = mockkClass(Entity::class)
+
+        every { mockkedEntity.id } returns entityId
+        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
+
+        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
+
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+
+        verify {
+            neo4jRepository.hasPropertyInstance(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                "https://ontology.eglobalmark.com/aquac#fishNumber",
+                datasetId = null
+            )
+        }
 
         confirmVerified()
     }

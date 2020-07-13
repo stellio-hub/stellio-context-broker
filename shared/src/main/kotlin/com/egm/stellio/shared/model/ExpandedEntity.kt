@@ -90,11 +90,11 @@ class ExpandedEntity private constructor(
                 instance.map {
                     it.value[0]
                 }.filterIsInstance<Map<String, List<Any>>>()
-                    .filter {
-                        NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
-                    }.map {
-                        NgsiLdParsingUtils.getRelationshipObjectId(it)
-                    }
+                .filter {
+                    NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
+                }.map {
+                    NgsiLdParsingUtils.getRelationshipObjectId(it)
+                }
             }
         }
     }

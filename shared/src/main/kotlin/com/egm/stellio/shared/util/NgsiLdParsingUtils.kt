@@ -261,7 +261,7 @@ object NgsiLdParsingUtils {
 
     /**
      * Given an entity's attribute, returns whether all its instances are of the given attribute type
-     * (i.e. property)
+     * (i.e. property, relationship)
      */
     fun isAttributeOfType(values: List<Map<String, List<Any>>>, type: AttributeType): Boolean =
         values.all {

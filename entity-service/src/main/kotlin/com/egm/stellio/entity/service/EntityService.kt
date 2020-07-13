@@ -88,16 +88,18 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
-        expandedEntity.checkPropertiesHaveAtMostOneDefaultInstance()
-        expandedEntity.checkPropertiesHaveUniqueDatasetId()
+        expandedEntity.checkAttributesHaveAtMostOneDefaultInstance()
+        expandedEntity.checkAttributesHaveUniqueDatasetId()
 
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
 
         expandedEntity.relationships.forEach { entry ->
-            val objectId = getRelationshipObjectId(entry.value)
-            createEntityRelationship(entity, entry.key, entry.value, objectId)
+            entry.value.forEach { instance ->
+                val objectId = getRelationshipObjectId(instance)
+                createEntityRelationship(entity, entry.key, instance, objectId)
+            }
         }
 
         expandedEntity.properties.forEach { entry ->
@@ -174,7 +176,8 @@ class EntityService(
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
         val rawRelationship = Relationship(
             type = listOf(relationshipType),
-            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
+            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY),
+            datasetId = getPropertyValueFromMapAsUri(relationshipValues, NGSILD_DATASET_ID_PROPERTY)
         )
 
         neo4jRepository.createRelationshipOfSubject(EntitySubjectNode(entity.id), rawRelationship, targetEntityId)
@@ -299,7 +302,7 @@ class EntityService(
             .groupBy {
                 (it["rel"] as Relationship).id
             }.values
-            .forEach {
+            .map {
                 val relationship = it[0]["rel"] as Relationship
                 val primaryRelType = (it[0]["rel"] as Relationship).type[0]
                 val primaryRelation =
@@ -330,9 +333,18 @@ class EntityService(
 
                     relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
                 }
-
-                resultEntity[primaryRelType] = relationshipValues
+                Pair(primaryRelType, relationshipValues)
             }
+            .groupBy { it.first }
+            .mapValues { relationshipInstances ->
+                relationshipInstances.value.map { instanceFragment ->
+                    instanceFragment.second
+                }
+            }
+            .forEach { relationship ->
+                resultEntity[relationship.key] = relationship.value
+            }
+
         return ExpandedEntity(resultEntity, entity.contexts)
     }
 

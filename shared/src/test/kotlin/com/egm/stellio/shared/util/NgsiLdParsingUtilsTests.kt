@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.toKnownValidEntity
 import junit.framework.TestCase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -63,8 +64,10 @@ class NgsiLdParsingUtilsTests {
             } 
         """.trimIndent()
 
-    private val parsedEntityWithPolygonLocation = NgsiLdParsingUtils.parseEntity(rawEntityWithPolygonLocation)
-    private val parsedEntityWithPointLocation = NgsiLdParsingUtils.parseEntity(rawEntityWithPointLocation)
+    private val parsedEntityWithPolygonLocation =
+        NgsiLdParsingUtils.parseEntity(rawEntityWithPolygonLocation).toKnownValidEntity()
+    private val parsedEntityWithPointLocation =
+        NgsiLdParsingUtils.parseEntity(rawEntityWithPointLocation).toKnownValidEntity()
 
     @Test
     fun `it should parse the incoming temporal property to an observation`() {

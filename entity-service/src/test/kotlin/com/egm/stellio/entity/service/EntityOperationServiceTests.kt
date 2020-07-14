@@ -10,6 +10,7 @@ import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.every
@@ -46,9 +47,9 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should split entities per existence`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(JsonLdExpandedEntity::class)
         every { firstEntity.id } returns "1"
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(JsonLdExpandedEntity::class)
         every { secondEntity.id } returns "2"
 
         every { neo4jRepository.filterExistingEntitiesIds(listOf("1", "2")) } returns listOf("1")

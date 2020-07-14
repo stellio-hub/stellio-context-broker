@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import com.egm.stellio.shared.model.Observation
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
@@ -112,7 +113,8 @@ object NgsiLdParsingUtils {
     private fun addCoreContext(contexts: List<String>): List<Any> =
         contexts.plus(BASE_CONTEXT)
 
-    fun parseEntity(input: String, contexts: List<String>): ExpandedEntity {
+    // TODO it should also returned a Validated type
+    fun parseEntity(input: String, contexts: List<String>): JsonLdExpandedEntity {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
@@ -120,11 +122,11 @@ object NgsiLdParsingUtils {
         val expandedEntity =
             JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)[0]
 
-        return ExpandedEntity(expandedEntity as Map<String, Any>, contexts)
+        return JsonLdExpandedEntity(expandedEntity as Map<String, Any>, contexts)
     }
 
     @Deprecated("Deprecated in favor of the method accepting the contexts as separate arguments, as it allow for more genericity")
-    fun parseEntity(input: String): ExpandedEntity {
+    fun parseEntity(input: String): JsonLdExpandedEntity {
         val expandedEntity = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
         if (expandedEntity.isEmpty())
             throw BadRequestDataException("Could not parse entity due to invalid json-ld payload")
@@ -142,10 +144,10 @@ object NgsiLdParsingUtils {
             else
                 listOf(parsedInput["@context"] as String)
 
-        return ExpandedEntity(expandedEntity[0] as Map<String, Any>, contexts)
+        return JsonLdExpandedEntity(expandedEntity[0] as Map<String, Any>, contexts)
     }
 
-    fun parseEntities(entities: List<Map<String, Any>>): List<ExpandedEntity> {
+    fun parseEntities(entities: List<Map<String, Any>>): List<JsonLdExpandedEntity> {
         return entities.map {
             parseEntity(mapper.writeValueAsString(it))
         }
@@ -245,12 +247,12 @@ object NgsiLdParsingUtils {
         return objectId
     }
 
-    fun extractShortTypeFromPayload(payload: Map<String, Any>): String =
+    fun extractShortTypeFromPayload(expandedType: String): String =
         /*
          * TODO do a clean implementation using info from @context
          * TODO is it always after a '/' ? can't it be after a '#' ? (https://redmine.eglobalmark.com/issues/852)
          */
-        (payload["@type"] as List<String>)[0].substringAfterLast("/").substringAfterLast("#")
+        expandedType.substringAfterLast("/").substringAfterLast("#")
 
     /**
      * Given an entity's attribute, returns whether it is of the given attribute type
@@ -263,25 +265,13 @@ object NgsiLdParsingUtils {
             values.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == type.uri
 
     /**
-     * Given an entity's attribute, returns whether all its instances are of the given attribute type
-     * (i.e. property)
-     */
-    fun isAttributeOfType(values: List<Map<String, List<Any>>>, type: AttributeType): Boolean =
-        values.all {
-            isAttributeOfType(it, type)
-        }
-
-    /**
      * Given an entity's attribute
      * If all its instances are of the same attribute type returns true
-     * Else throws BadRequestDataException
+     * Else false
      */
     fun isValidAttribute(key: String, values: List<Map<String, List<Any>>>): Boolean {
         val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0]
-        if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
-            throw BadRequestDataException("${key.extractShortTypeFromExpanded()} attribute instances must have the same type")
-
-        return true
+        return (values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
     }
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
@@ -338,7 +328,7 @@ object NgsiLdParsingUtils {
         return mapper.writeValueAsString(compactedFragment)
     }
 
-    fun compactEntities(entities: List<ExpandedEntity>): List<Map<String, Any>> =
+    fun compactEntities(entities: List<JsonLdExpandedEntity>): List<Map<String, Any>> =
         entities.map {
             it.compact()
         }
@@ -397,7 +387,7 @@ object NgsiLdParsingUtils {
 
     fun getLocationFromEntity(parsedEntity: ExpandedEntity): Map<String, Any>? {
         try {
-            val location = expandValueAsMap(parsedEntity.rawJsonLdProperties[NGSILD_LOCATION_PROPERTY]!!)
+            val location = parsedEntity.geoProperties[NGSILD_LOCATION_PROPERTY]!!
             val locationValue = expandValueAsMap(location[NGSILD_GEOPROPERTY_VALUE]!!)
             val geoPropertyType = locationValue["@type"]!![0] as String
             val geoPropertyValue = locationValue[NGSILD_COORDINATES_PROPERTY]!!

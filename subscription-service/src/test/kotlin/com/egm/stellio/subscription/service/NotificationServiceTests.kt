@@ -1,6 +1,9 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.orNull
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.toEntity
+import com.egm.stellio.shared.model.toKnownValidEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
@@ -122,7 +125,9 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        // FIXME to improve
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity.toKnownValidEntity(), setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -178,7 +183,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity.toKnownValidEntity(), setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -223,7 +229,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity.toKnownValidEntity(), setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -262,7 +269,7 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, parsedEntity, "urn:ngsi-ld:Apiary:XYZ01"))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -300,7 +307,7 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, parsedEntity, "urn:ngsi-ld:Apiary:XYZ01"))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -334,7 +341,7 @@ class NotificationServiceTests {
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, parsedEntity, "urn:ngsi-ld:Apiary:XYZ01"))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&

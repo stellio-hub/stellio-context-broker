@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.toEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
@@ -21,16 +22,18 @@ class EntitiesListener(
     fun processMessage(content: String) {
         val entityEvent = NgsiLdParsingUtils.parseEntityEvent(content)
         val entity = getEntityFromEvent(entityEvent)
-        entity?.let {
+        entity?.let { rawEntity ->
             try {
                 val updatedFragment = parseJsonLdFragment(entityEvent.payload!!)
-                val parsedEntity = parseEntity(it)
-                notificationService.notifyMatchingSubscribers(it, parsedEntity, updatedFragment.keys)
-                    .subscribe {
-                        val succeededNotifications = it.filter { it.third }.size
-                        val failedNotifications = it.filter { !it.third }.size
-                        logger.debug("Notified ${it.size} subscribers (success : $succeededNotifications / failure : $failedNotifications)")
-                    }
+                // TODO we know the entity is valid, maybe find a way to have one without validation ?
+                parseEntity(rawEntity).toEntity().map { expandedEntity ->
+                    notificationService.notifyMatchingSubscribers(rawEntity, expandedEntity, updatedFragment.keys)
+                        .subscribe {
+                            val succeededNotifications = it.filter { it.third }.size
+                            val failedNotifications = it.filter { !it.third }.size
+                            logger.debug("Notified ${it.size} subscribers (success : $succeededNotifications / failure : $failedNotifications)")
+                        }
+                }
             } catch (e: Exception) {
                 logger.error("Received a non-parseable entity : $content", e)
             }

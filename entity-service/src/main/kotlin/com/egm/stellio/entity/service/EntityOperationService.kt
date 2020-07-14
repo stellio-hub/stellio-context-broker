@@ -9,6 +9,7 @@ import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import org.jgrapht.Graph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
@@ -31,7 +32,8 @@ class EntityOperationService(
     /**
      * Splits [entities] by their existence in the DB.
      */
-    fun splitEntitiesByExistence(entities: List<ExpandedEntity>): Pair<List<ExpandedEntity>, List<ExpandedEntity>> {
+    fun splitEntitiesByExistence(entities: List<JsonLdExpandedEntity>):
+            Pair<List<JsonLdExpandedEntity>, List<JsonLdExpandedEntity>> {
         val existingEntitiesIds =
             neo4jRepository.filterExistingEntitiesIds(entities.map { it.id })
         return entities.partition {

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.configureFor
@@ -58,7 +59,7 @@ class EntityServiceTests {
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)
-            .expectNextMatches { it.id == "urn:ngsi-ld:BeeHive:TESTC" }
+            .expectNextMatches { it.rawJsonLdProperties.containsKey(NgsiLdParsingUtils.NGSILD_ENTITY_ID) }
             .expectComplete()
             .verify()
 

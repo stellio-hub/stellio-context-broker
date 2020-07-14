@@ -5,6 +5,7 @@ import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.InternalErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.toEntity
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
@@ -47,13 +48,20 @@ class EntityHandler(
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
-                NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
-            }
-            .map {
-                entityService.createEntity(it)
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/entities/${it.id}")).build<String>()
+                val jsonLdExpandedEntity =
+                    NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
+                jsonLdExpandedEntity.toEntity()
+                    .fold(
+                        { entityParsingErrors ->
+                            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(entityParsingErrors.all)
+                        },
+                        { expandedEntity ->
+                            val entity = entityService.createEntity(expandedEntity)
+                            ResponseEntity.status(HttpStatus.CREATED)
+                                .location(URI("/ngsi-ld/v1/entities/${entity.id}"))
+                                .build<String>()
+                        }
+                    )
             }
     }
 

@@ -7,8 +7,8 @@ import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
@@ -229,7 +229,7 @@ class EntityHandlerTests {
     fun `get entity by id should return 200 when entity exists`() {
 
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns mockkClass(ExpandedEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdExpandedEntity::class, relaxed = true)
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
@@ -241,7 +241,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
@@ -266,7 +266,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type DateTime`() {
 
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -295,7 +295,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Date`() {
 
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -324,7 +324,7 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize properties of type Time`() {
 
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -352,7 +352,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
                 mapOf(
                         "https://uri.etsi.org/ngsi-ld/name" to
                                 mapOf(
@@ -388,7 +388,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdExpandedEntity(
                 mapOf(
                         "https://uri.etsi.org/ngsi-ld/name" to
                                 listOf(mapOf(
@@ -934,7 +934,7 @@ class EntityHandlerTests {
     @Test
     fun `it should support Mime-type with parameters`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns mockkClass(ExpandedEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdExpandedEntity::class, relaxed = true)
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")

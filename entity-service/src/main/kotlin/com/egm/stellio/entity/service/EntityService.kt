@@ -19,6 +19,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
@@ -88,9 +89,6 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
-        expandedEntity.checkPropertiesHaveAtMostOneDefaultInstance()
-        expandedEntity.checkPropertiesHaveUniqueDatasetId()
-
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
@@ -116,7 +114,7 @@ class EntityService(
     }
 
     fun publishCreationEvent(expandedEntity: ExpandedEntity) {
-        val entityType = extractShortTypeFromPayload(expandedEntity.rawJsonLdProperties)
+        val entityType = extractShortTypeFromPayload(expandedEntity.type)
         val entityEvent = EntityEvent(
             EventType.CREATE,
             expandedEntity.id,
@@ -274,7 +272,7 @@ class EntityService(
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
      */
-    fun getFullEntityById(entityId: String): ExpandedEntity {
+    fun getFullEntityById(entityId: String): JsonLdExpandedEntity {
         val entity = entityRepository.getEntityCoreById(entityId)
         val resultEntity = entity.serializeCoreProperties()
 
@@ -333,7 +331,8 @@ class EntityService(
 
                 resultEntity[primaryRelType] = relationshipValues
             }
-        return ExpandedEntity(resultEntity, entity.contexts)
+
+        return JsonLdExpandedEntity(resultEntity, entity.contexts)
     }
 
     private fun buildInstanceFragment(
@@ -378,7 +377,7 @@ class EntityService(
         return mapper.writeValueAsString(entity.compact())
     }
 
-    fun searchEntities(type: String, query: List<String>, contextLink: String): List<ExpandedEntity> =
+    fun searchEntities(type: String, query: List<String>, contextLink: String): List<JsonLdExpandedEntity> =
         searchEntities(type, query, listOf(contextLink))
 
     /**
@@ -390,7 +389,7 @@ class EntityService(
      *
      * @return a list of entities represented as per #getFullEntityById result
      */
-    fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<ExpandedEntity> {
+    fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<JsonLdExpandedEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
         val queryCriteria = query

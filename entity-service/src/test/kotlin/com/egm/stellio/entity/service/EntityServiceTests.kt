@@ -1,5 +1,7 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.extensions.nonemptylist.foldable.exists
+import arrow.core.extensions.option.applicativeError.fromEither
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -13,6 +15,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.model.toEntity
+import com.egm.stellio.shared.model.toKnownValidEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
@@ -34,6 +38,7 @@ import io.mockk.verify
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
@@ -105,7 +110,7 @@ class EntityServiceTests {
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        entityService.createEntity(sampleDataWithContext)
+        entityService.createEntity(sampleDataWithContext.toKnownValidEntity())
 
         verify(timeout = 1000, exactly = 1) {
             repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
@@ -206,7 +211,7 @@ class EntityServiceTests {
         every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
-        entityService.createEntity(sampleDataWithContext)
+        entityService.createEntity(sampleDataWithContext.toKnownValidEntity())
 
         confirmVerified()
     }
@@ -225,7 +230,7 @@ class EntityServiceTests {
                 )
 
         val exception = assertThrows<BadRequestDataException>("Creation should have failed") {
-            entityService.createEntity(sampleDataWithContext)
+            entityService.createEntity(sampleDataWithContext.toKnownValidEntity())
         }
         assertEquals(
             "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
@@ -233,58 +238,44 @@ class EntityServiceTests {
             exception.message)
     }
 
+    // TODO move following tests to a validation test
+
     @Test
     fun `it should not create an entity having a property with more than one default instance`() {
         val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanOneDefaultInstance.json")
 
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Property fishName can't have more than one default instance") {
-            entityService.createEntity(sampleDataWithContext)
+        val validatedExpandedEntity = sampleDataWithContext.toEntity()
+        assertTrue(validatedExpandedEntity.isInvalid)
+        validatedExpandedEntity.toEither().fromEither {
+            assertEquals(1, it.size)
+            assertTrue(it.head.reason == "Property fishName can't have more than one default instance")
         }
-
-        confirmVerified()
     }
 
     @Test
     fun `it should not create an entity having a property with duplicated datasetId`() {
         val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDuplicatedDatasetId.json")
 
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Property fishName can't have duplicated datasetId") {
-            entityService.createEntity(sampleDataWithContext)
+        val validatedExpandedEntity = sampleDataWithContext.toEntity()
+        assertTrue(validatedExpandedEntity.isInvalid)
+        validatedExpandedEntity.toEither().fromEither {
+            assertEquals(1, it.size)
+            assertTrue(it.head.reason == "Property fishName can't have duplicated datasetId")
         }
-
-        confirmVerified()
     }
 
     @Test
     fun `it should not create an entity having a property with different instances type`() {
         val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDifferentInstancesType.json")
 
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("fishName attribute instances must have the same type") {
-            entityService.createEntity(sampleDataWithContext)
+        val validatedExpandedEntity = sampleDataWithContext.toEntity()
+        assertTrue(validatedExpandedEntity.isInvalid)
+        validatedExpandedEntity.toEither().fromEither {
+            assertEquals(2, it.size)
+            assertTrue(it.exists { entityParsingError ->
+                entityParsingError.reason == "fishName attribute instances must have the same type"
+            })
         }
-
-        confirmVerified()
     }
 
     @Test

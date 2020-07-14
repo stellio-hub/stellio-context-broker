@@ -2,6 +2,8 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
+import com.egm.stellio.shared.model.toEntity
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -33,7 +35,27 @@ class EntityOperationHandler(
             }
             .map {
                 val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
-                val batchOperationResult = entityOperationService.create(newEntities)
+
+                // TODO there is large room for improvement
+                val newInvalidEntities = BatchOperationResult()
+                val newValidEntities = arrayListOf<ExpandedEntity>()
+
+                newEntities.map { jsonLdExpandedEntity ->
+                    jsonLdExpandedEntity.toEntity().fold(
+                        { entityParsingErrors ->
+                            newInvalidEntities.errors.add(
+                                BatchEntityError(jsonLdExpandedEntity.id, entityParsingErrors.all.map { it.reason })
+                            )
+                        },
+                        { expandedEntity ->
+                            newValidEntities.add(expandedEntity)
+                        }
+                    )
+                }
+
+                val batchOperationResult = entityOperationService.create(newValidEntities)
+
+                batchOperationResult.errors.addAll(newInvalidEntities.errors)
 
                 batchOperationResult.errors.addAll(
                     existingEntities.map { entity ->
@@ -62,16 +84,54 @@ class EntityOperationHandler(
             .map {
                 val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
 
-                val createBatchOperationResult = entityOperationService.create(newEntities)
+                // TODO there is very large room for improvement
+                val newInvalidEntities = BatchOperationResult()
+                val newValidEntities = arrayListOf<ExpandedEntity>()
+
+                newEntities.map { jsonLdExpandedEntity ->
+                    jsonLdExpandedEntity.toEntity().fold(
+                        { entityParsingErrors ->
+                            newInvalidEntities.errors.add(
+                                BatchEntityError(jsonLdExpandedEntity.id, entityParsingErrors.all.map { it.reason })
+                            )
+                        },
+                        { expandedEntity ->
+                            newValidEntities.add(expandedEntity)
+                        }
+                    )
+                }
+
+                val createBatchOperationResult = entityOperationService.create(newValidEntities)
+
+                val existingInvalidEntities = BatchOperationResult()
+                val existingValidEntities = arrayListOf<ExpandedEntity>()
+
+                existingEntities.map { jsonLdExpandedEntity ->
+                    jsonLdExpandedEntity.toEntity().fold(
+                        { entityParsingErrors ->
+                            existingInvalidEntities.errors.add(
+                                BatchEntityError(jsonLdExpandedEntity.id, entityParsingErrors.all.map { it.reason })
+                            )
+                        },
+                        { expandedEntity ->
+                            existingValidEntities.add(expandedEntity)
+                        }
+                    )
+                }
 
                 val updateBatchOperationResult = when (options) {
-                    "update" -> entityOperationService.update(existingEntities, createBatchOperationResult)
-                    else -> entityOperationService.replace(existingEntities, createBatchOperationResult)
+                    "update" -> entityOperationService.update(existingValidEntities, createBatchOperationResult)
+                    else -> entityOperationService.replace(existingValidEntities, createBatchOperationResult)
                 }
 
                 BatchOperationResult(
                     ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
-                    ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
+                    ArrayList(
+                        createBatchOperationResult.errors
+                            .plus(updateBatchOperationResult.errors)
+                            .plus(newInvalidEntities.errors)
+                            .plus(existingInvalidEntities.errors)
+                    )
                 )
             }
             .map {
@@ -79,7 +139,7 @@ class EntityOperationHandler(
             }
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
+    private fun extractAndParseBatchOfEntities(payload: String): List<JsonLdExpandedEntity> {
         val extractedEntities = extractEntitiesFromJsonPayload(payload)
         return NgsiLdParsingUtils.parseEntities(extractedEntities)
     }

@@ -25,6 +25,7 @@ class ExpandedEntityTests {
             """.trimIndent(),
             listOf()
         )
+        .toKnownValidEntity()
 
         assertEquals(arrayListOf("relation1"), expandedEntity.getLinkedEntitiesIds())
     }
@@ -56,6 +57,7 @@ class ExpandedEntityTests {
             """.trimIndent(),
             listOf()
         )
+        .toKnownValidEntity()
 
         assertEquals(listOf("Radar", "relation1"), expandedEntity.getLinkedEntitiesIds())
     }
@@ -83,6 +85,7 @@ class ExpandedEntityTests {
             """.trimIndent(),
             listOf()
         )
+        .toKnownValidEntity()
 
         assertEquals(listOf("relation1", "relation2"), expandedEntity.getLinkedEntitiesIds())
     }

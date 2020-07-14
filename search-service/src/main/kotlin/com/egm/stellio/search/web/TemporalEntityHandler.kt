@@ -7,7 +7,7 @@ import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -141,7 +141,7 @@ class TemporalEntityHandler(
     private fun loadEntityPayload(
         temporalEntityAttribute: TemporalEntityAttribute,
         bearerToken: String
-    ): Mono<ExpandedEntity> =
+    ): Mono<JsonLdExpandedEntity> =
         when {
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
@@ -159,7 +159,7 @@ class TemporalEntityHandler(
             )
             else -> {
                 val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
-                Mono.just(ExpandedEntity(parsedEntity.rawJsonLdProperties, listOf(NGSILD_CORE_CONTEXT)))
+                Mono.just(JsonLdExpandedEntity(parsedEntity.rawJsonLdProperties, listOf(NGSILD_CORE_CONTEXT)))
             }
         }
 }

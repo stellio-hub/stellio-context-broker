@@ -2,7 +2,8 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
+import com.egm.stellio.shared.model.toKnownValidEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockk
@@ -43,7 +44,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val expandedEntities = slot<List<ExpandedEntity>>()
+        val expandedEntities = slot<List<JsonLdExpandedEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
             emptyList(),
@@ -140,7 +141,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val existingEntity = mockk<ExpandedEntity>()
+        val existingEntity = mockk<JsonLdExpandedEntity>()
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
@@ -193,16 +194,16 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
 
-        val existingEntities = mockk<List<ExpandedEntity>>()
-        val nonExistingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = mockk<List<JsonLdExpandedEntity>>()
+        val nonExistingEntities = mockk<List<JsonLdExpandedEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
             nonExistingEntities
         )
 
-        every { entityOperationService.create(nonExistingEntities) } returns createdBatchResult
-        every { entityOperationService.update(existingEntities, createdBatchResult) } returns BatchOperationResult(
+        every { entityOperationService.create(nonExistingEntities.map { it.toKnownValidEntity() }) } returns createdBatchResult
+        every { entityOperationService.update(existingEntities.map { it.toKnownValidEntity() }, createdBatchResult) } returns BatchOperationResult(
             entitiesIds,
             arrayListOf()
         )
@@ -290,7 +291,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val existingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = mockk<List<JsonLdExpandedEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
@@ -300,7 +301,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { entityOperationService.replace(existingEntities, any()) } returns BatchOperationResult(
+        every { entityOperationService.replace(existingEntities.map { it.toKnownValidEntity() }, any()) } returns BatchOperationResult(
             entitiesIds,
             arrayListOf()
         )

@@ -7,7 +7,8 @@ import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdExpandedEntity
+import com.egm.stellio.shared.model.toKnownValidEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
@@ -68,7 +69,7 @@ class TemporalEntityAttributeService(
 
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
-        val entity = NgsiLdParsingUtils.parseEntity(payload)
+        val entity = NgsiLdParsingUtils.parseEntity(payload).toKnownValidEntity()
 
         val temporalProperties = entity.properties
             .filter {
@@ -197,10 +198,10 @@ class TemporalEntityAttributeService(
     }
 
     fun injectTemporalValues(
-        expandedEntity: ExpandedEntity,
+        expandedEntity: JsonLdExpandedEntity,
         rawResults: List<List<Map<String, Any>>>,
         withTemporalValues: Boolean
-    ): ExpandedEntity {
+    ): JsonLdExpandedEntity {
 
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
 
@@ -267,6 +268,6 @@ class TemporalEntityAttributeService(
             }
         }
 
-        return ExpandedEntity(entity, expandedEntity.contexts)
+        return JsonLdExpandedEntity(entity, expandedEntity.contexts)
     }
 }

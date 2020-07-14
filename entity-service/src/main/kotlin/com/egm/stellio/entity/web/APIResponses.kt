@@ -13,6 +13,5 @@ data class BatchOperationResult(
 
 data class BatchEntityError(
     val entityId: String,
-    val error: ArrayList<String>
-
+    val error: List<String>
 )

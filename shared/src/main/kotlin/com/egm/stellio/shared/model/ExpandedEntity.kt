@@ -115,16 +115,16 @@ class ExpandedEntity private constructor(
     }
 
     fun checkAttributesHaveAtMostOneDefaultInstance() {
-        properties.checkAttributesHaveAtMostOneDefaultInstance()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
-        relationships.checkAttributesHaveAtMostOneDefaultInstance()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
+        properties.findAttributeWithMoreThanOneDefaultInstance()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
+        relationships.findAttributeWithMoreThanOneDefaultInstance()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
     }
 
     fun checkAttributesHaveUniqueDatasetId() {
-        properties.checkAttributesHaveUniqueDatasetId()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
-        relationships.checkAttributesHaveUniqueDatasetId()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
+        properties.findAttributeWithDuplicatedDatasetId()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
+        relationships.findAttributeWithDuplicatedDatasetId()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
     }
 
-    private fun Map<String, List<Map<String, List<Any>>>>.checkAttributesHaveAtMostOneDefaultInstance(): String? {
+    private fun Map<String, List<Map<String, List<Any>>>>.findAttributeWithMoreThanOneDefaultInstance(): String? {
         this.forEach { attribute ->
             if (attribute.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
                 return attribute.key
@@ -132,7 +132,7 @@ class ExpandedEntity private constructor(
         return null
     }
 
-    private fun Map<String, List<Map<String, List<Any>>>>.checkAttributesHaveUniqueDatasetId(): String? {
+    private fun Map<String, List<Map<String, List<Any>>>>.findAttributeWithDuplicatedDatasetId(): String? {
         this.forEach { attribute ->
             val datasetIds = attribute.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?

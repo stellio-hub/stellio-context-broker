@@ -54,6 +54,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsS
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.isValidAttribute
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
@@ -412,7 +413,6 @@ class EntityService(
             .map { getFullEntityById(it) }
     }
 
-    // TODO improve validation and multi attribute support for relationships and geoproperties
     @Transactional
     fun appendEntityAttributes(
         entityId: String,
@@ -421,8 +421,7 @@ class EntityService(
     ): UpdateResult {
         val updateStatuses = attributes.flatMap {
             val attributeValue = expandValueAsListOfMap(it.value)
-            if (!attributeValue[0].containsKey("@type"))
-                throw BadRequestDataException("@type not found in $attributeValue")
+            isValidAttribute(it.key, attributeValue)
             val attributeType = attributeValue[0]["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {

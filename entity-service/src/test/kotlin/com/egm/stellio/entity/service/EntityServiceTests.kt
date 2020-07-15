@@ -24,13 +24,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.Runs
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -911,7 +905,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should not override the default instance if if overwrite is disallowed`() {
+    fun `it should not override the default instance if overwrite is disallowed`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
         val newProperty = """
@@ -935,7 +929,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
 
-        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, true)
 
         verify {
             neo4jRepository.hasPropertyInstance(
@@ -946,6 +940,65 @@ class EntityServiceTests {
                 "https://ontology.eglobalmark.com/aquac#fishNumber",
                 datasetId = null
             )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create a property with instance missing a type`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newProperty = """
+            {
+              "fishNumber": [{
+                "type": "Property",
+                "value": 600
+              },
+              {
+                "value": 700,
+                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
+              }]
+            }
+        """.trimIndent()
+        val expandedNewProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newProperty,
+                aquacContext!!
+            )
+
+        assertThrows<BadRequestDataException>("@type not found in one of fishNumber instances") {
+            entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create a property with different type instances`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val newProperty = """
+            {
+              "fishNumber": [{
+                "type": "Property",
+                "value": 600
+              },
+              {
+                "type":"Relationship",
+                "object":"urn:ngsi-ld:Beekeeper:654321",
+                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
+              }]
+            }
+        """.trimIndent()
+        val expandedNewProperty =
+            NgsiLdParsingUtils.expandJsonLdFragment(
+                newProperty,
+                aquacContext!!
+            )
+
+        assertThrows<BadRequestDataException>("fishNumber attribute instances must have the same type") {
+            entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
         }
 
         confirmVerified()

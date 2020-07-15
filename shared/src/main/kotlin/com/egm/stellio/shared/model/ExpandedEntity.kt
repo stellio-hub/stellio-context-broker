@@ -4,6 +4,7 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_TYPE
@@ -28,8 +29,8 @@ class ExpandedEntity private constructor(
     }
 
     val id = rawJsonLdProperties[NGSILD_ENTITY_ID]!! as String
-    val type = (rawJsonLdProperties[NgsiLdParsingUtils.NGSILD_ENTITY_TYPE]!! as List<String>)[0]
-    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, Map<String, List<Any>>> }
+    val type = (rawJsonLdProperties[NGSILD_ENTITY_TYPE]!! as List<String>)[0]
+    val relationships by lazy { getAttributesOfType(NGSILD_RELATIONSHIP_TYPE) as Map<String, List<Map<String, List<Any>>>> }
     val properties by lazy { getAttributesOfType(NGSILD_PROPERTY_TYPE) as Map<String, List<Map<String, List<Any>>>> }
     val geoProperties by lazy { getAttributesOfType(NGSILD_GEOPROPERTY_TYPE) as Map<String, Map<String, List<Any>>> }
     val attributes by lazy { initAttributesWithoutTypeAndId() }
@@ -39,7 +40,12 @@ class ExpandedEntity private constructor(
 
     private fun getAttributesOfType(type: AttributeType): Any =
         when (type) {
-            NGSILD_PROPERTY_TYPE -> attributes.mapValues {
+            NGSILD_GEOPROPERTY_TYPE -> attributes.mapValues {
+                NgsiLdParsingUtils.expandValueAsMap(it.value)
+            }.filter {
+                NgsiLdParsingUtils.isAttributeOfType(it.value, type)
+            }
+            else -> attributes.mapValues {
                 NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
             }
             .filter {
@@ -48,15 +54,10 @@ class ExpandedEntity private constructor(
             .filter {
                 NgsiLdParsingUtils.isAttributeOfType(it.value, type)
             }
-            else -> attributes.mapValues {
-                NgsiLdParsingUtils.expandValueAsMap(it.value)
-            }.filter {
-                NgsiLdParsingUtils.isAttributeOfType(it.value, type)
-            }
         }
 
     private fun initAttributesWithoutTypeAndId(): Map<String, Any> {
-        val idAndTypeKeys = listOf(NgsiLdParsingUtils.NGSILD_ENTITY_ID, NgsiLdParsingUtils.NGSILD_ENTITY_TYPE)
+        val idAndTypeKeys = listOf(NGSILD_ENTITY_ID, NGSILD_ENTITY_TYPE)
         return rawJsonLdProperties.filterKeys {
             !idAndTypeKeys.contains(it)
         }
@@ -72,8 +73,10 @@ class ExpandedEntity private constructor(
         getLinkedEntitiesIdsByProperties().plus(getLinkedEntitiesIdsByRelations())
 
     private fun getLinkedEntitiesIdsByRelations(): List<String> {
-        return relationships.map {
-            NgsiLdParsingUtils.getRelationshipObjectId(it.value)
+        return relationships.flatMap { relationship ->
+            relationship.value.map {
+                NgsiLdParsingUtils.getRelationshipObjectId(it)
+            }
         }.plus(getLinkedEntitiesByRelationship(relationships))
     }
 
@@ -81,10 +84,10 @@ class ExpandedEntity private constructor(
         return getLinkedEntitiesByProperty(properties)
     }
 
-    private fun getLinkedEntitiesByRelationship(attributes: Map<String, Map<String, List<Any>>>): List<String> {
+    private fun getLinkedEntitiesByRelationship(attributes: Map<String, List<Map<String, List<Any>>>>): List<String> {
         return attributes.flatMap { attribute ->
-            attribute.value
-                .map {
+            attribute.value.flatMap { instance ->
+                instance.map {
                     it.value[0]
                 }.filterIsInstance<Map<String, List<Any>>>()
                 .filter {
@@ -92,6 +95,7 @@ class ExpandedEntity private constructor(
                 }.map {
                     NgsiLdParsingUtils.getRelationshipObjectId(it)
                 }
+            }
         }
     }
 
@@ -110,22 +114,33 @@ class ExpandedEntity private constructor(
         }
     }
 
-    fun checkPropertiesHaveAtMostOneDefaultInstance() {
-        properties.forEach { property ->
-            if (property.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
-                throw BadRequestDataException("Property ${property.key.extractShortTypeFromExpanded()} can't have more than one default instance")
-        }
+    fun checkAttributesHaveAtMostOneDefaultInstance() {
+        properties.findAttributeWithMoreThanOneDefaultInstance()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
+        relationships.findAttributeWithMoreThanOneDefaultInstance()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
     }
 
-    fun checkPropertiesHaveUniqueDatasetId() {
-        properties.forEach { property ->
-            val datasetIds = property.value.map {
+    fun checkAttributesHaveUniqueDatasetId() {
+        properties.findAttributeWithDuplicatedDatasetId()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
+        relationships.findAttributeWithDuplicatedDatasetId()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
+    }
+
+    private fun Map<String, List<Map<String, List<Any>>>>.findAttributeWithMoreThanOneDefaultInstance(): String? {
+        this.forEach { attribute ->
+            if (attribute.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
+                return attribute.key
+        }
+        return null
+    }
+
+    private fun Map<String, List<Map<String, List<Any>>>>.findAttributeWithDuplicatedDatasetId(): String? {
+        this.forEach { attribute ->
+            val datasetIds = attribute.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?
                 datasetId?.get(NGSILD_ENTITY_ID)
             }
-
             if (datasetIds.toSet().count() != datasetIds.count())
-                throw BadRequestDataException("Property ${property.key.extractShortTypeFromExpanded()} can't have duplicated datasetId")
+                return attribute.key
         }
+        return null
     }
 }

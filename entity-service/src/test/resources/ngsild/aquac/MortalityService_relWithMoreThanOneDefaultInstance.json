@@ -1,0 +1,19 @@
+{
+   "id":"urn:ngsi-ld:MortalityService:RelWithMoreThanOneDefaultInstance",
+   "type":"MortalityService",
+   "removedFrom":[
+      {
+         "type":"Relationship",
+         "object":"urn:ngsi-ld:BreedingService:0214"
+      },
+      {
+         "type":"Relationship",
+         "object":"urn:ngsi-ld:BreedingService:0215"
+      }
+   ],
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

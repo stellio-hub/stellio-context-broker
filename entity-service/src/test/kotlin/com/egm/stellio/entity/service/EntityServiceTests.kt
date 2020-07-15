@@ -289,6 +289,60 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should not create an entity having a relationship with more than one default instance`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithMoreThanOneDefaultInstance.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithMoreThanOneDefaultInstance"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithMoreThanOneDefaultInstance")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("Relationship removedFrom can't have more than one default instance") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create an entity having a relationship with duplicated datasetId`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithDuplicatedDatasetId.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithDuplicatedDatasetId"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithDuplicatedDatasetId")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("Relationship removedFrom can't have duplicated datasetId") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not create an entity having a relationship with different instances type`() {
+        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithDifferentInstancesType.json")
+
+        val mockedBreedingService = mockkClass(Entity::class)
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithDifferentInstancesType"
+
+        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithDifferentInstancesType")) } returns false
+        every { entitiesGraphBuilder.build(any()) } returns
+            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+
+        assertThrows<BadRequestDataException>("removedFrom attribute instances must have the same type") {
+            entityService.createEntity(sampleDataWithContext)
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 

@@ -115,40 +115,32 @@ class ExpandedEntity private constructor(
     }
 
     fun checkAttributesHaveAtMostOneDefaultInstance() {
-        checkAttributesHaveAtMostOneDefaultInstance(NGSILD_PROPERTY_TYPE)
-        checkAttributesHaveAtMostOneDefaultInstance(NGSILD_RELATIONSHIP_TYPE)
+        properties.checkAttributesHaveAtMostOneDefaultInstance()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
+        relationships.checkAttributesHaveAtMostOneDefaultInstance()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have more than one default instance") }
     }
 
     fun checkAttributesHaveUniqueDatasetId() {
-        checkAttributesHaveUniqueDatasetId(NGSILD_PROPERTY_TYPE)
-        checkAttributesHaveUniqueDatasetId(NGSILD_RELATIONSHIP_TYPE)
+        properties.checkAttributesHaveUniqueDatasetId()?.let { throw BadRequestDataException("Property ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
+        relationships.checkAttributesHaveUniqueDatasetId()?.let { throw BadRequestDataException("Relationship ${it.extractShortTypeFromExpanded()} can't have duplicated datasetId") }
     }
 
-    private fun checkAttributesHaveAtMostOneDefaultInstance(type: AttributeType) {
-        val attributes = if (type == NGSILD_PROPERTY_TYPE) properties else relationships
-        attributes.forEach { attribute ->
-            if (attribute.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1) {
-                if (type == NGSILD_PROPERTY_TYPE)
-                    throw BadRequestDataException("Property ${attribute.key.extractShortTypeFromExpanded()} can't have more than one default instance")
-                else
-                    throw BadRequestDataException("Relationship ${attribute.key.extractShortTypeFromExpanded()} can't have more than one default instance")
-            }
+    private fun Map<String, List<Map<String, List<Any>>>>.checkAttributesHaveAtMostOneDefaultInstance(): String? {
+        this.forEach { attribute ->
+            if (attribute.value.count { !it.containsKey(NGSILD_DATASET_ID_PROPERTY) } > 1)
+                return attribute.key
         }
+        return null
     }
 
-    private fun checkAttributesHaveUniqueDatasetId(type: AttributeType) {
-        val attributes = if (type == NGSILD_PROPERTY_TYPE) properties else relationships
-        attributes.forEach { attribute ->
+    private fun Map<String, List<Map<String, List<Any>>>>.checkAttributesHaveUniqueDatasetId(): String? {
+        this.forEach { attribute ->
             val datasetIds = attribute.value.map {
                 val datasetId = it[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?
                 datasetId?.get(NGSILD_ENTITY_ID)
             }
-            if (datasetIds.toSet().count() != datasetIds.count()) {
-                if (type == NGSILD_PROPERTY_TYPE)
-                    throw BadRequestDataException("Property ${attribute.key.extractShortTypeFromExpanded()} can't have duplicated datasetId")
-                else
-                    throw BadRequestDataException("Relationship ${attribute.key.extractShortTypeFromExpanded()} can't have duplicated datasetId")
-            }
+            if (datasetIds.toSet().count() != datasetIds.count())
+                return attribute.key
         }
+        return null
     }
 }

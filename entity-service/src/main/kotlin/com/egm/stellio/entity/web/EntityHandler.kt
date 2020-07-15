@@ -220,14 +220,18 @@ class EntityHandler(
     fun deleteEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
-        @PathVariable attrId: String
+        @PathVariable attrId: String,
+        @RequestParam params: MultiValueMap<String, String>
     ): Mono<ResponseEntity<*>> {
+        val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
+        val datasetId = params.getFirst("datasetId")?.let { URI.create(it) }
+
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
+                entityService.deleteEntityAttribute(entityId, attrId, datasetId, deleteAll, contextLink)
             }
             .map {
                 if (it)

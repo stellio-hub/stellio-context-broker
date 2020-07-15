@@ -718,7 +718,7 @@ class EntityService(
         neo4jRepository.deleteEntity(entityId)
 
     @Transactional
-    fun deleteEntityAttribute(entityId: String, attributeName: String, contextLink: String): Boolean {
+    fun deleteEntityAttribute(entityId: String, attributeName: String, datasetId: URI?, deleteAll: Boolean, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
         if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))

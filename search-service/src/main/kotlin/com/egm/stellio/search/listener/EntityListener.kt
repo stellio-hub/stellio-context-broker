@@ -48,7 +48,7 @@ class EntityListener(
                 val attributeValuesNode = rawParsedData[attributeName]
 
                 if (!attributeValuesNode.has("observedAt")) {
-                    logger.debug("Ignoring update event for $attributeName, it has no observedAt information")
+                    logger.info("Ignoring update event for $attributeName, it has no observedAt information")
                     return
                 }
 

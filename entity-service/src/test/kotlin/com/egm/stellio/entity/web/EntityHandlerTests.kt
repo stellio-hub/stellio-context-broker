@@ -437,6 +437,100 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
+                    mapOf(
+                        NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1230"
+                        ),
+                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                        )
+                    ),
+                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                NGSILD_ENTITY_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                    {
+                        "id":"urn:ngsi-ld:Beehive:4567",
+                        "type":"Beehive",
+                        "managedBy":{"type":"Relationship", "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215", "object":"urn:ngsi-ld:Beekeeper:1230"},
+                        "@context":"$NGSILD_CORE_CONTEXT"
+                    }
+                    """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
+                    listOf(
+                        mapOf(
+                            NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1229"
+                            )
+                        ),
+                        mapOf(
+                            NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1230"
+                            ),
+                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                            )
+                        )
+                    ),
+                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                NGSILD_ENTITY_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                 {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "managedBy":[
+                       {
+                          "type":"Relationship",
+                          "object":"urn:ngsi-ld:Beekeeper:1229"
+                       },
+                       {
+                          "type":"Relationship",
+                          "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
+                          "object":"urn:ngsi-ld:Beekeeper:1230"
+                       }
+                    ],
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should return 404 when entity does not exist`() {
 
         every { entityService.exists(any()) } returns false

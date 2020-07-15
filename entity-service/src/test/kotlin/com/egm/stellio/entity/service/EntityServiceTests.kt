@@ -25,6 +25,7 @@ import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import junit.framework.TestCase.assertTrue
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -848,31 +849,23 @@ class EntityServiceTests {
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
 
-        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
+        val datasetSetIds = mutableListOf<URI>()
+        every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
-        every { mockkedEntity.id } returns entityId
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
-        verify {
+        assertTrue(datasetSetIds.contains(URI.create("urn:ngsi-ld:Dataset:fishNumber:1")))
+
+        verify(exactly = 2) {
             neo4jRepository.hasPropertyInstance(
                 match {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
                 "https://ontology.eglobalmark.com/aquac#fishNumber",
-                datasetId = URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
-            )
-        }
-        verify {
-            neo4jRepository.hasPropertyInstance(
-                match {
-                    it.id == entityId &&
-                        it.label == "Entity"
-                },
-                "https://ontology.eglobalmark.com/aquac#fishNumber",
-                datasetId = null
+                datasetId = any()
             )
         }
 
@@ -884,8 +877,8 @@ class EntityServiceTests {
             },
             match {
                 it.value == 500 &&
-                it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
-                it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                    it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
             })
         }
         verify { neo4jRepository.createPropertyOfSubject(
@@ -896,7 +889,7 @@ class EntityServiceTests {
             match {
                 it.value == 600 &&
                     it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
-                it.datasetId == null
+                    it.datasetId == null
             })
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
@@ -927,7 +920,7 @@ class EntityServiceTests {
         every { mockkedEntity.id } returns entityId
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
 
-        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
+        every { neo4jRepository.hasPropertyInstance(any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, true)
 

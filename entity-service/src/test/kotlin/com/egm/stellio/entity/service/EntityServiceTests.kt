@@ -850,13 +850,27 @@ class EntityServiceTests {
         every { mockkedEntity.properties } returns mutableListOf()
 
         val datasetSetIds = mutableListOf<URI>()
+        val createdProperties = mutableListOf<Property>()
+
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties)) } returns UUID.randomUUID().toString()
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
         assertTrue(datasetSetIds.contains(URI.create("urn:ngsi-ld:Dataset:fishNumber:1")))
+
+        assertTrue(
+            createdProperties.any {
+                it.value == 500 &&
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                    it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
+            }.and(createdProperties.any {
+                it.value == 600 &&
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                    it.datasetId == null
+            })
+        )
 
         verify(exactly = 2) {
             neo4jRepository.hasPropertyInstance(
@@ -870,28 +884,15 @@ class EntityServiceTests {
         }
 
         verify { entityRepository.findById(eq(entityId)) }
-        verify { neo4jRepository.createPropertyOfSubject(
+
+        verify(exactly = 2) { neo4jRepository.createPropertyOfSubject(
             match {
                 it.id == entityId &&
                     it.label == "Entity"
             },
-            match {
-                it.value == 500 &&
-                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
-                    it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
-            })
+            any())
         }
-        verify { neo4jRepository.createPropertyOfSubject(
-            match {
-                it.id == entityId &&
-                    it.label == "Entity"
-            },
-            match {
-                it.value == 600 &&
-                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
-                    it.datasetId == null
-            })
-        }
+
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
 
         confirmVerified()
@@ -935,6 +936,14 @@ class EntityServiceTests {
             )
         }
 
+        verify(inverse = true) {
+            neo4jRepository.createPropertyOfSubject(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                any())
+        }
         confirmVerified()
     }
 

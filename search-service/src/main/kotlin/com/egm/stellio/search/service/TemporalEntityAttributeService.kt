@@ -99,6 +99,7 @@ class TemporalEntityAttributeService(
                     datasetId = getPropertyValueFromMapAsUri(expandedValues, NGSILD_DATASET_ID_PROPERTY),
                     entityPayload = payload
                 )
+
                 val observedAt = getPropertyValueFromMapAsDateTime(expandedValues, NGSILD_OBSERVED_AT_PROPERTY)!!
                 val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
@@ -202,6 +203,7 @@ class TemporalEntityAttributeService(
         rawResults: List<List<Map<String, Any>>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
+
         val resultEntity: MutableMap<String, List<Map<String, Any?>>> = mutableMapOf()
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
         rawResults.filter {

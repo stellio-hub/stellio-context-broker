@@ -5,25 +5,25 @@
     "type" : "Property",
     "datasetId" : "urn:ngsi-ld:Dataset:01234",
     "value" : 550.0,
-    "instanceId" : "null",
+    "instanceId" : "urn:ngsi-ld:Instance:01234",
     "observedAt" : "2020-03-25T08:29:17.965206Z"
   }, {
     "type" : "Property",
     "datasetId" : "urn:ngsi-ld:Dataset:01234",
     "value" : 650.0,
-    "instanceId" : "null",
+    "instanceId" : "urn:ngsi-ld:Instance:01235",
     "observedAt" : "2020-03-25T08:33:17.965206Z"
   }, {
     "type" : "Property",
     "datasetId" : "urn:ngsi-ld:Dataset:45678",
     "value" : 487.0,
-    "instanceId" : "null",
+    "instanceId" : "urn:ngsi-ld:Instance:45678",
     "observedAt" : "2020-03-25T08:29:17.965206Z"
   }, {
     "type" : "Property",
     "datasetId" : "urn:ngsi-ld:Dataset:45678",
     "value" : 698.0,
-    "instanceId" : "null",
+    "instanceId" : "urn:ngsi-ld:Instance:45679",
     "observedAt" : "2020-03-25T08:33:17.965206Z"
   } ],
   "connectsTo" : {

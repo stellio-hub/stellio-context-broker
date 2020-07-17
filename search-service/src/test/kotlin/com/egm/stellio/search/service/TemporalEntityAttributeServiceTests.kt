@@ -8,6 +8,8 @@ import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -242,8 +244,9 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
     }
 
-    @Test
-    fun `it should inject temporal numeric values in temporalValues format into an entity with two instances property`() {
+    @ParameterizedTest
+    @ValueSource(booleans = [ true, false ])
+    fun `it should inject temporal numeric values into an entity with two instances property`(withTemporalValues: Boolean) {
         val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
         val rawResults = listOf(
             listOf(
@@ -276,57 +279,17 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
         )
 
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
         val serializedEntity = JsonLdProcessor.compact(
             enrichedEntity.rawJsonLdProperties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming_temporal_values.jsonld").trim(), finalEntity)
-    }
 
-    @Test
-    fun `it should inject temporal numeric values in default format into an entity with two instances property`() {
-        val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
-        val rawResults = listOf(
-            listOf(
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 550.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:01234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
-                ),
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 650.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:01234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
-                )
-            ),
-            listOf(
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 487.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:45678",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
-                ),
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 698.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:45678",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
-                )
-            )
-        )
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming.jsonld").trim(), finalEntity)
+        if (withTemporalValues)
+            assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming_temporal_values.jsonld").trim(), finalEntity)
+        else
+            assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming.jsonld").trim(), finalEntity)
     }
 }

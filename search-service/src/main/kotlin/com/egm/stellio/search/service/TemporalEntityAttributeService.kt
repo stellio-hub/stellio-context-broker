@@ -204,6 +204,7 @@ class TemporalEntityAttributeService(
         rawResults: List<List<Map<String, Any>>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
+        val resultEntity: MutableMap<String, List<Map<String, Any?>>> = mutableMapOf()
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results
@@ -253,32 +254,44 @@ class TemporalEntityAttributeService(
                                 )
                         }
                     instanceToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
-
                     // and finally update the raw entity with the updated temporal property
-                    entity[attributeName] = listOf(instanceToEnrich)
+                    resultEntity[attributeName] = resultEntity[attributeName]?.plus(listOf(instanceToEnrich)) ?: listOf(instanceToEnrich)
                 } else {
                     val valuesMap =
                         rawResult.map {
-                            mapOf(
-                                NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                                NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                    NGSILD_ENTITY_ID to it["instance_id"]
-                                ),
-                                NGSILD_PROPERTY_VALUE to it["value"],
-                                NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(
-                                    NGSILD_ENTITY_ID to it["dataset_id"]
-                                )),
-                                NGSILD_OBSERVED_AT_PROPERTY to mapOf(
-                                    NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                    JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                            if(it["dataset_id"].toString() != "null")
+                                mapOf(
+                                    NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                                    NGSILD_INSTANCE_ID_PROPERTY to mapOf(
+                                        NGSILD_ENTITY_ID to it["instance_id"]
+                                    ),
+                                    NGSILD_PROPERTY_VALUE to it["value"],
+                                    NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(NGSILD_ENTITY_ID to rawResult[0]["dataset_id"])),
+                                    NGSILD_OBSERVED_AT_PROPERTY to mapOf(
+                                        NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                        JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                    )
+                                ) else
+                                mapOf(
+                                    NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                                    NGSILD_INSTANCE_ID_PROPERTY to mapOf(
+                                        NGSILD_ENTITY_ID to it["instance_id"]
+                                    ),
+                                    NGSILD_PROPERTY_VALUE to it["value"],
+                                    NGSILD_OBSERVED_AT_PROPERTY to mapOf(
+                                        NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                        JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                    )
                                 )
-                            )
-                        }[0]
+                        }
 
-                    val existing = entity[attributeName] as List<Map<String, Any>>
-                    entity[attributeName] = existing.plus(listOf(valuesMap))
+                    resultEntity[attributeName] = (resultEntity[attributeName]?.plus(valuesMap) ?: (valuesMap))
                 }
             }
+        }
+
+        resultEntity.map {
+            entity[it.key] = it.value
         }
 
         return ExpandedEntity(entity, expandedEntity.contexts)

@@ -277,10 +277,9 @@ object NgsiLdParsingUtils {
      * Else throws BadRequestDataException
      */
     fun isValidAttribute(key: String, values: List<Map<String, List<Any>>>): Boolean {
-        val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0]
-        if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { emptyList() }[0] == firstType })
+        val firstType = values[0].getOrElse(NGSILD_ENTITY_TYPE) { throw BadRequestDataException("@type not found in one of ${key.extractShortTypeFromExpanded()} instances") }[0]
+        if (!values.all { it.getOrElse(NGSILD_ENTITY_TYPE) { throw BadRequestDataException("@type not found in one of ${key.extractShortTypeFromExpanded()} instances") }[0] == firstType })
             throw BadRequestDataException("${key.extractShortTypeFromExpanded()} attribute instances must have the same type")
-
         return true
     }
 

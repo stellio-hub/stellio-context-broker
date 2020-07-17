@@ -85,7 +85,7 @@ object NgsiLdParsingUtils {
     const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
-    val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     private val mapper: ObjectMapper =
         jacksonObjectMapper()

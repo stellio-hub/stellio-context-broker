@@ -24,7 +24,6 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMapOfAn
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.logger
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -46,8 +45,8 @@ class TemporalEntityAttributeService(
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
         databaseClient.execute(
             """
-            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload, dataset_id)
-            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload, :dataset_id)
+            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload)
+            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload)
             """
         )
             .bind("id", temporalEntityAttribute.id)
@@ -58,7 +57,6 @@ class TemporalEntityAttributeService(
             .bind(
                 "entity_payload",
                 temporalEntityAttribute.entityPayload?.let { Json.of(temporalEntityAttribute.entityPayload) })
-            .bind("dataset_id", temporalEntityAttribute.datasetId)
             .fetch()
             .rowsUpdated()
 
@@ -209,7 +207,6 @@ class TemporalEntityAttributeService(
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results
             it.isNotEmpty() && it[0].isNotEmpty()
-
         }.forEach { rawResult ->
             // attribute_name is the name of the temporal property we want to update
             val attributeName = rawResult.first()["attribute_name"]!! as String
@@ -259,11 +256,12 @@ class TemporalEntityAttributeService(
                 } else {
                     val valuesMap =
                         rawResult.map {
-                            if(it["dataset_id"].toString() != "null")
+                            // a null datasetId should not be added to the valuesMap
+                            if (it["dataset_id"].toString() != "null")
                                 mapOf(
                                     NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
                                     NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_ID to it["instance_id"]
+                                        NGSILD_ENTITY_ID to it["instance_id"].toString()
                                     ),
                                     NGSILD_PROPERTY_VALUE to it["value"],
                                     NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(NGSILD_ENTITY_ID to rawResult[0]["dataset_id"])),
@@ -275,7 +273,7 @@ class TemporalEntityAttributeService(
                                 mapOf(
                                     NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
                                     NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_ID to it["instance_id"]
+                                        NGSILD_ENTITY_ID to it["instance_id"].toString()
                                     ),
                                     NGSILD_PROPERTY_VALUE to it["value"],
                                     NGSILD_OBSERVED_AT_PROPERTY to mapOf(
@@ -290,6 +288,7 @@ class TemporalEntityAttributeService(
             }
         }
 
+        // inject temporal values in the entity to be returned (replace entity properties by their temporal evolution)
         resultEntity.map {
             entity[it.key] = it.value
         }

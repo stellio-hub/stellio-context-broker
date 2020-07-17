@@ -1,0 +1,11 @@
+{
+  "operationType": "DELETE",
+  "entityId": "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+  "entityType": "User",
+  "attributeName": "isMemberOf",
+  "datasetId": "urn:ngsi-ld:Dataset:isMemberOf:7cdad168-96ee-4649-b768-a060ac2ef435",
+  "context": [
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
+    "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+  ]
+}

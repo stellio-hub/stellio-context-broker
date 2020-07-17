@@ -200,7 +200,7 @@ class TemporalEntityAttributeService(
 
     fun injectTemporalValues(
         expandedEntity: ExpandedEntity,
-        rawResults: List<List<Map<String, Any>>>,
+        rawResults: List<List<Map<String, Any?>>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
 
@@ -226,7 +226,7 @@ class TemporalEntityAttributeService(
             propertyToEnrich.filter { instanceToEnrich ->
                 val rawDatasetId = instanceToEnrich[NGSILD_DATASET_ID_PROPERTY] as List<Map<String, String?>>?
                 val datasetId = rawDatasetId?.get(0)?.get(NGSILD_ENTITY_ID)
-                datasetId.toString() == rawResult[0]["dataset_id"].toString()
+                datasetId == rawResult[0]["dataset_id"]
             }
             .map { instanceToEnrich ->
                 if (withTemporalValues) {
@@ -258,31 +258,22 @@ class TemporalEntityAttributeService(
                 } else {
                     val valuesMap =
                         rawResult.map {
-                            // a null datasetId should not be added to the valuesMap
-                            if (it["dataset_id"].toString() != "null")
-                                mapOf(
-                                    NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                                    NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_ID to it["instance_id"].toString()
-                                    ),
-                                    NGSILD_PROPERTY_VALUE to it["value"],
-                                    NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(NGSILD_ENTITY_ID to rawResult[0]["dataset_id"])),
-                                    NGSILD_OBSERVED_AT_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                        JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
-                                    )
-                                ) else
-                                mapOf(
-                                    NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                                    NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_ID to it["instance_id"].toString()
-                                    ),
-                                    NGSILD_PROPERTY_VALUE to it["value"],
-                                    NGSILD_OBSERVED_AT_PROPERTY to mapOf(
-                                        NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                        JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
-                                    )
+                            val instance = mutableMapOf(
+                                NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                                NGSILD_INSTANCE_ID_PROPERTY to mapOf(
+                                    NGSILD_ENTITY_ID to it["instance_id"].toString()
+                                ),
+                                NGSILD_PROPERTY_VALUE to it["value"],
+                                NGSILD_OBSERVED_AT_PROPERTY to mapOf(
+                                    NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                    JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
                                 )
+                            )
+                            // a null datasetId should not be added to the valuesMap
+                            if (it["dataset_id"] != null)
+                                instance[NGSILD_DATASET_ID_PROPERTY] = listOf(mapOf(NGSILD_ENTITY_ID to rawResult[0]["dataset_id"]))
+
+                            instance
                         }
 
                     resultEntity[attributeName] = (resultEntity[attributeName]?.plus(valuesMap) ?: (valuesMap))

@@ -47,7 +47,7 @@ class AttributeInstanceService(
     fun search(
         temporalQuery: TemporalQuery,
         temporalEntityAttribute: TemporalEntityAttribute
-    ): Mono<List<Map<String, Any>>> {
+    ): Mono<List<Map<String, Any?>>> {
 
         var selectQuery =
             when {
@@ -87,7 +87,7 @@ class AttributeInstanceService(
             .all()
             .map {
                 it.plus(Pair("attribute_name", temporalEntityAttribute.attributeName))
-                    .plus(Pair("dataset_id", temporalEntityAttribute.datasetId.toString()))
+                    .plus(Pair("dataset_id", temporalEntityAttribute.datasetId))
             }
             .collectList()
     }

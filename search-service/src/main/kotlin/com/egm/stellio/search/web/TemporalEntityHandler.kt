@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.logger
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
 import com.egm.stellio.shared.util.OptionsParamValue
 import com.egm.stellio.shared.util.extractContextFromLinkHeader

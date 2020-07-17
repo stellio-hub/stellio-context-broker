@@ -20,10 +20,11 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMapOfAny
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.logger
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -31,6 +32,7 @@ import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -120,7 +122,7 @@ class TemporalEntityAttributeService(
 
     fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {
         val selectQuery = """
-            SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT
+            SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT, dataset_id
             FROM temporal_entity_attribute
             WHERE entity_id = :entity_id
             """.trimIndent()
@@ -188,6 +190,7 @@ class TemporalEntityAttributeService(
                     String::class.java
                 )!!
             ),
+            datasetId = row.get("dataset_id", String::class.java)?.let { URI.create(it) },
             entityPayload = row.get("entity_payload", String::class.java)
         )
     }
@@ -201,69 +204,80 @@ class TemporalEntityAttributeService(
         rawResults: List<List<Map<String, Any>>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
-
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
-
         rawResults.filter {
             // filtering out empty lists or lists with an empty map of results
             it.isNotEmpty() && it[0].isNotEmpty()
-        }.forEach {
-            // attribute_name is the name of the temporal property we want to update
-            val attributeName = it.first()["attribute_name"]!! as String
 
+        }.forEach { rawResult ->
+            // attribute_name is the name of the temporal property we want to update
+            val attributeName = rawResult.first()["attribute_name"]!! as String
             // extract the temporal property from the raw entity
             // ... if it exists, which is not the case for notifications of a subscription (in this case, create an empty map)
-            val propertyToEnrich: MutableMap<String, Any> =
-                if (entity[attributeName] != null) {
-                    expandValueAsMap(entity[attributeName]!!).toMutableMap()
+            val propertyToEnrich: List<MutableMap<String, Any>> =
+                if (entity[attributeName] != null)
+                    expandValueAsListOfMapOfAny(entity[attributeName]!!).map {
+                        it.toMutableMap()
+                    }
+                else
+                    listOf(mutableMapOf())
+
+            // get the instance that matches the datasetId of the rawResult
+            propertyToEnrich.filter { instanceToEnrich ->
+                val rawDatasetId = instanceToEnrich[NGSILD_DATASET_ID_PROPERTY] as List<Map<String, String?>>?
+                val datasetId = rawDatasetId?.get(0)?.get(NGSILD_ENTITY_ID)
+                datasetId.toString() == rawResult[0]["dataset_id"].toString()
+            }
+            .map { instanceToEnrich ->
+                if (withTemporalValues) {
+                    instanceToEnrich.putIfAbsent(NGSILD_ENTITY_TYPE, NGSILD_PROPERTY_TYPE.uri)
+                    // remove the existing value as we will inject our list of results in the property
+                    instanceToEnrich.remove(NGSILD_PROPERTY_VALUE)
+
+                    // Postgres stores the observedAt value in UTC.
+                    // The value is retrieved as offsetDateTime and converted to the current timezone using the system variable timezone.
+                    // For this reason, a cast to Instant with UTC as ZoneOffset is needed to create a ZonedDateTime.
+                    val valuesMap =
+                        rawResult.map {
+                            if (it["value"] is Double)
+                                TemporalValue(
+                                    it["value"] as Double,
+                                    ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                )
+                            else
+                                RawValue(
+                                    // value is not expected to be null ... if everything goes well
+                                    // so let's prevent from bad surprises
+                                    it["value"] ?: "",
+                                    ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                )
+                        }
+                    instanceToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
+
+                    // and finally update the raw entity with the updated temporal property
+                    entity[attributeName] = listOf(instanceToEnrich)
                 } else {
-                    mutableMapOf()
+                    val valuesMap =
+                        rawResult.map {
+                            mapOf(
+                                NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                                NGSILD_INSTANCE_ID_PROPERTY to mapOf(
+                                    NGSILD_ENTITY_ID to it["instance_id"]
+                                ),
+                                NGSILD_PROPERTY_VALUE to it["value"],
+                                NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(
+                                    NGSILD_ENTITY_ID to it["dataset_id"]
+                                )),
+                                NGSILD_OBSERVED_AT_PROPERTY to mapOf(
+                                    NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                    JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                )
+                            )
+                        }[0]
+
+                    val existing = entity[attributeName] as List<Map<String, Any>>
+                    entity[attributeName] = existing.plus(listOf(valuesMap))
                 }
-
-            if (withTemporalValues) {
-                propertyToEnrich.putIfAbsent(NGSILD_ENTITY_TYPE, NGSILD_PROPERTY_TYPE.uri)
-                // remove the existing value as we will inject our list of results in the property
-                propertyToEnrich.remove(NGSILD_PROPERTY_VALUE)
-
-                // Postgres stores the observedAt value in UTC.
-                // The value is retrieved as offsetDateTime and converted to the current timezone using the system variable timezone.
-                // For this reason, a cast to Instant with UTC as ZoneOffset is needed to create a ZonedDateTime.
-                val valuesMap =
-                    it.map {
-                        if (it["value"] is Double)
-                            TemporalValue(
-                                it["value"] as Double,
-                                ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
-                            )
-                        else
-                            RawValue(
-                                // value is not expected to be null ... if everything goes well
-                                // so let's prevent from bad surprises
-                                it["value"] ?: "",
-                                ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
-                            )
-                    }
-                propertyToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
-
-                // and finally update the raw entity with the updated temporal property
-                entity[attributeName] = listOf(propertyToEnrich)
-            } else {
-                val valuesMap =
-                    it.map {
-                        mapOf(
-                            NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                            NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                NGSILD_ENTITY_ID to it["instance_id"]
-                            ),
-                            NGSILD_PROPERTY_VALUE to it["value"],
-                            NGSILD_OBSERVED_AT_PROPERTY to mapOf(
-                                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
-                            )
-                        )
-                    }
-
-                entity[attributeName] = listOf(valuesMap)
             }
         }
 

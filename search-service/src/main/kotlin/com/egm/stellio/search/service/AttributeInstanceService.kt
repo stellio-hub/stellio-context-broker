@@ -87,6 +87,7 @@ class AttributeInstanceService(
             .all()
             .map {
                 it.plus(Pair("attribute_name", temporalEntityAttribute.attributeName))
+                    .plus(Pair("dataset_id", temporalEntityAttribute.datasetId.toString()))
             }
             .collectList()
     }

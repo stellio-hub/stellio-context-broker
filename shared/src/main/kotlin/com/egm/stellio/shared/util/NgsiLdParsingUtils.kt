@@ -85,7 +85,7 @@ object NgsiLdParsingUtils {
     const val EGM_VENDOR_ID = "https://ontology.eglobalmark.com/egm#vendorId"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    val logger = LoggerFactory.getLogger(javaClass)
 
     private val mapper: ObjectMapper =
         jacksonObjectMapper()
@@ -168,6 +168,9 @@ object NgsiLdParsingUtils {
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
             value as List<Map<String, List<Any>>>
+
+    fun expandValueAsListOfMapOfAny(value: Any): List<Map<String, Any>> =
+        value as List<Map<String, List<Any>>>
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *

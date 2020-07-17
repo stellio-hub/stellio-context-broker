@@ -1,104 +1,93 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.Runs
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.just
+import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import java.net.URI
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    classes = [EntitiesListener::class]
+)
 @ActiveProfiles("test")
 class EntitiesListenerTests {
 
     @Autowired
     private lateinit var entitiesListener: EntitiesListener
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var entityService: EntityService
 
     @MockkBean
     private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
 
     @Test
-    fun `it should parse and transmit observations`() {
-        val observation = ClassPathResource("/ngsild/aquac/Observation.json")
+    fun `it should parse and transmit user creation event`() {
+        val userCreateEvent = ClassPathResource("/ngsild/authorization/UserCreateEvent.json")
 
-        every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty()
-        every { entityService.updateEntityLastMeasure(any()) } just Runs
-
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(userCreateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
-                    observation.unitCode == "CEL" &&
-                    observation.value == 20.7 &&
-                    observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                    observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-                    observation.longitude == 24.30623 &&
-                    observation.latitude == 60.07966
+            entityService.createEntity(match {
+                it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"
             })
         }
-        confirmVerified(entityService)
+        confirmVerified()
     }
 
     @Test
-    fun `it should parse and transmit observations without location because location may be null`() {
-        val observation = ClassPathResource("/ngsild/aquac/ObservationWithoutLocation.json")
+    fun `it should parse and transmit user deletion event`() {
+        val userCreateEvent = ClassPathResource("/ngsild/authorization/UserDeleteEvent.json")
 
-        every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty(withLocation = false)
-        every { entityService.updateEntityLastMeasure(any()) } just Runs
+        entitiesListener.processMessage(userCreateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
-
-        verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
-                    observation.unitCode == "CEL" &&
-                    observation.value == 20.7 &&
-                    observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                    observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-                    observation.latitude == null &&
-                    observation.longitude == null
-            })
-        }
-        confirmVerified(entityService)
+        verify { entityService.deleteEntity("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") }
+        confirmVerified()
     }
 
     @Test
-    fun `it should ignore badly formed observations`() {
-        val observation = ClassPathResource("/ngsild/aquac/Observation_missingAttributes.json")
+    fun `it should parse and transmit Group membership append event`() {
+        val groupMembershipAppendEvent = ClassPathResource("/ngsild/authorization/GroupMembershipAppendEvent.json")
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
-
-        verify { entityService wasNot Called }
-    }
-
-    private fun gimmeTemporalProperty(withLocation: Boolean = true): Observation {
-        val location =
-            if (withLocation)
-                Pair(24.30623, 60.07966)
-            else null
-
-        return Observation(
-            attributeName = "incoming",
-            value = 20.7,
-            unitCode = "CEL",
-            observedAt = ZonedDateTime.parse("2019-10-18T07:31:39.77Z"),
-            latitude = location?.second,
-            longitude = location?.first,
-            observedBy = "urn:sosa:Sensor:10e2073a01080065"
+        entitiesListener.processMessage(
+            groupMembershipAppendEvent.inputStream.readBytes().toString(Charsets.UTF_8)
         )
+
+
+        verify {
+            entityService.appendEntityAttributes(
+                "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",
+                match {
+                    it.keys.contains("https://ontology.eglobalmark.com/authorization#isMemberOf")
+                },
+                false
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should parse and transmit group membership deletion event`() {
+        val userCreateEvent = ClassPathResource("/ngsild/authorization/GroupMembershipDeleteEvent.json")
+
+        entitiesListener.processMessage(userCreateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
+
+        verify {
+            entityService.deleteEntityAttributeInstance(
+                "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+                "isMemberOf",
+                URI.create("urn:ngsi-ld:Dataset:isMemberOf:7cdad168-96ee-4649-b768-a060ac2ef435"),
+                "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld"
+            )
+        }
     }
 }

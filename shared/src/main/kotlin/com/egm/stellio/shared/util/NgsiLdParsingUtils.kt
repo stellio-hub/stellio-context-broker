@@ -167,7 +167,8 @@ object NgsiLdParsingUtils {
         (value as List<Any>)[0] as Map<String, List<Any>>
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
-            value as List<Map<String, List<Any>>>
+        value as List<Map<String, List<Any>>>
+
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *

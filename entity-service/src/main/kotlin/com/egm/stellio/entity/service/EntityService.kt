@@ -123,11 +123,10 @@ class EntityService(
     fun publishCreationEvent(expandedEntity: ExpandedEntity) {
         val entityType = extractShortTypeFromPayload(expandedEntity.rawJsonLdProperties)
         val entityEvent = EntityEvent(
-            EventType.CREATE,
-            expandedEntity.id,
-            entityType,
-            getSerializedEntityById(expandedEntity.id),
-            null
+            operationType = EventType.CREATE,
+            entityId = expandedEntity.id,
+            entityType = entityType,
+            payload = getSerializedEntityById(expandedEntity.id)
         )
         applicationEventPublisher.publishEvent(entityEvent)
     }
@@ -440,8 +439,9 @@ class EntityService(
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
                 if (!neo4jRepository.hasRelationshipOfType(
-                    EntitySubjectNode(entityId),
-                    relationshipTypeName.toRelationshipTypeName())
+                        EntitySubjectNode(entityId),
+                        relationshipTypeName.toRelationshipTypeName()
+                    )
                 ) {
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
@@ -452,13 +452,18 @@ class EntityService(
                     listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
-                    listOf(Triple(
-                        it.key,
-                        false,
-                        "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring"
-                    ))
+                    listOf(
+                        Triple(
+                            it.key,
+                            false,
+                            "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring"
+                        )
+                    )
                 } else {
-                    neo4jRepository.deleteEntityRelationship(EntitySubjectNode(entityId), relationshipTypeName.toRelationshipTypeName())
+                    neo4jRepository.deleteEntityRelationship(
+                        EntitySubjectNode(entityId),
+                        relationshipTypeName.toRelationshipTypeName()
+                    )
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
@@ -488,18 +493,21 @@ class EntityService(
                 }
             } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                 if (!neo4jRepository.hasGeoPropertyOfName(
-                    EntitySubjectNode(entityId),
-                    it.key.extractShortTypeFromExpanded())
+                        EntitySubjectNode(entityId),
+                        it.key.extractShortTypeFromExpanded()
+                    )
                 ) {
                     createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
                     listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    listOf(Triple(
-                        it.key,
-                        false,
-                        "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
-                    ))
+                    listOf(
+                        Triple(
+                            it.key,
+                            false,
+                            "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
+                        )
+                    )
                 } else {
                     updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
                     listOf(Triple(it.key, true, null))
@@ -508,7 +516,7 @@ class EntityService(
                 listOf(Triple(it.key, false, "Unknown attribute type $attributeType"))
             }
         }
-        .toList()
+            .toList()
 
         // update modifiedAt in entity if at least one attribute has been added
         if (updateStatuses.isNotEmpty())
@@ -583,7 +591,12 @@ class EntityService(
         if (updatedAttributesPayload.isNotEmpty()) {
             val entityType = entity.type[0].extractShortTypeFromExpanded()
             updatedAttributesPayload.forEach {
-                val entityEvent = EntityEvent(EventType.UPDATE, entity.id, entityType, it, null)
+                val entityEvent = EntityEvent(
+                    operationType = EventType.UPDATE,
+                    entityId = entity.id,
+                    entityType = entityType,
+                    payload = it
+                )
                 applicationEventPublisher.publishEvent(entityEvent)
             }
         }
@@ -679,8 +692,9 @@ class EntityService(
                 val propEntryValueMap = propEntryValue as Map<String, List<Any>>
                 if (isAttributeOfType(propEntryValueMap, NGSILD_RELATIONSHIP_TYPE)) {
                     if (!neo4jRepository.hasRelationshipOfType(
-                        AttributeSubjectNode(subject.id),
-                        propEntry.key.toRelationshipTypeName())
+                            AttributeSubjectNode(subject.id),
+                            propEntry.key.toRelationshipTypeName()
+                        )
                     )
                         throw BadRequestDataException("Relationship ${propEntry.key.toRelationshipTypeName()} does not exist")
                     val objectId = getRelationshipObjectId(propEntryValueMap)
@@ -723,11 +737,16 @@ class EntityService(
 
         if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
             return neo4jRepository.deleteEntityProperty(
-                subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true) >= 1
+                subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true
+            ) >= 1
         else if (neo4jRepository.hasRelationshipOfType(
-                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()))
-            return neo4jRepository.deleteEntityRelationship(subjectNodeInfo = EntitySubjectNode(entityId),
-                relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true) >= 1
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
+            )
+        )
+            return neo4jRepository.deleteEntityRelationship(
+                subjectNodeInfo = EntitySubjectNode(entityId),
+                relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true
+            ) >= 1
 
         throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
     }
@@ -737,11 +756,18 @@ class EntityService(
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
         if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
-            return neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), expandedAttributeName, datasetId) >= 1
+            return neo4jRepository.deleteEntityProperty(
+                EntitySubjectNode(entityId),
+                expandedAttributeName,
+                datasetId
+            ) >= 1
         else if (neo4jRepository.hasRelationshipInstance(
-                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId))
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
+            )
+        )
             return neo4jRepository.deleteEntityRelationship(
-                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId) >= 1
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
+            ) >= 1
 
         if (datasetId != null)
             throw ResourceNotFoundException("Instance with datasetId $datasetId of attribute $attributeName not found in entity $entityId")
@@ -779,11 +805,10 @@ class EntityService(
                 propertyFragment.second, entity.contexts
             )
             val entityEvent = EntityEvent(
-                EventType.UPDATE,
-                entity.id,
-                entity.type[0].extractShortTypeFromExpanded(),
-                propertyPayload,
-                null
+                operationType = EventType.UPDATE,
+                entityId = entity.id,
+                entityType = entity.type[0].extractShortTypeFromExpanded(),
+                payload = propertyPayload
             )
             applicationEventPublisher.publishEvent(entityEvent)
         }

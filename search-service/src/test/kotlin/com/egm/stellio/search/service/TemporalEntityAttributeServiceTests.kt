@@ -9,7 +9,7 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -245,8 +245,22 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = [ true, false ])
-    fun `it should inject temporal numeric values into an entity with two instances property`(withTemporalValues: Boolean) {
+    @MethodSource("com.egm.stellio.shared.ParameterizedTests.Companion.rawResultsProvider")
+    fun `it should inject temporal numeric values in default format into an entity with two instances property`(rawResults: List<List<Map<String, Any?>>>, expectation: String) {
+        val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.rawJsonLdProperties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(expectation.trim(), finalEntity)
+    }
+
+    @Test
+    fun `it should inject temporal numeric values in temporalValues format into an entity with two instances property`() {
         val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
         val rawResults = listOf(
             listOf(
@@ -283,17 +297,13 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
         )
 
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
             enrichedEntity.rawJsonLdProperties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-
-        if (withTemporalValues)
-            assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming_temporal_values.jsonld").trim(), finalEntity)
-        else
-            assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming.jsonld").trim(), finalEntity)
+        assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming_temporal_values.jsonld").trim(), finalEntity)
     }
 }

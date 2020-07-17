@@ -44,8 +44,8 @@ class TemporalEntityAttributeService(
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
         databaseClient.execute(
             """
-            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload)
-            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload)
+            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload, dataset_id)
+            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload, :dataset_id)
             """
         )
             .bind("id", temporalEntityAttribute.id)
@@ -56,6 +56,7 @@ class TemporalEntityAttributeService(
             .bind(
                 "entity_payload",
                 temporalEntityAttribute.entityPayload?.let { Json.of(temporalEntityAttribute.entityPayload) })
+            .bind("dataset_id", temporalEntityAttribute.datasetId)
             .fetch()
             .rowsUpdated()
 

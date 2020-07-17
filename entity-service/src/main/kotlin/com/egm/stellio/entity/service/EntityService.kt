@@ -45,6 +45,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactAndStringifyFragmen
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandRelationshipType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayload
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
@@ -53,6 +54,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsS
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.isValidAttribute
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
@@ -429,11 +431,10 @@ class EntityService(
         attributes: Map<String, Any>,
         disallowOverwrite: Boolean
     ): UpdateResult {
-        val updateStatuses = attributes.map {
-            val attributeValue = expandValueAsMap(it.value)
-            if (!attributeValue.containsKey("@type"))
-                throw BadRequestDataException("@type not found in $attributeValue")
-            val attributeType = attributeValue["@type"]!![0]
+        val updateStatuses = attributes.flatMap {
+            val attributeValue = expandValueAsListOfMap(it.value)
+            isValidAttribute(it.key, attributeValue)
+            val attributeType = attributeValue[0]["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
@@ -444,63 +445,66 @@ class EntityService(
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
-                        attributeValue,
-                        getRelationshipObjectId(attributeValue)
+                        attributeValue[0],
+                        getRelationshipObjectId(attributeValue[0])
                     )
-                    Triple(it.key, true, null)
+                    listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
+                    listOf(Triple(
                         it.key,
                         false,
                         "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
+                    ))
                 } else {
                     neo4jRepository.deleteEntityRelationship(entityId, relationshipTypeName.toRelationshipTypeName())
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
-                        attributeValue,
-                        getRelationshipObjectId(attributeValue)
+                        attributeValue[0],
+                        getRelationshipObjectId(attributeValue[0])
                     )
-                    Triple(it.key, true, null)
+                    listOf(Triple(it.key, true, null))
                 }
             } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                if (!neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), it.key)) {
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
-                } else if (disallowOverwrite) {
-                    logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
-                        it.key,
-                        false,
-                        "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
-                } else {
-                    neo4jRepository.deleteEntityProperty(entityId, it.key)
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                attributeValue.map { instance ->
+                    val datasetId = getPropertyValueFromMapAsUri(instance, NGSILD_DATASET_ID_PROPERTY)
+                    if (!neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), it.key, datasetId)) {
+                        createEntityProperty(entityRepository.findById(entityId).get(), it.key, instance)
+                        Triple(it.key, true, null)
+                    } else if (disallowOverwrite) {
+                        logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                        Triple(
+                            it.key,
+                            false,
+                            "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
+                        )
+                    } else {
+                        neo4jRepository.deleteEntityProperty(entityId, it.key)
+                        createEntityProperty(entityRepository.findById(entityId).get(), it.key, instance)
+                        Triple(it.key, true, null)
+                    }
                 }
             } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                 if (!neo4jRepository.hasGeoPropertyOfName(
                     EntitySubjectNode(entityId),
                     it.key.extractShortTypeFromExpanded())
                 ) {
-                    createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                    createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
+                    listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
+                    listOf(Triple(
                         it.key,
                         false,
                         "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
+                    ))
                 } else {
-                    updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                    updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
+                    listOf(Triple(it.key, true, null))
                 }
             } else {
-                Triple(it.key, false, "Unknown attribute type $attributeType")
+                listOf(Triple(it.key, false, "Unknown attribute type $attributeType"))
             }
         }
         .toList()

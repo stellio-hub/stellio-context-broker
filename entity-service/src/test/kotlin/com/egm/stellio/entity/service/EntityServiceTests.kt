@@ -3,10 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.repository.RelationshipRepository
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -814,7 +811,11 @@ class EntityServiceTests {
                     it.label == "Entity"
             }, "CONNECTS_TO")
         }
-        verify { neo4jRepository.deleteEntityRelationship(eq(entityId), "CONNECTS_TO") }
+        verify { neo4jRepository.deleteEntityRelationship(
+            match {
+                it.id == entityId &&
+                    it.label == "Entity"
+            }, "CONNECTS_TO", null, false) }
         verify { entityRepository.findById(eq(entityId)) }
 
         confirmVerified()

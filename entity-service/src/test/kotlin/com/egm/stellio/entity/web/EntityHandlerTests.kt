@@ -930,7 +930,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -944,6 +944,8 @@ class EntityHandlerTests {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
+                null,
+                eq(false),
                 eq(aquacContext!!)
             )
         }
@@ -973,6 +975,8 @@ class EntityHandlerTests {
             entityService.deleteEntityAttribute(
                 any(),
                 any(),
+                any(),
+                any(),
                 any()
             )
         } throws ResourceNotFoundException("Attribute Not Found")
@@ -992,6 +996,8 @@ class EntityHandlerTests {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
+                null,
+                eq(false),
                 eq(aquacContext!!)
             )
         }
@@ -1001,7 +1007,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns false
+        every { entityService.deleteEntityAttribute(any(), any(), any(), any(), any()) } returns false
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -1019,6 +1025,8 @@ class EntityHandlerTests {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
+                null,
+                eq(false),
                 eq(aquacContext!!)
             )
         }

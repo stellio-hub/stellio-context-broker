@@ -198,7 +198,7 @@ class TemporalEntityAttributeService(
         rawResults: List<List<AttributeInstanceResult>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
-        // test
+
         val resultEntity: MutableMap<String, List<Map<String, Any?>>> = mutableMapOf()
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
         rawResults.filter {

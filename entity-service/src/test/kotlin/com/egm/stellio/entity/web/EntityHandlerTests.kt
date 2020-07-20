@@ -44,6 +44,7 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
+import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -945,6 +946,56 @@ class EntityHandlerTests {
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 null,
+                eq(false),
+                eq(aquacContext!!)
+            )
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any(), any(), any()) } returns true
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("fishNumber"),
+                null,
+                eq(true),
+                eq(aquacContext!!)
+            )
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should delete instance with the provided datasetId`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any(), any(), any()) } returns true
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("fishNumber"),
+                URI.create("urn:ngsi-ld:Dataset:fishNumber:1"),
                 eq(false),
                 eq(aquacContext!!)
             )

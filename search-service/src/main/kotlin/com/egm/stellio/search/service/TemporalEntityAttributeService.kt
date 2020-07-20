@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.RawValue
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalValue
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
@@ -32,8 +29,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
 import java.util.UUID
 
 @Service
@@ -200,18 +195,18 @@ class TemporalEntityAttributeService(
 
     fun injectTemporalValues(
         expandedEntity: ExpandedEntity,
-        rawResults: List<List<Map<String, Any?>>>,
+        rawResults: List<List<AttributeInstanceResult>>,
         withTemporalValues: Boolean
     ): ExpandedEntity {
 
         val resultEntity: MutableMap<String, List<Map<String, Any?>>> = mutableMapOf()
         val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
         rawResults.filter {
-            // filtering out empty lists or lists with an empty map of results
-            it.isNotEmpty() && it[0].isNotEmpty()
-        }.forEach { rawResult ->
+            // filtering out empty lists
+            it.isNotEmpty()
+        }.forEach { attributeInstanceResults ->
             // attribute_name is the name of the temporal property we want to update
-            val attributeName = rawResult.first()["attribute_name"]!! as String
+            val attributeName = attributeInstanceResults.first().attributeName
             // extract the temporal property from the raw entity
             // ... if it exists, which is not the case for notifications of a subscription (in this case, create an empty map)
             val propertyToEnrich: List<MutableMap<String, Any>> =
@@ -226,7 +221,7 @@ class TemporalEntityAttributeService(
             propertyToEnrich.filter { instanceToEnrich ->
                 val rawDatasetId = instanceToEnrich[NGSILD_DATASET_ID_PROPERTY] as List<Map<String, String?>>?
                 val datasetId = rawDatasetId?.get(0)?.get(NGSILD_ENTITY_ID)
-                datasetId == rawResult[0]["dataset_id"]
+                datasetId == attributeInstanceResults.first().datasetId?.toString()
             }
             .map { instanceToEnrich ->
                 if (withTemporalValues) {
@@ -238,18 +233,18 @@ class TemporalEntityAttributeService(
                     // The value is retrieved as offsetDateTime and converted to the current timezone using the system variable timezone.
                     // For this reason, a cast to Instant with UTC as ZoneOffset is needed to create a ZonedDateTime.
                     val valuesMap =
-                        rawResult.map {
-                            if (it["value"] is Double)
+                        attributeInstanceResults.map {
+                            if (it.value is Double)
                                 TemporalValue(
-                                    it["value"] as Double,
-                                    ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                    it.value as Double,
+                                    it.observedAt.toString()
                                 )
                             else
                                 RawValue(
                                     // value is not expected to be null ... if everything goes well
                                     // so let's prevent from bad surprises
-                                    it["value"] ?: "",
-                                    ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                    it.value ?: "",
+                                    it.observedAt.toString()
                                 )
                         }
                     instanceToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
@@ -257,21 +252,21 @@ class TemporalEntityAttributeService(
                     resultEntity[attributeName] = resultEntity[attributeName]?.plus(listOf(instanceToEnrich)) ?: listOf(instanceToEnrich)
                 } else {
                     val valuesMap =
-                        rawResult.map {
+                        attributeInstanceResults.map {
                             val instance = mutableMapOf(
                                 NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
                                 NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                    NGSILD_ENTITY_ID to it["instance_id"].toString()
+                                    NGSILD_ENTITY_ID to it.instanceId.toString()
                                 ),
-                                NGSILD_PROPERTY_VALUE to it["value"],
+                                NGSILD_PROPERTY_VALUE to it.value,
                                 NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                     NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
-                                    JSONLD_VALUE_KW to ZonedDateTime.parse(it["observed_at"].toString()).toInstant().atZone(ZoneOffset.UTC).toString()
+                                    JSONLD_VALUE_KW to it.observedAt.toString()
                                 )
                             )
                             // a null datasetId should not be added to the valuesMap
-                            if (it["dataset_id"] != null)
-                                instance[NGSILD_DATASET_ID_PROPERTY] = listOf(mapOf(NGSILD_ENTITY_ID to rawResult[0]["dataset_id"]))
+                            if (it.datasetId != null)
+                                instance[NGSILD_DATASET_ID_PROPERTY] = listOf(mapOf(NGSILD_ENTITY_ID to attributeInstanceResults.first().datasetId.toString()))
 
                             instance
                         }

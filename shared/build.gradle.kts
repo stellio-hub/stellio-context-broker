@@ -18,10 +18,5 @@ the<DependencyManagementExtension>().apply {
 dependencies {
     testFixturesImplementation("org.testcontainers:testcontainers:1.12.3")
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
-        // to ensure we are using mocks and spies from springmockk lib instead
-        exclude(module = "mockito-core")
-    }
     testImplementation("org.hamcrest:hamcrest:2.1")
 }

@@ -1,6 +1,8 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.TimescaleBasedTests
+import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.loadAndParseSampleData
 import com.egm.stellio.shared.util.loadSampleData
 import com.github.jsonldjava.core.JsonLdOptions
@@ -15,7 +17,8 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
-import java.time.OffsetDateTime
+import java.net.URI
+import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -101,15 +104,15 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawEntity = loadAndParseSampleData("beehive.jsonld")
         val rawResults = listOf(
             listOf(
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 550.0,
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                    value = 550.0,
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "value" to 650.0,
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                    value = 650.0,
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -129,15 +132,15 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(
             listOf(
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "value" to "urn:ngsi-ld:Beehive:1234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    value = "urn:ngsi-ld:Beehive:1234",
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "value" to "urn:ngsi-ld:Beehive:5678",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    value = "urn:ngsi-ld:Beehive:5678",
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -160,17 +163,17 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(
             listOf(
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "value" to "urn:ngsi-ld:Beehive:1234",
-                    "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    value = "urn:ngsi-ld:Beehive:1234",
+                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:1234"),
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "value" to "urn:ngsi-ld:Beehive:5678",
-                    "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    value = "urn:ngsi-ld:Beehive:5678",
+                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:4567"),
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -190,16 +193,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
         val rawResults = listOf(
             listOf(
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "instance_id" to "urn:ngsi-ld:Beehive:notification:1234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:1234"),
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                mapOf(
-                    "attribute_name" to "https://uri.etsi.org/ngsi-ld/notification",
-                    "value" to "urn:ngsi-ld:Beehive:5678",
-                    "instance_id" to "urn:ngsi-ld:Beehive:notification:4567",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
+                AttributeInstanceResult(
+                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                    value = "urn:ngsi-ld:Beehive:5678",
+                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:4567"),
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
         )
@@ -217,7 +220,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should return the entity untouched if it has no temporal history`() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
-        val rawResults = emptyList<List<Map<String, Any>>>()
+        val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
@@ -232,7 +235,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should return the entity untouched if it has an empty temporal history`() {
         val rawEntity = loadAndParseSampleData("subscription.jsonld")
-        val rawResults = listOf(listOf(emptyMap<String, Any>()))
+        val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
@@ -245,11 +248,9 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @ParameterizedTest
-    @MethodSource("com.egm.stellio.shared.ParameterizedTests.Companion.rawResultsProvider")
-    fun `it should inject temporal numeric values in default format into an entity with two instances property`(rawResults: List<List<Map<String, Any?>>>, expectation: String) {
-        val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
+    @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
+    fun `it should inject temporal numeric values into an entity with two instances property`(rawEntity: ExpandedEntity, rawResults: List<List<AttributeInstanceResult>>, withTemporalValues: Boolean, expectation: String) {
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
         val serializedEntity = JsonLdProcessor.compact(
             enrichedEntity.rawJsonLdProperties,
             mapOf("@context" to enrichedEntity.contexts),
@@ -257,53 +258,5 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(expectation.trim(), finalEntity)
-    }
-
-    @Test
-    fun `it should inject temporal numeric values in temporalValues format into an entity with two instances property`() {
-        val rawEntity = loadAndParseSampleData("beehive_multi_instance_property.jsonld")
-        val rawResults = listOf(
-            listOf(
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "instance_id" to "urn:ngsi-ld:Instance:01234",
-                    "value" to 550.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:01234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
-                ),
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "instance_id" to "urn:ngsi-ld:Instance:01235",
-                    "value" to 650.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:01234",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
-                )
-            ),
-            listOf(
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "instance_id" to "urn:ngsi-ld:Instance:45678",
-                    "value" to 487.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:45678",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:29:17.965206+02:00")
-                ),
-                mapOf(
-                    "attribute_name" to "https://ontology.eglobalmark.com/apic#incoming",
-                    "instance_id" to "urn:ngsi-ld:Instance:45679",
-                    "value" to 698.0,
-                    "dataset_id" to "urn:ngsi-ld:Dataset:45678",
-                    "observed_at" to OffsetDateTime.parse("2020-03-25T10:33:17.965206+02:00")
-                )
-            )
-        )
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/beehive_with_multi_instance_incoming_temporal_values.jsonld").trim(), finalEntity)
     }
 }

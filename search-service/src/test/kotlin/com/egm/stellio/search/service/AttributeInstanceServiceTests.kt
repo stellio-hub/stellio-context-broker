@@ -79,11 +79,11 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 it.size == 1 &&
-                    it[0]["attribute_name"] == "incoming" &&
-                    it[0]["value"] == 12.4 &&
-                    ZonedDateTime.parse(it[0]["observed_at"].toString()).toInstant()
+                    it[0].attributeName == "incoming" &&
+                    it[0].value == 12.4 &&
+                    ZonedDateTime.parse(it[0].observedAt.toString()).toInstant()
                         .atZone(ZoneOffset.UTC) == observationDateTime &&
-                    (it[0]["instance_id"] as String).startsWith("urn:ngsi-ld:Instance:")
+                    (it[0].instanceId.toString()).startsWith("urn:ngsi-ld:Instance:")
             }
             .expectComplete()
             .verify()
@@ -129,7 +129,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 it.size == 1 &&
-                    it[0]["value"] == 10.0
+                    it[0].value == 10.0
             }
             .expectComplete()
             .verify()

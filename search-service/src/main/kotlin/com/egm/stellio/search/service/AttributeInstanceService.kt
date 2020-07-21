@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
@@ -38,7 +39,9 @@ class AttributeInstanceService(
         attributeKey: String,
         attributeValues: Map<String, List<Any>>
     ): Mono<Int> {
-        val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)!!
+        val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
+            ?: throw BadRequestDataException("Value cannot be null")
+
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,

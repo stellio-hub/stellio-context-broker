@@ -1,0 +1,1 @@
+DELETE FROM attribute_instance WHERE measured_value IS NULL AND (value IS NULL OR RTRIM(value) = '');

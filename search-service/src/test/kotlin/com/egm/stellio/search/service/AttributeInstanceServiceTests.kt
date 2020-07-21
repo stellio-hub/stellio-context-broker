@@ -4,9 +4,12 @@ import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -198,6 +201,48 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             }
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
+
+        val attributeValues = mapOf(
+            NgsiLdParsingUtils.EGM_OBSERVED_BY to listOf(
+                mapOf(
+                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                )
+            ),
+            NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    NgsiLdParsingUtils.JSONLD_VALUE_KW to 550.0
+                )
+            )
+        )
+
+        val attributeInstance = attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
+
+        StepVerifier.create(attributeInstance)
+            .expectNextMatches {
+                it > 0
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should not create an AttributeInstance if it has a null value and null measuredValue`() {
+
+        val attributeValues = mapOf(
+            NgsiLdParsingUtils.EGM_OBSERVED_BY to listOf(
+                mapOf(
+                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                )
+            )
+        )
+
+        assertThrows<BadRequestDataException>("Value cannot be null") {
+            attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
+        }
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {

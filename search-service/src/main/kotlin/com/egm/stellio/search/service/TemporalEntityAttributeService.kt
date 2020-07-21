@@ -243,7 +243,7 @@ class TemporalEntityAttributeService(
                                 RawValue(
                                     // value is not expected to be null ... if everything goes well
                                     // so let's prevent from bad surprises
-                                    it.value ?: "",
+                                    it.value,
                                     it.observedAt.toString()
                                 )
                         }

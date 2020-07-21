@@ -277,7 +277,7 @@ class TemporalEntityAttributeService(
         }
 
         // inject temporal values in the entity to be returned (replace entity properties by their temporal evolution)
-        resultEntity.map {
+        resultEntity.forEach {
             entity[it.key] = it.value
         }
 

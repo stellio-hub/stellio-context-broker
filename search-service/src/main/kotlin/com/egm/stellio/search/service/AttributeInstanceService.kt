@@ -95,7 +95,8 @@ class AttributeInstanceService(
             .collectList()
     }
 
-    private fun rowToAttributeInstanceResult(row: Map<String, Any>, temporalEntityAttribute: TemporalEntityAttribute): AttributeInstanceResult {
+    private fun rowToAttributeInstanceResult(row: Map<String, Any>, temporalEntityAttribute: TemporalEntityAttribute):
+        AttributeInstanceResult {
         return AttributeInstanceResult(
             attributeName = temporalEntityAttribute.attributeName,
             instanceId = row["instance_id"]?.let { URI.create(it as String) },

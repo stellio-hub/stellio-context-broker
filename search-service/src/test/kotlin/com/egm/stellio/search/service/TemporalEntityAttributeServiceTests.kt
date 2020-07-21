@@ -249,7 +249,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
-    fun `it should inject temporal numeric values into an entity with two instances property`(rawEntity: ExpandedEntity, rawResults: List<List<AttributeInstanceResult>>, withTemporalValues: Boolean, expectation: String) {
+    fun `it should inject temporal numeric values into an entity with two instances property`
+        (rawEntity: ExpandedEntity, rawResults: List<List<AttributeInstanceResult>>, withTemporalValues: Boolean, expectation: String) {
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
         val serializedEntity = JsonLdProcessor.compact(
             enrichedEntity.rawJsonLdProperties,

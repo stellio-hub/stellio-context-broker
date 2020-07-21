@@ -17,7 +17,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMapOfAny
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
@@ -211,8 +211,8 @@ class TemporalEntityAttributeService(
             // ... if it exists, which is not the case for notifications of a subscription (in this case, create an empty map)
             val propertyToEnrich: List<MutableMap<String, Any>> =
                 if (entity[attributeName] != null)
-                    expandValueAsListOfMapOfAny(entity[attributeName]!!).map {
-                        it.toMutableMap()
+                    expandValueAsListOfMap(entity[attributeName]!!).map {
+                        it.toMutableMap() as MutableMap<String, Any>
                     }
                 else
                     listOf(mutableMapOf())

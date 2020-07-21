@@ -2,9 +2,9 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.util.loadAndParseSampleData
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
@@ -137,7 +137,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should inject temporal numeric values in temporalValues format into an entity`() {
-        val rawEntity = loadAndParseSampleData("beehive.jsonld")
+        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
         val rawResults = listOf(
             listOf(
                 AttributeInstanceResult(
@@ -155,7 +155,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
@@ -165,7 +165,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should inject temporal string values in temporalValues format into an entity`() {
-        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
         val rawResults = listOf(
             listOf(
                 AttributeInstanceResult(
@@ -183,7 +183,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
@@ -196,7 +196,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should inject temporal string values in default format into an entity`() {
-        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
         val rawResults = listOf(
             listOf(
                 AttributeInstanceResult(
@@ -216,7 +216,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
@@ -226,12 +226,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should return the entity untouched if it has no temporal history`() {
-        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
         val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
@@ -241,12 +241,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should return the entity untouched if it has an empty temporal history`() {
-        val rawEntity = loadAndParseSampleData("subscription.jsonld")
+        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
         val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )
@@ -257,10 +257,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
     fun `it should inject temporal numeric values into an entity with two instances property`
-        (rawEntity: ExpandedEntity, rawResults: List<List<AttributeInstanceResult>>, withTemporalValues: Boolean, expectation: String) {
+        (rawEntity: JsonLdEntity, rawResults: List<List<AttributeInstanceResult>>, withTemporalValues: Boolean, expectation: String) {
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
         val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.rawJsonLdProperties,
+            enrichedEntity.properties,
             mapOf("@context" to enrichedEntity.contexts),
             JsonLdOptions()
         )

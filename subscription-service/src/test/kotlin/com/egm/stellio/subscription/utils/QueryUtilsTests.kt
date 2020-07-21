@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.utils
 
-import junit.framework.TestCase.assertEquals
+import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -13,9 +14,9 @@ class QueryUtilsTests {
     fun `it should create a disjoints geoquery statement`() {
 
         val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "disjoint").geoQ
-        val targetGeometry = mapOf("geometry" to "Point", "coordinates" to "[24.30623, 60.07966]")
+        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(24.30623, 60.07966)
 
-        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
+        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 
         assertEquals(
             queryStatement,
@@ -28,14 +29,14 @@ class QueryUtilsTests {
     fun `it should create a maxDistance geoquery statement`() {
 
         val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "near;maxDistance==2000").geoQ
-        val targetGeometry = mapOf("geometry" to "Point", "coordinates" to "[60.30623, 30.07966]")
+        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.07966, 24.30623)
 
-        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
+        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 
         assertEquals(
             queryStatement,
             "SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'), " +
-                "ST_GeomFromText('Point(60.30623 30.07966)')) <= 2000 as geoquery_result"
+                "ST_GeomFromText('Point(60.07966 24.30623)')) <= 2000 as geoquery_result"
         )
     }
 
@@ -43,9 +44,9 @@ class QueryUtilsTests {
     fun `it should create a minDistance geoquery statement`() {
 
         val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "near;minDistance==15").geoQ
-        val targetGeometry = mapOf("geometry" to "Point", "coordinates" to "[60.30623, 30.07966]")
+        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.30623, 30.07966)
 
-        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, targetGeometry)
+        val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 
         assertEquals(
             queryStatement,

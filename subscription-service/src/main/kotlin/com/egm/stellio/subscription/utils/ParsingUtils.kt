@@ -1,7 +1,8 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
@@ -33,13 +34,13 @@ object ParsingUtils {
             )
         )
 
-        return Pair(parsedSubscription, NgsiLdParsingUtils.getContextOrThrowError(input))
+        return Pair(parsedSubscription, getContextOrThrowError(input))
     }
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
         val mapper = jacksonObjectMapper()
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        entityInfo.type = NgsiLdParsingUtils.expandJsonLdKey(entityInfo.type, contexts!!)!!
+        entityInfo.type = JsonLdUtils.expandJsonLdKey(entityInfo.type, contexts!!)!!
         return entityInfo
     }
 

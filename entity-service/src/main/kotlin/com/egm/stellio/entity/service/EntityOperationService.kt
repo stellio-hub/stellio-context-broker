@@ -8,7 +8,7 @@ import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import org.jgrapht.Graph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
@@ -31,7 +31,7 @@ class EntityOperationService(
     /**
      * Splits [entities] by their existence in the DB.
      */
-    fun splitEntitiesByExistence(entities: List<ExpandedEntity>): Pair<List<ExpandedEntity>, List<ExpandedEntity>> {
+    fun splitEntitiesByExistence(entities: List<NgsiLdEntity>): Pair<List<NgsiLdEntity>, List<NgsiLdEntity>> {
         val existingEntitiesIds =
             neo4jRepository.filterExistingEntitiesIds(entities.map { it.id })
         return entities.partition {
@@ -44,7 +44,7 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult]
      */
-    fun create(entities: List<ExpandedEntity>): BatchOperationResult {
+    fun create(entities: List<NgsiLdEntity>): BatchOperationResult {
         val (graph, invalidRelationsErrors) = entitiesGraphBuilder.build(entities)
 
         val (naiveBatchResult, entitiesWithCircularDependencies) = createEntitiesWithoutCircularDependencies(graph)
@@ -65,7 +65,7 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of replaced ids and list of errors (either not replaced or
      * linked to invalid entity).
      */
-    fun replace(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+    fun replace(entities: List<NgsiLdEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
         return processEntities(entities, createBatchResult, ::replaceEntity)
     }
 
@@ -76,14 +76,14 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of updated ids and list of errors (either not totally updated or
      * linked to invalid entity).
      */
-    fun update(entities: List<ExpandedEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
+    fun update(entities: List<NgsiLdEntity>, createBatchResult: BatchOperationResult): BatchOperationResult {
         return processEntities(entities, createBatchResult, ::updateEntity)
     }
 
     private fun processEntities(
-        entities: List<ExpandedEntity>,
+        entities: List<NgsiLdEntity>,
         createBatchResult: BatchOperationResult,
-        processor: (ExpandedEntity) -> Either<BatchEntityError, String>
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, String>
     ): BatchOperationResult {
         val existingEntitiesIds = createBatchResult.success.plus(entities.map { it.id })
         val nonExistingEntitiesIds = createBatchResult.errors.map { it.entityId }
@@ -106,8 +106,8 @@ class EntityOperationService(
     }
 
     private fun processEntity(
-        entity: ExpandedEntity,
-        processor: (ExpandedEntity) -> Either<BatchEntityError, String>,
+        entity: NgsiLdEntity,
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, String>,
         existingEntitiesIds: List<String>,
         nonExistingEntitiesIds: List<String>
     ): Either<BatchEntityError, String> {
@@ -138,7 +138,7 @@ class EntityOperationService(
      */
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
-    private fun replaceEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
+    private fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, String> {
         neo4jRepository.deleteEntityAttributes(entity.id)
         val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
         if (notUpdated.isEmpty()) {
@@ -148,7 +148,7 @@ class EntityOperationService(
         }
     }
 
-    private fun updateEntity(entity: ExpandedEntity): Either<BatchEntityError, String> {
+    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, String> {
         val (_, notUpdated) = entityService.appendEntityAttributes(
             entity.id,
             entity.attributes,
@@ -181,9 +181,9 @@ class EntityOperationService(
         return invalidEntityId
     }
 
-    private fun createEntitiesWithoutCircularDependencies(graph: Graph<ExpandedEntity, DefaultEdge>): Pair<BatchOperationResult, Set<ExpandedEntity>> {
+    private fun createEntitiesWithoutCircularDependencies(graph: Graph<NgsiLdEntity, DefaultEdge>): Pair<BatchOperationResult, Set<NgsiLdEntity>> {
         val batchOperationResult = BatchOperationResult(arrayListOf(), arrayListOf())
-        val temporaryGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        val temporaryGraph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         Graphs.addGraph(temporaryGraph, graph)
 
         /**
@@ -223,7 +223,7 @@ class EntityOperationService(
      * first create a "temp" entity with almost no attributes
      * then create the relationships on these attributes
      */
-    private fun createEntitiesWithCircularDependencies(entities: List<ExpandedEntity>): BatchOperationResult {
+    private fun createEntitiesWithCircularDependencies(entities: List<NgsiLdEntity>): BatchOperationResult {
         entities.forEach { entity ->
             createTempEntityInBatch(entity.id, entity.type, entity.contexts)
         }

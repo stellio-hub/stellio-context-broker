@@ -1,7 +1,8 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -86,7 +87,7 @@ class NotificationServiceTests {
             } 
         """.trimIndent()
 
-    private val parsedEntity = parseEntity(rawEntity)
+    private val parsedEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
 
     @BeforeAll
     fun beforeAll() {
@@ -262,7 +263,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(
+            subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -300,7 +302,7 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -334,7 +336,7 @@ class NotificationServiceTests {
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, listOf(parsedEntity)))
+        StepVerifier.create(notificationService.callSubscriber(subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&

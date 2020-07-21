@@ -3,7 +3,7 @@ package com.egm.stellio.entity.util
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockkClass
@@ -26,10 +26,10 @@ class EntitiesGraphBuilderTest {
 
     @Test
     fun `it should create graph based on given entities`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf()
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
@@ -41,10 +41,10 @@ class EntitiesGraphBuilderTest {
 
     @Test
     fun `it should create graph based on given entities with relationships`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf("2")
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("1")
 
@@ -56,10 +56,10 @@ class EntitiesGraphBuilderTest {
 
     @Test
     fun `it should create graph based on given entities with relationships to entities in DB`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf("4")
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
@@ -74,10 +74,10 @@ class EntitiesGraphBuilderTest {
 
     @Test
     fun `it should create graph based on given entities with errors`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf()
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } throws BadRequestDataException("Invalid entity")
 
@@ -89,13 +89,13 @@ class EntitiesGraphBuilderTest {
 
     @Test
     fun `it should not create entities for which child entity has an invalid relationship`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf("2")
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
-        val thirdEntity = mockkClass(ExpandedEntity::class)
+        val thirdEntity = mockkClass(NgsiLdEntity::class)
         every { thirdEntity.id } returns "3"
         every { thirdEntity.getLinkedEntitiesIds() } throws BadRequestDataException("Target entity 4 does not exist")
 

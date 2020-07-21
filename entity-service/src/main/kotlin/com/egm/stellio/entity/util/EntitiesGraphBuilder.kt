@@ -3,7 +3,7 @@ package com.egm.stellio.entity.util
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import org.jgrapht.Graph
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
@@ -23,13 +23,13 @@ class EntitiesGraphBuilder(
      * @return a graph containing only entities linked to entities in the input or in the DB and a list of errors
      * for the entities that have not been created
      */
-    fun build(entities: List<ExpandedEntity>): Pair<Graph<ExpandedEntity, DefaultEdge>, List<BatchEntityError>> {
+    fun build(entities: List<NgsiLdEntity>): Pair<Graph<NgsiLdEntity, DefaultEdge>, List<BatchEntityError>> {
         val left = entities.toMutableList()
-        val graph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        val graph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         val errors = mutableListOf<BatchEntityError>()
 
         @Throws(BadRequestDataException::class)
-        fun iterateOverRelationships(entity: ExpandedEntity) {
+        fun iterateOverRelationships(entity: NgsiLdEntity) {
             if (!left.remove(entity)) {
                 return
             }
@@ -68,7 +68,7 @@ class EntitiesGraphBuilder(
         return Pair(graph, errors)
     }
 
-    private fun getValidLinkedEntities(entity: ExpandedEntity, entities: List<ExpandedEntity>): List<ExpandedEntity> {
+    private fun getValidLinkedEntities(entity: NgsiLdEntity, entities: List<NgsiLdEntity>): List<NgsiLdEntity> {
         val linkedEntitiesIds = entity.getLinkedEntitiesIds()
         val nonExistingLinkedEntitiesIds =
             linkedEntitiesIds.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))

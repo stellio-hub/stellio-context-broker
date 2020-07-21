@@ -18,5 +18,6 @@ the<DependencyManagementExtension>().apply {
 dependencies {
     testFixturesImplementation("org.testcontainers:testcontainers:1.12.3")
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    testFixturesImplementation("org.springframework:spring-core")
     testImplementation("org.hamcrest:hamcrest:2.1")
 }

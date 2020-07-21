@@ -2,10 +2,9 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.context.event.EventListener
@@ -20,7 +19,7 @@ class RepositoryEventsListener(
     private val resolver: BinderAwareChannelResolver
 ) {
 
-    private val logger = LoggerFactory.getLogger(RepositoryEventsListener::class.java)
+    private val logger = LoggerFactory.getLogger(javaClass)
     private val mapper =
         jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
@@ -28,29 +27,26 @@ class RepositoryEventsListener(
     @Async
     @EventListener
     fun handleRepositoryEvent(entityEvent: EntityEvent) {
-        val channelName = "cim.entity.${entityEvent.entityType}"
 
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
             EventType.CREATE -> sendCreateMessage(
-                channelName,
+                channelName(entityEvent.entityType!!),
                 entityEvent.entityId,
-                entityEvent.entityType,
+                entityEvent.entityType!!,
                 entityEvent.payload!!
             )
             EventType.UPDATE -> sendUpdateMessage(
-                channelName,
                 entityEvent.entityId,
-                entityEvent.entityType,
                 entityEvent.payload!!
             )
             else -> false
         }
 
         if (result)
-            logger.debug("Entity ${entityEvent.entityId} sent to $channelName")
+            logger.debug("Entity ${entityEvent.entityId} successfully sent")
         else
-            logger.warn("Unable to send entity ${entityEvent.entityId} to $channelName")
+            logger.warn("Unable to send entity ${entityEvent.entityId}")
     }
 
     private fun sendCreateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
@@ -70,17 +66,18 @@ class RepositoryEventsListener(
             )
     }
 
-    private fun sendUpdateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
-        val entity = getEntityById(entityId)
+    private fun sendUpdateMessage(entityId: String, payload: String): Boolean {
+        val jsonLdEntity = entityService.getFullEntityById(entityId)
+        val entityType = jsonLdEntity.type
         val data = mapOf(
             "operationType" to EventType.UPDATE.name,
             "entityId" to entityId,
             "entityType" to entityType,
             "payload" to payload,
-            "updatedEntity" to entity
+            "updatedEntity" to compactAndSerialize(jsonLdEntity)
         )
 
-        return resolver.resolveDestination(channelName)
+        return resolver.resolveDestination(channelName(entityType))
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(data),
@@ -89,14 +86,6 @@ class RepositoryEventsListener(
             )
     }
 
-    private fun getEntityById(entityId: String): String {
-        val entity = entityService.getFullEntityById(entityId)
-        return mapper.writeValueAsString(
-            JsonLdProcessor.compact(
-                entity.rawJsonLdProperties,
-                mapOf("@context" to entity.contexts),
-                JsonLdOptions()
-            )
-        )
-    }
+    private fun channelName(entityType: String) =
+        "cim.entity.$entityType"
 }

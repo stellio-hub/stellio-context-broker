@@ -2,11 +2,12 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getLocationFromEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
@@ -27,32 +28,32 @@ class NotificationService(
 
     fun notifyMatchingSubscribers(
         rawEntity: String,
-        expandedEntity: ExpandedEntity,
+        ngsiLdEntity: NgsiLdEntity,
         updatedAttributes: Set<String>
     ): Mono<List<Triple<Subscription, Notification, Boolean>>> {
-        val id = expandedEntity.id
-        val type = expandedEntity.type
+        val id = ngsiLdEntity.id
+        val type = ngsiLdEntity.type
         return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
             .filter {
                 subscriptionService.isMatchingQuery(it.q, rawEntity)
             }
             .filterWhen {
-                subscriptionService.isMatchingGeoQuery(it.id, getLocationFromEntity(expandedEntity))
+                subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
             }
             .flatMap {
-                callSubscriber(it, listOf(expandedEntity))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity))
             }
             .collectList()
     }
 
     fun callSubscriber(
         subscription: Subscription,
-        entities: List<ExpandedEntity>
+        entityId: String,
+        entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
-        val notification = Notification(subscriptionId = subscription.id, data = compactEntities(entities))
+        val notification = Notification(subscriptionId = subscription.id, data = compactEntities(listOf(entity)))
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
-            val entityId = entities[0].id
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {

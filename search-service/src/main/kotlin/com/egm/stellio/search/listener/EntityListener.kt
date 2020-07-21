@@ -6,9 +6,9 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -43,7 +43,7 @@ class EntityListener(
                 //  - existence of temporal entity attribute
                 //  - needs optimization (lot of JSON-LD parsing, ...)
                 val rawParsedData = jacksonObjectMapper().readTree(entityEvent.payload!!)
-                val rawEntity = parseEntity(entityEvent.updatedEntity!!)
+                val rawEntity = expandJsonLdEntity(entityEvent.updatedEntity!!)
                 val attributeName = rawParsedData.fieldNames().next()
                 val attributeValuesNode = rawParsedData[attributeName]
 

@@ -4,23 +4,21 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_INSTANCE_ID_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUES
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMap
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_INSTANCE_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -79,17 +77,17 @@ class TemporalEntityAttributeService(
 
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
-        val entity = NgsiLdParsingUtils.parseEntity(payload)
+        val entity = JsonLdUtils.expandJsonLdEntity(payload).toNgsiLdEntity()
         logger.debug("Analyzing create event for entity ${entity.id}")
 
         val temporalProperties = entity.properties
             .filter {
                 // for now, let's say that if the 1st instance is temporal, all instances are temporal
                 // let's also consider that a temporal property is one having an observedAt property
-                it.value[0].containsKey(NGSILD_OBSERVED_AT_PROPERTY)
+                it.instances[0].isTemporalAttribute()
             }.flatMapTo(arrayListOf(), {
-                it.value.map { instance ->
-                    Pair(it.key, instance)
+                it.instances.map { instance ->
+                    Pair(it.name, instance)
                 }
             })
 
@@ -99,10 +97,8 @@ class TemporalEntityAttributeService(
 
         return Flux.fromIterable(temporalProperties.asIterable())
             .map {
-                val expandedValues = it.second
-                val attributeValue = getPropertyValueFromMap(expandedValues, NGSILD_PROPERTY_VALUE)!!
                 val attributeValueType =
-                    if (isAttributeOfMeasureType(attributeValue))
+                    if (isAttributeOfMeasureType(it.second.value))
                         TemporalEntityAttribute.AttributeValueType.MEASURE
                     else
                         TemporalEntityAttribute.AttributeValueType.ANY
@@ -111,16 +107,15 @@ class TemporalEntityAttributeService(
                     type = entity.type,
                     attributeName = it.first,
                     attributeValueType = attributeValueType,
-                    datasetId = getPropertyValueFromMapAsUri(expandedValues, NGSILD_DATASET_ID_PROPERTY),
+                    datasetId = it.second.datasetId,
                     entityPayload = payload
                 )
 
-                val observedAt = getPropertyValueFromMapAsDateTime(expandedValues, NGSILD_OBSERVED_AT_PROPERTY)!!
                 val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
-                    observedAt = observedAt,
-                    measuredValue = valueToDoubleOrNull(attributeValue),
-                    value = valueToStringOrNull(attributeValue)
+                    observedAt = it.second.observedAt!!,
+                    measuredValue = valueToDoubleOrNull(it.second.value),
+                    value = valueToStringOrNull(it.second.value)
                 )
 
                 Pair(temporalEntityAttribute, attributeInstance)
@@ -219,18 +214,15 @@ class TemporalEntityAttributeService(
         row.get("id", UUID::class.java)!!
     }
 
-    private var rowToCount: ((Row) -> Int) = { row ->
-        row.get("count", Integer::class.java)!!.toInt()
-    }
-
     fun injectTemporalValues(
-        expandedEntity: ExpandedEntity,
+        jsonLdEntity: JsonLdEntity,
         rawResults: List<List<AttributeInstanceResult>>,
         withTemporalValues: Boolean
-    ): ExpandedEntity {
+    ): JsonLdEntity {
 
         val resultEntity: MutableMap<String, List<Map<String, Any?>>> = mutableMapOf()
-        val entity = expandedEntity.rawJsonLdProperties.toMutableMap()
+        val entity = jsonLdEntity.properties.toMutableMap()
+
         rawResults.filter {
             // filtering out empty lists
             it.isNotEmpty()
@@ -250,12 +242,12 @@ class TemporalEntityAttributeService(
             // get the instance that matches the datasetId of the rawResult
             propertyToEnrich.filter { instanceToEnrich ->
                 val rawDatasetId = instanceToEnrich[NGSILD_DATASET_ID_PROPERTY] as List<Map<String, String?>>?
-                val datasetId = rawDatasetId?.get(0)?.get(NGSILD_ENTITY_ID)
+                val datasetId = rawDatasetId?.get(0)?.get(JSONLD_ID)
                 datasetId == attributeInstanceResults.first().datasetId?.toString()
             }
             .map { instanceToEnrich ->
                 if (withTemporalValues) {
-                    instanceToEnrich.putIfAbsent(NGSILD_ENTITY_TYPE, NGSILD_PROPERTY_TYPE.uri)
+                    instanceToEnrich.putIfAbsent(JSONLD_TYPE, NGSILD_PROPERTY_TYPE.uri)
                     // remove the existing value as we will inject our list of results in the property
                     instanceToEnrich.remove(NGSILD_PROPERTY_VALUE)
 
@@ -282,19 +274,19 @@ class TemporalEntityAttributeService(
                     val valuesMap =
                         attributeInstanceResults.map {
                             val instance = mutableMapOf(
-                                NGSILD_ENTITY_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                                JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
                                 NGSILD_INSTANCE_ID_PROPERTY to mapOf(
-                                    NGSILD_ENTITY_ID to it.instanceId.toString()
+                                    JSONLD_ID to it.instanceId.toString()
                                 ),
                                 NGSILD_PROPERTY_VALUE to it.value,
                                 NGSILD_OBSERVED_AT_PROPERTY to mapOf(
-                                    NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
                                     JSONLD_VALUE_KW to it.observedAt.toString()
                                 )
                             )
                             // a null datasetId should not be added to the valuesMap
                             if (it.datasetId != null)
-                                instance[NGSILD_DATASET_ID_PROPERTY] = listOf(mapOf(NGSILD_ENTITY_ID to attributeInstanceResults.first().datasetId.toString()))
+                                instance[NGSILD_DATASET_ID_PROPERTY] = listOf(mapOf(JSONLD_ID to attributeInstanceResults.first().datasetId.toString()))
 
                             instance
                         }
@@ -309,6 +301,6 @@ class TemporalEntityAttributeService(
             entity[it.key] = it.value
         }
 
-        return ExpandedEntity(entity, expandedEntity.contexts)
+        return JsonLdEntity(entity, jsonLdEntity.contexts)
     }
 }

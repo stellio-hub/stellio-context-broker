@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
@@ -23,17 +22,10 @@ class SubscriptionListenerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean
-    private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
-
     @Test
     fun `it should parse and create subscription entity`() {
-        val subscription = loadSampleData("subscriptionEvents/subscription_event.jsonld")
-        val parsedSubscription = mapOf(
-            "id" to "urn:ngsi-ld:Subscription:04",
-            "type" to "Subscription",
-            "q" to "foodQuantity<150;foodName=='dietary fibres'"
-        )
+        val subscription =
+            loadSampleData("subscriptionEvents/subscription_event.jsonld")
 
         every { entityService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
@@ -43,7 +35,7 @@ class SubscriptionListenerTests {
             entityService.createSubscriptionEntity(
                 "urn:ngsi-ld:Subscription:04",
                 "Subscription",
-                parsedSubscription.minus("id").minus("type")
+                mapOf("q" to "foodQuantity<150;foodName=='dietary fibres'")
             )
         }
         confirmVerified(entityService)
@@ -51,13 +43,8 @@ class SubscriptionListenerTests {
 
     @Test
     fun `it should parse and create notification entity`() {
-        val notification = loadSampleData("subscriptionEvents/notification_event.jsonld")
-        val parsedNotification = mapOf(
-            "id" to "urn:ngsi-ld:Notification:1234",
-            "type" to "Notification",
-            "notifiedAt" to "2020-03-10T00:00:00Z",
-            "subscriptionId" to "urn:ngsi-ld:Subscription:1234"
-        )
+        val notification =
+            loadSampleData("subscriptionEvents/notification_event.jsonld")
 
         every { entityService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 
@@ -65,8 +52,10 @@ class SubscriptionListenerTests {
 
         verify {
             entityService.createNotificationEntity(
-                "urn:ngsi-ld:Notification:1234", "Notification", "urn:ngsi-ld:Subscription:1234",
-                parsedNotification.minus("id").minus("type").minus("subscriptionId")
+                "urn:ngsi-ld:Notification:1234",
+                "Notification",
+                "urn:ngsi-ld:Subscription:1234",
+                mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
             )
         }
         confirmVerified(entityService)

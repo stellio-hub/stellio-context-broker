@@ -24,7 +24,7 @@ class SubscriptionsEventsListener(
                 channelName,
                 EventType.CREATE,
                 subscriptionEvent.entityId,
-                subscriptionEvent.entityType,
+                subscriptionEvent.entityType!!,
                 subscriptionEvent.payload,
                 null
             )
@@ -32,7 +32,7 @@ class SubscriptionsEventsListener(
                 channelName,
                 EventType.UPDATE,
                 subscriptionEvent.entityId,
-                subscriptionEvent.entityType,
+                subscriptionEvent.entityType!!,
                 subscriptionEvent.payload,
                 subscriptionEvent.updatedEntity
             )
@@ -40,7 +40,7 @@ class SubscriptionsEventsListener(
                 channelName,
                 EventType.DELETE,
                 subscriptionEvent.entityId,
-                subscriptionEvent.entityType,
+                subscriptionEvent.entityType!!,
                 null,
                 null
             )

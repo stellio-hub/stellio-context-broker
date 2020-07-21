@@ -4,9 +4,9 @@ import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_IS_CONTAINED_IN
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull

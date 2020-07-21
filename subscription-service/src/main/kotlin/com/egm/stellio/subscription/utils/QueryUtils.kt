@@ -1,8 +1,10 @@
 package com.egm.stellio.subscription.utils
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_POINT_PROPERTY
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_POINT_PROPERTY
 import com.egm.stellio.subscription.model.GeoQuery
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -42,14 +44,14 @@ object QueryUtils {
                 .replace(")", "")
 
             val jsonPathAttribute = if ((attribute.isCompoundAttribute())) {
-                when (NgsiLdParsingUtils.getAttributeType(attribute, parsedEntity, "[").toString()) {
+                when (getAttributeType(attribute, parsedEntity, "[").toString()) {
                     PROPERTY_TYPE -> "@.".plus(attribute).plus("[value]").addQuotesToBrackets()
                     RELATIONSHIP_TYPE -> "@.".plus(attribute).plus("[object]").addQuotesToBrackets()
                     else
                     -> "@.".plus(attribute).addQuotesToBrackets()
                 }
             } else {
-                when (NgsiLdParsingUtils.getAttributeType(attribute, parsedEntity, ".").toString()) {
+                when (getAttributeType(attribute, parsedEntity, ".").toString()) {
                     PROPERTY_TYPE -> "@.".plus(attribute).plus(".value")
                     RELATIONSHIP_TYPE -> "@.".plus(attribute).plus(".object")
                     else
@@ -71,10 +73,11 @@ object QueryUtils {
     fun String.addQuotesToBrackets(): String =
         this.replace("[", "['").replace("]", "']")
 
-    fun createGeoQueryStatement(geoQuery: GeoQuery?, targetGeometry: Map<String, Any>): String {
+    fun createGeoQueryStatement(geoQuery: GeoQuery?, location: NgsiLdGeoProperty): String {
+        val locationInstance = location.instances[0]
         val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
         val targetGeometryStatement =
-            createSqlGeometry(targetGeometry.get("geometry").toString(), targetGeometry.get("coordinates").toString())
+            createSqlGeometry(locationInstance.geoPropertyType, locationInstance.coordinates.toString())
         val georelParams = extractGeorelParams(geoQuery.georel)
 
         if (georelParams.first == DISTANCE_QUERY_CLAUSE)
@@ -124,5 +127,23 @@ object QueryUtils {
             return Triple(DISTANCE_QUERY_CLAUSE, ">=", comparaisonParams[1])
         }
         return Triple(georel, null, null)
+    }
+
+    fun getAttributeType(attribute: String, entity: ObjectNode, separator: String): JsonNode? {
+        var node: JsonNode = entity
+        val attributePath = if (separator == "[")
+            attribute.replace("]", "").split(separator)
+        else
+            attribute.split(separator)
+
+        attributePath.forEach {
+            try {
+                node = node.get(it)
+            } catch (e: Exception) {
+                throw BadRequestDataException(e.message ?: "Unresolved value $it")
+            }
+        }
+
+        return node.get("type")
     }
 }

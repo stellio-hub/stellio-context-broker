@@ -54,4 +54,14 @@ class ApiUtilsTests {
             .expectStatus().isEqualTo(HttpStatus.LENGTH_REQUIRED)
             .expectBody().isEmpty
     }
+
+    @Test
+    fun `it should support Mime-type with parameters`() {
+        webClient.post()
+            .uri("/router/mockkedroute")
+            .header(HttpHeaders.CONTENT_TYPE, "application/ld+json;charset=UTF-8")
+            .bodyValue("Some body")
+            .exchange()
+            .expectStatus().isCreated
+    }
 }

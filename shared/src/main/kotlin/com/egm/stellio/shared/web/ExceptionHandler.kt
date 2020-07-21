@@ -11,7 +11,7 @@ import com.egm.stellio.shared.model.JsonLdErrorResponse
 import com.egm.stellio.shared.model.JsonParseErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.ResourceNotFoundResponse
-import com.egm.stellio.shared.util.ApiUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
 import org.springframework.http.HttpStatus
@@ -59,5 +59,5 @@ class ExceptionHandler {
     private fun generateErrorResponse(status: HttpStatus, exception: Any) =
         ResponseEntity.status(status)
             .contentType(MediaType.APPLICATION_JSON)
-            .body(ApiUtils.serializeObject(exception))
+            .body(serializeObject(exception))
 }

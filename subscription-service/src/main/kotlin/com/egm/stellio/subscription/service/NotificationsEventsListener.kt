@@ -24,7 +24,7 @@ class NotificationsEventsListener(
                 channelName,
                 EventType.CREATE,
                 notificationEvent.entityId,
-                notificationEvent.entityType,
+                notificationEvent.entityType!!,
                 notificationEvent.payload,
                 null
             )

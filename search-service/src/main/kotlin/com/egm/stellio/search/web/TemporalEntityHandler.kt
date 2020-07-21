@@ -7,14 +7,13 @@ import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.OptionsParamValue
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
@@ -141,7 +140,7 @@ class TemporalEntityHandler(
     private fun loadEntityPayload(
         temporalEntityAttribute: TemporalEntityAttribute,
         bearerToken: String
-    ): Mono<ExpandedEntity> =
+    ): Mono<JsonLdEntity> =
         when {
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
@@ -153,13 +152,13 @@ class TemporalEntityHandler(
                         ).subscribe()
                     }
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(
-                parseEntity(
+                expandJsonLdEntity(
                     temporalEntityAttribute.entityPayload
                 )
             )
             else -> {
-                val parsedEntity = parseEntity(temporalEntityAttribute.entityPayload, emptyList())
-                Mono.just(ExpandedEntity(parsedEntity.rawJsonLdProperties, listOf(NGSILD_CORE_CONTEXT)))
+                val parsedEntity = expandJsonLdEntity(temporalEntityAttribute.entityPayload)
+                Mono.just(parsedEntity)
             }
         }
 }

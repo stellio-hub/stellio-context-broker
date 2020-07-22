@@ -405,7 +405,6 @@ class EntityService(
      *
      * @return a list of entities represented as per #getFullEntityById result
      */
-    // test
     @Transactional
     fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<ExpandedEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!

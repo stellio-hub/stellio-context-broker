@@ -1,11 +1,15 @@
 package com.egm.stellio.entity.web
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
+import com.egm.stellio.entity.config.WithMockCustomUser
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.runs
 import io.mockk.slot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -15,7 +19,6 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
-import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
@@ -23,7 +26,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockUser
+@WithMockCustomUser(name = "Mock User", username = "mock-user")
 class EntityOperationHandlerTests {
 
     @Value("\${application.jsonld.aquac_context}")
@@ -34,6 +37,9 @@ class EntityOperationHandlerTests {
 
     @MockkBean
     private lateinit var entityOperationService: EntityOperationService
+
+    @MockkBean
+    private lateinit var authorizationService: AuthorizationService
 
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
@@ -53,6 +59,8 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -101,6 +109,8 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             errors
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -151,6 +161,8 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -179,6 +191,29 @@ class EntityOperationHandlerTests {
     }
 
     @Test
+    fun `create batch should not authorize user without creator role`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+
+        every { authorizationService.userIsCreator("mock-user") } returns false
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/create")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden to create entities"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `upsert batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
@@ -193,8 +228,8 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
 
-        val existingEntities = mockk<List<ExpandedEntity>>()
-        val nonExistingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = emptyList<ExpandedEntity>()
+        val nonExistingEntities = emptyList<ExpandedEntity>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
@@ -206,6 +241,9 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
+
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
@@ -252,6 +290,8 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             errors
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
@@ -290,11 +330,11 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val existingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = emptyList<ExpandedEntity>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
-            listOf()
+            emptyList()
         )
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             arrayListOf(),
@@ -304,6 +344,8 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
+        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert")
@@ -326,7 +368,110 @@ class EntityOperationHandlerTests {
     }
 
     @Test
+    fun `upsert batch should not authorize user to create entities without creator role`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+
+        every { authorizationService.userIsCreator("mock-user") } returns false
+
+        val expandedEntity = mockk<ExpandedEntity>()
+        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+        val nonExistingEntities = listOf(expandedEntity)
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            nonExistingEntities
+        )
+        every { entityOperationService.replace(emptyList(), any()) } returns BatchOperationResult(
+            arrayListOf(),
+            arrayListOf()
+        )
+        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                            "error": [
+                                "User forbidden to create entities"
+                            ]
+                        }
+                    ],
+                    "success": []
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `upsert batch should not authorize user to updates entities without write right`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+
+        every { authorizationService.userIsCreator("mock-user") } returns false
+
+        val entitiesId =
+            listOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen")
+
+        val expandedEntity = mockk<ExpandedEntity>()
+        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
+        val expandedEntity2 = mockk<ExpandedEntity>()
+        every { expandedEntity2.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
+        val existingEntities = listOf(expandedEntity, expandedEntity2)
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            existingEntities,
+            emptyList()
+        )
+        every { authorizationService.userIsCreator("mock-user") } returns false
+
+        val entitiesIdToUpdate = listOf(expandedEntity.id)
+        every {
+            authorizationService.filterEntitiesUserHasWriteRight(
+                entitiesId,
+                "mock-user"
+            )
+        } returns entitiesIdToUpdate
+
+        every { entityOperationService.replace(listOf(expandedEntity), any()) } returns BatchOperationResult(
+            ArrayList(entitiesIdToUpdate),
+            arrayListOf()
+        )
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                            "error": [
+                                "User forbidden to modify entity"
+                            ]
+                        }
+                    ],
+                    "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
+        every { authorizationService.userIsCreator("mock-user") } returns true
+
         shouldReturn400WithBadPayload("create")
     }
 

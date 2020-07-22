@@ -1,10 +1,13 @@
 package com.egm.stellio.entity.web
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityOperationService
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -19,7 +22,8 @@ import reactor.core.publisher.Mono
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
 class EntityOperationHandler(
-    private val entityOperationService: EntityOperationService
+    private val entityOperationService: EntityOperationService,
+    private val authorizationService: AuthorizationService
 ) {
 
     /**
@@ -28,8 +32,10 @@ class EntityOperationHandler(
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
 
-        return body
-            .map {
+        return extractSubjectOrEmpty().flatMap { userId ->
+            if (!authorizationService.userCanCreateEntities(userId))
+                throw AccessDeniedException("User forbidden to create entities")
+            body.map {
                 extractAndParseBatchOfEntities(it)
             }
             .map {
@@ -41,11 +47,14 @@ class EntityOperationHandler(
                         BatchEntityError(entity.id, arrayListOf("Entity already exists"))
                     })
 
+                authorizationService.createAdminLinks(batchOperationResult.success, userId)
+
                 batchOperationResult
             }
             .map {
                 ResponseEntity.status(HttpStatus.OK).body(it)
             }
+        }
     }
 
     /**
@@ -60,15 +69,41 @@ class EntityOperationHandler(
             .map {
                 extractAndParseBatchOfEntities(it)
             }
-            .map {
-                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
+            .zipWith(extractSubjectOrEmpty())
+            .map { expandedEntitiesAndUserId ->
+                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(
+                    expandedEntitiesAndUserId.t1
+                )
 
-                val createBatchOperationResult = entityOperationService.create(newEntities)
+                val createBatchOperationResult =
+                    if (authorizationService.userCanCreateEntities(expandedEntitiesAndUserId.t2))
+                        entityOperationService.create(newEntities)
+                    else
+                        BatchOperationResult(
+                            errors = ArrayList(newEntities.map {
+                                BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
+                            })
+                        )
+
+                authorizationService.createAdminLinks(createBatchOperationResult.success, expandedEntitiesAndUserId.t2)
+
+                val existingEntitiesIdsAuthorized =
+                    authorizationService.filterEntitiesUserCanUpdate(
+                        existingEntities.map { it.id },
+                        expandedEntitiesAndUserId.t2
+                    )
+
+                val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
+                    existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
 
                 val updateBatchOperationResult = when (options) {
-                    "update" -> entityOperationService.update(existingEntities, createBatchOperationResult)
-                    else -> entityOperationService.replace(existingEntities, createBatchOperationResult)
+                    "update" -> entityOperationService.update(existingEntitiesAuthorized, createBatchOperationResult)
+                    else -> entityOperationService.replace(existingEntitiesAuthorized, createBatchOperationResult)
                 }
+
+                updateBatchOperationResult.errors.addAll(existingEntitiesUnauthorized.map {
+                    BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+                })
 
                 BatchOperationResult(
                     ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),

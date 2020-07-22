@@ -1,4 +1,4 @@
-package com.egm.stellio.subscription.config
+package com.egm.stellio.shared
 
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContext

@@ -1,9 +1,9 @@
 package com.egm.stellio.subscription.web
 
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
-import com.egm.stellio.subscription.config.WithMockCustomUser
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.utils.gimmeRawSubscription

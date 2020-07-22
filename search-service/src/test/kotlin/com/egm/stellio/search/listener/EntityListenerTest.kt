@@ -3,6 +3,7 @@ package com.egm.stellio.search.listener
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
@@ -81,7 +82,8 @@ class EntityListenerTest {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq("urn:ngsi-ld:FishContainment:1234"),
-                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids")
+                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
+                isNull()
             )
         }
         verify {
@@ -96,8 +98,7 @@ class EntityListenerTest {
             })
         }
 
-        confirmVerified(attributeInstanceService)
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
     }
 
     @Test
@@ -162,6 +163,60 @@ class EntityListenerTest {
         }
 
         confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should create an attribute instance for a datasetId`() {
+        val eventPayload = """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":\"some textual value\",
+                    \"observedAt\":\"2020-03-12T08:33:38.000Z\",
+                    \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
+                }
+            }
+        """.trimIndent()
+        val content = prepareUpdateEventPayload(eventPayload)
+
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityListener.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), "urn:ngsi-ld:Dataset:01234")
+        }
+
+        verify {
+            attributeInstanceService.create(match {
+                it.value == "some textual value" &&
+                    it.measuredValue == null &&
+                    it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+            })
+        }
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information`() {
+        val eventPayload = """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869
+                }
+            }
+        """.trimIndent()
+        val content = prepareUpdateEventPayload(eventPayload)
+
+        entityListener.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
     }
 
     private fun prepareUpdateEventPayload(payload: String): String =

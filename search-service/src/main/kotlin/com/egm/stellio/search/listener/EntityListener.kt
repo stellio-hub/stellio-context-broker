@@ -41,24 +41,31 @@ class EntityListener(
             EventType.UPDATE -> {
                 // TODO add missing checks:
                 //  - existence of temporal entity attribute
-                //  - only add an attribute instance if observedAt (?)
                 //  - needs optimization (lot of JSON-LD parsing, ...)
                 val rawParsedData = jacksonObjectMapper().readTree(entityEvent.payload!!)
                 val rawEntity = parseEntity(entityEvent.updatedEntity!!)
                 val attributeName = rawParsedData.fieldNames().next()
-                val rawAttributeValue = rawParsedData[attributeName]["value"]
+                val attributeValuesNode = rawParsedData[attributeName]
+
+                if (!attributeValuesNode.has("observedAt")) {
+                    logger.info("Ignoring update event for $attributeName, it has no observedAt information")
+                    return
+                }
+
+                val expandedAttributeName = expandJsonLdKey(attributeName, rawEntity.contexts)!!
+                val rawAttributeValue = attributeValuesNode["value"]
                 val parsedAttributeValue =
                     if (rawAttributeValue.isNumber)
                         Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
                     else
                         Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
-                val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.contexts)!!
+                val datasetId = attributeValuesNode["datasetId"]?.asText()
 
-                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName)
+                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName, datasetId)
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it,
-                            observedAt = ZonedDateTime.parse(rawParsedData[attributeName]["observedAt"].asText()),
+                            observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                             value = parsedAttributeValue.first,
                             measuredValue = parsedAttributeValue.second
                         )

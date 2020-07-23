@@ -718,30 +718,35 @@ class EntityService(
         neo4jRepository.deleteEntity(entityId)
 
     @Transactional
-    fun deleteEntityAttribute(entityId: String, attributeName: String, datasetId: URI?, deleteAll: Boolean, contextLink: String): Boolean {
+    fun deleteEntityAttributes(entityId: String, attributeName: String, contextLink: String): Boolean {
         val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
 
-        if (deleteAll) {
-            if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
-                return neo4jRepository.deleteEntityProperty(
-                    subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = deleteAll) >= 1
-            else if (neo4jRepository.hasRelationshipOfType(
-                    EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()))
-                return neo4jRepository.deleteEntityRelationship(subjectNodeInfo = EntitySubjectNode(entityId),
-                    relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = deleteAll) >= 1
-            throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
-        } else {
-            if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
-                return neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), expandedAttributeName, datasetId, deleteAll) >= 1
-            else if (neo4jRepository.hasRelationshipInstance(
-                    EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId))
-                return neo4jRepository.deleteEntityRelationship(
-                    EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId, deleteAll) >= 1
-            datasetId?.let { throw
-            ResourceNotFoundException("Instance with datasetId $datasetId of attribute $attributeName not found in entity $entityId") }
+        if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
+            return neo4jRepository.deleteEntityProperty(
+                subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true) >= 1
+        else if (neo4jRepository.hasRelationshipOfType(
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()))
+            return neo4jRepository.deleteEntityRelationship(subjectNodeInfo = EntitySubjectNode(entityId),
+                relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true) >= 1
 
-            throw ResourceNotFoundException("Default instance of $attributeName not found in entity $entityId")
-        }
+        throw ResourceNotFoundException("Attribute $attributeName not found in entity $entityId")
+    }
+
+    @Transactional
+    fun deleteEntityAttribute(entityId: String, attributeName: String, datasetId: URI?, contextLink: String): Boolean {
+        val expandedAttributeName = expandJsonLdKey(attributeName, contextLink)!!
+
+        if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
+            return neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), expandedAttributeName, datasetId) >= 1
+        else if (neo4jRepository.hasRelationshipInstance(
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId))
+            return neo4jRepository.deleteEntityRelationship(
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId) >= 1
+
+        if (datasetId != null)
+            throw ResourceNotFoundException("Instance with datasetId $datasetId of attribute $attributeName not found in entity $entityId")
+
+        throw ResourceNotFoundException("Default instance of $attributeName not found in entity $entityId")
     }
 
     @Transactional

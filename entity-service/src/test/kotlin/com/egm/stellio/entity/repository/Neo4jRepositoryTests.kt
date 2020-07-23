@@ -495,9 +495,14 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName")
 
         assertNull(entityRepository.findById(entity.id).get().properties.find {
-        it.name == "firstName" &&
-            it.value == "Scalpa" &&
-            it.datasetId == null
+            it.name == "firstName" &&
+                it.value == "Scalpa" &&
+                it.datasetId == null
+        })
+        assertNotNull(entityRepository.findById(entity.id).get().properties.find {
+            it.name == "firstName" &&
+                it.value == "Scalpa2" &&
+                it.datasetId == URI.create("urn:ngsi-ld:Dataset:firstName:2")
         })
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -520,6 +525,11 @@ class Neo4jRepositoryTests {
             it.name == "firstName" &&
                 it.value == "Scalpa2" &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:firstName:2")
+        })
+        assertNotNull(entityRepository.findById(entity.id).get().properties.find {
+            it.name == "firstName" &&
+                it.value == "Scalpa" &&
+                it.datasetId == null
         })
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -551,6 +561,10 @@ class Neo4jRepositoryTests {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == null
         })
+        assertNotNull(entityRepository.findById(sensor.id).get().relationships.find {
+            it.type == listOf(EGM_OBSERVED_BY) &&
+                it.datasetId == URI.create("urn:ngsi-ld:Dataset:observedBy:01")
+        })
 
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
@@ -569,7 +583,10 @@ class Neo4jRepositoryTests {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:observedBy:01")
         })
-
+        assertNotNull(entityRepository.findById(sensor.id).get().relationships.find {
+            it.type == listOf(EGM_OBSERVED_BY) &&
+                it.datasetId == null
+        })
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }

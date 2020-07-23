@@ -283,32 +283,15 @@ class Neo4jRepository(
          * 2. the properties of the property
          * 3. the relationships of the property
          */
-
-        val query = if (deleteAll)
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(prop:Property { name: ${'$'}propertyName })
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
-            WITH prop, propOfProp
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
-            DETACH DELETE prop, propOfProp, relOfProp
-            """.trimIndent()
+        val matchQuery = if (deleteAll)
+            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })"
         else if (datasetId == null)
             """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(prop:Property { name: ${'$'}propertyName })
-            WHERE NOT EXISTS (prop.datasetId)
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
-            WITH prop, propOfProp
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
-            DETACH DELETE prop, propOfProp, relOfProp
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
+            WHERE NOT EXISTS (attribute.datasetId)
             """.trimIndent()
         else
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(prop:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
-            OPTIONAL MATCH (prop)-[:HAS_VALUE]->(propOfProp:Property)
-            WITH prop, propOfProp
-            OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
-            DETACH DELETE prop, propOfProp, relOfProp
-            """.trimIndent()
+            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})"
 
         val parameters = mapOf(
             "entityId" to subjectNodeInfo.id,
@@ -316,8 +299,7 @@ class Neo4jRepository(
             "datasetId" to datasetId?.toString()
         )
 
-        val queryStatistics = session.query(query, parameters).queryStatistics()
-        return queryStatistics.nodesDeleted
+        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
     fun deleteEntityRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, datasetId: URI? = null, deleteAll: Boolean = false): Int {
@@ -328,37 +310,22 @@ class Neo4jRepository(
          * 2. the properties of the relationship
          * 3. the relationships of the relationship
          */
-        val query = if (deleteAll)
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(rel:Relationship)-[:$relationshipType]->()
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
-            WITH rel, propOfRel
-            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE rel, propOfRel, relOfRel
-            """.trimIndent()
+        val matchQuery = if (deleteAll)
+            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()"
         else if (datasetId == null)
             """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(rel:Relationship)-[:$relationshipType]->()
-            WHERE NOT EXISTS (rel.datasetId)
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
-            WITH rel, propOfRel
-            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE rel, propOfRel, relOfRel
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()
+            WHERE NOT EXISTS (attribute.datasetId)
             """.trimIndent()
         else
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(rel:Relationship { datasetId: ${'$'}datasetId})-[:$relationshipType]->()
-            OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
-            WITH rel, propOfRel
-            OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE rel, propOfRel, relOfRel
-            """.trimIndent()
+            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship { datasetId: ${'$'}datasetId})-[:$relationshipType]->()"
 
         val parameters = mapOf(
             "entityId" to subjectNodeInfo.id,
             "datasetId" to datasetId?.toString()
         )
-        return session.query(query, parameters).queryStatistics().nodesDeleted
+
+        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
     fun getEntitiesByTypeAndQuery(
@@ -521,6 +488,13 @@ class Neo4jRepository(
             else -> value
         }
     }
+
+    private val deleteAttributeQuery = """
+        OPTIONAL MATCH (attribute)-[:HAS_VALUE]->(propOfAttribute:Property)
+        WITH attribute, propOfAttribute
+        OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
+        DETACH DELETE attribute, propOfAttribute, relOfAttribute
+        """.trimIndent()
 
     @PostConstruct
     fun addEventListenerToSessionFactory() {

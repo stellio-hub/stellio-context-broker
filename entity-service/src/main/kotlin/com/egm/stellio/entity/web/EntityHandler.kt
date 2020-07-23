@@ -231,7 +231,10 @@ class EntityHandler(
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.deleteEntityAttribute(entityId, attrId, datasetId, deleteAll, contextLink)
+                if (deleteAll)
+                    entityService.deleteEntityAttributes(entityId, attrId, contextLink)
+                else
+                    entityService.deleteEntityAttribute(entityId, attrId, datasetId, contextLink)
             }
             .map {
                 if (it)

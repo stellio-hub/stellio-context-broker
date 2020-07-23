@@ -1311,7 +1311,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
         every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
 
-        entityService.deleteEntityAttribute(entityId, "fishNumber", null, true, aquacContext!!)
+        entityService.deleteEntityAttributes(entityId, "fishNumber", aquacContext!!)
 
         verify { neo4jRepository.hasPropertyOfName(match {
             it.id == "urn:ngsi-ld:Beehive:123456" &&
@@ -1334,7 +1334,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any(), any(), any()) } returns 1
 
-        entityService.deleteEntityAttribute(entityId, "connectsTo", URI.create("urn:ngsi-ld:Dataset:connectsTo:01"), false, aquacContext!!)
+        entityService.deleteEntityAttribute(entityId, "connectsTo", URI.create("urn:ngsi-ld:Dataset:connectsTo:01"), aquacContext!!)
 
         verify { neo4jRepository.hasRelationshipInstance(match {
             it.id == "urn:ngsi-ld:Beehive:123456" &&
@@ -1350,7 +1350,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should not delete an entity attribute instances if the attribute is not found`() {
+    fun `it should not delete all entity attribute instances if the attribute is not found`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
 
@@ -1358,7 +1358,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
 
         assertThrows<ResourceNotFoundException>("Attribute fishNumber not found in entity urn:ngsi-ld:Beehive:123456") {
-            entityService.deleteEntityAttribute(entityId, "fishNumber", null, true, aquacContext!!)
+            entityService.deleteEntityAttributes(entityId, "fishNumber", aquacContext!!)
         }
         confirmVerified()
     }
@@ -1372,7 +1372,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
 
         assertThrows<ResourceNotFoundException>("Default instance of fishNumber not found in entity urn:ngsi-ld:Beehive:123456") {
-            entityService.deleteEntityAttribute(entityId, "fishNumber", null, false, aquacContext!!)
+            entityService.deleteEntityAttribute(entityId, "fishNumber", null, aquacContext!!)
         }
         confirmVerified()
     }

@@ -214,7 +214,6 @@ class EntityHandler(
 
     /**
      * Implements 6.7.3.2 - Delete Entity Attribute
-     * Current implementation is basic since there is no support for Multi-Attribute (4.5.5).
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     fun deleteEntityAttribute(

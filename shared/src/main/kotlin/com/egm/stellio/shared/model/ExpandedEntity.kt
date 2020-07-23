@@ -49,13 +49,13 @@ class ExpandedEntity private constructor(
             else -> attributes.mapValues {
                 NgsiLdParsingUtils.expandValueAsListOfMap(it.value)
             }
-                .filter {
-                    !NGSILD_ENTITY_CORE_MEMBERS.contains(it.key) &&
-                        NgsiLdParsingUtils.isValidAttribute(it.key, it.value)
-                }
-                .filter {
-                    NgsiLdParsingUtils.isAttributeOfType(it.value, type)
-                }
+            .filter {
+                !NGSILD_ENTITY_CORE_MEMBERS.contains(it.key) &&
+                    NgsiLdParsingUtils.isValidAttribute(it.key, it.value)
+            }
+            .filter {
+                NgsiLdParsingUtils.isAttributeOfType(it.value, type)
+            }
         }
 
     private fun initAttributesWithoutTypeAndId(): Map<String, Any> {
@@ -92,11 +92,11 @@ class ExpandedEntity private constructor(
                 instance.map {
                     it.value[0]
                 }.filterIsInstance<Map<String, List<Any>>>()
-                    .filter {
-                        NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
-                    }.map {
-                        NgsiLdParsingUtils.getRelationshipObjectId(it)
-                    }
+                .filter {
+                    NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
+                }.map {
+                    NgsiLdParsingUtils.getRelationshipObjectId(it)
+                }
             }
         }
     }
@@ -107,11 +107,11 @@ class ExpandedEntity private constructor(
                 instance.map {
                     it.value[0]
                 }.filterIsInstance<Map<String, List<Any>>>()
-                    .filter {
-                        NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
-                    }.map {
-                        NgsiLdParsingUtils.getRelationshipObjectId(it)
-                    }
+                .filter {
+                    NgsiLdParsingUtils.isAttributeOfType(it, NGSILD_RELATIONSHIP_TYPE)
+                }.map {
+                    NgsiLdParsingUtils.getRelationshipObjectId(it)
+                }
             }
         }
     }

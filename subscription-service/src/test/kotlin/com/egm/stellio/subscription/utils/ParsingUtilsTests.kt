@@ -12,7 +12,6 @@ class ParsingUtilsTests {
 
     @Test
     fun `it should correctly parse an endpoint info`() {
-
         val input = "[{\"key\": \"Authorization-token\", \"value\": \"Authorization-token-value\"}]"
         val info = ParsingUtils.parseEndpointInfo(input)
 
@@ -21,7 +20,6 @@ class ParsingUtilsTests {
 
     @Test
     fun `it should correctly parse a null endpoint info`() {
-
         val input = null
         val info = ParsingUtils.parseEndpointInfo(input)
 

@@ -24,8 +24,9 @@ data class AttributeType(val uri: String)
 object JsonLdUtils {
 
     const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-    const val NGSILD_EGM_CONTEXT =
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld"
+    const val EGM_BASE_CONTEXT_URL =
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
+    val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -74,7 +75,8 @@ object JsonLdUtils {
     private fun loadCoreContext() {
         val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
         val coreContext: Map<String, Any> = mapper.readValue(
-            coreContextPayload, mapper.typeFactory.constructMapLikeType(
+            coreContextPayload,
+            mapper.typeFactory.constructMapLikeType(
                 Map::class.java, String::class.java, Any::class.java
             )
         )
@@ -116,7 +118,8 @@ object JsonLdUtils {
 
         // TODO find a way to avoid this extra parsing
         val parsedInput: Map<String, Any> = mapper.readValue(
-            input, mapper.typeFactory.constructMapLikeType(
+            input,
+            mapper.typeFactory.constructMapLikeType(
                 Map::class.java, String::class.java, Any::class.java
             )
         )
@@ -139,7 +142,8 @@ object JsonLdUtils {
     // TODO it should be replaced by proper parsing to a NGSI-LD attribute
     fun parseJsonLdFragment(input: String): Map<String, Any> {
         return mapper.readValue(
-            input, mapper.typeFactory.constructMapLikeType(
+            input,
+            mapper.typeFactory.constructMapLikeType(
                 Map::class.java, String::class.java, Any::class.java
             )
         )
@@ -149,7 +153,7 @@ object JsonLdUtils {
         (value as List<Any>)[0] as Map<String, List<Any>>
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
-            value as List<Map<String, List<Any>>>
+        value as List<Map<String, List<Any>>>
     /**
      * Extract the actual value (@value) of a given property from the properties map of an expanded property.
      *
@@ -228,7 +232,7 @@ object JsonLdUtils {
         val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
         logger.debug("Expanded type $type to $expandedType")
         return if (expandedType.isNotEmpty())
-            (expandedType[0] as Map<String, Any>).keys.first()
+        (expandedType[0] as Map<String, Any>).keys.first()
         else
             null
     }

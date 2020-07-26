@@ -1,0 +1,19 @@
+build:
+  maxIssues: 0
+
+formatting:
+  MultiLineIfElse:
+    active: false
+  NoWildcardImports:
+    active: false
+
+complexity:
+  TooManyFunctions:
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+    thresholdInInterfaces: 20
+    thresholdInObjects: 20
+
+style:
+  WildcardImport:
+    active: false

@@ -29,13 +29,15 @@ class IAMListenerTests {
         iamListener.processMessage(userCreateEvent)
 
         verify {
-            entityService.createEntity(match {
-                it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
-                    it.properties.size == 1 &&
-                    it.properties[0].compactName == "username" &&
-                    it.properties[0].instances.size == 1 &&
-                    it.properties[0].instances[0].value == "stellio"
-            })
+            entityService.createEntity(
+                match {
+                    it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                        it.properties.size == 1 &&
+                        it.properties[0].compactName == "username" &&
+                        it.properties[0].instances.size == 1 &&
+                        it.properties[0].instances[0].value == "stellio"
+                }
+            )
         }
         confirmVerified()
     }
@@ -57,9 +59,11 @@ class IAMListenerTests {
         iamListener.processMessage(groupCreateEvent)
 
         verify {
-            entityService.createEntity(match {
-                it.id == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"
-            })
+            entityService.createEntity(
+                match {
+                    it.id == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"
+                }
+            )
         }
         confirmVerified()
     }
@@ -108,8 +112,10 @@ class IAMListenerTests {
                     it.size == 1 &&
                         it[0].name == "https://ontology.eglobalmark.com/authorization#isMemberOf" &&
                         it[0] is NgsiLdRelationship &&
-                        (it[0] as NgsiLdRelationship).instances[0].datasetId == URI.create("7cdad168-96ee-4649-b768-a060ac2ef435") &&
-                        (it[0] as NgsiLdRelationship).instances[0].objectId == "urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435"
+                        (it[0] as NgsiLdRelationship).instances[0].datasetId ==
+                        URI.create("7cdad168-96ee-4649-b768-a060ac2ef435") &&
+                        (it[0] as NgsiLdRelationship).instances[0].objectId ==
+                        "urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435"
                 },
                 false
             )
@@ -143,12 +149,12 @@ class IAMListenerTests {
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
-                            it[0].compactName == "roles" &&
-                            it[0] is NgsiLdProperty &&
-                            (it[0] as NgsiLdProperty).instances.size == 1 &&
-                            (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
-                            ((it[0] as NgsiLdProperty).instances[0].value as List<*>)
-                                .containsAll(setOf("stellio-admin", "stellio-creator"))
+                        it[0].compactName == "roles" &&
+                        it[0] is NgsiLdProperty &&
+                        (it[0] as NgsiLdProperty).instances.size == 1 &&
+                        (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
+                        ((it[0] as NgsiLdProperty).instances[0].value as List<*>)
+                            .containsAll(setOf("stellio-admin", "stellio-creator"))
                 }
             )
         }
@@ -166,11 +172,11 @@ class IAMListenerTests {
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
-                            it[0].compactName == "roles" &&
-                            it[0] is NgsiLdProperty &&
-                            (it[0] as NgsiLdProperty).instances.size == 1 &&
-                            (it[0] as NgsiLdProperty).instances[0].value is String &&
-                            (it[0] as NgsiLdProperty).instances[0].value == "stellio-admin"
+                        it[0].compactName == "roles" &&
+                        it[0] is NgsiLdProperty &&
+                        (it[0] as NgsiLdProperty).instances.size == 1 &&
+                        (it[0] as NgsiLdProperty).instances[0].value is String &&
+                        (it[0] as NgsiLdProperty).instances[0].value == "stellio-admin"
                 }
             )
         }
@@ -188,11 +194,11 @@ class IAMListenerTests {
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
-                            it[0].compactName == "roles" &&
-                            it[0] is NgsiLdProperty &&
-                            (it[0] as NgsiLdProperty).instances.size == 1 &&
-                            (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
-                            ((it[0] as NgsiLdProperty).instances[0].value as List<*>).isEmpty()
+                        it[0].compactName == "roles" &&
+                        it[0] is NgsiLdProperty &&
+                        (it[0] as NgsiLdProperty).instances.size == 1 &&
+                        (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
+                        ((it[0] as NgsiLdProperty).instances[0].value as List<*>).isEmpty()
                 }
             )
         }

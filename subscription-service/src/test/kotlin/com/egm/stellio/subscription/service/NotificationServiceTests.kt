@@ -47,7 +47,8 @@ class NotificationServiceTests {
     private lateinit var subscriptionService: SubscriptionService
 
     /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * As Spring's ApplicationEventPublisher is not easily mockable
+     *    (https://github.com/spring-projects/spring-framework/issues/18907),
      * we are directly mocking the event listener to check it receives what is expected
      */
     @MockkBean
@@ -61,7 +62,8 @@ class NotificationServiceTests {
 
     private lateinit var wireMockServer: WireMockServer
 
-    private final val rawEntity = """
+    private final val rawEntity =
+        """
             {
                "id":"urn:ngsi-ld:Apiary:XYZ01",
                "type":"Apiary",
@@ -109,7 +111,6 @@ class NotificationServiceTests {
 
     @Test
     fun `it should notify the subscriber and update the subscription`() {
-
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
@@ -136,13 +137,15 @@ class NotificationServiceTests {
             .verify()
 
         verify(timeout = 1000, exactly = 1) {
-            notificationsEventsListener.handleNotificationEvent(match { entityEvent ->
-                entityEvent.entityType == "Notification" &&
-                    entityEvent.operationType == EventType.CREATE &&
-                    read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
-                    read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
-                    entityEvent.updatedEntity == null
-            })
+            notificationsEventsListener.handleNotificationEvent(
+                match { entityEvent ->
+                    entityEvent.entityType == "Notification" &&
+                        entityEvent.operationType == EventType.CREATE &&
+                        read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
+                        read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
+                        entityEvent.updatedEntity == null
+                }
+            )
         }
 
         verify {
@@ -161,7 +164,6 @@ class NotificationServiceTests {
 
     @Test
     fun `it should notify the two subscribers`() {
-
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
@@ -205,7 +207,6 @@ class NotificationServiceTests {
 
     @Test
     fun `it should notify the subscriber that matches the geoQuery`() {
-
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
@@ -252,7 +253,6 @@ class NotificationServiceTests {
 
     @Test
     fun `it should call the subscriber`() {
-
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -263,8 +263,11 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        StepVerifier.create(notificationService.callSubscriber(
-            subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)
+            )
+        )
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -302,7 +305,13 @@ class NotificationServiceTests {
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
         every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription,
+                "urn:ngsi-ld:Apiary:XYZ01",
+                expandJsonLdEntity(rawEntity)
+            )
+        )
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&
@@ -336,7 +345,13 @@ class NotificationServiceTests {
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
 
-        StepVerifier.create(notificationService.callSubscriber(subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)))
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription,
+                "urn:ngsi-ld:Apiary:XYZ01",
+                expandJsonLdEntity(rawEntity)
+            )
+        )
             .expectNextMatches {
                 it.first.id == subscription.id &&
                     it.second.subscriptionId == subscription.id &&

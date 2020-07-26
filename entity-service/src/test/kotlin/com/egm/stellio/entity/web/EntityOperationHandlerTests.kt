@@ -3,8 +3,8 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -508,7 +508,7 @@ class EntityOperationHandlerTests {
             .uri("/ngsi-ld/v1/entityOperations/$method")
             .header(
                 "Link",
-                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+                "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
             )
             .bodyValue(jsonLdFile)
             .exchange()

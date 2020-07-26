@@ -6,8 +6,8 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -50,10 +50,11 @@ class SubscriptionService(
 
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
-        val insertStatement = """
+        val insertStatement =
+            """
             INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
             VALUES(:id, :type, :name, :description, :watched_attributes, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
@@ -101,7 +102,12 @@ class SubscriptionService(
     }
 
     private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: String): Mono<Int> =
-        databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)")
+        databaseClient.execute(
+            """
+            INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
+            VALUES (:id, :id_pattern, :type, :subscription_id)
+            """.trimIndent()
+        )
             .bind("id", entityInfo.id)
             .bind("id_pattern", entityInfo.idPattern)
             .bind("type", entityInfo.type)
@@ -111,7 +117,12 @@ class SubscriptionService(
 
     private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: String): Mono<Int> =
         if (geoQuery != null)
-            databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)")
+            databaseClient.execute(
+                """
+                INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) 
+                VALUES (:georel, :geometry, :coordinates, :subscription_id)
+                """
+            )
                 .bind("georel", geoQuery.georel)
                 .bind("geometry", geoQuery.geometry.name)
                 .bind("coordinates", geoQuery.coordinates)
@@ -122,7 +133,8 @@ class SubscriptionService(
             Mono.just(0)
 
     fun getById(id: String): Mono<Subscription> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
@@ -132,7 +144,7 @@ class SubscriptionService(
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
             WHERE subscription.id = :id
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient.execute(selectStatement)
             .bind("id", id)
@@ -144,11 +156,12 @@ class SubscriptionService(
     }
 
     fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT sub
             FROM subscription
             WHERE id = :id
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient.execute(selectStatement)
             .bind("id", subscriptionId)
@@ -287,13 +300,19 @@ class SubscriptionService(
             }
             "format" -> {
                 val format =
-                    if (attribute.value == "keyValues") NotificationParams.FormatType.KEY_VALUES.name else NotificationParams.FormatType.NORMALIZED.name
+                    if (attribute.value == "keyValues")
+                        NotificationParams.FormatType.KEY_VALUES.name
+                    else
+                        NotificationParams.FormatType.NORMALIZED.name
                 listOf(Pair("notif_format", format))
             }
             "endpoint" -> {
                 val endpoint = attribute.value as Map<String, Any>
                 val accept =
-                    if (endpoint["accept"] == "application/json") Endpoint.AcceptType.JSON.name else Endpoint.AcceptType.JSONLD.name
+                    if (endpoint["accept"] == "application/json")
+                        Endpoint.AcceptType.JSON.name
+                    else
+                        Endpoint.AcceptType.JSONLD.name
                 val endpointInfo = endpoint["info"] as List<Map<String, String>>?
 
                 listOf(
@@ -317,10 +336,11 @@ class SubscriptionService(
     }
 
     fun delete(subscriptionId: String): Mono<Int> {
-        val deleteStatement = """
+        val deleteStatement =
+            """
             DELETE FROM subscription 
             WHERE subscription.id = :id
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient.execute(deleteStatement)
             .bind("id", subscriptionId)
@@ -346,7 +366,8 @@ class SubscriptionService(
             .rowsUpdated()
 
     fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
@@ -363,7 +384,7 @@ class SubscriptionService(
                 ORDER BY sub_id
                 limit :limit
                 offset :offset)
-        """.trimIndent()
+            """.trimIndent()
         return databaseClient.execute(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
@@ -381,10 +402,11 @@ class SubscriptionService(
     }
 
     fun getSubscriptionsCount(sub: String): Mono<Int> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT count(*) from subscription
             WHERE subscription.sub = :sub
-        """.trimIndent()
+            """.trimIndent()
         return databaseClient.execute(selectStatement)
             .bind("sub", sub)
             .map(rowToSubscriptionCount)
@@ -392,7 +414,8 @@ class SubscriptionService(
     }
 
     fun getMatchingSubscriptions(id: String, type: String, updatedAttributes: String): Flux<Subscription> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
@@ -405,7 +428,7 @@ class SubscriptionService(
                 AND (entity_info.id IS NULL OR entity_info.id = :id)
                 AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
             )
-        """.trimIndent()
+            """.trimIndent()
         return databaseClient.execute(selectStatement)
             .bind("id", id)
             .bind("type", type)
@@ -449,11 +472,12 @@ class SubscriptionService(
     }
 
     fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {
-        val selectStatement = """
+        val selectStatement =
+            """
             SELECT *
             FROM geometry_query 
             WHERE subscription_id = :sub_id
-        """.trimIndent()
+            """.trimIndent()
         return databaseClient.execute(selectStatement)
             .bind("sub_id", subscriptionId)
             .map(rowToGeoQuery)

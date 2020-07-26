@@ -17,7 +17,8 @@ class Neo4jAuthorizationRepository(
         entitiesId: List<String>,
         rights: Set<String>
     ): List<String> {
-        val query = """
+        val query =
+            """
             MATCH (userEntity:Entity {id : ${'$'}userId}), (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
@@ -27,7 +28,7 @@ class Neo4jAuthorizationRepository(
             MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
             WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id
-        """.trimIndent()
+            """.trimIndent()
 
         val parameters = mapOf(
             "userId" to userId,
@@ -41,13 +42,14 @@ class Neo4jAuthorizationRepository(
     }
 
     fun getUserRoles(userId: String): Set<String> {
-        val query = """
+        val query =
+            """
             MATCH (userEntity:Entity { id: ${'$'}userId })
             OPTIONAL MATCH  (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-[:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->
                 (pgroup:Property {name: "$EGM_ROLES"})
             RETURN p, pgroup
-        """.trimIndent()
+            """.trimIndent()
 
         val parameters = mapOf(
             "userId" to userId
@@ -70,7 +72,8 @@ class Neo4jAuthorizationRepository(
     }
 
     fun createAdminLinks(userId: String, relationships: List<Relationship>, entitiesId: List<String>): List<String> {
-        val query = """
+        val query =
+            """
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
             MATCH (user:Entity { id: ${'$'}userId}), (target:Entity { id: relPropAndTarget.second })
             CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)

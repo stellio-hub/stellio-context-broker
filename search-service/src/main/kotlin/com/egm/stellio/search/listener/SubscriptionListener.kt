@@ -88,7 +88,9 @@ class SubscriptionListener(
                         logger.debug("Created a new instance for notification ${notification.id}")
                     }
             }
-            else -> logger.warn("Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}")
+            else -> logger.warn(
+                "Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}"
+            )
         }
     }
 

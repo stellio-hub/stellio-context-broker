@@ -29,7 +29,8 @@ class Neo4jRepository(
 ) {
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
-        val query = """
+        val query =
+            """
             MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
             CREATE (subject)-[:HAS_VALUE]->(p:Attribute:Property ${'$'}props)
             RETURN p.id as id
@@ -43,9 +44,14 @@ class Neo4jRepository(
             .first()["id"] as String
     }
 
-    fun createRelationshipOfSubject(subjectNodeInfo: SubjectNodeInfo, relationship: Relationship, targetId: String): String {
+    fun createRelationshipOfSubject(
+        subjectNodeInfo: SubjectNodeInfo,
+        relationship: Relationship,
+        targetId: String
+    ): String {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
-        val query = """
+        val query =
+            """
             MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId }), (target:Entity { id: ${'$'}targetId })
             CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:$relationshipType]->(target)
             RETURN r.id as id
@@ -64,7 +70,8 @@ class Neo4jRepository(
      * Add a spatial property to an entity.
      */
     fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
-        val query = """
+        val query =
+            """
             MERGE (subject:Entity { id: ${'$'}subjectId })
             ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
             """
@@ -76,11 +83,12 @@ class Neo4jRepository(
     }
 
     fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
-        val query = """
+        val query =
+            """
             MERGE (entity:Entity { id: ${'$'}entityId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
             ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
                          property.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
-        """.trimIndent()
+            """.trimIndent()
 
         val parameters = mapOf(
             "entityId" to entityId,
@@ -90,7 +98,8 @@ class Neo4jRepository(
     }
 
     fun updateEntityModifiedDate(entityId: String): Int {
-        val query = """
+        val query =
+            """
             MERGE (entity:Entity { id: ${'$'}entityId })
             ON MATCH SET entity.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
         """
@@ -99,7 +108,8 @@ class Neo4jRepository(
     }
 
     fun hasRelationshipOfType(subjectNodeInfo: SubjectNodeInfo, relationshipType: String): Boolean {
-        val query = """
+        val query =
+            """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_OBJECT]->(rel)-[:$relationshipType]->()
             RETURN a.id
             """.trimIndent()
@@ -111,7 +121,8 @@ class Neo4jRepository(
     }
 
     fun hasPropertyOfName(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
-        val query = """
+        val query =
+            """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
             RETURN a.id
             """.trimIndent()
@@ -124,7 +135,8 @@ class Neo4jRepository(
     }
 
     fun hasGeoPropertyOfName(subjectNodeInfo: SubjectNodeInfo, geoPropertyName: String): Boolean {
-        val query = """
+        val query =
+            """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId }) WHERE a.$geoPropertyName IS NOT NULL
             RETURN a.id
             """.trimIndent()
@@ -157,7 +169,11 @@ class Neo4jRepository(
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun hasRelationshipInstance(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, datasetId: URI? = null): Boolean {
+    fun hasRelationshipInstance(
+        subjectNodeInfo: SubjectNodeInfo,
+        relationshipType: String,
+        datasetId: URI? = null
+    ): Boolean {
         val query = if (datasetId == null)
             """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_OBJECT]->(rel:Relationship)-[:$relationshipType]->()
@@ -183,12 +199,13 @@ class Neo4jRepository(
         oldRelationshipObjectId: String,
         newRelationshipObjectId: String
     ): Int {
-        val relationshipTypeQuery = """
+        val relationshipTypeQuery =
+            """
             MATCH (a:Attribute { id: ${'$'}attributeId })-[v:$relationshipType]->(e:Entity { id: ${'$'}oldRelationshipObjectId }),
                   (target:Entity { id: ${'$'}newRelationshipObjectId })
             DETACH DELETE v
             MERGE (a)-[:$relationshipType]->(target)
-        """.trimIndent()
+            """.trimIndent()
 
         val parameters = mapOf(
             "attributeId" to attributeId,
@@ -199,7 +216,8 @@ class Neo4jRepository(
     }
 
     fun updateLocationPropertyOfEntity(entityId: String, coordinates: Pair<Double, Double>): Int {
-        val query = """
+        val query =
+            """
             MERGE (entity:Entity { id: "$entityId" })
             ON MATCH SET entity.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
             """
@@ -218,7 +236,8 @@ class Neo4jRepository(
          * 6. the properties of relationships
          * 7. the relationships of relationships
          */
-        val query = """
+        val query =
+            """
             MATCH (n:Entity { id: ${'$'}entityId }) 
             OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop:Property)
             WITH n, prop
@@ -252,7 +271,8 @@ class Neo4jRepository(
          * 5. the properties of relationships
          * 6. the relationships of relationships
          */
-        val query = """
+        val query =
+            """
             MATCH (n:Entity { id: ${'$'}entityId }) 
             OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop:Property)
             WITH n, prop
@@ -289,14 +309,18 @@ class Neo4jRepository(
          * 3. the relationships of the property
          */
         val matchQuery = if (deleteAll)
-            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })"
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
+            """.trimIndent()
         else if (datasetId == null)
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
             WHERE NOT EXISTS (attribute.datasetId)
             """.trimIndent()
         else
-            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})"
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
+            """.trimIndent()
 
         val parameters = mapOf(
             "entityId" to subjectNodeInfo.id,
@@ -321,14 +345,18 @@ class Neo4jRepository(
          * 3. the relationships of the relationship
          */
         val matchQuery = if (deleteAll)
-            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()"
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()
+            """.trimIndent()
         else if (datasetId == null)
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()
             WHERE NOT EXISTS (attribute.datasetId)
             """.trimIndent()
         else
-            "MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship { datasetId: ${'$'}datasetId})-[:$relationshipType]->()"
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship { datasetId: ${'$'}datasetId})-[:$relationshipType]->()
+            """.trimIndent()
 
         val parameters = mapOf(
             "entityId" to subjectNodeInfo.id,
@@ -353,11 +381,11 @@ class Neo4jRepository(
                         else -> "'${it.third}'"
                     }
                     """
-                       EXISTS {
-                           MATCH (n)-[:HAS_VALUE]->(p:Property)
-                           WHERE p.name = '${it.first}' 
-                           AND p.value ${it.second} $comparableValue
-                       }
+                   EXISTS {
+                       MATCH (n)-[:HAS_VALUE]->(p:Property)
+                       WHERE p.name = '${it.first}' 
+                       AND p.value ${it.second} $comparableValue
+                   }
                     """.trimIndent()
                 }
             else
@@ -381,7 +409,8 @@ class Neo4jRepository(
             if (propertiesFilter.isNotEmpty() || relationshipsFilter.isNotEmpty()) " WHERE "
             else ""
 
-        val finalQuery = """
+        val finalQuery =
+            """
             $matchClause
             $whereClause
                 $propertiesFilter
@@ -398,7 +427,8 @@ class Neo4jRepository(
         // definitely not bullet proof since we are looking for a property whose name ends with the property name
         // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
         // TODO : this will have to be resolved with a clean provisioning architecture
-        val query = """
+        val query =
+            """
             MATCH (e:Entity) 
             WHERE e.id = '$observerId' 
             RETURN e 
@@ -422,7 +452,8 @@ class Neo4jRepository(
     }
 
     fun getObservedProperty(observerId: String, relationshipType: String): Property? {
-        val query = """
+        val query =
+            """
             MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
             RETURN p
             """.trimIndent()
@@ -433,7 +464,8 @@ class Neo4jRepository(
     }
 
     fun getEntityByProperty(property: Property): Entity {
-        val query = """
+        val query =
+            """
             MATCH (n:Entity)-[:HAS_VALUE]->(p:Property { id: '${property.id}' })
             RETURN n
             """.trimIndent()
@@ -472,7 +504,8 @@ class Neo4jRepository(
     }
 
     fun getRelationshipOfSubject(subjectId: String, relationshipType: String): Relationship {
-        val query = """
+        val query =
+            """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
             RETURN r
             """.trimIndent()
@@ -483,7 +516,8 @@ class Neo4jRepository(
     }
 
     fun getRelationshipTargetOfSubject(subjectId: String, relationshipType: String): Entity? {
-        val query = """
+        val query =
+            """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
             RETURN e
             """.trimIndent()
@@ -499,12 +533,13 @@ class Neo4jRepository(
         }
     }
 
-    private val deleteAttributeQuery = """
+    private val deleteAttributeQuery =
+        """
         OPTIONAL MATCH (attribute)-[:HAS_VALUE]->(propOfAttribute:Property)
         WITH attribute, propOfAttribute
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
-    """.trimIndent()
+        """.trimIndent()
 
     @PostConstruct
     fun addEventListenerToSessionFactory() {

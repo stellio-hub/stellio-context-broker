@@ -1,8 +1,8 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import org.junit.jupiter.params.provider.Arguments
 import java.net.URI
 import java.time.ZonedDateTime
@@ -120,7 +120,9 @@ class ParameterizedTests {
                         )
                     ),
                     true,
-                    loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId_temporal_values.jsonld")
+                    loadSampleData(
+                        "expectations/beehive_incoming_multi_instances_without_datasetId_temporal_values.jsonld"
+                    )
                 ),
                 Arguments.arguments(
                     parseSampleDataToJsonLd("beehive_multi_instance_property.jsonld"),

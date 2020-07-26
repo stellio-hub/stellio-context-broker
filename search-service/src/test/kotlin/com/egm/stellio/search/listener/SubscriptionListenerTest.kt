@@ -37,19 +37,20 @@ class SubscriptionListenerTest {
         subscriptionListener.processSubscription(subscription)
 
         verify {
-            temporalEntityAttributeService.create(match { entityTemporalProperty ->
-                entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
-                    entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                    entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
-                    entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
-            })
+            temporalEntityAttributeService.create(
+                match { entityTemporalProperty ->
+                    entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
+                        entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
+                        entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
+                }
+            )
         }
         confirmVerified(temporalEntityAttributeService)
     }
 
     @Test
     fun `it should parse a notification and create one related observation`() {
-
         val temporalEntityAttributeUuid = UUID.randomUUID()
         val notification = loadSampleData("notification_event.jsonld")
 
@@ -60,10 +61,12 @@ class SubscriptionListenerTest {
 
         verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234")) }
         verify {
-            attributeInstanceService.create(match {
-                it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
-                    it.temporalEntityAttribute == temporalEntityAttributeUuid
-            })
+            attributeInstanceService.create(
+                match {
+                    it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
         }
         confirmVerified(temporalEntityAttributeService)
         confirmVerified(attributeInstanceService)

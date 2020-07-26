@@ -35,7 +35,6 @@ class EntitiesGraphBuilder(
             }
 
             try {
-
                 /*
                  * If relationships targets an entity in DB, it is correct and doesn't need to be validated
                  * nor added to the graph.
@@ -52,8 +51,10 @@ class EntitiesGraphBuilder(
             } catch (e: BadRequestDataException) {
                 graph.removeVertex(entity)
                 errors.add(BatchEntityError(entity.id, arrayListOf(e.message)))
-                // pass exception to remove parent nodes that don't need to be created because related to an invalid node
-                throw BadRequestDataException("Target entity " + entity.id + " failed to be created because of an invalid relationship")
+                // pass exception to remove parent nodes that don't need to be created because related to invalid node
+                throw BadRequestDataException(
+                    "Target entity " + entity.id + " failed to be created because of an invalid relationship"
+                )
             }
         }
 

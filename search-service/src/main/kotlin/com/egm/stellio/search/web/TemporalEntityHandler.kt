@@ -10,10 +10,10 @@ import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -51,7 +51,6 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-
         return body
             .map {
                 val contexts = checkAndGetContext(httpHeaders, it)
@@ -88,7 +87,6 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): Mono<ResponseEntity<*>> {
-
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
@@ -186,7 +184,9 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
             if (TemporalQuery.Aggregate.isSupportedAggregate(params.getFirst("aggregate")!!))
                 TemporalQuery.Aggregate.valueOf(params.getFirst("aggregate")!!)
             else
-                throw BadRequestDataException("Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter")
+                throw BadRequestDataException(
+                    "Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter"
+                )
         else
             null
 

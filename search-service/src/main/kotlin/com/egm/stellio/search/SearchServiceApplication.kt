@@ -9,6 +9,7 @@ import org.springframework.boot.runApplication
 @EnableConfigurationProperties(value = [EntityServiceProperties::class])
 class SearchServiceApplication
 
+@Suppress("SpreadOperator")
 fun main(args: Array<String>) {
     runApplication<SearchServiceApplication>(*args)
 }

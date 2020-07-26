@@ -6,9 +6,9 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -23,7 +23,7 @@ class EntityListener(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // using @KafkaListener instead of @StreamListener as I couldn't find way to specify topic patterns with @StreamListener
+    // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
         val entityEvent = parseEntityEvent(content)
@@ -61,27 +61,27 @@ class EntityListener(
                         Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
                 val datasetId = attributeValuesNode["datasetId"]?.asText()
 
-                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName, datasetId)
-                    .zipWhen {
-                        val attributeInstance = AttributeInstance(
-                            temporalEntityAttribute = it,
-                            observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
-                            value = parsedAttributeValue.first,
-                            measuredValue = parsedAttributeValue.second
-                        )
-                        attributeInstanceService.create(attributeInstance)
-                            .then(temporalEntityAttributeService.updateEntityPayload(
+                temporalEntityAttributeService.getForEntityAndAttribute(
+                    entityEvent.entityId, expandedAttributeName, datasetId
+                ).zipWhen {
+                    val attributeInstance = AttributeInstance(
+                        temporalEntityAttribute = it,
+                        observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
+                        value = parsedAttributeValue.first,
+                        measuredValue = parsedAttributeValue.second
+                    )
+                    attributeInstanceService.create(attributeInstance)
+                        .then(
+                            temporalEntityAttributeService.updateEntityPayload(
                                 entityEvent.entityId,
-                                entityEvent.updatedEntity!!)
+                                entityEvent.updatedEntity!!
                             )
-                    }
-                    .doOnError {
-                        logger.error("Failed to persist new attribute instance, ignoring it", it)
-                    }
-                    .doOnNext {
-                        logger.debug("Created new attribute instance for temporal entity attribute (${it.t1})")
-                    }
-                    .subscribe()
+                        )
+                }.doOnError {
+                    logger.error("Failed to persist new attribute instance, ignoring it", it)
+                }.doOnNext {
+                    logger.debug("Created new attribute instance for temporal entity attribute (${it.t1})")
+                }.subscribe()
             }
             EventType.APPEND -> logger.warn("Append operation is not yet implemented")
             EventType.DELETE -> logger.warn("Delete operation is not yet implemented")

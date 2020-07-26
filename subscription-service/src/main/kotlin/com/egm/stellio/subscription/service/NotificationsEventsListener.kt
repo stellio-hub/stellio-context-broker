@@ -18,7 +18,6 @@ class NotificationsEventsListener(
     @Async
     @EventListener(condition = "#notificationEvent.entityType == 'Notification'")
     fun handleNotificationEvent(notificationEvent: EntityEvent) {
-
         val result = when (notificationEvent.operationType) {
             EventType.CREATE -> eventMessageService.sendMessage(
                 channelName,

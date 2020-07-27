@@ -1,6 +1,6 @@
 # Contributing
 
-Stellio is an open source project part of FIWARE. We welcome any contributions from everyone.  
+Stellio is an open source project, currently in the incubator to become a FIWARE Generic Enabler. We welcome any contributions from everyone.  
 If you wish to contribute on our code, you should first read and follow guidelines mentionned in this document.
 
 ## Ask a question 

@@ -5,7 +5,7 @@ If you wish to contribute on our code, you should first read and follow guidelin
 
 ## Ask a question 
 
-Please if you want to ask a question regarding Stellio and how to use it. Create an issue
+Please if you want to ask a question regarding Stellio and how to use it, create an issue
  in [Stackoverflow](https://stackoverflow.com/) with the tag fiware-stellio.
 
 ## Reporting Issues

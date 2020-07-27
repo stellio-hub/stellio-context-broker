@@ -2,11 +2,11 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.config.WithMockCustomUser
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ExpandedEntity
@@ -28,9 +28,7 @@ import com.github.jsonldjava.core.JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockkClass
-import io.mockk.runs
 import io.mockk.verify
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
@@ -67,7 +65,7 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
     @BeforeAll
@@ -85,10 +83,9 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214"
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
-        every { authorizationService.userIsCreator("mock-user") } returns true
-        every { authorizationService.createAdminLink(breedingServiceId, "mock-user") } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -97,14 +94,16 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
+
+        verify { authorizationService.createAdminLink(breedingServiceId, "mock-user") }
     }
 
     @Test
     fun `create entity should return a 409 if the entity already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } throws AlreadyExistsException("Already Exists")
-        every { authorizationService.userIsCreator("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -123,9 +122,9 @@ class EntityHandlerTests {
     fun `create entity should return a 500 error if internal server Error`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
-        every { authorizationService.userIsCreator("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -144,7 +143,7 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if JSON-LD payload is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
 
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -161,7 +160,7 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if Link header NS does not match the entity type`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
 
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -176,7 +175,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 400 if entity does not have an id`() {
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         val entityWithoutId = """
             {
@@ -198,7 +197,7 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 400 if entity does not have an type`() {
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         val entityWithoutType = """
             {
                 "id": "urn:ngsi-ld:Beehive:9876"
@@ -221,10 +220,10 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if input data is not valid and creation was rejected`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         every { entityService.createEntity(any()) } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
-        every { authorizationService.userIsCreator("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -247,8 +246,7 @@ class EntityHandlerTests {
     fun `it should not authorize user without creator role to create entity`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { entityService.exists(any()) } returns false
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")

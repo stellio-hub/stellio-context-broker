@@ -23,7 +23,7 @@ class Neo4jAuthorizationService(
 
     override fun userIsAdmin(userId: String): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, userId)
 
-    override fun userIsCreator(userId: String): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, userId)
+    override fun userCanCreateEntities(userId: String): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, userId)
 
     private fun userIsOneOfGivenRoles(roles: Set<String>, userId: String): Boolean =
         neo4jAuthorizationRepository.getUserRoles(USER_PREFIX + userId).intersect(roles).isNotEmpty()
@@ -43,8 +43,7 @@ class Neo4jAuthorizationService(
             entitiesId
         else neo4jAuthorizationRepository.getAvailableRightsForEntities(USER_PREFIX + userId, entitiesId)
             .filter { availableRightsForEntity ->
-                rights.any { it == availableRightsForEntity.right?.type?.get(0) } ||
-                    rights.any { it == availableRightsForEntity.grpRight?.type?.get(0) }
+                rights.intersect(availableRightsForEntity.rights).isNotEmpty()
             }
             .map {
                 it.targetEntityId
@@ -69,8 +68,7 @@ class Neo4jAuthorizationService(
             listOf(entityId)
         ).groupBy { it.targetEntityId }[entityId]
             ?.any { availableRightsForEntity ->
-                rights.any { it == availableRightsForEntity.right?.type?.get(0) } ||
-                    rights.any { it == availableRightsForEntity.grpRight?.type?.get(0) }
+                rights.intersect(availableRightsForEntity.rights).isNotEmpty()
             }
             ?: false)
 

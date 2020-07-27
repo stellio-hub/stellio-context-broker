@@ -10,14 +10,13 @@ interface AuthorizationService {
         const val R_CAN_ADMIN = AUTHORIZATION_ONTOLOGY + "rCanAdmin"
         val ADMIN_ROLES: Set<String> = setOf("admin")
         val CREATION_ROLES: Set<String> = setOf("creator").plus(ADMIN_ROLES)
-        val READ_ROLES: Set<String> = setOf("reader").plus(CREATION_ROLES)
         val ADMIN_RIGHT: Set<String> = setOf(R_CAN_ADMIN)
         val WRITE_RIGHT: Set<String> = setOf(R_CAN_WRITE).plus(ADMIN_RIGHT)
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)
     }
 
     fun userIsAdmin(userId: String): Boolean
-    fun userIsCreator(userId: String): Boolean
+    fun userCanCreateEntities(userId: String): Boolean
     fun filterEntitiesUserHasReadRight(entitiesId: List<String>, userId: String): List<String>
     fun filterEntitiesUserHasWriteRight(entitiesId: List<String>, userId: String): List<String>
     fun userHasReadRightsOnEntity(entityId: String, userId: String): Boolean

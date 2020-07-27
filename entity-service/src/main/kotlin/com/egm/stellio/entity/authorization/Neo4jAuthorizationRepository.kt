@@ -12,8 +12,7 @@ class Neo4jAuthorizationRepository(
 
     data class AvailableRightsForEntity(
         val targetEntityId: String,
-        val right: Relationship? = null,
-        val grpRight: Relationship? = null
+        val rights: List<String> = emptyList()
     )
 
     fun getAvailableRightsForEntities(userId: String, entitiesId: List<String>): List<AvailableRightsForEntity> {
@@ -31,7 +30,13 @@ class Neo4jAuthorizationRepository(
         )
 
         return session.query(query, parameters).map {
-            AvailableRightsForEntity(it["id"] as String, it["right"] as Relationship?, it["grpRight"] as Relationship?)
+            AvailableRightsForEntity(
+                it["id"] as String,
+                listOfNotNull(
+                    (it["right"] as Relationship?)?.type?.get(0),
+                    (it["grpRight"] as Relationship?)?.type?.get(0)
+                )
+            )
         }
     }
 
@@ -56,10 +61,10 @@ class Neo4jAuthorizationRepository(
 
         return result
             .flatMap {
-                listOf(
+                listOfNotNull(
                     (it["p"] as Property?)?.value as List<String>?,
                     (it["pgroup"] as Property?)?.value as List<String>?
-                ).filterNotNull().flatten()
+                ).flatten()
             }
     }
 }

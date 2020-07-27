@@ -50,7 +50,7 @@ class EntityHandler(
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return extractSubjectOrEmpty().flatMap { userId ->
-            if (!authorizationService.userIsCreator(userId))
+            if (!authorizationService.userCanCreateEntities(userId))
                 throw AccessDeniedException("User forbidden to create entities")
             body.map {
                 NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
@@ -113,15 +113,14 @@ class EntityHandler(
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
-        return entityId.toMono().zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                if (!authorizationService.userHasReadRightsOnEntity(
-                        entityId,
-                        it.t2
-                    )
-                ) throw AccessDeniedException("User forbidden read access to entity $entityId")
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+            if (!authorizationService.userHasReadRightsOnEntity(
+                    entityId,
+                    it
+                )
+            ) throw AccessDeniedException("User forbidden read access to entity $entityId")
+        }.then(entityId.toMono())
             .map {
                 entityService.getFullEntityById(entityId)
             }
@@ -138,22 +137,19 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
-        return entityId.toMono()
-            .zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId))
-                    throw ResourceNotFoundException("Entity Not Found")
-                if (entityService.exists(entityId) && !authorizationService.userHasAdminRightsOnEntity(entityId, it.t2))
-                    throw AccessDeniedException("User forbidden admin access to entity $entityId")
-            }.map {
-                entityService.deleteEntity(entityId)
-            }
-            .map {
-                if (it.first >= 1)
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId))
+                throw ResourceNotFoundException("Entity Not Found")
+            if (!authorizationService.userHasAdminRightsOnEntity(entityId, it))
+                throw AccessDeniedException("User forbidden admin access to entity $entityId")
+        }.then(entityId.toMono()).map {
+            entityService.deleteEntity(entityId)
+        }.map {
+            if (it.first >= 1)
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
+        }
     }
 
     /**
@@ -169,26 +165,21 @@ class EntityHandler(
     ): Mono<ResponseEntity<*>> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
-        return body
-            .zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userHasWriteRightsOnEntity(entityId, it.t2))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .map {
-                NgsiLdParsingUtils.expandJsonLdFragment(it.t1, contextLink)
-            }
-            .map {
-                entityService.appendEntityAttributes(entityId, it, disallowOverwrite)
-            }
-            .map {
-                logger.debug("Appended $it attributes on entity $entityId")
-                if (it.notUpdated.isEmpty())
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+            if (!authorizationService.userHasWriteRightsOnEntity(entityId, it))
+                throw AccessDeniedException("User forbidden write access to entity $entityId")
+        }.then(body).map {
+            NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
+        }.map {
+            entityService.appendEntityAttributes(entityId, it, disallowOverwrite)
+        }.map {
+            logger.debug("Appended $it attributes on entity $entityId")
+            if (it.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
+        }
     }
 
     /**
@@ -205,24 +196,19 @@ class EntityHandler(
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
-
-        return body
-            .zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userHasWriteRightsOnEntity(entityId, it.t2))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .map {
-                entityService.updateEntityAttributes(entityId, it.t1, contextLink)
-            }
-            .map {
-                logger.debug("Update $it attributes on entity $entityId")
-                if (it.notUpdated.isEmpty())
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+            if (!authorizationService.userHasWriteRightsOnEntity(entityId, it))
+                throw AccessDeniedException("User forbidden write access to entity $entityId")
+        }.then(body).map {
+            entityService.updateEntityAttributes(entityId, it, contextLink)
+        }.map {
+            logger.debug("Update $it attributes on entity $entityId")
+            if (it.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
+        }
     }
 
     /**
@@ -240,20 +226,15 @@ class EntityHandler(
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
-
-        return body
-            .zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userHasWriteRightsOnEntity(entityId, it.t2))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .map {
-                entityService.updateEntityAttribute(entityId, attrId, it.t1, contextLink)
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+            if (!authorizationService.userHasWriteRightsOnEntity(entityId, it))
+                throw AccessDeniedException("User forbidden write access to entity $entityId")
+        }.then(body).map {
+            entityService.updateEntityAttribute(entityId, attrId, it, contextLink)
+        }.map {
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
     }
 
     /**
@@ -267,23 +248,18 @@ class EntityHandler(
         @PathVariable attrId: String
     ): Mono<ResponseEntity<*>> {
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
-
-        return entityId.toMono()
-            .zipWith(extractSubjectOrEmpty())
-            .doOnNext {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userHasWriteRightsOnEntity(entityId, it.t2))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .map {
-                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
-            }
-            .map {
-                if (it)
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
-                        .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
-            }
+        return extractSubjectOrEmpty().doOnNext {
+            if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+            if (!authorizationService.userHasWriteRightsOnEntity(entityId, it))
+                throw AccessDeniedException("User forbidden write access to entity $entityId")
+        }.then(entityId.toMono()).map {
+            entityService.deleteEntityAttribute(entityId, attrId, contextLink)
+        }.map {
+            if (it)
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                    .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+        }
     }
 }

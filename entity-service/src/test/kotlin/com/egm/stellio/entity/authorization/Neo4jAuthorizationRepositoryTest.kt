@@ -32,6 +32,7 @@ class Neo4jAuthorizationRepositoryTest {
         const val EGM_CAN_READ = "https://ontology.eglobalmark.com/authorization#rCanRead"
         const val EGM_CAN_WRITE = "https://ontology.eglobalmark.com/authorization#rCanWrite"
         const val EGM_IS_MEMBER_OF = "https://ontology.eglobalmark.com/authorization#isMemberOf"
+        const val EGM_ROLES = "https://ontology.eglobalmark.com/authorization#roles"
     }
 
     @Test
@@ -62,7 +63,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         assert(availableRightsForEntities.size == 1)
         assert(availableRightsForEntities[0].targetEntityId == "urn:ngsi-ld:Apiary:01")
-        assert(availableRightsForEntities[0].right?.type == listOf(EGM_CAN_READ))
+        assert(availableRightsForEntities[0].rights == listOf(EGM_CAN_READ))
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
@@ -79,12 +80,7 @@ class Neo4jAuthorizationRepositoryTest {
         val groupEntity = createEntity(
             "urn:ngsi-ld:Group:01",
             listOf("Group"),
-            mutableListOf(
-                Property(
-                    name = "https://ontology.eglobalmark.com/authorization#roles",
-                    value = listOf("admin")
-                )
-            )
+            mutableListOf()
         )
 
         createRelationship(
@@ -119,9 +115,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         assert(availableRightsForEntities.size == 1)
         assert(availableRightsForEntities[0].targetEntityId == "urn:ngsi-ld:Apiary:01")
-        assert(availableRightsForEntities[0].grpRight?.type == listOf(EGM_CAN_READ))
-        assert(availableRightsForEntities[0].right?.type == listOf(EGM_CAN_WRITE))
-
+        assert(availableRightsForEntities[0].rights == listOf(EGM_CAN_WRITE, EGM_CAN_READ))
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Group:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
@@ -167,12 +161,12 @@ class Neo4jAuthorizationRepositoryTest {
 
         assert(availableRightsForEntities.size == 2)
         assert(
-            availableRightsForEntities.find { it.targetEntityId == apiaryEntity.id }?.right?.type == listOf(
+            availableRightsForEntities.find { it.targetEntityId == apiaryEntity.id }?.rights == listOf(
                 EGM_CAN_WRITE
             )
         )
         assert(
-            availableRightsForEntities.find { it.targetEntityId == apiaryEntity2.id }?.right?.type == listOf(
+            availableRightsForEntities.find { it.targetEntityId == apiaryEntity2.id }?.rights == listOf(
                 EGM_CAN_READ
             )
         )
@@ -189,7 +183,7 @@ class Neo4jAuthorizationRepositoryTest {
             listOf("User"),
             mutableListOf(
                 Property(
-                    name = "https://ontology.eglobalmark.com/authorization#roles",
+                    name = EGM_ROLES,
                     value = listOf("admin", "creator")
                 )
             )
@@ -216,7 +210,7 @@ class Neo4jAuthorizationRepositoryTest {
             listOf("Group"),
             mutableListOf(
                 Property(
-                    name = "https://ontology.eglobalmark.com/authorization#roles",
+                    name = EGM_ROLES,
                     value = listOf("admin")
                 )
             )
@@ -239,7 +233,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should find no user roles`() {
-        val userEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:User:01",
             listOf("User"),
             mutableListOf()

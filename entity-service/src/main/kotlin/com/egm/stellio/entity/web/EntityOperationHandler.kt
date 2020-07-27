@@ -32,7 +32,7 @@ class EntityOperationHandler(
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
 
         return extractSubjectOrEmpty().flatMap { userId ->
-            if (!authorizationService.userIsCreator(userId))
+            if (!authorizationService.userCanCreateEntities(userId))
                 throw AccessDeniedException("User forbidden to create entities")
             body.map {
                 extractAndParseBatchOfEntities(it)
@@ -75,7 +75,7 @@ class EntityOperationHandler(
                 )
 
                 val createBatchOperationResult =
-                    if (authorizationService.userIsCreator(expandedEntitiesAndUserId.t2)) entityOperationService.create(
+                    if (authorizationService.userCanCreateEntities(expandedEntitiesAndUserId.t2)) entityOperationService.create(
                         newEntities
                     )
                     else BatchOperationResult(errors = ArrayList(newEntities.map {

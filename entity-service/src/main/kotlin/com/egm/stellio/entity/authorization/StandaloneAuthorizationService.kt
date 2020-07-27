@@ -10,7 +10,7 @@ class StandaloneAuthorizationService : AuthorizationService {
         return true
     }
 
-    override fun userIsCreator(userId: String): Boolean {
+    override fun userCanCreateEntities(userId: String): Boolean {
         return true
     }
 

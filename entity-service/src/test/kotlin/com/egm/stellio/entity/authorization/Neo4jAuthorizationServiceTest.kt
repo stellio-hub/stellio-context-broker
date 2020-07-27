@@ -1,16 +1,18 @@
 package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
-import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
 @ActiveProfiles("test")
@@ -22,7 +24,7 @@ class Neo4jAuthorizationServiceTest {
     @MockkBean
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
 
     @ParameterizedTest
@@ -88,17 +90,16 @@ class Neo4jAuthorizationServiceTest {
         } returns listOf(
             Neo4jAuthorizationRepository.AvailableRightsForEntity(
                 targetEntityId = "entityId",
-                right = Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead"))
+                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead")
             ),
             Neo4jAuthorizationRepository.AvailableRightsForEntity(targetEntityId = "entityId2"),
             Neo4jAuthorizationRepository.AvailableRightsForEntity(
                 targetEntityId = "entityId3",
-                grpRight = Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + "rCanAdmin"))
+                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanAdmin")
             ),
             Neo4jAuthorizationRepository.AvailableRightsForEntity(
                 targetEntityId = "entityId4",
-                right = Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead")),
-                grpRight = Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + "rCanWrite"))
+                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead", AUTHORIZATION_ONTOLOGY + "rCanWrite")
             ),
             Neo4jAuthorizationRepository.AvailableRightsForEntity(targetEntityId = "entityId5")
         )
@@ -113,19 +114,8 @@ class Neo4jAuthorizationServiceTest {
     }
 
     @Test
-    fun `it shoud filter entities if user's group has read right`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf()
-        every {
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
-                "urn:ngsi-ld:User:mock-user",
-                listOf("entityId")
-            )
-        } returns listOf(
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId",
-                right = Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead"))
-            )
-        )
+    fun `it should keep all entities if user has admin rights`() {
+        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
 
         assert(
             neo4jAuthorizationService.filterEntitiesUserHasReadRight(listOf("entityId"), "mock-user") == listOf(
@@ -135,14 +125,23 @@ class Neo4jAuthorizationServiceTest {
     }
 
     @Test
-    fun `it should keep all entities if user has admin rights`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
+    fun `it should create an admin link to an entity`() {
+        val userId = "mock-user"
+        val entityId = "urn:ngsi-ld:Apiary:01"
 
-        assert(
-            neo4jAuthorizationService.filterEntitiesUserHasReadRight(listOf("entityId"), "mock-user") == listOf(
-                "entityId"
+        neo4jAuthorizationService.createAdminLink(entityId, userId)
+
+        verify {
+            neo4jRepository.createRelationshipOfSubject(
+                match { it.id == "urn:ngsi-ld:User:$userId" },
+                match {
+                    it.type == listOf(AuthorizationService.R_CAN_ADMIN) &&
+                        it.datasetId == URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$entityId")
+                },
+                eq(entityId)
             )
-        )
+        }
+        confirmVerified()
     }
 
     private fun assertUserHasRightOnEntity(right: String, userHasRightOnEntity: (String, String) -> Boolean) {
@@ -167,7 +166,7 @@ class Neo4jAuthorizationServiceTest {
         } returns listOf(
             Neo4jAuthorizationRepository.AvailableRightsForEntity(
                 targetEntityId = "entityId",
-                right = if (right != "") Relationship(type = listOf(AUTHORIZATION_ONTOLOGY + right)) else null
+                rights = if (right != "") listOf(AUTHORIZATION_ONTOLOGY + right) else emptyList()
             )
         )
 

@@ -2,8 +2,8 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.config.WithMockCustomUser
 import com.egm.stellio.entity.service.EntityOperationService
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -59,7 +59,7 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
@@ -109,7 +109,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             errors
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
@@ -161,7 +161,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
@@ -194,7 +194,7 @@ class EntityOperationHandlerTests {
     fun `create batch should not authorize user without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -241,7 +241,7 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
@@ -290,7 +290,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             errors
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
@@ -344,7 +344,7 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
@@ -371,7 +371,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to create entities without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val expandedEntity = mockk<ExpandedEntity>()
         every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"
@@ -385,7 +385,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
         every { authorizationService.filterEntitiesUserHasWriteRight(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
@@ -415,7 +415,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to updates entities without write right`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val entitiesId =
             listOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen")
@@ -430,7 +430,7 @@ class EntityOperationHandlerTests {
             existingEntities,
             emptyList()
         )
-        every { authorizationService.userIsCreator("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val entitiesIdToUpdate = listOf(expandedEntity.id)
         every {
@@ -470,7 +470,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
-        every { authorizationService.userIsCreator("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         shouldReturn400WithBadPayload("create")
     }

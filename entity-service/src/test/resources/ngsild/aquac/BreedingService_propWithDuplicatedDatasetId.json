@@ -1,0 +1,30 @@
+{
+   "id":"urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId",
+   "type":"BreedingService",
+   "fishName": [
+      {
+         "type": "Property",
+         "value": 35
+      },
+      {
+         "type": "Property",
+         "value": 12,
+         "datasetId": "urn:ngsi-ld:Dataset:fishName:1"
+      },
+      {
+         "type": "Property",
+         "value": 20,
+         "datasetId": "urn:ngsi-ld:Dataset:fishName:2"
+      },
+      {
+         "type": "Property",
+         "value": 14,
+         "datasetId": "urn:ngsi-ld:Dataset:fishName:1"
+      }
+   ],
+   "@context": [
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ]
+}

@@ -3,6 +3,8 @@ package com.egm.stellio.search.listener
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.util.valueToDoubleOrNull
+import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity
@@ -39,20 +41,33 @@ class EntityListener(
             EventType.UPDATE -> {
                 // TODO add missing checks:
                 //  - existence of temporal entity attribute
-                //  - only add an attribute instance if observedAt (?)
-                //  - handle double vs string value
                 //  - needs optimization (lot of JSON-LD parsing, ...)
                 val rawParsedData = jacksonObjectMapper().readTree(entityEvent.payload!!)
                 val rawEntity = parseEntity(entityEvent.updatedEntity!!)
                 val attributeName = rawParsedData.fieldNames().next()
-                val expandedAttributeName = expandJsonLdKey(rawParsedData.fieldNames().next(), rawEntity.contexts)!!
+                val attributeValuesNode = rawParsedData[attributeName]
 
-                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName)
+                if (!attributeValuesNode.has("observedAt")) {
+                    logger.info("Ignoring update event for $attributeName, it has no observedAt information")
+                    return
+                }
+
+                val expandedAttributeName = expandJsonLdKey(attributeName, rawEntity.contexts)!!
+                val rawAttributeValue = attributeValuesNode["value"]
+                val parsedAttributeValue =
+                    if (rawAttributeValue.isNumber)
+                        Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
+                    else
+                        Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
+                val datasetId = attributeValuesNode["datasetId"]?.asText()
+
+                temporalEntityAttributeService.getForEntityAndAttribute(entityEvent.entityId, expandedAttributeName, datasetId)
                     .zipWhen {
                         val attributeInstance = AttributeInstance(
                             temporalEntityAttribute = it,
-                            observedAt = ZonedDateTime.parse(rawParsedData[attributeName]["observedAt"].asText()),
-                            measuredValue = rawParsedData[attributeName]["value"].asDouble()
+                            observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
+                            value = parsedAttributeValue.first,
+                            measuredValue = parsedAttributeValue.second
                         )
                         attributeInstanceService.create(attributeInstance)
                             .then(temporalEntityAttributeService.addEntityPayload(it, entityEvent.updatedEntity!!))

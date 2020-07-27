@@ -13,8 +13,11 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
@@ -343,6 +346,187 @@ class EntityHandlerTests {
             .expectStatus().isOk
             .expectBody().json(
                 "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Time\",\"@value\":\"11:20:30\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+                mapOf(
+                        "https://uri.etsi.org/ngsi-ld/name" to
+                                mapOf(
+                                        NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                                        NGSILD_PROPERTY_VALUE to "ruche",
+                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:french-name"
+                                        )
+                                ),
+                        NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                        NGSILD_ENTITY_TYPE to listOf("Beehive")
+                ),
+                listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .exchange()
+                .expectStatus().isOk
+                .expectBody().json(
+                    """
+                    {
+                        "id":"urn:ngsi-ld:Beehive:4567",
+                        "type":"Beehive",
+                        "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
+                        "@context":"$NGSILD_CORE_CONTEXT"
+                    }
+                    """.trimIndent()
+                )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+                mapOf(
+                        "https://uri.etsi.org/ngsi-ld/name" to
+                                listOf(mapOf(
+                                        NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                                        NGSILD_PROPERTY_VALUE to "beehive",
+                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:english-name"
+                                        )
+                                    ),
+                                    mapOf(
+                                            NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                                            NGSILD_PROPERTY_VALUE to "ruche",
+                                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Property:french-name"
+                                            )
+                                    )
+                                ),
+                        NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                        NGSILD_ENTITY_TYPE to listOf("Beehive")
+                ),
+                listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .exchange()
+                .expectStatus().isOk
+                .expectBody().json(
+                """
+                 {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "name":[
+                        {
+                            "type":"Property","datasetId":"urn:ngsi-ld:Property:english-name","value":"beehive"
+                        },
+                        {
+                            "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
+                        }
+                    ],
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
+                    mapOf(
+                        NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1230"
+                        ),
+                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                            NGSILD_ENTITY_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                        )
+                    ),
+                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                NGSILD_ENTITY_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                    {
+                        "id":"urn:ngsi-ld:Beehive:4567",
+                        "type":"Beehive",
+                        "managedBy":{"type":"Relationship", "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215", "object":"urn:ngsi-ld:Beekeeper:1230"},
+                        "@context":"$NGSILD_CORE_CONTEXT"
+                    }
+                    """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any()) } returns ExpandedEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
+                    listOf(
+                        mapOf(
+                            NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1229"
+                            )
+                        ),
+                        mapOf(
+                            NGSILD_ENTITY_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beekeeper:1230"
+                            ),
+                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                NGSILD_ENTITY_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                            )
+                        )
+                    ),
+                NGSILD_ENTITY_ID to "urn:ngsi-ld:Beehive:4567",
+                NGSILD_ENTITY_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                 {
+                    "id":"urn:ngsi-ld:Beehive:4567",
+                    "type":"Beehive",
+                    "managedBy":[
+                       {
+                          "type":"Relationship",
+                          "object":"urn:ngsi-ld:Beekeeper:1229"
+                       },
+                       {
+                          "type":"Relationship",
+                          "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
+                          "object":"urn:ngsi-ld:Beekeeper:1230"
+                       }
+                    ],
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                }
+                """.trimIndent()
             )
     }
 

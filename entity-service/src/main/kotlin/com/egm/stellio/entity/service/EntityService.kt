@@ -27,6 +27,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
@@ -44,13 +45,16 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactAndStringifyFragmen
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandRelationshipType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandValueAsMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.extractShortTypeFromPayload
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getRelationshipObjectId
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.isAttributeOfType
+import com.egm.stellio.shared.util.NgsiLdParsingUtils.isValidAttribute
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toNgsiLdRelationshipKey
@@ -62,6 +66,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 
 @Component
 class EntityService(
@@ -86,17 +91,24 @@ class EntityService(
             throw BadRequestDataException("Entity ${expandedEntity.id} targets unknown entities: $inErrorRelationships")
         }
 
+        expandedEntity.checkAttributesHaveAtMostOneDefaultInstance()
+        expandedEntity.checkAttributesHaveUniqueDatasetId()
+
         val rawEntity =
             Entity(id = expandedEntity.id, type = listOf(expandedEntity.type), contexts = expandedEntity.contexts)
         val entity = entityRepository.save(rawEntity)
 
         expandedEntity.relationships.forEach { entry ->
-            val objectId = getRelationshipObjectId(entry.value)
-            createEntityRelationship(entity, entry.key, entry.value, objectId)
+            entry.value.forEach { instance ->
+                val objectId = getRelationshipObjectId(instance)
+                createEntityRelationship(entity, entry.key, instance, objectId)
+            }
         }
 
         expandedEntity.properties.forEach { entry ->
-            createEntityProperty(entity, entry.key, entry.value)
+            entry.value.forEach { instance ->
+                createEntityProperty(entity, entry.key, instance)
+            }
         }
 
         expandedEntity.geoProperties.forEach { entry ->
@@ -136,7 +148,8 @@ class EntityService(
         val rawProperty = Property(
             name = propertyKey, value = propertyValue,
             unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY),
-            observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
+            observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY),
+            datasetId = getPropertyValueFromMapAsUri(propertyValues, NGSILD_DATASET_ID_PROPERTY)
         )
 
         neo4jRepository.createPropertyOfSubject(
@@ -166,7 +179,8 @@ class EntityService(
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
         val rawRelationship = Relationship(
             type = listOf(relationshipType),
-            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY)
+            observedAt = getPropertyValueFromMapAsDateTime(relationshipValues, NGSILD_OBSERVED_AT_PROPERTY),
+            datasetId = getPropertyValueFromMapAsUri(relationshipValues, NGSILD_DATASET_ID_PROPERTY)
         )
 
         neo4jRepository.createRelationshipOfSubject(EntitySubjectNode(entity.id), rawRelationship, targetEntityId)
@@ -276,16 +290,22 @@ class EntityService(
                 (it["property"] as Property).id
             }
             .values
-            .forEach {
-                val (propertyKey, propertyValues) = buildPropertyFragment(it, entity.contexts)
-                resultEntity[propertyKey] = propertyValues
+            .map { buildInstanceFragment(it, entity.contexts) }
+            .groupBy { it.first }
+            .mapValues { propertyInstances ->
+                propertyInstances.value.map { instanceFragment ->
+                    instanceFragment.second
+                }
+            }
+            .forEach { property ->
+                resultEntity[property.key] = property.value
             }
 
         entityRepository.getEntityRelationships(entityId)
             .groupBy {
                 (it["rel"] as Relationship).id
             }.values
-            .forEach {
+            .map {
                 val relationship = it[0]["rel"] as Relationship
                 val primaryRelType = (it[0]["rel"] as Relationship).type[0]
                 val primaryRelation =
@@ -316,13 +336,22 @@ class EntityService(
 
                     relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
                 }
-
-                resultEntity[primaryRelType] = relationshipValues
+                Pair(primaryRelType, relationshipValues)
             }
+            .groupBy { it.first }
+            .mapValues { relationshipInstances ->
+                relationshipInstances.value.map { instanceFragment ->
+                    instanceFragment.second
+                }
+            }
+            .forEach { relationship ->
+                resultEntity[relationship.key] = relationship.value
+            }
+
         return ExpandedEntity(resultEntity, entity.contexts)
     }
 
-    private fun buildPropertyFragment(
+    private fun buildInstanceFragment(
         rawProperty: List<Map<String, Any>>,
         contexts: List<String>
     ): Pair<String, Map<String, Any>> {
@@ -376,6 +405,7 @@ class EntityService(
      *
      * @return a list of entities represented as per #getFullEntityById result
      */
+    @Transactional
     fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<ExpandedEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
@@ -402,11 +432,10 @@ class EntityService(
         attributes: Map<String, Any>,
         disallowOverwrite: Boolean
     ): UpdateResult {
-        val updateStatuses = attributes.map {
-            val attributeValue = expandValueAsMap(it.value)
-            if (!attributeValue.containsKey("@type"))
-                throw BadRequestDataException("@type not found in $attributeValue")
-            val attributeType = attributeValue["@type"]!![0]
+        val updateStatuses = attributes.flatMap {
+            val attributeValue = expandValueAsListOfMap(it.value)
+            isValidAttribute(it.key, attributeValue)
+            val attributeType = attributeValue[0]["@type"]!![0]
             logger.debug("Fragment is of type $attributeType")
             if (attributeType == NGSILD_RELATIONSHIP_TYPE.uri) {
                 val relationshipTypeName = it.key.extractShortTypeFromExpanded()
@@ -417,63 +446,66 @@ class EntityService(
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
-                        attributeValue,
-                        getRelationshipObjectId(attributeValue)
+                        attributeValue[0],
+                        getRelationshipObjectId(attributeValue[0])
                     )
-                    Triple(it.key, true, null)
+                    listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
+                    listOf(Triple(
                         it.key,
                         false,
                         "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
+                    ))
                 } else {
                     neo4jRepository.deleteEntityRelationship(entityId, relationshipTypeName.toRelationshipTypeName())
                     createEntityRelationship(
                         entityRepository.findById(entityId).get(),
                         it.key,
-                        attributeValue,
-                        getRelationshipObjectId(attributeValue)
+                        attributeValue[0],
+                        getRelationshipObjectId(attributeValue[0])
                     )
-                    Triple(it.key, true, null)
+                    listOf(Triple(it.key, true, null))
                 }
             } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                if (!neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), it.key)) {
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
-                } else if (disallowOverwrite) {
-                    logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
-                        it.key,
-                        false,
-                        "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
-                } else {
-                    neo4jRepository.deleteEntityProperty(entityId, it.key)
-                    createEntityProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                attributeValue.map { instance ->
+                    val datasetId = getPropertyValueFromMapAsUri(instance, NGSILD_DATASET_ID_PROPERTY)
+                    if (!neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), it.key, datasetId)) {
+                        createEntityProperty(entityRepository.findById(entityId).get(), it.key, instance)
+                        Triple(it.key, true, null)
+                    } else if (disallowOverwrite) {
+                        logger.info("Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
+                        Triple(
+                            it.key,
+                            false,
+                            "Property ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
+                        )
+                    } else {
+                        neo4jRepository.deleteEntityProperty(entityId, it.key)
+                        createEntityProperty(entityRepository.findById(entityId).get(), it.key, instance)
+                        Triple(it.key, true, null)
+                    }
                 }
             } else if (attributeType == NGSILD_GEOPROPERTY_TYPE.uri) {
                 if (!neo4jRepository.hasGeoPropertyOfName(
                     EntitySubjectNode(entityId),
                     it.key.extractShortTypeFromExpanded())
                 ) {
-                    createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                    createLocationProperty(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
+                    listOf(Triple(it.key, true, null))
                 } else if (disallowOverwrite) {
                     logger.info("GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring")
-                    Triple(
+                    listOf(Triple(
                         it.key,
                         false,
                         "GeoProperty ${it.key} already exists on $entityId and overwrite is not allowed, ignoring"
-                    )
+                    ))
                 } else {
-                    updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue)
-                    Triple(it.key, true, null)
+                    updateLocationPropertyOfEntity(entityRepository.findById(entityId).get(), it.key, attributeValue[0])
+                    listOf(Triple(it.key, true, null))
                 }
             } else {
-                Triple(it.key, false, "Unknown attribute type $attributeType")
+                listOf(Triple(it.key, false, "Unknown attribute type $attributeType"))
             }
         }
         .toList()
@@ -523,8 +555,9 @@ class EntityService(
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (attributeType == NGSILD_PROPERTY_TYPE.uri) {
-                    if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(id), it.key)) {
-                        updatePropertyOfEntity(entity, it.key, attributeValue)
+                    val datasetId = getPropertyValueFromMapAsUri(attributeValue, NGSILD_DATASET_ID_PROPERTY)
+                    if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), it.key, datasetId)) {
+                        updatePropertyOfEntity(entity, it.key, attributeValue, datasetId)
                         updatedAttributes.add(shortAttributeName)
                         updatedAttributesPayload.add(compactAndStringifyFragment(it.key, it.value, contextLink))
                     } else
@@ -561,9 +594,10 @@ class EntityService(
     private fun updatePropertyOfEntity(
         entity: Entity,
         propertyKey: String,
-        propertyValues: Map<String, List<Any>>
+        propertyValues: Map<String, List<Any>>,
+        datasetId: URI?
     ): Property {
-        val property = updatePropertyValues(entity.id, propertyKey, propertyValues)
+        val property = updatePropertyValues(entity.id, propertyKey, propertyValues, datasetId)
         updatePropertiesOfAttribute(property, propertyValues)
         updateRelationshipsOfAttribute(property, propertyValues)
 
@@ -573,13 +607,14 @@ class EntityService(
     private fun updatePropertyValues(
         subjectId: String,
         propertyKey: String,
-        propertyValues: Map<String, List<Any>>
+        propertyValues: Map<String, List<Any>>,
+        datasetId: URI? = null
     ): Property {
         val unitCode = getPropertyValueFromMapAsString(propertyValues, NGSILD_UNIT_CODE_PROPERTY)
         val value = getPropertyValueFromMap(propertyValues, NGSILD_PROPERTY_VALUE) ?: propertyValues["@value"]!!
         val observedAt = getPropertyValueFromMapAsDateTime(propertyValues, NGSILD_OBSERVED_AT_PROPERTY)
 
-        val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey)
+        val property = neo4jRepository.getPropertyOfSubject(subjectId, propertyKey, datasetId)
         property.updateValues(unitCode, value, observedAt)
 
         return propertyRepository.save(property)
@@ -724,7 +759,7 @@ class EntityService(
 
             val entity = neo4jRepository.getEntityByProperty(observedProperty)
             val rawProperty = entityRepository.getEntitySpecificProperty(entity.id, observedProperty.id)
-            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
+            val propertyFragment = buildInstanceFragment(rawProperty, entity.contexts)
             val propertyPayload = compactAndStringifyFragment(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts

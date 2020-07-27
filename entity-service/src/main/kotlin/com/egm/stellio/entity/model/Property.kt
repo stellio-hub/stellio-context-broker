@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.fasterxml.jackson.annotation.JsonRawValue
 import org.neo4j.ogm.annotation.Index
 import org.neo4j.ogm.annotation.NodeEntity
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -24,8 +25,11 @@ class Property(
     @JsonRawValue
     var value: Any,
 
-    observedAt: ZonedDateTime? = null
-) : Attribute(attributeType = "Property", observedAt = observedAt) {
+    observedAt: ZonedDateTime? = null,
+
+    datasetId: URI? = null
+
+) : Attribute(attributeType = "Property", observedAt = observedAt, datasetId = datasetId) {
 
     override fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = super.serializeCoreProperties()

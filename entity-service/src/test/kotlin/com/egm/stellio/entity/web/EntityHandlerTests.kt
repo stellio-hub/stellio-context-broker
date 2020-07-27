@@ -1018,7 +1018,7 @@ class EntityHandlerTests {
     @Test
     fun `it should not authorize user without write rights on entity to update it`() {
         val jsonLdFile = ClassPathResource("/ngsild/sensor_update.json")
-        val entityId = "urn:ngsi-ld:UnknownType:0022CCC"
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
 
         every { entityService.exists(any()) } returns true
         every { authorizationService.userHasWriteRightsOnEntity(entityId, "mock-user") } returns false
@@ -1034,7 +1034,7 @@ class EntityHandlerTests {
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden write access to entity urn:ngsi-ld:UnknownType:0022CCC"
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC"
                 }
                 """.trimIndent()
             )

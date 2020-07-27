@@ -142,10 +142,7 @@ class EntityHandler(
         }.map {
             entityService.deleteEntity(entityId)
         }.map {
-            if (it.first >= 1)
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            else
-                ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
     }
 

@@ -86,7 +86,7 @@ class EntityOperationHandler(
                     }))
 
                 val existingEntitiesIdsAuthorized =
-                    authorizationService.filterEntitiesUserHasWriteRight(
+                    authorizationService.filterEntitiesUserCanWrite(
                         existingEntities.map { it.id },
                         expandedEntitiesAndUserId.t2
                     )

@@ -36,7 +36,7 @@ class Neo4jAuthorizationRepositoryTest {
     }
 
     @Test
-    fun `it should get all user's rights on an entity`() {
+    fun `it should filter entities authorized for user with given rights`() {
         val userEntity = createEntity(
             "urn:ngsi-ld:User:01",
             listOf("User"),
@@ -56,49 +56,30 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         val availableRightsForEntities =
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:01",
-                listOf("urn:ngsi-ld:Apiary:01")
+                listOf("urn:ngsi-ld:Apiary:01"),
+                setOf(EGM_CAN_READ)
             )
 
-        assert(availableRightsForEntities.size == 1)
-        assert(availableRightsForEntities[0].targetEntityId == "urn:ngsi-ld:Apiary:01")
-        assert(availableRightsForEntities[0].rights == listOf(EGM_CAN_READ))
+        assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
     }
 
     @Test
-    fun `it should get all user's rights on an entity from group`() {
+    fun `it should find no entities are authorized by user`() {
         val userEntity = createEntity(
             "urn:ngsi-ld:User:01",
             listOf("User"),
             mutableListOf()
         )
 
-        val groupEntity = createEntity(
-            "urn:ngsi-ld:Group:01",
-            listOf("Group"),
-            mutableListOf()
-        )
-
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_IS_MEMBER_OF,
-            groupEntity.id
-        )
-
         val apiaryEntity = createEntity(
             "urn:ngsi-ld:Apiary:01",
             listOf("Apiary"),
             mutableListOf()
-        )
-
-        createRelationship(
-            EntitySubjectNode(groupEntity.id),
-            EGM_CAN_READ,
-            apiaryEntity.id
         )
 
         createRelationship(
@@ -108,21 +89,20 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         val availableRightsForEntities =
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:01",
-                listOf("urn:ngsi-ld:Apiary:01")
+                listOf("urn:ngsi-ld:Apiary:01"),
+                setOf(EGM_CAN_READ)
             )
 
-        assert(availableRightsForEntities.size == 1)
-        assert(availableRightsForEntities[0].targetEntityId == "urn:ngsi-ld:Apiary:01")
-        assert(availableRightsForEntities[0].rights == listOf(EGM_CAN_WRITE, EGM_CAN_READ))
+        assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
+
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
-        neo4jRepository.deleteEntity("urn:ngsi-ld:Group:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
     }
 
     @Test
-    fun `it should get all user's rights on several entities`() {
+    fun `it should filter entities that are authorized by user's group`() {
         val userEntity = createEntity(
             "urn:ngsi-ld:User:01",
             listOf("User"),
@@ -153,24 +133,14 @@ class Neo4jAuthorizationRepositoryTest {
             apiaryEntity2.id
         )
 
-        val availableRightsForEntities =
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
+        val authorizedEntitiesId =
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:01",
-                listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02")
+                listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02"),
+                setOf(EGM_CAN_READ, EGM_CAN_WRITE)
             )
 
-        assert(availableRightsForEntities.size == 2)
-        assert(
-            availableRightsForEntities.find { it.targetEntityId == apiaryEntity.id }?.rights == listOf(
-                EGM_CAN_WRITE
-            )
-        )
-        assert(
-            availableRightsForEntities.find { it.targetEntityId == apiaryEntity2.id }?.rights == listOf(
-                EGM_CAN_READ
-            )
-        )
-
+        assert(authorizedEntitiesId == listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02"))
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:02")

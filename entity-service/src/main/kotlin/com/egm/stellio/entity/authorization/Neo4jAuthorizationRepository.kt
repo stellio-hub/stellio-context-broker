@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.model.Property
-import com.egm.stellio.entity.model.Relationship
 import org.neo4j.ogm.session.Session
 import org.springframework.stereotype.Component
 
@@ -10,33 +9,31 @@ class Neo4jAuthorizationRepository(
     private val session: Session
 ) {
 
-    data class AvailableRightsForEntity(
-        val targetEntityId: String,
-        val rights: List<String> = emptyList()
-    )
-
-    fun getAvailableRightsForEntities(userId: String, entitiesId: List<String>): List<AvailableRightsForEntity> {
+    fun filterEntitiesUserHasOneOfGivenRights(
+        userId: String,
+        entitiesId: List<String>,
+        rights: Set<String>
+    ): List<String> {
         val query = """
             MATCH (userEntity:Entity {id : ${'$'}userId}), (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]->(grpRight:Attribute:Relationship)-[]->(entity:Entity)
-            RETURN entity.id as id, right, grpRight
+            WHERE size([label IN labels(right) WHERE label IN ${'$'}rights | 1]) > 0 AND
+                    size([label IN labels(grpRight) WHERE label IN ${'$'}rights | 1]) > 0
+            RETURN entity.id as id, count(right) AS nbOfRights, count(grpRight) AS nbOfGrpRights
         """.trimIndent()
 
         val parameters = mapOf(
             "userId" to userId,
-            "entitiesId" to entitiesId
+            "entitiesId" to entitiesId,
+            "rights" to rights
         )
 
-        return session.query(query, parameters).map {
-            AvailableRightsForEntity(
-                it["id"] as String,
-                listOfNotNull(
-                    (it["right"] as Relationship?)?.type?.get(0),
-                    (it["grpRight"] as Relationship?)?.type?.get(0)
-                )
-            )
+        return session.query(query, parameters).filter {
+            it["nbOfRights"] as Long + it["nbOfGrpRights"] as Long > 0
+        }.map {
+            it["id"] as String
         }
     }
 
@@ -56,7 +53,7 @@ class Neo4jAuthorizationRepository(
         val result = session.query(query, parameters)
 
         if (result.toList().isEmpty()) {
-            return listOf()
+            return emptyList()
         }
 
         return result

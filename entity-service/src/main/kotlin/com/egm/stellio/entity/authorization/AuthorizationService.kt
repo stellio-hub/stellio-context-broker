@@ -17,10 +17,10 @@ interface AuthorizationService {
 
     fun userIsAdmin(userId: String): Boolean
     fun userCanCreateEntities(userId: String): Boolean
-    fun filterEntitiesUserHasReadRight(entitiesId: List<String>, userId: String): List<String>
-    fun filterEntitiesUserHasWriteRight(entitiesId: List<String>, userId: String): List<String>
-    fun userHasReadRightsOnEntity(entityId: String, userId: String): Boolean
-    fun userHasWriteRightsOnEntity(entityId: String, userId: String): Boolean
-    fun userHasAdminRightsOnEntity(entityId: String, userId: String): Boolean
+    fun filterEntitiesUserCanRead(entitiesId: List<String>, userId: String): List<String>
+    fun filterEntitiesUserCanWrite(entitiesId: List<String>, userId: String): List<String>
+    fun userCanReadEntity(entityId: String, userId: String): Boolean
+    fun userCanWriteEntity(entityId: String, userId: String): Boolean
+    fun userCanAdminEntity(entityId: String, userId: String): Boolean
     fun createAdminLink(entityId: String, userId: String)
 }

@@ -1,14 +1,12 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -27,57 +25,43 @@ class Neo4jAuthorizationServiceTest {
     @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
 
-    @ParameterizedTest
-    @ValueSource(strings = ["rCanRead", "rCanWrite", "rCanAdmin"])
-    fun `it should find user has read right on entity`(right: String) {
-        assertUserHasRightOnEntity(right, neo4jAuthorizationService::userHasReadRightsOnEntity)
+    @Test
+    fun `it should find user has read right on entity`() {
+        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanReadEntity)
     }
 
     @Test
     fun `it should find user has not read  right on entity`() {
-        assertUserHasNotRightOnEntity("", neo4jAuthorizationService::userHasReadRightsOnEntity)
+        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanReadEntity)
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = ["rCanWrite", "rCanAdmin"])
-    fun `it should find user has write right on entity`(right: String) {
-        assertUserHasRightOnEntity(right, neo4jAuthorizationService::userHasWriteRightsOnEntity)
+    @Test
+    fun `it should find user has write right on entity`() {
+        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanWriteEntity)
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = ["rCanRead", ""])
-    fun `it should find user has not write right on entity`(right: String) {
-        assertUserHasNotRightOnEntity(right, neo4jAuthorizationService::userHasWriteRightsOnEntity)
+    @Test
+    fun `it should find user has not write right on entity`() {
+        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanWriteEntity)
     }
 
     @Test
     fun `it should find user has admin right on entity`() {
-        assertUserHasRightOnEntity("rCanAdmin", neo4jAuthorizationService::userHasAdminRightsOnEntity)
+        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanAdminEntity)
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = ["rCanRead", "rCanWrite", ""])
-    fun `it should find user has not admin right on entity`(right: String) {
-        assertUserHasNotRightOnEntity(right, neo4jAuthorizationService::userHasAdminRightsOnEntity)
+    @Test
+    fun `it should find user has not admin right on entity`() {
+        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanAdminEntity)
     }
 
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
-        every {
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
-                "urn:ngsi-ld:User:mock-user",
-                listOf("entityId")
-            )
-        } returns listOf(
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId"
-            )
-        )
 
-        assert(neo4jAuthorizationService.userHasAdminRightsOnEntity("entityId", "mock-user"))
-        assert(neo4jAuthorizationService.userHasReadRightsOnEntity("entityId", "mock-user"))
-        assert(neo4jAuthorizationService.userHasWriteRightsOnEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userCanAdminEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userCanReadEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userCanWriteEntity("entityId", "mock-user"))
     }
 
     @Test
@@ -86,26 +70,15 @@ class Neo4jAuthorizationServiceTest {
 
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf()
         every {
-            neo4jAuthorizationRepository.getAvailableRightsForEntities("urn:ngsi-ld:User:mock-user", entitiesId)
-        } returns listOf(
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId",
-                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead")
-            ),
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(targetEntityId = "entityId2"),
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId3",
-                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanAdmin")
-            ),
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId4",
-                rights = listOf(AUTHORIZATION_ONTOLOGY + "rCanRead", AUTHORIZATION_ONTOLOGY + "rCanWrite")
-            ),
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(targetEntityId = "entityId5")
-        )
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
+                "urn:ngsi-ld:User:mock-user",
+                entitiesId,
+                READ_RIGHT
+            )
+        } returns listOf("entityId", "entityId3", "entityId4")
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserHasReadRight(entitiesId, "mock-user") == listOf(
+            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, "mock-user") == listOf(
                 "entityId",
                 "entityId3",
                 "entityId4"
@@ -118,7 +91,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserHasReadRight(listOf("entityId"), "mock-user") == listOf(
+            neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId"), "mock-user") == listOf(
                 "entityId"
             )
         )
@@ -144,31 +117,26 @@ class Neo4jAuthorizationServiceTest {
         confirmVerified()
     }
 
-    private fun assertUserHasRightOnEntity(right: String, userHasRightOnEntity: (String, String) -> Boolean) {
-        assertUserHasRightOnEntity(right, userHasRightOnEntity, true)
+    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (String, String) -> Boolean) {
+        assertUserHasRightOnEntity(userHasRightOnEntity, true)
     }
 
-    private fun assertUserHasNotRightOnEntity(right: String, userHasRightOnEntity: (String, String) -> Boolean) {
-        assertUserHasRightOnEntity(right, userHasRightOnEntity, false)
+    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (String, String) -> Boolean) {
+        assertUserHasRightOnEntity(userHasRightOnEntity, false)
     }
 
     private fun assertUserHasRightOnEntity(
-        right: String,
         userHasRightOnEntity: (String, String) -> Boolean,
         can: Boolean
     ) {
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf()
         every {
-            neo4jAuthorizationRepository.getAvailableRightsForEntities(
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:mock-user",
-                listOf("entityId")
+                listOf("entityId"),
+                any()
             )
-        } returns listOf(
-            Neo4jAuthorizationRepository.AvailableRightsForEntity(
-                targetEntityId = "entityId",
-                rights = if (right != "") listOf(AUTHORIZATION_ONTOLOGY + right) else emptyList()
-            )
-        )
+        } returns if (can) listOf("entityId") else emptyList()
 
         assert(userHasRightOnEntity("entityId", "mock-user") == can)
     }

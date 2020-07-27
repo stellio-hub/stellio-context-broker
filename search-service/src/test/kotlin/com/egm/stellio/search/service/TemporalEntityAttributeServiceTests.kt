@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.net.URI
@@ -27,8 +29,26 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Autowired
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
+    @Autowired
+    private lateinit var databaseClient: DatabaseClient
+
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
+
+    @AfterEach
+    fun clearPreviousObservations() {
+        databaseClient.delete()
+            .from("attribute_instance")
+            .fetch()
+            .rowsUpdated()
+            .block()
+
+        databaseClient.delete()
+            .from("temporal_entity_attribute")
+            .fetch()
+            .rowsUpdated()
+            .block()
+    }
 
     @Test
     fun `it should retrieve a persisted temporal entity attribute`() {
@@ -230,5 +250,47 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         )
         val finalEntity = JsonUtils.toPrettyString(serializedEntity)
         assertEquals(expectation.trim(), finalEntity)
+    }
+
+    @Test
+    fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() {
+        val rawEntity = loadSampleData()
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute("urn:ngsi-ld:BeeHive:TESTC", "https://ontology.eglobalmark.com/apic#incoming")
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(1)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should return the temporalEntityAttributeId of a given entityId attributeName and datasetId`() {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute("urn:ngsi-ld:BeeHive:TESTC", "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:01234")
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(1)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should not return a temporalEntityAttributeId if the datasetId is unknown`() {
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute("urn:ngsi-ld:BeeHive:TESTC", "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:Unknown")
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
     }
 }

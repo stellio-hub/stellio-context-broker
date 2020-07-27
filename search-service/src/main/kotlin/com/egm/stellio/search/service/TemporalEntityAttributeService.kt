@@ -164,13 +164,13 @@ class TemporalEntityAttributeService(
             AND attribute_name = :attribute_name
             """.trimIndent()
 
-        return databaseClient
+        val query = databaseClient
             .execute(selectQuery)
             .bind("entity_id", id)
             .bind("attribute_name", attributeName)
-            .bind("dataset_id", datasetId)
-            .map(rowToId)
-            .one()
+
+        if (datasetId != null) return query.bind("dataset_id", datasetId).map(rowToId).one()
+        return query.map(rowToId).one()
     }
 
     private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->

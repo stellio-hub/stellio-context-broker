@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 
 @Component
 class EntityService(
@@ -396,7 +397,7 @@ class EntityService(
                             "Relationship $relationshipTypeName already exists on $entityId and overwrite is not allowed, ignoring"
                         ))
                     } else {
-                        neo4jRepository.deleteEntityRelationship(entityId, relationshipTypeName.toRelationshipTypeName())
+                        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(entityId), relationshipTypeName.toRelationshipTypeName())
                         createEntityRelationship(
                             entityId,
                             ngsiLdAttribute.name,
@@ -422,7 +423,7 @@ class EntityService(
                                 "Property ${ngsiLdAttribute.name} already exists on $entityId and overwrite is not allowed, ignoring"
                             )
                         } else {
-                            neo4jRepository.deleteEntityProperty(entityId, ngsiLdAttribute.name)
+                            neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), ngsiLdAttribute.name)
                             createEntityProperty(entityId, ngsiLdAttribute.name, ngsiLdPropertyInstance)
                             Triple(ngsiLdAttribute.name, true, null)
                         }
@@ -547,17 +548,29 @@ class EntityService(
     @Transactional
     fun deleteEntityAttribute(entityId: String, expandedAttributeName: String): Boolean {
         if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
-            return neo4jRepository.deleteEntityProperty(entityId, expandedAttributeName) >= 1
+            return neo4jRepository.deleteEntityProperty(
+                subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true) >= 1
         else if (neo4jRepository.hasRelationshipOfType(
-            EntitySubjectNode(entityId),
-            expandedAttributeName.toRelationshipTypeName())
-        )
-            return neo4jRepository.deleteEntityRelationship(
-                entityId,
-                expandedAttributeName.toRelationshipTypeName()
-            ) >= 1
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()))
+            return neo4jRepository.deleteEntityRelationship(subjectNodeInfo = EntitySubjectNode(entityId),
+                relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true) >= 1
 
         throw ResourceNotFoundException("Attribute $expandedAttributeName not found in entity $entityId")
+    }
+
+    @Transactional
+    fun deleteEntityAttributeInstance(entityId: String, expandedAttributeName: String, datasetId: URI?): Boolean {
+        if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
+            return neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), expandedAttributeName, datasetId) >= 1
+        else if (neo4jRepository.hasRelationshipInstance(
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId))
+            return neo4jRepository.deleteEntityRelationship(
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId) >= 1
+
+        if (datasetId != null)
+            throw ResourceNotFoundException("Instance with datasetId $datasetId of $expandedAttributeName not found in entity $entityId")
+
+        throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
 
     @Transactional

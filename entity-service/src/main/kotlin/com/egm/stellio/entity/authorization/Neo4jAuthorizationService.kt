@@ -31,7 +31,7 @@ class Neo4jAuthorizationService(
     override fun filterEntitiesUserCanRead(entitiesId: List<String>, userId: String): List<String> =
         filterEntitiesUserHaveOneOfGivenRights(entitiesId, READ_RIGHT, userId)
 
-    override fun filterEntitiesUserCanWrite(entitiesId: List<String>, userId: String): List<String> =
+    override fun filterEntitiesUserCanUpdate(entitiesId: List<String>, userId: String): List<String> =
         filterEntitiesUserHaveOneOfGivenRights(entitiesId, WRITE_RIGHT, userId)
 
     private fun filterEntitiesUserHaveOneOfGivenRights(
@@ -50,10 +50,10 @@ class Neo4jAuthorizationService(
     override fun userCanReadEntity(entityId: String, userId: String): Boolean =
         userHasOneOfGivenRightsOnEntity(entityId, READ_RIGHT, userId)
 
-    override fun userCanWriteEntity(entityId: String, userId: String): Boolean =
+    override fun userCanUpdateEntity(entityId: String, userId: String): Boolean =
         userHasOneOfGivenRightsOnEntity(entityId, WRITE_RIGHT, userId)
 
-    override fun userCanAdminEntity(entityId: String, userId: String): Boolean =
+    override fun userIsAdminOfEntity(entityId: String, userId: String): Boolean =
         userHasOneOfGivenRightsOnEntity(entityId, ADMIN_RIGHT, userId)
 
     private fun userHasOneOfGivenRightsOnEntity(

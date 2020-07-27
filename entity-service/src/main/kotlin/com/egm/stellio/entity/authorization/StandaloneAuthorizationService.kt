@@ -18,7 +18,7 @@ class StandaloneAuthorizationService : AuthorizationService {
         return entitiesId
     }
 
-    override fun filterEntitiesUserCanWrite(entitiesId: List<String>, userId: String): List<String> {
+    override fun filterEntitiesUserCanUpdate(entitiesId: List<String>, userId: String): List<String> {
         return entitiesId
     }
 
@@ -26,11 +26,11 @@ class StandaloneAuthorizationService : AuthorizationService {
         return true
     }
 
-    override fun userCanWriteEntity(entityId: String, userId: String): Boolean {
+    override fun userCanUpdateEntity(entityId: String, userId: String): Boolean {
         return true
     }
 
-    override fun userCanAdminEntity(entityId: String, userId: String): Boolean {
+    override fun userIsAdminOfEntity(entityId: String, userId: String): Boolean {
         return true
     }
 

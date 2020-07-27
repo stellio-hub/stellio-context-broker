@@ -17,11 +17,13 @@ class Neo4jAuthorizationRepository(
         val query = """
             MATCH (userEntity:Entity {id : ${'$'}userId}), (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
-            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
-            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]->(grpRight:Attribute:Relationship)-[]->(entity:Entity)
-            WHERE size([label IN labels(right) WHERE label IN ${'$'}rights | 1]) > 0 AND
-                    size([label IN labels(grpRight) WHERE label IN ${'$'}rights | 1]) > 0
-            RETURN entity.id as id, count(right) AS nbOfRights, count(grpRight) AS nbOfGrpRights
+            MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
+            WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
+            return entity.id as id
+            UNION
+            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
+            WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
+            return entity.id as id
         """.trimIndent()
 
         val parameters = mapOf(
@@ -30,9 +32,7 @@ class Neo4jAuthorizationRepository(
             "rights" to rights
         )
 
-        return session.query(query, parameters).filter {
-            it["nbOfRights"] as Long + it["nbOfGrpRights"] as Long > 0
-        }.map {
+        return session.query(query, parameters).map {
             it["id"] as String
         }
     }

@@ -242,7 +242,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.filterEntitiesUserCanWrite(emptyList(), "mock-user") } returns emptyList()
+        every { authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
@@ -291,7 +291,7 @@ class EntityOperationHandlerTests {
             errors
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.filterEntitiesUserCanWrite(emptyList(), "mock-user") } returns emptyList()
+        every { authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
@@ -345,7 +345,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.filterEntitiesUserCanWrite(emptyList(), "mock-user") } returns emptyList()
+        every { authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert")
@@ -386,7 +386,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns false
-        every { authorizationService.filterEntitiesUserCanWrite(emptyList(), "mock-user") } returns emptyList()
+        every { authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user") } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert")
@@ -434,7 +434,7 @@ class EntityOperationHandlerTests {
 
         val entitiesIdToUpdate = listOf(expandedEntity.id)
         every {
-            authorizationService.filterEntitiesUserCanWrite(
+            authorizationService.filterEntitiesUserCanUpdate(
                 entitiesId,
                 "mock-user"
             )

@@ -59,7 +59,7 @@ class Neo4jAuthorizationRepositoryTest {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:01",
                 listOf("urn:ngsi-ld:Apiary:01"),
-                setOf(EGM_CAN_READ)
+                setOf(EGM_CAN_READ, EGM_CAN_WRITE)
             )
 
         assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
@@ -95,7 +95,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(EGM_CAN_READ)
             )
 
-        assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
+        assert(availableRightsForEntities.isEmpty())
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
@@ -107,6 +107,18 @@ class Neo4jAuthorizationRepositoryTest {
             "urn:ngsi-ld:User:01",
             listOf("User"),
             mutableListOf()
+        )
+
+        val groupEntity = createEntity(
+            "urn:ngsi-ld:Group:01",
+            listOf("Group"),
+            mutableListOf()
+        )
+
+        createRelationship(
+            EntitySubjectNode(userEntity.id),
+            EGM_IS_MEMBER_OF,
+            groupEntity.id
         )
 
         val apiaryEntity = createEntity(
@@ -128,7 +140,7 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         createRelationship(
-            EntitySubjectNode(userEntity.id),
+            EntitySubjectNode(groupEntity.id),
             EGM_CAN_READ,
             apiaryEntity2.id
         )
@@ -141,6 +153,7 @@ class Neo4jAuthorizationRepositoryTest {
             )
 
         assert(authorizedEntitiesId == listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02"))
+
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:02")

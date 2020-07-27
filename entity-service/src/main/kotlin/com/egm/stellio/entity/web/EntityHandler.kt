@@ -137,7 +137,7 @@ class EntityHandler(
         return extractSubjectOrEmpty().doOnNext {
             if (!entityService.exists(entityId))
                 throw ResourceNotFoundException("Entity Not Found")
-            if (!authorizationService.userCanAdminEntity(entityId, it))
+            if (!authorizationService.userIsAdminOfEntity(entityId, it))
                 throw AccessDeniedException("User forbidden admin access to entity $entityId")
         }.map {
             entityService.deleteEntity(entityId)
@@ -164,7 +164,7 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return extractSubjectOrEmpty().doOnNext {
             if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-            if (!authorizationService.userCanWriteEntity(entityId, it))
+            if (!authorizationService.userCanUpdateEntity(entityId, it))
                 throw AccessDeniedException("User forbidden write access to entity $entityId")
         }.then(body).map {
             NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
@@ -195,7 +195,7 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return extractSubjectOrEmpty().doOnNext {
             if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-            if (!authorizationService.userCanWriteEntity(entityId, it))
+            if (!authorizationService.userCanUpdateEntity(entityId, it))
                 throw AccessDeniedException("User forbidden write access to entity $entityId")
         }.then(body).map {
             entityService.updateEntityAttributes(entityId, it, contextLink)
@@ -225,7 +225,7 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return extractSubjectOrEmpty().doOnNext {
             if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-            if (!authorizationService.userCanWriteEntity(entityId, it))
+            if (!authorizationService.userCanUpdateEntity(entityId, it))
                 throw AccessDeniedException("User forbidden write access to entity $entityId")
         }.then(body).map {
             entityService.updateEntityAttribute(entityId, attrId, it, contextLink)
@@ -247,7 +247,7 @@ class EntityHandler(
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return extractSubjectOrEmpty().doOnNext {
             if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
-            if (!authorizationService.userCanWriteEntity(entityId, it))
+            if (!authorizationService.userCanUpdateEntity(entityId, it))
                 throw AccessDeniedException("User forbidden write access to entity $entityId")
         }.map {
             entityService.deleteEntityAttribute(entityId, attrId, contextLink)

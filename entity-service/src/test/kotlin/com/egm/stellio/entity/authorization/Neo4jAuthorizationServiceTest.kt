@@ -37,31 +37,31 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should find user has write right on entity`() {
-        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanWriteEntity)
+        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanUpdateEntity)
     }
 
     @Test
     fun `it should find user has not write right on entity`() {
-        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanWriteEntity)
+        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanUpdateEntity)
     }
 
     @Test
     fun `it should find user has admin right on entity`() {
-        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanAdminEntity)
+        assertUserHasRightOnEntity(neo4jAuthorizationService::userIsAdminOfEntity)
     }
 
     @Test
     fun `it should find user has not admin right on entity`() {
-        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanAdminEntity)
+        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userIsAdminOfEntity)
     }
 
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
 
-        assert(neo4jAuthorizationService.userCanAdminEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId", "mock-user"))
         assert(neo4jAuthorizationService.userCanReadEntity("entityId", "mock-user"))
-        assert(neo4jAuthorizationService.userCanWriteEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userCanUpdateEntity("entityId", "mock-user"))
     }
 
     @Test

@@ -3,16 +3,10 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.repository.RelationshipRepository
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.model.Observation
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
@@ -814,7 +808,11 @@ class EntityServiceTests {
                     it.label == "Entity"
             }, "CONNECTS_TO")
         }
-        verify { neo4jRepository.deleteEntityRelationship(eq(entityId), "CONNECTS_TO") }
+        verify { neo4jRepository.deleteEntityRelationship(
+            match {
+                it.id == entityId &&
+                    it.label == "Entity"
+            }, "CONNECTS_TO", null, false) }
         verify { entityRepository.findById(eq(entityId)) }
 
         confirmVerified()
@@ -1302,6 +1300,82 @@ class EntityServiceTests {
         verify { entityRepository.findById(eq(subscriptionId)) }
         verify { propertyRepository wasNot Called }
 
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should delete all entity property instances`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+
+        entityService.deleteEntityAttribute(entityId, "fishNumber", aquacContext!!)
+
+        verify { neo4jRepository.hasPropertyOfName(match {
+            it.id == "urn:ngsi-ld:Beehive:123456" &&
+                it.label == "Entity"
+        }, "https://ontology.eglobalmark.com/aquac#fishNumber") }
+        verify { neo4jRepository.deleteEntityProperty(match {
+            it.id == "urn:ngsi-ld:Beehive:123456" &&
+                it.label == "Entity"
+        }, "https://ontology.eglobalmark.com/aquac#fishNumber", null, true) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should delete an entity relationship instance with the provided datasetId`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
+        every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.deleteEntityRelationship(any(), any(), any(), any()) } returns 1
+
+        entityService.deleteEntityAttributeInstance(entityId, "connectsTo", URI.create("urn:ngsi-ld:Dataset:connectsTo:01"), aquacContext!!)
+
+        verify { neo4jRepository.hasRelationshipInstance(match {
+            it.id == "urn:ngsi-ld:Beehive:123456" &&
+                it.label == "Entity"
+        }, any(), URI.create("urn:ngsi-ld:Dataset:connectsTo:01")) }
+
+        verify { neo4jRepository.deleteEntityRelationship(match {
+            it.id == "urn:ngsi-ld:Beehive:123456" &&
+                it.label == "Entity"
+        }, any(), URI.create("urn:ngsi-ld:Dataset:connectsTo:01"), false) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not delete all entity attribute instances if the attribute is not found`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
+        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
+
+        val exception = assertThrows<ResourceNotFoundException>("Attribute fishNumber not found in entity urn:ngsi-ld:Beehive:123456") {
+            entityService.deleteEntityAttribute(entityId, "fishNumber", aquacContext!!)
+        }
+        assertEquals(exception.message, "Attribute fishNumber not found in entity urn:ngsi-ld:Beehive:123456")
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should not delete the default property instance if not found`() {
+
+        val entityId = "urn:ngsi-ld:Beehive:123456"
+
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns false
+        every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
+
+        val exception = assertThrows<ResourceNotFoundException>("Default instance of fishNumber not found in entity urn:ngsi-ld:Beehive:123456") {
+            entityService.deleteEntityAttributeInstance(entityId, "fishNumber", null, aquacContext!!)
+        }
+        assertEquals(exception.message, "Default instance of fishNumber not found in entity urn:ngsi-ld:Beehive:123456")
         confirmVerified()
     }
 

@@ -214,20 +214,26 @@ class EntityHandler(
 
     /**
      * Implements 6.7.3.2 - Delete Entity Attribute
-     * Current implementation is basic since there is no support for Multi-Attribute (4.5.5).
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}")
     fun deleteEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
-        @PathVariable attrId: String
+        @PathVariable attrId: String,
+        @RequestParam params: MultiValueMap<String, String>
     ): Mono<ResponseEntity<*>> {
+        val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
+        val datasetId = params.getFirst("datasetId")?.let { URI.create(it) }
+
         val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
+                if (deleteAll)
+                    entityService.deleteEntityAttribute(entityId, attrId, contextLink)
+                else
+                    entityService.deleteEntityAttributeInstance(entityId, attrId, datasetId, contextLink)
             }
             .map {
                 if (it)

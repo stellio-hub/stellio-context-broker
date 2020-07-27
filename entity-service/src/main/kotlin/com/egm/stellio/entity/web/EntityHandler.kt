@@ -231,9 +231,9 @@ class EntityHandler(
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
                 if (deleteAll)
-                    entityService.deleteEntityAttributes(entityId, attrId, contextLink)
+                    entityService.deleteEntityAttribute(entityId, attrId, contextLink)
                 else
-                    entityService.deleteEntityAttribute(entityId, attrId, datasetId, contextLink)
+                    entityService.deleteEntityAttributeInstance(entityId, attrId, datasetId, contextLink)
             }
             .map {
                 if (it)

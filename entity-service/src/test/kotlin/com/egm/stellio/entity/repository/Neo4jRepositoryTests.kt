@@ -7,6 +7,7 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.toRelationshipTypeName
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull
@@ -494,12 +495,13 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName")
 
-        assertNull(entityRepository.findById(entity.id).get().properties.find {
+        val properties = entityRepository.findById(entity.id).get().properties
+        assertNull(properties.find {
             it.name == "firstName" &&
                 it.value == "Scalpa" &&
                 it.datasetId == null
         })
-        assertNotNull(entityRepository.findById(entity.id).get().properties.find {
+        assertNotNull(properties.find {
             it.name == "firstName" &&
                 it.value == "Scalpa2" &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:firstName:2")
@@ -521,12 +523,13 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName", URI.create("urn:ngsi-ld:Dataset:firstName:2"))
 
-        assertNull(entityRepository.findById(entity.id).get().properties.find {
+        val properties = entityRepository.findById(entity.id).get().properties
+        assertNull(properties.find {
             it.name == "firstName" &&
                 it.value == "Scalpa2" &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:firstName:2")
         })
-        assertNotNull(entityRepository.findById(entity.id).get().properties.find {
+        assertNotNull(properties.find {
             it.name == "firstName" &&
                 it.value == "Scalpa" &&
                 it.datasetId == null
@@ -541,7 +544,7 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), "OBSERVED_BY", null, true)
+        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName(), null, true)
 
         assertEquals(entityRepository.findById(sensor.id).get().relationships.size, 0)
         neo4jRepository.deleteEntity(sensor.id)
@@ -555,13 +558,14 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), "OBSERVED_BY")
+        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName())
 
-        assertNull(entityRepository.findById(sensor.id).get().relationships.find {
+        val relationships = entityRepository.findById(sensor.id).get().relationships
+        assertNull(relationships.find {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == null
         })
-        assertNotNull(entityRepository.findById(sensor.id).get().relationships.find {
+        assertNotNull(relationships.find {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:observedBy:01")
         })
@@ -577,13 +581,14 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), "OBSERVED_BY", URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
+        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName(), URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        assertNull(entityRepository.findById(sensor.id).get().relationships.find {
+        val relationships = entityRepository.findById(sensor.id).get().relationships
+        assertNull(relationships.find {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == URI.create("urn:ngsi-ld:Dataset:observedBy:01")
         })
-        assertNotNull(entityRepository.findById(sensor.id).get().relationships.find {
+        assertNotNull(relationships.find {
             it.type == listOf(EGM_OBSERVED_BY) &&
                 it.datasetId == null
         })
@@ -738,7 +743,7 @@ class Neo4jRepositoryTests {
         val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
 
-        assertTrue(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), "OBSERVED_BY"))
+        assertTrue(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName()))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -749,7 +754,7 @@ class Neo4jRepositoryTests {
         val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        assertFalse(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), "OBSERVED_BY"))
+        assertFalse(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName()))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -760,7 +765,7 @@ class Neo4jRepositoryTests {
         val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        assertTrue(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), "OBSERVED_BY", URI.create("urn:ngsi-ld:Dataset:observedBy:01")))
+        assertTrue(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName(), URI.create("urn:ngsi-ld:Dataset:observedBy:01")))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -771,7 +776,7 @@ class Neo4jRepositoryTests {
         val device = createEntity("urn:ngsi-ld:Device:1233", listOf("Device"), mutableListOf())
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, URI.create("urn:ngsi-ld:Dataset:observedBy:01"))
 
-        assertFalse(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), "OBSERVED_BY", URI.create("urn:ngsi-ld:Dataset:observedBy:0002")))
+        assertFalse(neo4jRepository.hasRelationshipInstance(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName(), URI.create("urn:ngsi-ld:Dataset:observedBy:0002")))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }

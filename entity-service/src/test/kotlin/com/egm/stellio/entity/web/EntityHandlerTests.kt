@@ -931,7 +931,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any(), any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -942,7 +942,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttribute(
+            entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 null,
@@ -955,7 +955,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttributes(any(), any(), any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
@@ -966,7 +966,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttributes(
+            entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 eq(aquacContext!!)
@@ -978,7 +978,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should delete instance with the provided datasetId`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any(), any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
@@ -989,7 +989,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttribute(
+            entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 URI.create("urn:ngsi-ld:Dataset:fishNumber:1"),
@@ -1019,7 +1019,7 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the attribute is not found`() {
         every { entityService.exists(any()) } returns true
         every {
-            entityService.deleteEntityAttributes(
+            entityService.deleteEntityAttribute(
                 any(),
                 any(),
                 any()
@@ -1038,7 +1038,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttributes(
+            entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 eq(aquacContext!!)
@@ -1050,7 +1050,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any(), any(), any()) } returns false
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any(), any()) } returns false
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -1065,7 +1065,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttribute(
+            entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("fishNumber"),
                 null,

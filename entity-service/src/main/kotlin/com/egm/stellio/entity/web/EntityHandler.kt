@@ -120,16 +120,13 @@ class EntityHandler(
                     it
                 )
             ) throw AccessDeniedException("User forbidden read access to entity $entityId")
-        }.then(entityId.toMono())
-            .map {
-                entityService.getFullEntityById(entityId)
-            }
-            .map {
-                it.compact()
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
-            }
+        }.map {
+            entityService.getFullEntityById(entityId)
+        }.map {
+            it.compact()
+        }.map {
+            ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
+        }
     }
 
     /**
@@ -142,7 +139,7 @@ class EntityHandler(
                 throw ResourceNotFoundException("Entity Not Found")
             if (!authorizationService.userCanAdminEntity(entityId, it))
                 throw AccessDeniedException("User forbidden admin access to entity $entityId")
-        }.then(entityId.toMono()).map {
+        }.map {
             entityService.deleteEntity(entityId)
         }.map {
             if (it.first >= 1)
@@ -252,7 +249,7 @@ class EntityHandler(
             if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             if (!authorizationService.userCanWriteEntity(entityId, it))
                 throw AccessDeniedException("User forbidden write access to entity $entityId")
-        }.then(entityId.toMono()).map {
+        }.map {
             entityService.deleteEntityAttribute(entityId, attrId, contextLink)
         }.map {
             if (it)

@@ -6,11 +6,13 @@ import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.ExpandedEntity
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
 import io.mockk.slot
+import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,7 +40,7 @@ class EntityOperationHandlerTests {
     @MockkBean
     private lateinit var entityOperationService: EntityOperationService
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
     @Test
@@ -82,6 +84,9 @@ class EntityOperationHandlerTests {
             )
 
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
+
+        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -110,7 +115,6 @@ class EntityOperationHandlerTests {
             errors
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -141,6 +145,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -162,7 +169,6 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -188,6 +194,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -262,6 +271,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -320,6 +332,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -365,6 +380,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -466,6 +484,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        confirmVerified()
     }
 
     @Test

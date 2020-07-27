@@ -45,9 +45,7 @@ class EntityOperationHandler(
                         BatchEntityError(entity.id, arrayListOf("Entity already exists"))
                     })
 
-                batchOperationResult.success.forEach { entityId ->
-                    authorizationService.createAdminLink(entityId, userId)
-                }
+                authorizationService.createAdminLinks(batchOperationResult.success, userId)
 
                 batchOperationResult
             }.map {
@@ -84,6 +82,8 @@ class EntityOperationHandler(
                             arrayListOf("User forbidden to create entities")
                         )
                     }))
+
+                authorizationService.createAdminLinks(createBatchOperationResult.success, expandedEntitiesAndUserId.t2)
 
                 val existingEntitiesIdsAuthorized =
                     authorizationService.filterEntitiesUserCanUpdate(

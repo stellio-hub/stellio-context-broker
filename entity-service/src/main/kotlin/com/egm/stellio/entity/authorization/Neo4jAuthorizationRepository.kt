@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.model.Property
+import com.egm.stellio.entity.model.Relationship
 import org.neo4j.ogm.session.Session
 import org.springframework.stereotype.Component
 
@@ -63,5 +65,24 @@ class Neo4jAuthorizationRepository(
                     (it["pgroup"] as Property?)?.value as List<String>?
                 ).flatten()
             }
+    }
+
+    fun createAdminLinks(userId: String, relationships: List<Relationship>, entitiesId: List<String>): List<String> {
+        val query = """
+            UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
+            MATCH (user:Entity { id: ${'$'}userId}), (target:Entity { id: relPropAndTarget.second })
+            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)
+            SET r = relPropAndTarget.first
+            RETURN r.id as id
+        """
+
+        val parameters = mapOf(
+            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId),
+            "userId" to userId
+        )
+
+        return session.query(query, parameters).map {
+            it["id"] as String
+        }
     }
 }

@@ -23,4 +23,5 @@ interface AuthorizationService {
     fun userCanUpdateEntity(entityId: String, userId: String): Boolean
     fun userIsAdminOfEntity(entityId: String, userId: String): Boolean
     fun createAdminLink(entityId: String, userId: String)
+    fun createAdminLinks(entitiesId: List<String>, userId: String)
 }

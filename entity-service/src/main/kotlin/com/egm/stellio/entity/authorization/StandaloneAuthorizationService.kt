@@ -35,4 +35,6 @@ class StandaloneAuthorizationService : AuthorizationService {
     }
 
     override fun createAdminLink(entityId: String, userId: String) {}
+
+    override fun createAdminLinks(entitiesId: List<String>, userId: String) {}
 }

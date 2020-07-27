@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -228,6 +230,41 @@ class Neo4jAuthorizationRepositoryTest {
         assert(roles.isEmpty())
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
+    }
+
+    @Test
+    fun `it should create admin links to entities`() {
+        createEntity(
+            "urn:ngsi-ld:User:01",
+            listOf("User"),
+            mutableListOf()
+        )
+
+        createEntity(
+            "urn:ngsi-ld:Apiary:01",
+            listOf("Apiary"),
+            mutableListOf()
+        )
+
+        createEntity(
+            "urn:ngsi-ld:Apiary:02",
+            listOf("Apiary"),
+            mutableListOf()
+        )
+
+        val targetIds = listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02")
+        val createdRelations = neo4jAuthorizationRepository.createAdminLinks(
+            "urn:ngsi-ld:User:01",
+            targetIds.map {
+                Relationship(
+                    type = listOf(R_CAN_ADMIN),
+                    datasetId = URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$it")
+                )
+            },
+            targetIds
+        )
+
+        assert(createdRelations.size == 2)
     }
 
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {

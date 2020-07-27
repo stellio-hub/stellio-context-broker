@@ -21,7 +21,7 @@ There are many labels available, please feel free to put a label on your issue.
 
 ## Requesting new features
 
-Stellio is implementing the NGSI-LD API specification.  You may find unsupported features.  
+Stellio implements the NGSI-LD API specification.  You may find unsupported features.  
 When requesting a new feature, please provide the section and subsections related to the feature in the NGSI-LD 
 specification. Please provide if possible the version of the specification.
 

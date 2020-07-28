@@ -36,7 +36,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     val apicContext: String? = null
 
     @AfterEach
-    fun clearPreviousObservations() {
+    fun clearPreviousTemporalEntityAttributesAndObservations() {
         databaseClient.delete()
             .from("attribute_instance")
             .fetch()

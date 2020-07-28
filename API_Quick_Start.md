@@ -6,6 +6,10 @@ This quickstart guide shows a real use case scenario of interaction with the API
 
 The provided examples make use of the HTTPie command line tool (installation instructions: https://httpie.org/docs#installation)
 
+All requests are grouped in a Postman collection that can be found [here](https://www.getpostman.com/collections/a8d09cb6dbf352774eec).
+
+For more details about how to import a Postman collection see https://learning.postman.com/docs/getting-started/importing-and-exporting-data/.    
+     
 ## Provide credentials
 
 - Calls to The API must include an `Authorization` header containing a Bearer access token. It takes the following form:

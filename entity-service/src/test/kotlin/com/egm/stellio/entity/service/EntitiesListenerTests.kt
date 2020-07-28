@@ -1,11 +1,8 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.ExpandedEntity
 import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,9 +24,6 @@ class EntitiesListenerTests {
     @MockkBean(relaxed = true)
     private lateinit var entityService: EntityService
 
-    @MockkBean
-    private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
-
     @Test
     fun `it should parse and transmit user creation event`() {
         val userCreateEvent = ClassPathResource("/ngsild/authorization/UserCreateEvent.json")
@@ -46,9 +40,9 @@ class EntitiesListenerTests {
 
     @Test
     fun `it should parse and transmit user deletion event`() {
-        val userCreateEvent = ClassPathResource("/ngsild/authorization/UserDeleteEvent.json")
+        val userDeleteEvent = ClassPathResource("/ngsild/authorization/UserDeleteEvent.json")
 
-        entitiesListener.processMessage(userCreateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(userDeleteEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { entityService.deleteEntity("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") }
         confirmVerified()
@@ -77,9 +71,9 @@ class EntitiesListenerTests {
 
     @Test
     fun `it should parse and transmit group membership deletion event`() {
-        val userCreateEvent = ClassPathResource("/ngsild/authorization/GroupMembershipDeleteEvent.json")
+        val groupMembershipDeleteEvent = ClassPathResource("/ngsild/authorization/GroupMembershipDeleteEvent.json")
 
-        entitiesListener.processMessage(userCreateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(groupMembershipDeleteEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify {
             entityService.deleteEntityAttributeInstance(

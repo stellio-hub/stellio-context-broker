@@ -36,7 +36,7 @@ Contributions to Stellio are done using a pull request. Find below a description
 - Create a branch on the forked repository.  
 A good branch name should follow this schema : `<label>/<issue_number>-<name>`
 
-    - `<label>` is the label of your issue : feature, bug, refactor, documentation...
+    - `<label>` is the label of your issue : feature, fix, refactor, documentation...
     - `<issue_number>` is the number of the issue
     - `<name>` is the name of the feature, with `-` instead of spaces.
 
@@ -45,7 +45,7 @@ For example : `documentation/60-add-contributing-file`
 - Commit your work and push to the branch.  
 A good commit message should follow this schema : `<label>: <commit msg> #<issue_number>`
 
-    - `<label>` is the label of your issue : feature, bug, refactor, documentation...
+    - `<label>` is the label of your issue : feature, fix, refactor, documentation...
     - `<commit_msg>` is the short description of your commit
     - `<issue_number>` is the number of the issue
 
@@ -81,6 +81,8 @@ Each module follows the same schema :
         - **kotlin**: contains the source kotlin code.
         - **resources** : contains the resources.
     - **test**: contains the test code, a unit test class of a source code class should have the same package.
+        - **kotlin**: contains the test kotlin code.
+        - **resources** : contains the test resources.
 
 The project contains also directories linked to documentation and build :
 

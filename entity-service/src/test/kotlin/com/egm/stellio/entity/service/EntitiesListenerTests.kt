@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.verify

@@ -2,7 +2,6 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntity

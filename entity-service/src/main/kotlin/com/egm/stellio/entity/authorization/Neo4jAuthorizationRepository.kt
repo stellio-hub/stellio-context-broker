@@ -72,7 +72,7 @@ class Neo4jAuthorizationRepository(
         val query = """
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
             MATCH (user:Entity { id: ${'$'}userId}), (target:Entity { id: relPropAndTarget.second })
-            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)
+            CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)
             SET r = relPropAndTarget.first
             RETURN r.id as id
         """

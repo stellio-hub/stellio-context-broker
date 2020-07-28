@@ -57,7 +57,7 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
+        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns setOf("admin")
 
         assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId", "mock-user"))
         assert(neo4jAuthorizationService.userCanReadEntity("entityId", "mock-user"))
@@ -68,7 +68,7 @@ class Neo4jAuthorizationServiceTest {
     fun `it shoud filter entities which user has read right`() {
         val entitiesId = listOf("entityId", "entityId2", "entityId3", "entityId4", "entityId5")
 
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf()
+        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:mock-user",
@@ -88,7 +88,7 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should keep all entities if user has admin rights`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf("admin")
+        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns setOf("admin")
 
         assert(
             neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId"), "mock-user") == listOf(
@@ -129,7 +129,7 @@ class Neo4jAuthorizationServiceTest {
         userHasRightOnEntity: (String, String) -> Boolean,
         can: Boolean
     ) {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns listOf()
+        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 "urn:ngsi-ld:User:mock-user",

@@ -40,7 +40,7 @@ class Neo4jAuthorizationRepository(
         }
     }
 
-    fun getUserRoles(userId: String): List<String> {
+    fun getUserRoles(userId: String): Set<String> {
         val query = """
             MATCH (userEntity:Entity { id: ${'$'}userId })
             OPTIONAL MATCH  (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
@@ -55,8 +55,8 @@ class Neo4jAuthorizationRepository(
 
         val result = session.query(query, parameters)
 
-        if (result.toList().isEmpty()) {
-            return emptyList()
+        if (result.toSet().isEmpty()) {
+            return emptySet()
         }
 
         return result
@@ -66,6 +66,7 @@ class Neo4jAuthorizationRepository(
                     (it["pgroup"] as Property?)?.value as List<String>?
                 ).flatten()
             }
+            .toSet()
     }
 
     fun createAdminLinks(userId: String, relationships: List<Relationship>, entitiesId: List<String>): List<String> {

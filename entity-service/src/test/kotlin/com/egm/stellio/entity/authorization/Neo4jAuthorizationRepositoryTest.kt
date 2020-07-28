@@ -42,11 +42,7 @@ class Neo4jAuthorizationRepositoryTest {
         val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
         val apiaryEntity = createEntity("urn:ngsi-ld:Apiary:01", listOf("Apiary"), mutableListOf())
 
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_CAN_READ,
-            apiaryEntity.id
-        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
@@ -92,12 +88,7 @@ class Neo4jAuthorizationRepositoryTest {
         val apiaryEntity2 = createEntity("urn:ngsi-ld:Apiary:02", listOf("Apiary"), mutableListOf())
 
         createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
-
-        createRelationship(
-            EntitySubjectNode(groupEntity.id),
-            EGM_CAN_READ,
-            apiaryEntity2.id
-        )
+        createRelationship(EntitySubjectNode(groupEntity.id), EGM_CAN_READ, apiaryEntity2.id)
 
         val authorizedEntitiesId =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
@@ -128,7 +119,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
 
-        assert(roles == listOf("admin", "creator"))
+        assert(roles == setOf("admin", "creator"))
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
     }
@@ -152,7 +143,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
 
-        assert(roles == listOf("admin"))
+        assert(roles == setOf("admin"))
 
         neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
         neo4jRepository.deleteEntity("urn:ngsi-ld:Group:01")
@@ -200,11 +191,7 @@ class Neo4jAuthorizationRepositoryTest {
         return entityRepository.save(entity)
     }
 
-    fun createRelationship(
-        subjectNodeInfo: SubjectNodeInfo,
-        relationshipType: String,
-        objectId: String
-    ): Relationship {
+    fun createRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, objectId: String): Relationship {
         val relationship = Relationship(type = listOf(relationshipType))
 
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)

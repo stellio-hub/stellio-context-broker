@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
@@ -34,22 +35,12 @@ class Neo4jAuthorizationRepositoryTest {
         const val EGM_CAN_READ = "https://ontology.eglobalmark.com/authorization#rCanRead"
         const val EGM_CAN_WRITE = "https://ontology.eglobalmark.com/authorization#rCanWrite"
         const val EGM_IS_MEMBER_OF = "https://ontology.eglobalmark.com/authorization#isMemberOf"
-        const val EGM_ROLES = "https://ontology.eglobalmark.com/authorization#roles"
     }
 
     @Test
     fun `it should filter entities authorized for user with given rights`() {
-        val userEntity = createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
-
-        val apiaryEntity = createEntity(
-            "urn:ngsi-ld:Apiary:01",
-            listOf("Apiary"),
-            mutableListOf()
-        )
+        val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
+        val apiaryEntity = createEntity("urn:ngsi-ld:Apiary:01", listOf("Apiary"), mutableListOf())
 
         createRelationship(
             EntitySubjectNode(userEntity.id),
@@ -72,23 +63,10 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should find no entities are authorized by user`() {
-        val userEntity = createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
+        val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
+        val apiaryEntity = createEntity("urn:ngsi-ld:Apiary:01", listOf("Apiary"), mutableListOf())
 
-        val apiaryEntity = createEntity(
-            "urn:ngsi-ld:Apiary:01",
-            listOf("Apiary"),
-            mutableListOf()
-        )
-
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_CAN_WRITE,
-            apiaryEntity.id
-        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
@@ -105,41 +83,15 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should filter entities that are authorized by user's group`() {
-        val userEntity = createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
+        val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
+        val groupEntity = createEntity("urn:ngsi-ld:Group:01", listOf("Group"), mutableListOf())
 
-        val groupEntity = createEntity(
-            "urn:ngsi-ld:Group:01",
-            listOf("Group"),
-            mutableListOf()
-        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
 
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_IS_MEMBER_OF,
-            groupEntity.id
-        )
+        val apiaryEntity = createEntity("urn:ngsi-ld:Apiary:01", listOf("Apiary"), mutableListOf())
+        val apiaryEntity2 = createEntity("urn:ngsi-ld:Apiary:02", listOf("Apiary"), mutableListOf())
 
-        val apiaryEntity = createEntity(
-            "urn:ngsi-ld:Apiary:01",
-            listOf("Apiary"),
-            mutableListOf()
-        )
-
-        val apiaryEntity2 = createEntity(
-            "urn:ngsi-ld:Apiary:02",
-            listOf("Apiary"),
-            mutableListOf()
-        )
-
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_CAN_WRITE,
-            apiaryEntity.id
-        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
 
         createRelationship(
             EntitySubjectNode(groupEntity.id),
@@ -174,8 +126,7 @@ class Neo4jAuthorizationRepositoryTest {
             )
         )
 
-        val roles =
-            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
+        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
 
         assert(roles == listOf("admin", "creator"))
 
@@ -184,11 +135,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should get all user's roles from group`() {
-        val userEntity = createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
+        val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
 
         val groupEntity = createEntity(
             "urn:ngsi-ld:Group:01",
@@ -201,14 +148,9 @@ class Neo4jAuthorizationRepositoryTest {
             )
         )
 
-        createRelationship(
-            EntitySubjectNode(userEntity.id),
-            EGM_IS_MEMBER_OF,
-            groupEntity.id
-        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
 
-        val roles =
-            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
+        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
 
         assert(roles == listOf("admin"))
 
@@ -218,14 +160,9 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should find no user roles`() {
-        createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
+        createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
 
-        val roles =
-            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
+        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
 
         assert(roles.isEmpty())
 
@@ -234,25 +171,12 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should create admin links to entities`() {
-        createEntity(
-            "urn:ngsi-ld:User:01",
-            listOf("User"),
-            mutableListOf()
-        )
-
-        createEntity(
-            "urn:ngsi-ld:Apiary:01",
-            listOf("Apiary"),
-            mutableListOf()
-        )
-
-        createEntity(
-            "urn:ngsi-ld:Apiary:02",
-            listOf("Apiary"),
-            mutableListOf()
-        )
+        createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
+        createEntity("urn:ngsi-ld:Apiary:01", listOf("Apiary"), mutableListOf())
+        createEntity("urn:ngsi-ld:Apiary:02", listOf("Apiary"), mutableListOf())
 
         val targetIds = listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02")
+
         val createdRelations = neo4jAuthorizationRepository.createAdminLinks(
             "urn:ngsi-ld:User:01",
             targetIds.map {
@@ -265,6 +189,10 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         assert(createdRelations.size == 2)
+
+        neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
+        neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:01")
+        neo4jRepository.deleteEntity("urn:ngsi-ld:Apiary:02")
     }
 
     fun createEntity(id: String, type: List<String>, properties: MutableList<Property>): Entity {

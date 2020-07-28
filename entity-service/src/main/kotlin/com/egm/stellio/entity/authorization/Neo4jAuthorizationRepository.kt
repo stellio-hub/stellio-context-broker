@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -42,9 +43,9 @@ class Neo4jAuthorizationRepository(
     fun getUserRoles(userId: String): List<String> {
         val query = """
             MATCH (userEntity:Entity { id: ${'$'}userId })
-            OPTIONAL MATCH  (userEntity)-[:HAS_VALUE]->(p:Property { name: "https://ontology.eglobalmark.com/authorization#roles" })
+            OPTIONAL MATCH  (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-[:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->
-                (pgroup: Property {name: "https://ontology.eglobalmark.com/authorization#roles"})
+                (pgroup:Property {name: "$EGM_ROLES"})
             RETURN p, pgroup
         """.trimIndent()
 

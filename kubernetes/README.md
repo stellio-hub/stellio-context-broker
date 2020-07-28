@@ -21,3 +21,8 @@ Then start ingress:
 ```shell script
 kubectl apply -f stellio-ingress.yaml
 ```
+
+To find the ip adress and port exposed from which you should send requests to access Stellio, use :
+```shell script
+minikube service api-gateway
+```

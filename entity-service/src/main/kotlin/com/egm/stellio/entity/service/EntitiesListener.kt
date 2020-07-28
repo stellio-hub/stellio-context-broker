@@ -33,20 +33,14 @@ class EntitiesListener(
     }
 
     private fun create(entityEvent: EntityEvent) {
-        val expandedEntity = parseEntity(
-            entityEvent.payload!!,
-            getContextOrThrowError(entityEvent.payload!!)
-        )
+        val expandedEntity = parseEntity(entityEvent.payload!!, getContextOrThrowError(entityEvent.payload!!))
 
         entityService.createEntity(expandedEntity)
     }
 
     private fun append(entityEvent: EntityEvent) {
         val expandedJsonLdFragment =
-            expandJsonLdFragment(
-                entityEvent.payload!!,
-                getContextOrThrowError(entityEvent.payload!!)
-            )
+            expandJsonLdFragment(entityEvent.payload!!, getContextOrThrowError(entityEvent.payload!!))
 
         entityService.appendEntityAttributes(entityEvent.entityId, expandedJsonLdFragment, false)
     }

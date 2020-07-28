@@ -11,10 +11,7 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.NONE,
-    classes = [EntitiesListener::class]
-)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
 @ActiveProfiles("test")
 class EntitiesListenerTests {
 
@@ -52,9 +49,7 @@ class EntitiesListenerTests {
     fun `it should parse and transmit Group membership append event`() {
         val groupMembershipAppendEvent = ClassPathResource("/ngsild/authorization/GroupMembershipAppendEvent.json")
 
-        entitiesListener.processMessage(
-            groupMembershipAppendEvent.inputStream.readBytes().toString(Charsets.UTF_8)
-        )
+        entitiesListener.processMessage(groupMembershipAppendEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
 
         verify {

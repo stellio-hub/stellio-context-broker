@@ -58,6 +58,8 @@ It will start all the services composing the Stellio context broker platform and
 
 Please note that the environment and scripts are validated on Ubuntu 19.10 and MacOS. Some errors may occur on other platforms.
 
+We also provide an experimental configuration to deploy Stellio in a k8s cluster (only tested in Minikube as of now). For more information, please look at [the README](kubernetes/README.md)
+
 ## Development
 
 ### Developing on a service

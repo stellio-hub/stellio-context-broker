@@ -1,11 +1,21 @@
 Tested on a Minikube cluster (for the moment).
 
-First register config map:  
+For instructions on how to install Minikube, please follow https://minikube.sigs.k8s.io/docs/start/.
+
+* Start your cluster
+
+```shell script
+minikube start
+```
+
+* Register the config map
+ 
 ```shell script
 kubectl apply -f stellio-configmap.yaml
 ```
 
-Then start all pods:  
+* Start all pods
+  
 ```shell script
 kubectl apply -f api-gateway-deployment.yaml \
 -f entity-service-deployment.yaml \
@@ -17,12 +27,26 @@ kubectl apply -f api-gateway-deployment.yaml \
 -f zookeeper-deployment.yaml
 ```
 
-Then start ingress:
+* Start ingress
+
 ```shell script
 kubectl apply -f stellio-ingress.yaml
 ```
 
-To find the ip adress and port exposed from which you should send requests to access Stellio, use :
+* To follow the status of the pods:
+
+```shell script
+kubectl get pods
+```
+
+* To see the logs of a pod:
+
+```shell script
+kubectl logs -f <pod_name>
+```
+
+* To find the IP and port exposed to which you can send requests to access Stellio, use:
+
 ```shell script
 minikube service api-gateway
 ```

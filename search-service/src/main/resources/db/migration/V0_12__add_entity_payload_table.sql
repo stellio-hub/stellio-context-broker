@@ -1,6 +1,6 @@
 -- Create entity_payload table
 CREATE TABLE entity_payload(
-    entity_id       VARCHAR(255) NOT NULL PRIMARY KEY,
+    entity_id VARCHAR(255) NOT NULL PRIMARY KEY,
     payload jsonb NULL
 );
 

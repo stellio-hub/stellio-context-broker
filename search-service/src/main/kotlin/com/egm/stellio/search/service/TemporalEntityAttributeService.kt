@@ -133,18 +133,10 @@ class TemporalEntityAttributeService(
                 }
             }
             .collectList()
-            .map {
-                it.size
-            }
-            .filterWhen {
-                newEntity(entity.id)
-            }
-            .zipWhen {
-                createEntityPayload(entity.id, payload)
-            }
-            .map {
-                it.t1
-            }
+            .map { it.size }
+            .filterWhen { newEntity(entity.id) }
+            .zipWhen { createEntityPayload(entity.id, payload) }
+            .map { it.t1 }
     }
 
     fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {

@@ -38,6 +38,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
         databaseClient.delete()
+            .from("entity_payload")
+            .fetch()
+            .rowsUpdated()
+            .block()
+
+        databaseClient.delete()
             .from("attribute_instance")
             .fetch()
             .rowsUpdated()

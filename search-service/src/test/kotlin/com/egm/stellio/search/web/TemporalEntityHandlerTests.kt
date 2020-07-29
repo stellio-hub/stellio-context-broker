@@ -281,7 +281,7 @@ class TemporalEntityHandlerTests {
             ExpandedEntity::class,
             relaxed = true
         )
-        every { temporalEntityAttributeService.addEntityPayload(any(), any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z")
@@ -302,8 +302,8 @@ class TemporalEntityHandlerTests {
         verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
 
         verify(timeout = 1000) {
-            temporalEntityAttributeService.addEntityPayload(match {
-                it == entityTemporalProperty.id
+            temporalEntityAttributeService.updateEntityPayload(match {
+                it == entityTemporalProperty.entityId
             }, match {
                 // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
                 it.startsWith("{\"id\":\"urn:ngsi-ld:BeeHive:TESTC\",\"type\":\"BeeHive\"")

@@ -93,7 +93,7 @@ class EntityListenerTest {
         }
 
         verify {
-            temporalEntityAttributeService.addEntityPayload(temporalEntityAttributeUuid, match {
+            temporalEntityAttributeService.updateEntityPayload("urn:ngsi-ld:FishContainment:1234", match {
                 it.contains("urn:ngsi-ld:FishContainment:1234")
             })
         }

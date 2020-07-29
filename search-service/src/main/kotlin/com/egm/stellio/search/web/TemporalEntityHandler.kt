@@ -147,8 +147,8 @@ class TemporalEntityHandler(
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
                     .doOnSuccess {
                         val entityPayload = it.compact()
-                        temporalEntityAttributeService.addEntityPayload(
-                            temporalEntityAttribute.id,
+                        temporalEntityAttributeService.updateEntityPayload(
+                            temporalEntityAttribute.entityId,
                             serializeObject(entityPayload)
                         ).subscribe()
                     }

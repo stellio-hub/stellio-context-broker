@@ -168,7 +168,10 @@ class TemporalEntityAttributeService(
             .execute(selectQuery)
             .bind("entity_id", id)
             .bind("attribute_name", attributeName)
-            .bind("dataset_id", datasetId)
+            .let {
+                if (datasetId != null) it.bind("dataset_id", datasetId)
+                else it
+            }
             .map(rowToId)
             .one()
     }

@@ -66,7 +66,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    private fun newEntity(entityId: String): Mono<Boolean> =
+    private fun isNewEntity(entityId: String): Mono<Boolean> =
         databaseClient.execute(
             """
             SELECT count(*) FROM entity_payload WHERE entity_id = :entity_id 
@@ -134,7 +134,7 @@ class TemporalEntityAttributeService(
             }
             .collectList()
             .map { it.size }
-            .filterWhen { newEntity(entity.id) }
+            .filterWhen { isNewEntity(entity.id) }
             .zipWhen { createEntityPayload(entity.id, payload) }
             .map { it.t1 }
     }

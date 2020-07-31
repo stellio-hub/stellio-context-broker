@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.model
 
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
@@ -30,6 +31,15 @@ class Property(
     datasetId: URI? = null
 
 ) : Attribute(attributeType = "Property", observedAt = observedAt, datasetId = datasetId) {
+
+    constructor(name: String, ngsiLdPropertyInstance: NgsiLdPropertyInstance) :
+        this(
+            name = name,
+            value = ngsiLdPropertyInstance.value,
+            unitCode = ngsiLdPropertyInstance.unitCode,
+            observedAt = ngsiLdPropertyInstance.observedAt,
+            datasetId = ngsiLdPropertyInstance.datasetId
+        )
 
     override fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = super.serializeCoreProperties()

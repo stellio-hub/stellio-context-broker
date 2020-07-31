@@ -31,7 +31,6 @@ class RepositoryEventsListener(
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
             EventType.CREATE -> sendCreateMessage(
-                channelName(entityEvent.entityType!!),
                 entityEvent.entityId,
                 entityEvent.entityType!!,
                 entityEvent.payload!!
@@ -49,7 +48,7 @@ class RepositoryEventsListener(
             logger.warn("Unable to send entity ${entityEvent.entityId}")
     }
 
-    private fun sendCreateMessage(channelName: String, entityId: String, entityType: String, payload: String): Boolean {
+    private fun sendCreateMessage(entityId: String, entityType: String, payload: String): Boolean {
         val data = mapOf(
             "operationType" to EventType.CREATE.name,
             "entityId" to entityId,
@@ -57,7 +56,7 @@ class RepositoryEventsListener(
             "payload" to payload
         )
 
-        return resolver.resolveDestination(channelName)
+        return resolver.resolveDestination(channelName(entityType))
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(data),

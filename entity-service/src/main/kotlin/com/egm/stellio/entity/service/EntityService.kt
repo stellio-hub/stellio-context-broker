@@ -94,7 +94,7 @@ class EntityService(
 
         ngsiLdEntity.geoProperties.forEach { ngsiLdGeoProperty ->
             // TODO we currently don't support multi-attributes for geoproperties
-            createLocationProperty(entity, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            createLocationProperty(entity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
         }
 
         publishCreationEvent(ngsiLdEntity)
@@ -123,13 +123,7 @@ class EntityService(
     ): String {
         logger.debug("Creating property $propertyKey with value ${ngsiLdPropertyInstance.value}")
 
-        val rawProperty = Property(
-            name = propertyKey,
-            value = ngsiLdPropertyInstance.value,
-            unitCode = ngsiLdPropertyInstance.unitCode,
-            observedAt = ngsiLdPropertyInstance.observedAt,
-            datasetId = ngsiLdPropertyInstance.datasetId
-        )
+        val rawProperty = Property(propertyKey, ngsiLdPropertyInstance)
 
         neo4jRepository.createPropertyOfSubject(
             subjectNodeInfo = EntitySubjectNode(entityId),
@@ -156,11 +150,7 @@ class EntityService(
     ): String {
 
         // TODO : finish integration with relationship properties (https://redmine.eglobalmark.com/issues/847)
-        val rawRelationship = Relationship(
-            type = listOf(relationshipType),
-            observedAt = ngsiLdRelationshipInstance.observedAt,
-            datasetId = ngsiLdRelationshipInstance.datasetId
-        )
+        val rawRelationship = Relationship(relationshipType, ngsiLdRelationshipInstance)
 
         neo4jRepository.createRelationshipOfSubject(EntitySubjectNode(entityId), rawRelationship, targetEntityId)
 
@@ -176,12 +166,7 @@ class EntityService(
             val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
             logger.debug("Creating property ${ngsiLdProperty.name} with values ${ngsiLdPropertyInstance.value}")
 
-            val rawProperty = Property(
-                name = ngsiLdProperty.name,
-                value = ngsiLdPropertyInstance.value,
-                unitCode = ngsiLdPropertyInstance.unitCode,
-                observedAt = ngsiLdPropertyInstance.observedAt
-            )
+            val rawProperty = Property(ngsiLdProperty.name, ngsiLdPropertyInstance)
 
             neo4jRepository.createPropertyOfSubject(
                 subjectNodeInfo = AttributeSubjectNode(subjectId),
@@ -196,10 +181,7 @@ class EntityService(
             val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
             val objectId = ngsiLdRelationshipInstance.objectId
             if (exists(objectId)) {
-                val rawRelationship = Relationship(
-                    type = listOf(ngsiLdRelationship.name),
-                    observedAt = ngsiLdRelationshipInstance.observedAt
-                )
+                val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
 
                 neo4jRepository.createRelationshipOfSubject(
                     AttributeSubjectNode(subjectId),
@@ -214,7 +196,7 @@ class EntityService(
     }
 
     internal fun createLocationProperty(
-        entity: Entity,
+        entityId: String,
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ): Int {
@@ -223,7 +205,7 @@ class EntityService(
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
         return if (ngsiLdGeoPropertyInstance.geoPropertyType == "Point") {
             neo4jRepository.addLocationPropertyToEntity(
-                entity.id,
+                entityId,
                 Pair(ngsiLdGeoPropertyInstance.coordinates[0] as Double, ngsiLdGeoPropertyInstance.coordinates[1] as Double))
         } else {
             logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
@@ -451,7 +433,7 @@ class EntityService(
                             ngsiLdAttribute.name.extractShortTypeFromExpanded())
                     ) {
                         createLocationProperty(
-                            entityRepository.findById(entityId).get(),
+                            entityId,
                             ngsiLdAttribute.name,
                             ngsiLdAttribute.instances[0]
                         )

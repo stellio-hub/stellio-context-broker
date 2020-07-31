@@ -407,12 +407,9 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456"
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(23.45, 67.87)
 
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
-        entityService.createLocationProperty(mockkedEntity, "location", ngsiLdGeoProperty.instances[0])
+        entityService.createLocationProperty(entityId, "location", ngsiLdGeoProperty.instances[0])
 
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
 
@@ -783,14 +780,12 @@ class EntityServiceTests {
         every { mockkedEntity.id } returns entityId
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns false
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
         entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify { entityRepository.findById(eq(entityId)) }
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(29.30623, 83.07966)) }
 
         confirmVerified()

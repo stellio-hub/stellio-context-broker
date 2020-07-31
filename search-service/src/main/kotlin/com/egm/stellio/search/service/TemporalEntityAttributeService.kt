@@ -26,6 +26,7 @@ import io.r2dbc.spi.Row
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
@@ -36,12 +37,12 @@ class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
     private val attributeInstanceService: AttributeInstanceService
 ) {
-
+    @Transactional
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
         databaseClient.execute(
             """
-            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, entity_payload, dataset_id)
-            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :entity_payload, :dataset_id)
+            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, dataset_id)
+            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :dataset_id)
             """
         )
             .bind("id", temporalEntityAttribute.id)
@@ -49,17 +50,26 @@ class TemporalEntityAttributeService(
             .bind("type", temporalEntityAttribute.type)
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
-            .bind(
-                "entity_payload",
-                temporalEntityAttribute.entityPayload?.let { Json.of(temporalEntityAttribute.entityPayload) })
             .bind("dataset_id", temporalEntityAttribute.datasetId)
             .fetch()
             .rowsUpdated()
 
-    fun addEntityPayload(temporalEntityAttributeId: UUID, payload: String): Mono<Int> =
-        databaseClient.execute("UPDATE temporal_entity_attribute SET entity_payload = :entity_payload WHERE id = :id")
-            .bind("entity_payload", Json.of(payload))
-            .bind("id", temporalEntityAttributeId)
+    internal fun createEntityPayload(entityId: String, entityPayload: String?): Mono<Int> =
+        databaseClient.execute(
+            """
+            INSERT INTO entity_payload (entity_id, payload)
+            VALUES (:entity_id, :payload)
+            """
+        )
+            .bind("entity_id", entityId)
+            .bind("payload", entityPayload?.let { Json.of(entityPayload) })
+            .fetch()
+            .rowsUpdated()
+
+    fun updateEntityPayload(entityId: String, payload: String): Mono<Int> =
+        databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
+            .bind("payload", Json.of(payload))
+            .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
 
@@ -113,13 +123,16 @@ class TemporalEntityAttributeService(
             }
             .collectList()
             .map { it.size }
+            .zipWith(createEntityPayload(entity.id, payload))
+            .map { it.t1 + it.t2 }
     }
 
     fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {
         val selectQuery = """
-            SELECT id, entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT, dataset_id
+            SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type, entity_payload::TEXT, dataset_id
             FROM temporal_entity_attribute
-            WHERE entity_id = :entity_id
+            LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id            
+            WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
 
         val expandedAttrsList =
@@ -168,7 +181,10 @@ class TemporalEntityAttributeService(
             .execute(selectQuery)
             .bind("entity_id", id)
             .bind("attribute_name", attributeName)
-            .bind("dataset_id", datasetId)
+            .let {
+                if (datasetId != null) it.bind("dataset_id", datasetId)
+                else it
+            }
             .map(rowToId)
             .one()
     }
@@ -192,6 +208,10 @@ class TemporalEntityAttributeService(
 
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
+    }
+
+    private var rowToCount: ((Row) -> Int) = { row ->
+        row.get("count", Integer::class.java)!!.toInt()
     }
 
     fun injectTemporalValues(

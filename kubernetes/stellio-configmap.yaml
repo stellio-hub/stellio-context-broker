@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  ENVIRONMENT: docker
+  NEO4J_ALLOW_UPGRADE: "false"
+  NEO4J_DEFAULT_DATABASE: stellio
+  NEO4J_PASSWORD: neo4j_password
+  POSTGRES_PASSWORD: postgres_password
+  STELLIO_AUTHENTICATION_ENABLED: "false"
+  STELLIO_DOCKER_TAG: dev
+  STELLIO_SEARCH_DB_DATABASE: stellio_search
+  STELLIO_SEARCH_DB_PASSWORD: stellio_search_db_password
+  STELLIO_SEARCH_DB_USER: stellio_search
+  STELLIO_SUBSCRIPTION_DB_DATABASE: stellio_subscription
+  STELLIO_SUBSCRIPTION_DB_PASSWORD: stellio_subscription_db_password
+  STELLIO_SUBSCRIPTION_DB_USER: stellio_subscription
+  APPLICATION_SUBSCRIPTION_SERVICE_URL: subscription
+  KAFKA_URL: stellio-kafka:9092
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-07-16T07:25:07Z"
+  name: stellio-conf
+  namespace: default
+  resourceVersion: "6086"
+  selfLink: /api/v1/namespaces/default/configmaps/stellio-conf
+  uid: 18bedabb-cc60-4fd3-9c1a-58efbed7da5c

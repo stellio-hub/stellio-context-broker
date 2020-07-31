@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: stellio-entity-service
+  name: entity-service
+spec:
+  ports:
+    - name: "8082"
+      port: 8082
+      targetPort: 8082
+  selector:
+    app: stellio-entity-service
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: stellio-entity-service
+  name: entity-service
+spec:
+  selector:
+    matchLabels:
+      app: stellio-entity-service
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: stellio-entity-service
+    spec:
+      containers:
+        - env:
+          - name: APPLICATION_AUTHENTICATION_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: stellio-conf
+                key: STELLIO_AUTHENTICATION_ENABLED
+          - name: SPRING_DATA_NEO4J_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: stellio-conf
+                key: NEO4J_PASSWORD
+          - name: SPRING_PROFILES_ACTIVE
+            valueFrom:
+              configMapKeyRef:
+                name: stellio-conf
+                key: ENVIRONMENT
+          - name: SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS
+            valueFrom:
+              configMapKeyRef:
+                name: stellio-conf
+                key: KAFKA_URL
+          image: 'stellio/stellio-entity-service:dev'
+          name: stellio-entity-service
+          ports:
+            - containerPort: 8082
+              name: entity-service
+          resources: {}
+      restartPolicy: Always
+status: {}

@@ -54,7 +54,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    private fun createEntityPayload(entityId: String, entityPayload: String?): Mono<Int> =
+    internal fun createEntityPayload(entityId: String, entityPayload: String?): Mono<Int> =
         databaseClient.execute(
             """
             INSERT INTO entity_payload (entity_id, payload)
@@ -65,17 +65,6 @@ class TemporalEntityAttributeService(
             .bind("payload", entityPayload?.let { Json.of(entityPayload) })
             .fetch()
             .rowsUpdated()
-
-    private fun isNewEntity(entityId: String): Mono<Boolean> =
-        databaseClient.execute(
-            """
-            SELECT count(*) FROM entity_payload WHERE entity_id = :entity_id 
-            """
-        )
-            .bind("entity_id", entityId)
-            .map(rowToCount)
-            .first()
-            .map { it == 0 }
 
     fun updateEntityPayload(entityId: String, payload: String): Mono<Int> =
         databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
@@ -134,9 +123,8 @@ class TemporalEntityAttributeService(
             }
             .collectList()
             .map { it.size }
-            .filterWhen { isNewEntity(entity.id) }
-            .zipWhen { createEntityPayload(entity.id, payload) }
-            .map { it.t1 }
+            .zipWith(createEntityPayload(entity.id, payload))
+            .map { it.t1 + it.t2 }
     }
 
     fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {

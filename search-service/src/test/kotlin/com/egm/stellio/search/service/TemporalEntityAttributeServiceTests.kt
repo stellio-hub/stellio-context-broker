@@ -8,6 +8,9 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
+import com.ninjasquad.springmockk.SpykBean
+import io.mockk.confirmVerified
+import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -27,6 +30,7 @@ import java.time.ZonedDateTime
 class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Autowired
+    @SpykBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Autowired
@@ -91,10 +95,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 1
+                it == 2
             }
             .expectComplete()
             .verify()
+
+        verify {
+            temporalEntityAttributeService.createEntityPayload("urn:ngsi-ld:BeeHive:TESTC", any())
+        }
+
+        confirmVerified()
     }
 
     @Test
@@ -105,7 +115,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 2
+                it == 3
             }
             .expectComplete()
             .verify()
@@ -119,7 +129,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 2
+                it == 3
             }
             .expectComplete()
             .verify()

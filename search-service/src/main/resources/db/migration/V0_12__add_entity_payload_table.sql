@@ -1,7 +1,7 @@
 -- Create entity_payload table
 CREATE TABLE entity_payload(
     entity_id VARCHAR(255) NOT NULL PRIMARY KEY,
-    payload jsonb NULL
+    payload jsonb
 );
 
 -- Move existing entity_payload rows to entity_payload table

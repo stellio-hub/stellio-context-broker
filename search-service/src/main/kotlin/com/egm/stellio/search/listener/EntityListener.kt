@@ -70,7 +70,10 @@ class EntityListener(
                             measuredValue = parsedAttributeValue.second
                         )
                         attributeInstanceService.create(attributeInstance)
-                            .then(temporalEntityAttributeService.updateEntityPayload(entityEvent.entityId, entityEvent.updatedEntity!!))
+                            .then(temporalEntityAttributeService.updateEntityPayload(
+                                entityEvent.entityId,
+                                entityEvent.updatedEntity!!)
+                            )
                     }
                     .doOnError {
                         logger.error("Failed to persist new attribute instance, ignoring it", it)

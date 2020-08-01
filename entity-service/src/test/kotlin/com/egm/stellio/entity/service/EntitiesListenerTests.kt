@@ -50,7 +50,6 @@ class EntitiesListenerTests {
 
         entitiesListener.processMessage(groupMembershipAppendEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
-
         verify {
             entityService.appendEntityAttributes(
                 "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",

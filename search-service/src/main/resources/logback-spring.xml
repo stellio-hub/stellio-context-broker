@@ -32,7 +32,7 @@
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.springframework.security" level="DEBUG"/>
-    <logger name="org.springframework.web" level="TRACE"/>
+<!--    <logger name="org.springframework.web" level="TRACE"/>-->
 
     <root level="INFO">
         <appender-ref ref="console" />

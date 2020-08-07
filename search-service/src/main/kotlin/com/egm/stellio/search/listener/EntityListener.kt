@@ -32,7 +32,7 @@ class EntityListener(
                 try {
                     temporalEntityAttributeService.createEntityTemporalReferences(entityEvent.payload!!)
                         .subscribe {
-                            logger.debug("Bootstrapped entity")
+                            logger.debug("Bootstrapped entity (records created: $it)")
                         }
                 } catch (e: Exception) {
                     logger.error("Received a non-parseable entity : $content", e)

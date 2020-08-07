@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsD
 import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
+import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -37,6 +38,9 @@ class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
     private val attributeInstanceService: AttributeInstanceService
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Transactional
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
         databaseClient.execute(
@@ -76,6 +80,7 @@ class TemporalEntityAttributeService(
     fun createEntityTemporalReferences(payload: String): Mono<Int> {
 
         val entity = NgsiLdParsingUtils.parseEntity(payload)
+        logger.debug("Analyzing create event for entity ${entity.id}")
 
         val temporalProperties = entity.properties
             .filter {
@@ -87,6 +92,10 @@ class TemporalEntityAttributeService(
                     Pair(it.key, instance)
                 }
             })
+
+        logger.debug("Found temporal properties for entity : $temporalProperties")
+        if (temporalProperties.isEmpty())
+            return Mono.just(0)
 
         return Flux.fromIterable(temporalProperties.asIterable())
             .map {

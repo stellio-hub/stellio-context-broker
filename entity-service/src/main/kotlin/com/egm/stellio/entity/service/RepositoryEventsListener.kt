@@ -3,6 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -67,7 +68,7 @@ class RepositoryEventsListener(
 
     private fun sendUpdateMessage(entityId: String, payload: String): Boolean {
         val jsonLdEntity = entityService.getFullEntityById(entityId)
-        val entityType = jsonLdEntity.type
+        val entityType = jsonLdEntity.type.extractShortTypeFromExpanded()
         val data = mapOf(
             "operationType" to EventType.UPDATE.name,
             "entityId" to entityId,

@@ -182,7 +182,7 @@ class EntityServiceTests {
 
         verify { neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:01XYZ", EGM_VENDOR_ID, "incoming") }
 
-        confirmVerified(entityRepository)
+        confirmVerified(neo4jRepository)
     }
 
     @Test

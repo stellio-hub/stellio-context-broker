@@ -495,10 +495,9 @@ class EntityService(
                     } else
                         notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
                 } else if (ngsiLdAttribute is NgsiLdProperty) {
-                    // TODO multi-attribute support
                     val datasetId = ngsiLdAttribute.instances[0].datasetId
                     if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), ngsiLdAttribute.name, datasetId)) {
-                        deleteEntityAttribute(id, ngsiLdAttribute.name)
+                        deleteEntityAttributeInstance(id, ngsiLdAttribute.name, datasetId)
                         createEntityProperty(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
                         updatedAttributes.add(shortAttributeName)
                     } else {

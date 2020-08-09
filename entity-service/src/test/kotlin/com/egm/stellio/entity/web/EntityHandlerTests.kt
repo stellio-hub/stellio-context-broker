@@ -51,6 +51,7 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
+import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -916,7 +917,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -927,9 +928,55 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
+            entityService.deleteEntityAttributeInstance(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                null
+            )
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any()) } returns true
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
                 eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+            )
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `delete entity attribute should delete instance with the provided datasetId`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+
+        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify {
+            entityService.deleteEntityAttributeInstance(
+                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
             )
         }
         confirmVerified(entityService)
@@ -961,7 +1008,7 @@ class EntityHandlerTests {
             )
         } throws ResourceNotFoundException("Attribute Not Found")
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
             .expectStatus().isNotFound
@@ -984,7 +1031,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any()) } returns false
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns false
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
@@ -999,9 +1046,10 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
         verify {
-            entityService.deleteEntityAttribute(
+            entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                null
             )
         }
         confirmVerified(entityService)

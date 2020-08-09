@@ -5,9 +5,9 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.ApiUtils.parseNotification
-import com.egm.stellio.shared.util.ApiUtils.parseSubscription
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.parseNotification
+import com.egm.stellio.shared.util.JsonUtils.parseSubscription
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener

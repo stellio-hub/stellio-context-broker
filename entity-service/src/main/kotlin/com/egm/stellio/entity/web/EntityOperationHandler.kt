@@ -1,9 +1,10 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -79,9 +80,12 @@ class EntityOperationHandler(
             }
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String): List<ExpandedEntity> {
+    private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {
         val extractedEntities = extractEntitiesFromJsonPayload(payload)
-        return NgsiLdParsingUtils.parseEntities(extractedEntities)
+        return JsonLdUtils.expandJsonLdEntities(extractedEntities)
+            .map {
+                it.toNgsiLdEntity()
+            }
     }
 
     private fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {

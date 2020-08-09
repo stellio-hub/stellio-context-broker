@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.JsonLdUtils
 import org.springframework.data.annotation.Id
 import java.util.UUID
 
@@ -18,10 +18,10 @@ data class Subscription(
 ) {
     fun expandTypes(context: List<String>) {
         this.entities.forEach {
-            it.type = NgsiLdParsingUtils.expandJsonLdKey(it.type, context)!!
+            it.type = JsonLdUtils.expandJsonLdKey(it.type, context)!!
         }
         this.notification.attributes = this.notification.attributes.map {
-            NgsiLdParsingUtils.expandJsonLdKey(it, context)!!
+            JsonLdUtils.expandJsonLdKey(it, context)!!
         }
     }
 }

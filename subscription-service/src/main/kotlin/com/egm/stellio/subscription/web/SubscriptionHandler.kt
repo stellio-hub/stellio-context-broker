@@ -4,10 +4,10 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.web.extractJwT
@@ -47,7 +47,7 @@ class SubscriptionHandler(
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
-                val context = NgsiLdParsingUtils.getContextOrThrowError(it)
+                val context = getContextOrThrowError(it)
                 parseSubscription(it, context)
             }
             .flatMap {

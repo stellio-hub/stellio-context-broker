@@ -2,7 +2,7 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.mockk
@@ -43,7 +43,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val expandedEntities = slot<List<ExpandedEntity>>()
+        val expandedEntities = slot<List<NgsiLdEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
             emptyList(),
@@ -140,7 +140,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val existingEntity = mockk<ExpandedEntity>()
+        val existingEntity = mockk<NgsiLdEntity>()
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
@@ -193,8 +193,8 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
 
-        val existingEntities = mockk<List<ExpandedEntity>>()
-        val nonExistingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = mockk<List<NgsiLdEntity>>()
+        val nonExistingEntities = mockk<List<NgsiLdEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
@@ -290,7 +290,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
             "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         )
-        val existingEntities = mockk<List<ExpandedEntity>>()
+        val existingEntities = mockk<List<NgsiLdEntity>>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
@@ -339,7 +339,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/" + method)
+            .uri("/ngsi-ld/v1/entityOperations/$method")
             .header(
                 "Link",
                 "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
@@ -351,7 +351,7 @@ class EntityOperationHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                 "title":"The request includes input data which does not meet the requirements of the operation",
-                "detail":"Could not parse entity due to invalid json-ld payload"}
+                "detail":"Unexpected error while parsing payload : Unable to parse input payload"}
                 """.trimIndent()
             )
     }

@@ -3,15 +3,25 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.InternalErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.compactEntities
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
+import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -35,7 +45,8 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -47,7 +58,7 @@ class EntityHandler(
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
-                NgsiLdParsingUtils.parseEntity(it, NgsiLdParsingUtils.getContextOrThrowError(it))
+                expandJsonLdEntity(it, getContextOrThrowError(it)).toNgsiLdEntity()
             }
             .map {
                 entityService.createEntity(it)
@@ -74,7 +85,7 @@ class EntityHandler(
                 .body(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
                 .toMono()
 
-        if (!NgsiLdParsingUtils.isTypeResolvable(type, contextLink))
+        if (!JsonLdUtils.isTypeResolvable(type, contextLink))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
                 .toMono()
@@ -142,10 +153,12 @@ class EntityHandler(
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
-                NgsiLdParsingUtils.expandJsonLdFragment(it, contextLink)
-            }
-            .map {
-                entityService.appendEntityAttributes(entityId, it, disallowOverwrite)
+                val jsonLdAttributes = expandJsonLdFragment(it, contextLink)
+                entityService.appendEntityAttributes(
+                    entityId,
+                    parseToNgsiLdAttributes(jsonLdAttributes),
+                    disallowOverwrite
+                )
             }
             .map {
                 logger.debug("Appended $it attributes on entity $entityId")
@@ -176,14 +189,29 @@ class EntityHandler(
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
-                entityService.updateEntityAttributes(entityId, it, contextLink)
+                val jsonLdAttributes = expandJsonLdFragment(it, contextLink)
+                Pair(
+                    jsonLdAttributes,
+                    entityService.updateEntityAttributes(entityId, parseToNgsiLdAttributes(jsonLdAttributes))
+                )
+            }
+            .doOnNext {
+                it.second.updated.forEach { shortAttributeName ->
+                    val expandedAttributeName = expandJsonLdKey(shortAttributeName, contextLink)!!
+                    val entityEvent = EntityEvent(
+                        operationType = EventType.UPDATE,
+                        entityId = entityId,
+                        payload = compactAndStringifyFragment(expandedAttributeName, it.first[expandedAttributeName]!!, contextLink)
+                    )
+                    applicationEventPublisher.publishEvent(entityEvent)
+                }
             }
             .map {
                 logger.debug("Update $it attributes on entity $entityId")
-                if (it.notUpdated.isEmpty())
+                if (it.second.notUpdated.isEmpty())
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
                 else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
+                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it.second)
             }
     }
 
@@ -227,7 +255,7 @@ class EntityHandler(
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.deleteEntityAttribute(entityId, attrId, contextLink)
+                entityService.deleteEntityAttribute(entityId, expandJsonLdKey(attrId, contextLink)!!)
             }
             .map {
                 if (it)

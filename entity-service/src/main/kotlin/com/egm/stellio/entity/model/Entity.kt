@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_GEOPROPERTY_VALUE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -53,25 +53,25 @@ class Entity(
 
     fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        resultEntity[NGSILD_ENTITY_ID] = id
-        resultEntity[NGSILD_ENTITY_TYPE] = type
+        resultEntity[JSONLD_ID] = id
+        resultEntity[JSONLD_TYPE] = type
         resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
-            NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
             JSONLD_VALUE_KW to createdAt
         )
 
         modifiedAt?.run {
             resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
-                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+                JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
                 JSONLD_VALUE_KW to this
             )
         }
 
         location?.run {
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
-                NGSILD_ENTITY_TYPE to "GeoProperty",
+                JSONLD_TYPE to "GeoProperty",
                 NGSILD_GEOPROPERTY_VALUE to mapOf(
-                    NGSILD_ENTITY_TYPE to "Point",
+                    JSONLD_TYPE to "Point",
                     NGSILD_COORDINATES_PROPERTY to listOf(this.longitude, this.latitude)
                 )
             )

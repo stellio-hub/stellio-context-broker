@@ -7,9 +7,9 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.loadAndParseSampleData
+import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -276,9 +276,9 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(loadAndParseSampleData())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(parseSampleDataToJsonLd())
         every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
-            ExpandedEntity::class,
+            JsonLdEntity::class,
             relaxed = true
         )
         every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
@@ -326,7 +326,7 @@ class TemporalEntityHandlerTests {
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
-        val rawEntity = loadAndParseSampleData()
+        val rawEntity = parseSampleDataToJsonLd()
         every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
             entityTemporalProperty1,
             entityTemporalProperty2
@@ -359,7 +359,7 @@ class TemporalEntityHandlerTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
-        val rawEntity = loadAndParseSampleData()
+        val rawEntity = parseSampleDataToJsonLd()
 
         every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
             entityTemporalProperty

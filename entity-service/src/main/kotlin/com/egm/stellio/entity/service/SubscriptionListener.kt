@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseEntityEvent
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.parseJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonLdUtils.parseJsonLdFragment
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -32,7 +32,7 @@ class SubscriptionListener(
         when (entityEvent.operationType) {
             EventType.CREATE -> {
                 val parsedSubscription = parseJsonLdFragment(entityEvent.payload!!).minus("id").minus("type")
-                entityService.createSubscriptionEntity(entityEvent.entityId, entityEvent.entityType, parsedSubscription)
+                entityService.createSubscriptionEntity(entityEvent.entityId, entityEvent.entityType!!, parsedSubscription)
             }
             EventType.APPEND -> logger.warn("Append operation is not yet implemented for subscriptions")
             EventType.UPDATE -> logger.warn("Update operation is not yet implemented for subscriptions")
@@ -61,7 +61,7 @@ class SubscriptionListener(
 
                 entityService.createNotificationEntity(
                     entityEvent.entityId,
-                    entityEvent.entityType,
+                    entityEvent.entityType!!,
                     subscriptionId,
                     parsedNotification
                 )

@@ -3,10 +3,11 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
+import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -281,7 +282,7 @@ class SubscriptionService(
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    NgsiLdParsingUtils.expandJsonLdKey(it, contexts!!)!!
+                    JsonLdUtils.expandJsonLdKey(it, contexts!!)!!
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }
@@ -431,13 +432,13 @@ class SubscriptionService(
         return res.isNotEmpty()
     }
 
-    fun isMatchingGeoQuery(subscriptionId: String, targetGeometry: Map<String, Any>?): Mono<Boolean> {
-        return if (targetGeometry == null)
+    fun isMatchingGeoQuery(subscriptionId: String, location: NgsiLdGeoProperty?): Mono<Boolean> {
+        return if (location == null)
             Mono.just(true)
         else {
             getMatchingGeoQuery(subscriptionId)
                 .map {
-                    createGeoQueryStatement(it, targetGeometry)
+                    createGeoQueryStatement(it, location)
                 }.flatMap {
                     runGeoQueryStatement(it)
                 }

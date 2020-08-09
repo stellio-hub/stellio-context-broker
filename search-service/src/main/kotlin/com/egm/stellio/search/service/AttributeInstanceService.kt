@@ -7,10 +7,10 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMap
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono

@@ -5,7 +5,9 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -207,14 +209,14 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
 
         val attributeValues = mapOf(
-            NgsiLdParsingUtils.EGM_OBSERVED_BY to listOf(
+            EGM_OBSERVED_BY to listOf(
                 mapOf(
                     "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                 )
             ),
-            NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE to listOf(
+            NGSILD_PROPERTY_VALUE to listOf(
                 mapOf(
-                    NgsiLdParsingUtils.JSONLD_VALUE_KW to 550.0
+                    JSONLD_VALUE_KW to 550.0
                 )
             )
         )
@@ -233,7 +235,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     fun `it should not create an AttributeInstance if it has a null value and null measuredValue`() {
 
         val attributeValues = mapOf(
-            NgsiLdParsingUtils.EGM_OBSERVED_BY to listOf(
+            EGM_OBSERVED_BY to listOf(
                 mapOf(
                     "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                 )

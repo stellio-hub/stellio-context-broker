@@ -9,7 +9,7 @@ import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.every
@@ -46,9 +46,9 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should split entities per existence`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
 
         every { neo4jRepository.filterExistingEntitiesIds(listOf("1", "2")) } returns listOf("1")
@@ -61,12 +61,12 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should create naively isolated entities`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
 
-        val acyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        val acyclicGraph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         acyclicGraph.addVertex(firstEntity)
         acyclicGraph.addVertex(secondEntity)
 
@@ -83,12 +83,12 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should create naively isolated entities with an error`() {
-        val firstEntity = mockkClass(ExpandedEntity::class)
+        val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"
-        val secondEntity = mockkClass(ExpandedEntity::class)
+        val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
 
-        val acyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        val acyclicGraph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         acyclicGraph.addVertex(firstEntity)
         acyclicGraph.addVertex(secondEntity)
 
@@ -105,12 +105,12 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should create entities with cyclic dependencies`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
 
-        val cyclicGraph = DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java)
+        val cyclicGraph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         cyclicGraph.addVertex(firstEntity)
         cyclicGraph.addVertex(secondEntity)
         cyclicGraph.addEdge(firstEntity, secondEntity)
@@ -130,10 +130,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should not update entities with relationships to invalid entity not found in DB`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns emptyList()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
@@ -156,10 +156,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should not update entities with relationships to invalid entity given in BatchOperationResult`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns emptyList()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
@@ -186,10 +186,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error updating which results in BadRequestDataException`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns emptyList()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns emptyList()
 
@@ -212,10 +212,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error not updated attributes in entities`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns emptyList()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns emptyList()
 
@@ -244,10 +244,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should replace entities`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
@@ -272,10 +272,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error entities that couldn't be replaced`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
@@ -300,10 +300,10 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error entities that couldn't be replaced totally`() {
-        val firstEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { firstEntity.id } returns "1"
         every { firstEntity.getLinkedEntitiesIds() } returns listOf()
-        val secondEntity = mockkClass(ExpandedEntity::class, relaxed = true)
+        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 

@@ -1,8 +1,8 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.EntityServiceProperties
-import com.egm.stellio.shared.model.ExpandedEntity
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils
 import org.springframework.http.codec.ClientCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
@@ -22,11 +22,11 @@ class EntityService(
         .baseUrl(entityServiceProperties.url)
         .build()
 
-    fun getEntityById(entityId: String, bearerToken: String): Mono<ExpandedEntity> =
+    fun getEntityById(entityId: String, bearerToken: String): Mono<JsonLdEntity> =
         webClient.get()
             .uri("/entities/$entityId")
             .header("Authorization", bearerToken)
             .retrieve()
             .bodyToMono(String::class.java)
-            .map { NgsiLdParsingUtils.parseEntity(it) }
+            .map { JsonLdUtils.expandJsonLdEntity(it) }
 }

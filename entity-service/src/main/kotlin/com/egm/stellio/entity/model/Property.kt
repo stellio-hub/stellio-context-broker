@@ -1,13 +1,14 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.fasterxml.jackson.annotation.JsonRawValue
 import org.neo4j.ogm.annotation.Index
 import org.neo4j.ogm.annotation.NodeEntity
@@ -31,13 +32,22 @@ class Property(
 
 ) : Attribute(attributeType = "Property", observedAt = observedAt, datasetId = datasetId) {
 
+    constructor(name: String, ngsiLdPropertyInstance: NgsiLdPropertyInstance) :
+        this(
+            name = name,
+            value = ngsiLdPropertyInstance.value,
+            unitCode = ngsiLdPropertyInstance.unitCode,
+            observedAt = ngsiLdPropertyInstance.observedAt,
+            datasetId = ngsiLdPropertyInstance.datasetId
+        )
+
     override fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = super.serializeCoreProperties()
-        resultEntity[NGSILD_ENTITY_TYPE] = NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE.uri
+        resultEntity[JSONLD_TYPE] = JsonLdUtils.NGSILD_PROPERTY_TYPE.uri
         resultEntity[NGSILD_PROPERTY_VALUE] = when (value) {
-            is ZonedDateTime -> mapOf(NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE, JSONLD_VALUE_KW to value)
-            is LocalDate -> mapOf(NGSILD_ENTITY_TYPE to NGSILD_DATE_TYPE, JSONLD_VALUE_KW to value)
-            is LocalTime -> mapOf(NGSILD_ENTITY_TYPE to NGSILD_TIME_TYPE, JSONLD_VALUE_KW to value)
+            is ZonedDateTime -> mapOf(JSONLD_TYPE to NGSILD_DATE_TIME_TYPE, JSONLD_VALUE_KW to value)
+            is LocalDate -> mapOf(JSONLD_TYPE to NGSILD_DATE_TYPE, JSONLD_VALUE_KW to value)
+            is LocalTime -> mapOf(JSONLD_TYPE to NGSILD_TIME_TYPE, JSONLD_VALUE_KW to value)
             else -> value
         }
         unitCode?.run {

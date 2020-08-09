@@ -11,18 +11,21 @@ import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.ExpandedEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_RAISED_NOTIFICATION
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.EGM_VENDOR_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.egm.stellio.shared.util.loadAndParseSampleData
-import com.egm.stellio.shared.util.toRelationshipTypeName
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_RAISED_NOTIFICATION
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
+import com.egm.stellio.shared.util.parseSampleDataToNgsiLd
+import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
@@ -35,7 +38,6 @@ import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.Instant
@@ -60,7 +62,7 @@ class EntityServiceTests {
     @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var entityRepository: EntityRepository
 
     @MockkBean
@@ -82,12 +84,13 @@ class EntityServiceTests {
         val expectedPayloadInEvent = """
         {"id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","type":"MortalityRemovalService","@context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld","https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]}
         """.trimIndent()
-        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityRemovalService_standalone.json")
+        val sampleDataWithContext =
+            parseSampleDataToNgsiLd("aquac/MortalityRemovalService_standalone.json")
         val mockedBreedingService = mockkClass(Entity::class)
 
         every { entityRepository.exists(eq("urn:ngsi-ld:MortalityRemovalService:014YFA9Z")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
-                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+                Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { mockedBreedingService.properties } returns mutableListOf()
@@ -118,78 +121,17 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should notify of a two attributes update`() {
-
-        val payload =
-            String(ClassPathResource("/ngsild/aquac/fragments/BreedingService_twoNewProperties.json").inputStream.readAllBytes())
-        val expectedFishNumberPayloadInEvent = """
-            {"fishNumber":{"type":"Property","value":500}}
-        """.trimIndent()
-        val expectedFishSizePayloadInEvent = """
-            {"fishSize":{"type":"Property","value":12}}
-        """.trimIndent()
-        val mockedBreedingService = mockkClass(Entity::class)
-        val mockedFishNumberProperty = mockkClass(Property::class)
-        val mockedFishSizeProperty = mockkClass(Property::class)
-
-        every { entityRepository.findById(any()) } returns Optional.of(mockedBreedingService)
-        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:0214"
-        every {
-            neo4jRepository.getPropertyOfSubject(
-                any(),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
-            )
-        } returns mockedFishNumberProperty
-        every { mockedFishNumberProperty.updateValues(any(), any(), any()) } just Runs
-        every {
-            neo4jRepository.getPropertyOfSubject(
-                any(),
-                eq("https://ontology.eglobalmark.com/aquac#fishSize")
-            )
-        } returns mockedFishSizeProperty
-        every { mockedFishSizeProperty.updateValues(any(), any(), any()) } just Runs
-        every { propertyRepository.save<Property>(any()) } returns mockedFishNumberProperty
-
-        every { mockedBreedingService.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-
-        entityService.updateEntityAttributes("urn:ngsi-ld:BreedingService:0214", payload, aquacContext!!)
-
-        verify(timeout = 1000) {
-            repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
-                entityEvent.entityType == "BreedingService" &&
-                    entityEvent.entityId == "urn:ngsi-ld:BreedingService:0214" &&
-                    entityEvent.operationType == EventType.UPDATE &&
-                    entityEvent.payload == expectedFishNumberPayloadInEvent &&
-                    entityEvent.updatedEntity == null
-            })
-        }
-        verify(timeout = 1000) {
-            repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
-                entityEvent.entityType == "BreedingService" &&
-                    entityEvent.entityId == "urn:ngsi-ld:BreedingService:0214" &&
-                    entityEvent.operationType == EventType.UPDATE &&
-                    entityEvent.payload == expectedFishSizePayloadInEvent &&
-                    entityEvent.updatedEntity == null
-            })
-        }
-        // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
-    }
-
-    @Test
     fun `it should create an entity with a property having a property`() {
 
-        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithProp.json")
+        val sampleDataWithContext =
+            parseSampleDataToNgsiLd("aquac/BreedingService_propWithProp.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
         every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp"
 
         every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithProp")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
-                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+                Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
@@ -209,11 +151,12 @@ class EntityServiceTests {
 
     @Test
     fun `it should not create an entity referencing an unknown entity`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/FeedingService.json")
+        val sampleDataWithContext =
+            parseSampleDataToNgsiLd("aquac/FeedingService.json")
 
         every { entityRepository.exists(eq("urn:ngsi-ld:FeedingService:018z59")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
-                Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java),
+                Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java),
                     listOf(
                         BatchEntityError("urn:ngsi-ld:Feeder:018z5", arrayListOf("Invalid relationship")),
                         BatchEntityError("urn:ngsi-ld:FishContainment:0012", arrayListOf("Invalid relationship"))
@@ -230,114 +173,6 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should not create an entity having a property with more than one default instance`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithMoreThanOneDefaultInstance.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithMoreThanOneDefaultInstance")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Property fishName can't have more than one default instance") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity having a property with duplicated datasetId`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDuplicatedDatasetId.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDuplicatedDatasetId")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Property fishName can't have duplicated datasetId") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity having a property with different instances type`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/BreedingService_propWithDifferentInstancesType.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithDifferentInstancesType")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("fishName attribute instances must have the same type") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity having a relationship with more than one default instance`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithMoreThanOneDefaultInstance.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithMoreThanOneDefaultInstance"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithMoreThanOneDefaultInstance")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Relationship removedFrom can't have more than one default instance") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity having a relationship with duplicated datasetId`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithDuplicatedDatasetId.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithDuplicatedDatasetId"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithDuplicatedDatasetId")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("Relationship removedFrom can't have duplicated datasetId") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity having a relationship with different instances type`() {
-        val sampleDataWithContext = loadAndParseSampleData("aquac/MortalityService_relWithDifferentInstancesType.json")
-
-        val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityService:RelWithDifferentInstancesType"
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityService:RelWithDifferentInstancesType")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<ExpandedEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-
-        assertThrows<BadRequestDataException>("removedFrom attribute instances must have the same type") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
     fun `it should ignore measures from an unknown sensor`() {
         val observation = gimmeAnObservation()
 
@@ -347,7 +182,7 @@ class EntityServiceTests {
 
         verify { neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:01XYZ", EGM_VENDOR_ID, "incoming") }
 
-        confirmVerified(entityRepository)
+        confirmVerified(neo4jRepository)
     }
 
     @Test
@@ -441,6 +276,7 @@ class EntityServiceTests {
               }
             }
         """.trimIndent()
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
 
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedRelationshipTarget = mockkClass(Entity::class)
@@ -454,21 +290,14 @@ class EntityServiceTests {
         every { mockkedRelationship setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
-        every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
-        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedRelationshipTarget
-        every { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) } returns 1
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
-        every { relationshipRepository.save(any<Relationship>()) } returns mockkedRelationship
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId"
 
-        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { neo4jRepository.hasRelationshipOfType(any(), any()) }
-        verify { neo4jRepository.getRelationshipOfSubject(any(), any()) }
-        verify { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) }
-        verify { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) }
-        verify { entityRepository.findById(eq(sensorId)) }
-        verify { relationshipRepository.save(mockkedRelationship) }
+        verify { neo4jRepository.hasRelationshipOfType(any(), eq("FILLED_IN")) }
+        verify { neo4jRepository.deleteEntityRelationship(eq(sensorId), eq("FILLED_IN")) }
+        verify { neo4jRepository.createRelationshipOfSubject(any(), any(), eq("urn:ngsi-ld:FishContainment:1234")) }
 
         confirmVerified()
     }
@@ -486,30 +315,20 @@ class EntityServiceTests {
               }
             }
         """.trimIndent()
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
 
         val mockkedSensor = mockkClass(Entity::class)
-        val mockkedPropertyEntity = mockkClass(Property::class)
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
-        every { mockkedPropertyEntity setProperty "value" value any<Double>() } answers { value }
-        every { mockkedPropertyEntity setProperty "unitCode" value any<String>() } answers { value }
-        every { mockkedPropertyEntity setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
-        every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.getPropertyOfSubject(any(), any()) } returns mockkedPropertyEntity
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
-        every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
+        every { neo4jRepository.deleteEntityProperty(any(), any()) } returns 1
 
-        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
-        verify { neo4jRepository.getPropertyOfSubject(any(), any()) }
-        verify { entityRepository.findById(eq(sensorId)) }
-        verify { propertyRepository.save(mockkedPropertyEntity) }
 
         confirmVerified()
     }
@@ -528,27 +347,20 @@ class EntityServiceTests {
               }
             }
         """.trimIndent()
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
 
         val mockkedSensor = mockkClass(Entity::class)
-        val mockkedPropertyEntity = mockkClass(Property::class, relaxed = true)
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedSensor.type } returns listOf("Sensor")
 
-        every { mockkedPropertyEntity.updateValues(any(), any(), any()) } just Runs
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.getPropertyOfSubject(any(), any(), any()) } returns mockkedPropertyEntity
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
-        every { propertyRepository.save(any<Property>()) } returns mockkedPropertyEntity
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
+        every { neo4jRepository.deleteEntityProperty(any(), any()) } returns 1
 
-        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { mockkedPropertyEntity.updateValues(any(), any(), any()) }
         verify { neo4jRepository.hasPropertyInstance(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
-        verify { neo4jRepository.getPropertyOfSubject(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
-        verify { entityRepository.findById(eq(sensorId)) }
-        verify { propertyRepository.save(mockkedPropertyEntity) }
 
         confirmVerified()
     }
@@ -571,6 +383,7 @@ class EntityServiceTests {
               }
             }
         """.trimIndent()
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -578,14 +391,11 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSensor)
         every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
-        entityService.updateEntityAttributes(sensorId, payload, aquacContext!!)
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify { entityRepository.findById(eq(sensorId)) }
         verify { neo4jRepository.updateLocationPropertyOfEntity(sensorId, Pair(9.30623, 8.07966)) }
 
         confirmVerified()
@@ -595,52 +405,11 @@ class EntityServiceTests {
     fun `it should correctly parse location property for an entity`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
-        val geoPropertyMap = mapOf(
-            NGSILD_PROPERTY_VALUE to listOf(
-                mapOf(
-                    "@type" to listOf("https://uri.etsi.org/ngsi-ld/default-context/Point"),
-                    NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
-                        mapOf("@value" to 23.45),
-                        mapOf("@value" to 67.87)
-                    )
+        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(23.45, 67.87)
 
-                )
-            )
-        )
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
-        entityService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
-
-        verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should correctly parse location property no matter how the geoProperty type is expanded`() {
-
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val geoPropertyMap = mapOf(
-                NGSILD_PROPERTY_VALUE to listOf(
-                        mapOf(
-                                "@type" to listOf("https://uri.fiware.org/ns/data-models#Point"),
-                                NgsiLdParsingUtils.NGSILD_COORDINATES_PROPERTY to listOf(
-                                        mapOf("@value" to 23.45),
-                                        mapOf("@value" to 67.87)
-                                )
-
-                        )
-                )
-        )
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
-        every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
-
-        entityService.createLocationProperty(mockkedEntity, "location", geoPropertyMap)
+        entityService.createLocationProperty(entityId, "location", ngsiLdGeoProperty.instances[0])
 
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(23.45, 67.87)) }
 
@@ -651,20 +420,23 @@ class EntityServiceTests {
     fun `it should create a temporal property with all provided attributes`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
-        val temperatureMap = mapOf(
-            NGSILD_PROPERTY_VALUE to listOf(
-                mapOf(
-                    "@type" to listOf(NGSILD_PROPERTY_TYPE),
-                    "@value" to 250
-                )
-            ),
-            NGSILD_UNIT_CODE_PROPERTY to listOf(
-                mapOf("@value" to "kg")
-            ),
-            NGSILD_OBSERVED_AT_PROPERTY to listOf(
-                mapOf(
-                    "@type" to NGSILD_DATE_TIME_TYPE,
-                    "@value" to "2019-12-18T10:45:44.248755Z"
+        val ngsiLdPropertyInstance = NgsiLdPropertyInstance(
+            "temperature",
+            mapOf(
+                NGSILD_PROPERTY_VALUE to listOf(
+                    mapOf(
+                        "@type" to listOf(NGSILD_PROPERTY_TYPE),
+                        "@value" to 250
+                    )
+                ),
+                NGSILD_UNIT_CODE_PROPERTY to listOf(
+                    mapOf("@value" to "kg")
+                ),
+                NGSILD_OBSERVED_AT_PROPERTY to listOf(
+                    mapOf(
+                        "@type" to NGSILD_DATE_TIME_TYPE,
+                        "@value" to "2019-12-18T10:45:44.248755Z"
+                    )
                 )
             )
         )
@@ -675,7 +447,7 @@ class EntityServiceTests {
         every { mockkedEntity.properties } returns mutableListOf()
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
 
-        entityService.createEntityProperty(mockkedEntity, "temperature", temperatureMap)
+        entityService.createEntityProperty(entityId, "temperature", ngsiLdPropertyInstance)
 
         verify { neo4jRepository.createPropertyOfSubject(match {
             it.id == entityId &&
@@ -705,11 +477,9 @@ class EntityServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newRelationship,
-                aquacContext!!
-            )
+        val expandedNewRelationship = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newRelationship, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
@@ -719,7 +489,6 @@ class EntityServiceTests {
         every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
@@ -730,7 +499,6 @@ class EntityServiceTests {
                     it.label == "Entity"
             }, "CONNECTS_TO")
         }
-        verify { entityRepository.findById(eq(entityId)) }
         verify {
             neo4jRepository.createRelationshipOfSubject(
                 match {
@@ -754,11 +522,9 @@ class EntityServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newRelationship,
-                aquacContext!!
-            )
+        val expandedNewRelationship = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newRelationship, aquacContext!!)
+        )
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
 
@@ -788,11 +554,9 @@ class EntityServiceTests {
                 }
             }
         """.trimIndent()
-        val expandedNewRelationship =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newRelationship,
-                aquacContext!!
-            )
+        val expandedNewRelationship = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newRelationship, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
@@ -803,7 +567,6 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
@@ -815,7 +578,6 @@ class EntityServiceTests {
             }, "CONNECTS_TO")
         }
         verify { neo4jRepository.deleteEntityRelationship(eq(entityId), "CONNECTS_TO") }
-        verify { entityRepository.findById(eq(entityId)) }
 
         confirmVerified()
     }
@@ -832,11 +594,9 @@ class EntityServiceTests {
               }
             }
         """.trimIndent()
-        val expandedNewProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newProperty,
-                aquacContext!!
-            )
+        val expandedNewProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newProperty, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
 
@@ -844,7 +604,6 @@ class EntityServiceTests {
         every { mockkedEntity.properties } returns mutableListOf()
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { mockkedEntity.id } returns entityId
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
 
@@ -859,7 +618,6 @@ class EntityServiceTests {
                 "https://ontology.eglobalmark.com/aquac#fishNumber"
             )
         }
-        verify { entityRepository.findById(eq(entityId)) }
         verify { neo4jRepository.createPropertyOfSubject(
             match {
                 it.id == entityId &&
@@ -892,11 +650,9 @@ class EntityServiceTests {
               }]
             }
         """.trimIndent()
-        val expandedNewProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newProperty,
-                aquacContext!!
-            )
+        val expandedNewProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newProperty, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
 
@@ -907,7 +663,6 @@ class EntityServiceTests {
         val createdProperties = mutableListOf<Property>()
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties)) } returns UUID.randomUUID().toString()
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
@@ -937,8 +692,6 @@ class EntityServiceTests {
             )
         }
 
-        verify { entityRepository.findById(eq(entityId)) }
-
         verify(exactly = 2) { neo4jRepository.createPropertyOfSubject(
             match {
                 it.id == entityId &&
@@ -964,11 +717,9 @@ class EntityServiceTests {
               }]
             }
         """.trimIndent()
-        val expandedNewProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newProperty,
-                aquacContext!!
-            )
+        val expandedNewProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newProperty, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
 
@@ -1002,65 +753,6 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should not create a property with instance missing a type`() {
-
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val newProperty = """
-            {
-              "fishNumber": [{
-                "type": "Property",
-                "value": 600
-              },
-              {
-                "value": 700,
-                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
-              }]
-            }
-        """.trimIndent()
-        val expandedNewProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newProperty,
-                aquacContext!!
-            )
-
-        assertThrows<BadRequestDataException>("@type not found in one of fishNumber instances") {
-            entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should not create a property with different type instances`() {
-
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val newProperty = """
-            {
-              "fishNumber": [{
-                "type": "Property",
-                "value": 600
-              },
-              {
-                "type":"Relationship",
-                "object":"urn:ngsi-ld:Beekeeper:654321",
-                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
-              }]
-            }
-        """.trimIndent()
-        val expandedNewProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newProperty,
-                aquacContext!!
-            )
-
-        assertThrows<BadRequestDataException>("fishNumber attribute instances must have the same type") {
-            entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
-        }
-
-        confirmVerified()
-    }
-
-    @Test
     fun `it should create a new geoproperty`() {
 
         val entityId = "urn:ngsi-ld:Beehive:123456"
@@ -1079,25 +771,21 @@ class EntityServiceTests {
             }
         """.trimIndent()
 
-        val expandedNewGeoProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newGeoProperty,
-                aquacContext!!
-            )
+        val expandedNewGeoProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newGeoProperty, aquacContext!!)
+        )
 
         val mockkedEntity = mockkClass(Entity::class)
 
         every { mockkedEntity.id } returns entityId
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns false
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
         every { entityRepository.save<Entity>(any()) } returns mockkedEntity
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
 
         entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify { entityRepository.findById(eq(entityId)) }
         verify { neo4jRepository.addLocationPropertyToEntity(entityId, Pair(29.30623, 83.07966)) }
 
         confirmVerified()
@@ -1122,25 +810,16 @@ class EntityServiceTests {
             }
         """.trimIndent()
 
-        val expandedNewGeoProperty =
-            NgsiLdParsingUtils.expandJsonLdFragment(
-                newGeoProperty,
-                aquacContext!!
-            )
-
-        val mockkedEntity = mockkClass(Entity::class)
-
-        every { mockkedEntity.id } returns entityId
+        val expandedNewGeoProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newGeoProperty, aquacContext!!)
+        )
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedEntity)
-        every { entityRepository.save<Entity>(any()) } returns mockkedEntity
         every { neo4jRepository.updateLocationPropertyOfEntity(any(), any()) } returns 1
 
         entityService.appendEntityAttributes(entityId, expandedNewGeoProperty, false)
 
         verify { neo4jRepository.hasGeoPropertyOfName(any(), any()) }
-        verify { entityRepository.findById(eq(entityId)) }
         verify { neo4jRepository.updateLocationPropertyOfEntity(entityId, Pair(29.30623, 83.07966)) }
 
         confirmVerified()

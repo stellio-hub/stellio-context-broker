@@ -1,10 +1,13 @@
 package com.egm.stellio.entity.model
 
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_DATE_TIME_TYPE
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_ID
-import com.egm.stellio.shared.util.NgsiLdParsingUtils.NGSILD_ENTITY_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
@@ -47,28 +50,28 @@ open class Attribute(
     open fun serializeCoreProperties(): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
 
-        resultEntity[NgsiLdParsingUtils.NGSILD_CREATED_AT_PROPERTY] = mapOf(
-            NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+        resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
+            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
             JSONLD_VALUE_KW to createdAt
         )
 
         modifiedAt?.run {
-            resultEntity[NgsiLdParsingUtils.NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
-                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+            resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
                 JSONLD_VALUE_KW to this
             )
         }
 
         observedAt?.run {
-            resultEntity[NgsiLdParsingUtils.NGSILD_OBSERVED_AT_PROPERTY] = mapOf(
-                NGSILD_ENTITY_TYPE to NGSILD_DATE_TIME_TYPE,
+            resultEntity[NGSILD_OBSERVED_AT_PROPERTY] = mapOf(
+                JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
                 JSONLD_VALUE_KW to this
             )
         }
 
         datasetId?.run {
-            resultEntity[NgsiLdParsingUtils.NGSILD_DATASET_ID_PROPERTY] = mapOf(
-                NGSILD_ENTITY_ID to this.toString()
+            resultEntity[NGSILD_DATASET_ID_PROPERTY] = mapOf(
+                JSONLD_ID to this.toString()
             )
         }
 
@@ -79,7 +82,7 @@ open class Attribute(
      * Return a map of the properties to store with the Property node in neo4j
      */
     open fun nodeProperties(): MutableMap<String, Any> {
-        val nodeProperties = mutableMapOf<String, Any>(
+        val nodeProperties = mutableMapOf(
             "id" to id,
             "createdAt" to createdAt
         )

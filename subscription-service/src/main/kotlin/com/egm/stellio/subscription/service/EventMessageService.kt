@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.ApiUtils.serializeObject
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder

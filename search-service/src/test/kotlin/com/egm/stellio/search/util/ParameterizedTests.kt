@@ -1,7 +1,7 @@
 package com.egm.stellio.search.util
 
 import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.shared.util.loadAndParseSampleData
+import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.egm.stellio.shared.util.loadSampleData
 import org.junit.jupiter.params.provider.Arguments
 import java.net.URI
@@ -15,7 +15,7 @@ class ParameterizedTests {
         fun rawResultsProvider(): Stream<Arguments> {
             return Stream.of(
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property_with_dafault_instance.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property_with_dafault_instance.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(
@@ -38,7 +38,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
                 ),
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(
@@ -77,7 +77,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances.jsonld")
                 ),
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(
@@ -100,7 +100,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_values.jsonld")
                 ),
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property_with_dafault_instance.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property_with_dafault_instance.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(
@@ -123,7 +123,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(
@@ -162,7 +162,7 @@ class ParameterizedTests {
                     loadSampleData("expectations/beehive_incoming_multi_instances_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
-                    loadAndParseSampleData("beehive_multi_instance_property.jsonld"),
+                    parseSampleDataToJsonLd("beehive_multi_instance_property.jsonld"),
                     listOf(
                         listOf(
                             AttributeInstanceResult(

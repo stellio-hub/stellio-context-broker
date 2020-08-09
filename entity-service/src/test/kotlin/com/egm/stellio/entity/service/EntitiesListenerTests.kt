@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.util.NgsiLdParsingUtils
+import com.egm.stellio.shared.util.loadSampleData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.Runs
@@ -9,12 +8,13 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.just
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
@@ -27,17 +27,38 @@ class EntitiesListenerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    @MockkBean
-    private lateinit var ngsiLdParsingUtils: NgsiLdParsingUtils
+    @Test
+    fun `it should parse the incoming temporal property to an observation`() {
+        val jsonLdObservation = loadSampleData("aquac/Observation.json")
+
+        val observation = entitiesListener.parseTemporalPropertyUpdate(jsonLdObservation)
+
+        assertNotNull(observation)
+        assertEquals("incoming", observation!!.attributeName)
+        assertEquals(20.7, observation.value)
+        assertEquals("CEL", observation.unitCode)
+        assertEquals("urn:sosa:Sensor:10e2073a01080065", observation.observedBy)
+        assertEquals("2019-10-18T07:31:39.770Z", observation.observedAt.toString())
+        assertEquals(24.30623, observation.longitude)
+        assertEquals(60.07966, observation.latitude)
+    }
+
+    @Test
+    fun `it should return a null object if the incoming payload is invalid`() {
+        val jsonLdObservation = loadSampleData("aquac/ObservationWithoutUnitCode.json")
+
+        val observation = entitiesListener.parseTemporalPropertyUpdate(jsonLdObservation)
+
+        assertNull(observation)
+    }
 
     @Test
     fun `it should parse and transmit observations`() {
-        val observation = ClassPathResource("/ngsild/aquac/Observation.json")
+        val observation = loadSampleData("aquac/Observation.json")
 
-        every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty()
         every { entityService.updateEntityLastMeasure(any()) } just Runs
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(observation)
 
         verify {
             entityService.updateEntityLastMeasure(match { observation ->
@@ -55,12 +76,11 @@ class EntitiesListenerTests {
 
     @Test
     fun `it should parse and transmit observations without location because location may be null`() {
-        val observation = ClassPathResource("/ngsild/aquac/ObservationWithoutLocation.json")
+        val observation = loadSampleData("aquac/ObservationWithoutLocation.json")
 
-        every { ngsiLdParsingUtils.parseTemporalPropertyUpdate(any()) } returns gimmeTemporalProperty(withLocation = false)
         every { entityService.updateEntityLastMeasure(any()) } just Runs
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(observation)
 
         verify {
             entityService.updateEntityLastMeasure(match { observation ->
@@ -78,27 +98,10 @@ class EntitiesListenerTests {
 
     @Test
     fun `it should ignore badly formed observations`() {
-        val observation = ClassPathResource("/ngsild/aquac/Observation_missingAttributes.json")
+        val observation = loadSampleData("aquac/Observation_missingAttributes.json")
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesListener.processMessage(observation)
 
         verify { entityService wasNot Called }
-    }
-
-    private fun gimmeTemporalProperty(withLocation: Boolean = true): Observation {
-        val location =
-            if (withLocation)
-                Pair(24.30623, 60.07966)
-            else null
-
-        return Observation(
-            attributeName = "incoming",
-            value = 20.7,
-            unitCode = "CEL",
-            observedAt = ZonedDateTime.parse("2019-10-18T07:31:39.77Z"),
-            latitude = location?.second,
-            longitude = location?.first,
-            observedBy = "urn:sosa:Sensor:10e2073a01080065"
-        )
     }
 }

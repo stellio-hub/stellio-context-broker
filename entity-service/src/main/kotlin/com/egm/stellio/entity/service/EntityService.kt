@@ -500,8 +500,13 @@ class EntityService(
                         deleteEntityAttribute(id, ngsiLdAttribute.name)
                         createEntityProperty(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
                         updatedAttributes.add(shortAttributeName)
-                    } else
-                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Property does not exist"))
+                    } else {
+                        val message = if (datasetId != null)
+                            "Property (datasetId: $datasetId) does not exist"
+                        else
+                            "Property (default instance) does not exist"
+                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, message))
+                    }
                 } else if (ngsiLdAttribute is NgsiLdGeoProperty) {
                     if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])

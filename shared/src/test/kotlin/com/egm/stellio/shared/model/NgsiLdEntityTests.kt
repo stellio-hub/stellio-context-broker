@@ -3,6 +3,7 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -144,6 +145,10 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdEntity.properties.size)
         val ngsiLdProperty = ngsiLdEntity.properties[0]
         assertEquals(2, ngsiLdProperty.instances.size)
+        assertArrayEquals(
+            arrayOf(URI.create("urn:ngsi-ld:Dataset:01234"), URI.create("urn:ngsi-ld:Dataset:45678")),
+            ngsiLdProperty.instances.map { it.datasetId }.toTypedArray()
+        )
     }
 
     @Test
@@ -244,6 +249,30 @@ class NgsiLdEntityTests {
             "Attribute https://uri.fiware.org/ns/data-models#deviceState can't have more than one default instance",
             exception.message
         )
+    }
+
+    @Test
+    fun `it should parse a property with a datasetId`() {
+        val rawProperty = """
+            {
+                "deviceState": [
+                    {
+                        "type": "Property",
+                        "value": 35,
+                        "datasetId": "urn:ngsi-ld:Dataset:fishName:1"
+                    }
+                ]
+            }
+        """.trimIndent()
+
+        val ngsiLdAttributes = parseToNgsiLdAttributes(expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS))
+
+        assertEquals(1, ngsiLdAttributes.size)
+        val ngsiLdAttribute = ngsiLdAttributes[0]
+        assertTrue(ngsiLdAttribute is NgsiLdProperty)
+        val ngsiLdPropertyInstance = (ngsiLdAttribute as NgsiLdProperty).instances[0]
+        assertEquals(URI.create("urn:ngsi-ld:Dataset:fishName:1"), ngsiLdPropertyInstance.datasetId)
+        assertEquals(35, ngsiLdPropertyInstance.value)
     }
 
     @Test

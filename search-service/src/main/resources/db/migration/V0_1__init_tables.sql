@@ -8,6 +8,6 @@ CREATE TABLE observation (
   UNIQUE (observed_by, observed_at, value, unit_code)
 );
 
-SELECT create_hypertable('observation', 'observed_at', 'observed_by');
+SELECT create_hypertable('observation', 'observed_at');
 -- see when / if it's needed
 -- SELECT create_hypertable('measure', 'time', chunk_time_interval => interval '1 day');

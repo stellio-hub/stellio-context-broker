@@ -37,7 +37,7 @@ services:
       - 7474:7474
       - 7687:7687
   postgres:
-    image: stellio/stellio-timescale-postgis:latest
+    image: stellio/stellio-timescale-postgis:1.7.2-pg11
     container_name: stellio-postgres
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

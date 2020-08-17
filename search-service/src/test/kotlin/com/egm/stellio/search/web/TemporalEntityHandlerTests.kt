@@ -19,9 +19,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
@@ -38,6 +40,9 @@ import java.util.UUID
 @Import(WebSecurityTestConfig::class)
 @WithMockUser
 class TemporalEntityHandlerTests {
+
+    @Value("\${application.jsonld.apic_context}")
+    val apicContext: String? = null
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -74,6 +79,8 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:TESTC/attrs")
+            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
             .exchange()
             .expectStatus().isNoContent
@@ -102,6 +109,8 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
+            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
             .expectStatus().isBadRequest

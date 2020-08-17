@@ -471,8 +471,8 @@ class EntityService(
     }
 
     @Transactional
-    fun updateEntityAttribute(id: String, attribute: String, payload: String, contextLink: String): Int {
-        val expandedAttributeName = expandJsonLdKey(attribute, contextLink)!!
+    fun updateEntityAttribute(id: String, attribute: String, payload: String, contexts: List<String>): Int {
+        val expandedAttributeName = expandJsonLdKey(attribute, contexts)!!
         val attributeValue = parseJsonLdFragment(payload)["value"]!!
         return neo4jRepository.updateEntityAttribute(id, expandedAttributeName, attributeValue)
     }
@@ -491,32 +491,32 @@ class EntityService(
                         deleteEntityAttribute(id, ngsiLdAttribute.name)
                         // TODO multi-attribute support
                         createEntityRelationship(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0], ngsiLdAttribute.instances[0].objectId)
-                        updatedAttributes.add(shortAttributeName)
+                        updatedAttributes.add(ngsiLdAttribute.name)
                     } else
-                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "Relationship does not exist"))
+                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, "Relationship does not exist"))
                 } else if (ngsiLdAttribute is NgsiLdProperty) {
                     val datasetId = ngsiLdAttribute.instances[0].datasetId
                     if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), ngsiLdAttribute.name, datasetId)) {
                         deleteEntityAttributeInstance(id, ngsiLdAttribute.name, datasetId)
                         createEntityProperty(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(shortAttributeName)
+                        updatedAttributes.add(ngsiLdAttribute.name)
                     } else {
                         val message = if (datasetId != null)
                             "Property (datasetId: $datasetId) does not exist"
                         else
                             "Property (default instance) does not exist"
-                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, message))
+                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, message))
                     }
                 } else if (ngsiLdAttribute is NgsiLdGeoProperty) {
                     if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(shortAttributeName)
+                        updatedAttributes.add(ngsiLdAttribute.name)
                     } else
-                        notUpdatedAttributes.add(NotUpdatedDetails(shortAttributeName, "GeoProperty does not exist"))
+                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, "GeoProperty does not exist"))
                 }
             } catch (e: BadRequestDataException) {
                 notUpdatedAttributes.add(
-                    NotUpdatedDetails(shortAttributeName, e.message)
+                    NotUpdatedDetails(ngsiLdAttribute.name, e.message)
                 )
             }
         }

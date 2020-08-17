@@ -168,11 +168,13 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Context not provided\"}"
-            )
+            .expectBody().json("""
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"JSON-LD @context not found in request payload body"
+                } 
+            """.trimIndent())
     }
 
     @Test
@@ -369,11 +371,13 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Context not provided\"}"
-            )
+            .expectBody().json("""
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"JSON-LD @context not found in request payload body"
+                } 
+            """.trimIndent())
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }

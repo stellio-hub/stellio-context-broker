@@ -256,13 +256,7 @@ object JsonLdUtils {
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String {
         val compactedFragment =
             JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
-        return mapper.writeValueAsString(compactedFragment)
-    }
-
-    fun compactAndStringifyFragment(key: String, value: Any, context: String): String {
-        val compactedFragment =
-            JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
-        return mapper.writeValueAsString(compactedFragment)
+        return mapper.writeValueAsString(compactedFragment.minus("@context"))
     }
 
     fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =

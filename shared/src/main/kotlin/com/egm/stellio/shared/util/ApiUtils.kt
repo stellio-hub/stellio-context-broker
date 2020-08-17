@@ -1,15 +1,17 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util.Optional
+import java.util.*
 
 object ApiUtils {
 
@@ -29,7 +31,8 @@ object ApiUtils {
      */
     fun getContextOrThrowError(input: String): List<String> {
         val rawParsedData = mapper.readTree(input) as ObjectNode
-        val context = rawParsedData.get("@context") ?: throw BadRequestDataException("Context not provided")
+        val context = rawParsedData.get("@context")
+            ?: throw BadRequestDataException("JSON-LD @context not found in request payload body")
 
         return try {
             mapper.readValue(
@@ -57,11 +60,32 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default
  * JSON-LD @context.
  */
-fun extractContextFromLinkHeader(linkHeader: List<String>): String {
+fun getContextFromLinkHeaderOrDefault(linkHeader: List<String>): String {
+    return getContextFromLinkHeader(linkHeader) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
+}
+
+fun getContextFromLinkHeader(linkHeader: List<String>): String? {
     return if (linkHeader.isNotEmpty())
         linkHeader[0].split(";")[0].removePrefix("<").removeSuffix(">")
     else
-        JsonLdUtils.NGSILD_CORE_CONTEXT
+        null
+}
+
+fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
+    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+        if (body.contains("@context"))
+            throw BadRequestDataException(
+                "Request payload must not contain @context term for a request having an application/json content type"
+            )
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
+        listOf(contextLink)
+    } else {
+        if (getContextFromLinkHeader(httpHeaders.getOrEmpty("Link")) != null)
+            throw BadRequestDataException(
+                "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
+            )
+        getContextOrThrowError(body)
+    }
 }
 
 enum class OptionsParamValue(val value: String) {

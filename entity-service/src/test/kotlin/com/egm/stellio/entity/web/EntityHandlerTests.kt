@@ -99,7 +99,6 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isCreated
@@ -114,7 +113,6 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(409)
@@ -134,7 +132,6 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(500)
@@ -189,7 +186,6 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -554,6 +550,7 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -581,6 +578,7 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -634,6 +632,7 @@ class EntityHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(invalidPayload)
             .exchange()
             .expectStatus().isBadRequest
@@ -658,11 +657,12 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
 
-        verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(aquacContext!!)) }
+        verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(listOf(aquacContext!!))) }
         confirmVerified(entityService)
     }
 
@@ -677,12 +677,16 @@ class EntityHandlerTests {
                 any(),
                 any()
             )
-        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf())
+        } returns UpdateResult(
+            updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
+            notUpdated = arrayListOf()
+        )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -703,12 +707,16 @@ class EntityHandlerTests {
                 any(),
                 any()
             )
-        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf())
+        } returns UpdateResult(
+            updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
+            notUpdated = arrayListOf()
+        )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonPayload)
             .exchange()
             .expectStatus().isNoContent
@@ -755,7 +763,12 @@ class EntityHandlerTests {
                 any(),
                 any()
             )
-        } returns UpdateResult(updated = arrayListOf("fishName", "fishNumber"), notUpdated = arrayListOf())
+        } returns UpdateResult(
+            updated = arrayListOf(
+                "https://ontology.eglobalmark.com/aquac#fishName",
+                "https://ontology.eglobalmark.com/aquac#fishNumber"),
+            notUpdated = arrayListOf()
+        )
 
         val events = mutableListOf<EntityEvent>()
         every { repositoryEventsListener.handleRepositoryEvent(capture(events)) } just Runs
@@ -763,6 +776,7 @@ class EntityHandlerTests {
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonPayload)
             .exchange()
             .expectStatus().isNoContent
@@ -799,12 +813,16 @@ class EntityHandlerTests {
                 any(),
                 any()
             )
-        } returns UpdateResult(updated = arrayListOf("fishNumber"), notUpdated = arrayListOf(notUpdatedAttribute))
+        } returns UpdateResult(
+            updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
+            notUpdated = arrayListOf(notUpdatedAttribute)
+        )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -832,6 +850,7 @@ class EntityHandlerTests {
                 "Link",
                 "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
             )
+            .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(payload)
             .exchange()
             .expectStatus().isBadRequest

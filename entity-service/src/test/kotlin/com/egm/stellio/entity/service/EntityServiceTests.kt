@@ -156,8 +156,12 @@ class EntityServiceTests {
         every { entitiesGraphBuilder.build(any()) } returns
                 Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java),
                     listOf(
-                        BatchEntityError("urn:ngsi-ld:Feeder:018z5", arrayListOf("Invalid relationship")),
-                        BatchEntityError("urn:ngsi-ld:FishContainment:0012", arrayListOf("Invalid relationship"))
+                        BatchEntityError("urn:ngsi-ld:FeedingService:018z59",
+                            arrayListOf(
+                                "Target entity urn:ngsi-ld:Feeder:018z5 does not exist",
+                                "Target entity urn:ngsi-ld:FishContainment:0012 does not exist"
+                            )
+                        )
                     )
                 )
 
@@ -166,7 +170,8 @@ class EntityServiceTests {
         }
         assertEquals(
             "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
-                        "urn:ngsi-ld:Feeder:018z5,urn:ngsi-ld:FishContainment:0012",
+                        "Target entity urn:ngsi-ld:Feeder:018z5 does not exist," +
+                        "Target entity urn:ngsi-ld:FishContainment:0012 does not exist",
             exception.message)
     }
 

@@ -53,7 +53,7 @@ class EntitiesGraphBuilder(
                 graph.removeVertex(entity)
                 errors.add(BatchEntityError(entity.id, arrayListOf(e.message)))
                 // pass exception to remove parent nodes that don't need to be created because related to an invalid node
-                throw BadRequestDataException("Target entity " + entity.id + " failed to be created because of an invalid relationship.")
+                throw BadRequestDataException("Target entity " + entity.id + " failed to be created because of an invalid relationship")
             }
         }
 
@@ -69,12 +69,12 @@ class EntitiesGraphBuilder(
     }
 
     private fun getValidLinkedEntities(entity: NgsiLdEntity, entities: List<NgsiLdEntity>): List<NgsiLdEntity> {
-        val linkedEntitiesIds = entity.getLinkedEntitiesIds()
+        val linkedEntitiesIds = entity.getLinkedEntitiesIds().distinct()
         val nonExistingLinkedEntitiesIds =
             linkedEntitiesIds.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))
         return nonExistingLinkedEntitiesIds.map {
             entities.find { entity -> entity.id == it }
-                ?: throw BadRequestDataException("Target entity $it does not exist.")
+                ?: throw BadRequestDataException("Target entity $it does not exist")
         }
     }
 }

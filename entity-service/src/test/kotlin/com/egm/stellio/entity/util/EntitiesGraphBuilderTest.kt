@@ -107,11 +107,11 @@ class EntitiesGraphBuilderTest {
                 BatchEntityError("3", arrayListOf("Target entity 4 does not exist")),
                 BatchEntityError(
                     "2",
-                    arrayListOf("Target entity 3 failed to be created because of an invalid relationship.")
+                    arrayListOf("Target entity 3 failed to be created because of an invalid relationship")
                 ),
                 BatchEntityError(
                     "1",
-                    arrayListOf("Target entity 2 failed to be created because of an invalid relationship.")
+                    arrayListOf("Target entity 2 failed to be created because of an invalid relationship")
                 )
             ), errors
         )

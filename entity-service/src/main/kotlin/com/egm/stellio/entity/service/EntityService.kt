@@ -73,7 +73,9 @@ class EntityService(
 
         val (_, invalidRelationsErrors) = entitiesGraphBuilder.build(listOf(ngsiLdEntity))
         if (invalidRelationsErrors.isNotEmpty()) {
-            val inErrorRelationships = invalidRelationsErrors.joinToString(",") { it.entityId }
+            // we have just one entity in validation, so can't have more than one relations error
+            // in its current version, it will only contain one error but it will be fixed with validation v2
+            val inErrorRelationships = invalidRelationsErrors[0].error.joinToString(",")
             throw BadRequestDataException("Entity ${ngsiLdEntity.id} targets unknown entities: $inErrorRelationships")
         }
 

@@ -9,16 +9,11 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.OptionsParamValue
-import com.egm.stellio.shared.util.extractContextFromLinkHeader
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import com.egm.stellio.shared.util.hasValueInOptionsParam
-import com.egm.stellio.shared.util.parseTimeParameter
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -56,11 +51,14 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
+            .map {
+                val contexts = checkAndGetContext(httpHeaders, it)
+                Pair(it, contexts)
+            }
             .flatMapMany {
-                Flux.fromIterable(expandJsonLdFragment(it, contextLink).asIterable())
+                Flux.fromIterable(expandJsonLdFragment(it.first, it.second).asIterable())
             }
             .flatMap {
                 temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
@@ -93,7 +91,7 @@ class TemporalEntityHandler(
 
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently

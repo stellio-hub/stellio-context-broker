@@ -9,17 +9,13 @@ import com.egm.stellio.shared.model.InternalErrorResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.extractContextFromLinkHeader
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpHeaders
@@ -55,10 +51,10 @@ class EntityHandler(
      * Implements 6.4.3.1 - Create Entity
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+    fun create(@RequestHeader httpHeaders: HttpHeaders, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
-                expandJsonLdEntity(it, getContextOrThrowError(it)).toNgsiLdEntity()
+                expandJsonLdEntity(it, checkAndGetContext(httpHeaders, it)).toNgsiLdEntity()
             }
             .map {
                 entityService.createEntity(it)
@@ -77,7 +73,7 @@ class EntityHandler(
         val type = params.getFirst("type") ?: ""
         val q = params.getOrDefault("q", emptyList())
 
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isEmpty())
@@ -147,13 +143,13 @@ class EntityHandler(
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
         return body
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
-                val jsonLdAttributes = expandJsonLdFragment(it, contextLink)
+                val contexts = checkAndGetContext(httpHeaders, it)
+                val jsonLdAttributes = expandJsonLdFragment(it, contexts)
                 entityService.appendEntityAttributes(
                     entityId,
                     parseToNgsiLdAttributes(jsonLdAttributes),
@@ -182,26 +178,27 @@ class EntityHandler(
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
             }
             .map {
-                val jsonLdAttributes = expandJsonLdFragment(it, contextLink)
-                Pair(
+                val contexts = checkAndGetContext(httpHeaders, it)
+                val jsonLdAttributes = expandJsonLdFragment(it, contexts)
+
+                Triple(
                     jsonLdAttributes,
-                    entityService.updateEntityAttributes(entityId, parseToNgsiLdAttributes(jsonLdAttributes))
+                    entityService.updateEntityAttributes(entityId, parseToNgsiLdAttributes(jsonLdAttributes)),
+                    contexts
                 )
             }
             .doOnNext {
-                it.second.updated.forEach { shortAttributeName ->
-                    val expandedAttributeName = expandJsonLdKey(shortAttributeName, contextLink)!!
+                it.second.updated.forEach { expandedAttributeName ->
                     val entityEvent = EntityEvent(
                         operationType = EventType.UPDATE,
                         entityId = entityId,
-                        payload = compactAndStringifyFragment(expandedAttributeName, it.first[expandedAttributeName]!!, contextLink)
+                        payload = compactAndStringifyFragment(expandedAttributeName, it.first[expandedAttributeName]!!, it.third)
                     )
                     applicationEventPublisher.publishEvent(entityEvent)
                 }
@@ -229,11 +226,11 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
 
         return body
             .map {
-                entityService.updateEntityAttribute(entityId, attrId, it, contextLink)
+                val contexts = checkAndGetContext(httpHeaders, it)
+                entityService.updateEntityAttribute(entityId, attrId, it, contexts)
             }
             .map {
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -252,8 +249,7 @@ class EntityHandler(
     ): Mono<ResponseEntity<*>> {
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.let { URI.create(it) }
-
-        val contextLink = extractContextFromLinkHeader(httpHeaders.getOrEmpty("Link"))
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
 
         return entityId.toMono()
             .map {

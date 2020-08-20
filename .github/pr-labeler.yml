@@ -1,5 +1,6 @@
 feature: ['feature/*', 'feat/*']
 fix: fix/*
-chore: ['chore/*', 'refactor/*']
+chore: chore/*
+refactoring: refactor/*
 fixed-branch: fixed-branch-name
 

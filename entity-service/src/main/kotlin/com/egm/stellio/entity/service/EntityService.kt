@@ -113,7 +113,9 @@ class EntityService(
             getSerializedEntityById(ngsiLdEntity.id),
             null
         )
-        applicationEventPublisher.publishEvent(entityEvent)
+        entityEvent.payload?.let {
+            applicationEventPublisher.publishEvent(entityEvent)
+        }
     }
 
     /**
@@ -328,11 +330,11 @@ class EntityService(
         return Pair(propertyKey, propertyValues)
     }
 
-    fun getSerializedEntityById(entityId: String): String {
+    fun getSerializedEntityById(entityId: String): String? {
         val mapper =
             jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        val entity = getFullEntityById(entityId)
-        return mapper.writeValueAsString(entity!!.compact())
+        val entity = getFullEntityById(entityId) ?: return null
+        return mapper.writeValueAsString(entity.compact())
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<JsonLdEntity> =

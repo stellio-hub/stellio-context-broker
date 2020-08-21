@@ -222,8 +222,8 @@ class EntityService(
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
      */
-    fun getFullEntityById(entityId: String): JsonLdEntity {
-        val entity = entityRepository.getEntityCoreById(entityId)
+    fun getFullEntityById(entityId: String): JsonLdEntity? {
+        val entity = entityRepository.getEntityCoreById(entityId) ?: return null
         val resultEntity = entity.serializeCoreProperties()
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
@@ -291,6 +291,7 @@ class EntityService(
             }
 
         return JsonLdEntity(resultEntity, entity.contexts)
+
     }
 
     private fun buildInstanceFragment(
@@ -332,7 +333,7 @@ class EntityService(
         val mapper =
             jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         val entity = getFullEntityById(entityId)
-        return mapper.writeValueAsString(entity.compact())
+        return mapper.writeValueAsString(entity!!.compact())
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<JsonLdEntity> =
@@ -366,6 +367,7 @@ class EntityService(
             }
         return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
             .map { getFullEntityById(it) }
+            .filterNotNull()
     }
 
     // TODO send append events to Kafka

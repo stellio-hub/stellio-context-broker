@@ -104,7 +104,7 @@ class EntityHandler(
         return entityId.toMono()
             .map {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.getFullEntityById(it)
+                entityService.getFullEntityById(it)!!
             }
             .map {
                 it.compact()

@@ -103,8 +103,7 @@ class EntityHandler(
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
         return entityId.toMono()
             .map {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
-                entityService.getFullEntityById(it)!!
+                entityService.getFullEntityById(it) ?: throw ResourceNotFoundException("Entity Not Found")
             }
             .map {
                 it.compact()

@@ -291,7 +291,6 @@ class EntityService(
             }
 
         return JsonLdEntity(resultEntity, entity.contexts)
-
     }
 
     private fun buildInstanceFragment(

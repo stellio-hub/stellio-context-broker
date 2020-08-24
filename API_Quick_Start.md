@@ -54,11 +54,11 @@ We will create the following entities:
 
 * We start by creating the beekeeper, the apiary, the beehive and sensors 
 ```
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/beekeeper.jsonld
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/apiary.jsonld
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/sensor_temperature.jsonld
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/sensor_humidity.jsonld
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities < samples/beehive.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities Content-Type:application/ld+json < samples/beekeeper.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities Content-Type:application/ld+json < samples/apiary.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities Content-Type:application/ld+json < samples/sensor_temperature.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities Content-Type:application/ld+json < samples/sensor_humidity.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities Content-Type:application/ld+json < samples/beehive.jsonld
 ```
 
 * (optional) We can delete the created entities and recreate them in batch:
@@ -70,7 +70,7 @@ http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Sen
 http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:02
 http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01
 
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entityOperations/create < samples/apiculture_entities.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entityOperations/create Content-Type:application/ld+json < samples/apiculture_entities.jsonld
 ```
 
 * The created beehive can be retrieved by id:
@@ -90,22 +90,24 @@ http https://data-hub.eglobalmark.com/ngsi-ld/v1/entities type==BeeHive \
 * Let's add a name to the created beehive: 
 
 ```
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs Content-Type:application/json \
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
     Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json \
     < samples/beehive_addName.jsonld
 ```
 
 * The recently added name property can be deleted: 
 
 ```
-http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name Content-Type:application/json \
-    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+http DELETE https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs/name \
+    Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json
 ```
 
 * Let's create a subscription to the beehive that sends a notification when the temperature exceeds 40 
 
 ```
-http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions < samples/subscription_to_beehive.jsonld
+http POST https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions Content-Type:application/ld+json < samples/subscription_to_beehive.jsonld
 ```
 
 * The created subscription can be retrieved by id
@@ -119,6 +121,7 @@ http https://data-hub.eglobalmark.com/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subsc
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
     Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json \
     < samples/beehive_updateTemperature.jsonld
 ```
 
@@ -127,6 +130,7 @@ http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeH
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
     Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json \
     < samples/beehive_updateHumidity.jsonld
 ```
 
@@ -201,6 +205,7 @@ Sample payload returned showing the temporal evolution of temperature and humidi
 ```
 http PATCH https://data-hub.eglobalmark.com/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:01/attrs \
     Link:"<https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json" \
+    Content-Type:application/json \
     < samples/beehive_secondTemperatureUpdate.jsonld
 ```
 

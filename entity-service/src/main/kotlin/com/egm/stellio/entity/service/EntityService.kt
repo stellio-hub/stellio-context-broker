@@ -45,8 +45,6 @@ import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.entity.model.toNgsiLdRelationshipKey
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -106,15 +104,14 @@ class EntityService(
     }
 
     fun publishCreationEvent(ngsiLdEntity: NgsiLdEntity) {
-        val entityEvent = EntityEvent(
-            EventType.CREATE,
-            ngsiLdEntity.id,
-            ngsiLdEntity.type.extractShortTypeFromExpanded(),
-            getSerializedEntityById(ngsiLdEntity.id),
-            null
-        )
-        entityEvent.payload?.let {
-            applicationEventPublisher.publishEvent(entityEvent)
+        getSerializedEntityById(ngsiLdEntity.id)?.also {
+            applicationEventPublisher.publishEvent(EntityEvent(
+                EventType.CREATE,
+                ngsiLdEntity.id,
+                ngsiLdEntity.type.extractShortTypeFromExpanded(),
+                it,
+                null
+            ))
         }
     }
 
@@ -331,10 +328,9 @@ class EntityService(
     }
 
     fun getSerializedEntityById(entityId: String): String? {
-        val mapper =
-            jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        val entity = getFullEntityById(entityId) ?: return null
-        return mapper.writeValueAsString(entity.compact())
+        return getFullEntityById(entityId)?.let {
+            serializeObject(it.compact())
+        }
     }
 
     fun searchEntities(type: String, query: List<String>, contextLink: String): List<JsonLdEntity> =

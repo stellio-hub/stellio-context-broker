@@ -12,7 +12,7 @@ interface EntityRepository : Neo4jRepository<Entity, String> {
             "RETURN entity " +
             "LIMIT 1"
     )
-    fun getEntityCoreById(id: String): Entity
+    fun getEntityCoreById(id: String): Entity?
 
     @Query("MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property)" +
             "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +

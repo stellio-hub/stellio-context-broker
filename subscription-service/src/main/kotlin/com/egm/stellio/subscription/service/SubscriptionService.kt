@@ -84,11 +84,10 @@ class SubscriptionService(
             .collectList()
             .doOnSuccess {
                 val subscriptionEvent = EntityEvent(
-                    EventType.CREATE,
-                    subscription.id,
-                    subscription.type,
-                    serializeObject(subscription),
-                    null
+                    operationType = EventType.CREATE,
+                    entityId = subscription.id,
+                    entityType = subscription.type,
+                    payload = serializeObject(subscription)
                 )
                 applicationEventPublisher.publishEvent(subscriptionEvent)
             }
@@ -210,11 +209,11 @@ class SubscriptionService(
             }
             .doOnSuccess {
                 val subscriptionEvent = EntityEvent(
-                    EventType.UPDATE,
-                    subscriptionId,
-                    it.t2.type,
-                    serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)),
-                    serializeObject(it.t2)
+                    operationType = EventType.UPDATE,
+                    entityId = subscriptionId,
+                    entityType = it.t2.type,
+                    payload = serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)),
+                    updatedEntity = serializeObject(it.t2)
                 )
                 applicationEventPublisher.publishEvent(subscriptionEvent)
             }
@@ -329,7 +328,11 @@ class SubscriptionService(
             .rowsUpdated()
             .doOnSuccess {
                 if (it >= 1) {
-                    val subscriptionEvent = EntityEvent(EventType.DELETE, subscriptionId, "Subscription")
+                    val subscriptionEvent = EntityEvent(
+                        operationType = EventType.DELETE,
+                        entityId = subscriptionId,
+                        entityType = "Subscription"
+                    )
                     applicationEventPublisher.publishEvent(subscriptionEvent)
                 }
             }

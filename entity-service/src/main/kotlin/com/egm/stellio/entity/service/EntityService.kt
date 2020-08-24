@@ -105,13 +105,13 @@ class EntityService(
 
     fun publishCreationEvent(ngsiLdEntity: NgsiLdEntity) {
         getSerializedEntityById(ngsiLdEntity.id)?.also {
-            applicationEventPublisher.publishEvent(EntityEvent(
-                EventType.CREATE,
-                ngsiLdEntity.id,
-                ngsiLdEntity.type.extractShortTypeFromExpanded(),
-                it,
-                null
-            ))
+            val entityEvent = EntityEvent(
+                operationType = EventType.CREATE,
+                entityId = ngsiLdEntity.id,
+                entityType = ngsiLdEntity.type.extractShortTypeFromExpanded(),
+                payload = it
+            )
+            applicationEventPublisher.publishEvent(entityEvent)
         }
     }
 
@@ -603,11 +603,10 @@ class EntityService(
                 propertyFragment.second, entity.contexts
             )
             val entityEvent = EntityEvent(
-                EventType.UPDATE,
-                entity.id,
-                entity.type[0].extractShortTypeFromExpanded(),
-                propertyPayload,
-                null
+                operationType = EventType.UPDATE,
+                entityId = entity.id,
+                entityType = entity.type[0].extractShortTypeFromExpanded(),
+                payload = propertyPayload
             )
             applicationEventPublisher.publishEvent(entityEvent)
         }

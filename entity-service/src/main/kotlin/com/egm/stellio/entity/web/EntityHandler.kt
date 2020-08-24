@@ -1,7 +1,9 @@
 package com.egm.stellio.entity.web
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EventType
@@ -16,6 +18,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpHeaders
@@ -42,7 +45,8 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val entityService: EntityService,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val authorizationService: AuthorizationService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -52,16 +56,25 @@ class EntityHandler(
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun create(@RequestHeader httpHeaders: HttpHeaders, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return body
-            .map {
+        return extractSubjectOrEmpty().flatMap { userId ->
+            if (!authorizationService.userCanCreateEntities(userId))
+                throw AccessDeniedException("User forbidden to create entities")
+            body.map {
                 expandJsonLdEntity(it, checkAndGetContext(httpHeaders, it)).toNgsiLdEntity()
             }
             .map {
                 entityService.createEntity(it)
             }
-            .map {
-                ResponseEntity.status(HttpStatus.CREATED).location(URI("/ngsi-ld/v1/entities/${it.id}")).build<String>()
+            .doOnNext {
+                authorizationService.createAdminLink(it.id, userId)
             }
+            .map {
+                ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .location(URI("/ngsi-ld/v1/entities/${it.id}"))
+                    .build<String>()
+            }
+        }
     }
 
     /**
@@ -87,7 +100,19 @@ class EntityHandler(
                 .toMono()
 
         /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
-        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink))
+
+        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink)).zipWith(extractSubjectOrEmpty())
+            .map { entitiesAndUserId ->
+                Pair(
+                    entitiesAndUserId.t1, authorizationService.filterEntitiesUserCanRead(
+                        entitiesAndUserId.t1.map { it.id },
+                        entitiesAndUserId.t2
+                    )
+                )
+            }
+            .map { (searchEntities, authorizedIds) ->
+                searchEntities.filter { authorizedIds.contains(it.id) }
+            }
             .map {
                 compactEntities(it)
             }
@@ -101,9 +126,14 @@ class EntityHandler(
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
-        return entityId.toMono()
+        return extractSubjectOrEmpty()
+            .doOnNext {
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+                if (!authorizationService.userCanReadEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden read access to entity $entityId")
+            }
             .map {
-                entityService.getFullEntityById(it) ?: throw ResourceNotFoundException("Entity Not Found")
+                entityService.getFullEntityById(entityId) ?: throw ResourceNotFoundException("Entity Not Found")
             }
             .map {
                 it.compact()
@@ -118,15 +148,18 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
-        return entityId.toMono()
+        return extractSubjectOrEmpty()
+            .doOnNext {
+                if (!entityService.exists(entityId))
+                    throw ResourceNotFoundException("Entity Not Found")
+                if (!authorizationService.userIsAdminOfEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden admin access to entity $entityId")
+            }
             .map {
                 entityService.deleteEntity(entityId)
             }
             .map {
-                if (it.first >= 1)
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.NOT_FOUND).build<String>()
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
@@ -142,10 +175,13 @@ class EntityHandler(
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
-        return body
+        return extractSubjectOrEmpty()
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!authorizationService.userCanUpdateEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden write access to entity $entityId")
             }
+            .then(body)
             .map {
                 val contexts = checkAndGetContext(httpHeaders, it)
                 val jsonLdAttributes = expandJsonLdFragment(it, contexts)
@@ -177,11 +213,13 @@ class EntityHandler(
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-
-        return body
+        return extractSubjectOrEmpty()
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!authorizationService.userCanUpdateEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden write access to entity $entityId")
             }
+            .then(body)
             .map {
                 val contexts = checkAndGetContext(httpHeaders, it)
                 val jsonLdAttributes = expandJsonLdFragment(it, contexts)
@@ -225,8 +263,13 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
-
-        return body
+        return extractSubjectOrEmpty()
+            .doOnNext {
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!authorizationService.userCanUpdateEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden write access to entity $entityId")
+            }
+            .then(body)
             .map {
                 val contexts = checkAndGetContext(httpHeaders, it)
                 entityService.updateEntityAttribute(entityId, attrId, it, contexts)
@@ -248,15 +291,18 @@ class EntityHandler(
     ): Mono<ResponseEntity<*>> {
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.let { URI.create(it) }
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
-
-        return entityId.toMono()
+        return extractSubjectOrEmpty()
+            .doOnNext {
+                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity $entityId does not exist")
+                if (!authorizationService.userCanUpdateEntity(entityId, it))
+                    throw AccessDeniedException("User forbidden write access to entity $entityId")
+            }
             .map {
-                if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
+                val contexts = checkAndGetContext(httpHeaders, it)
                 if (deleteAll)
-                    entityService.deleteEntityAttribute(entityId, expandJsonLdKey(attrId, contextLink)!!)
+                    entityService.deleteEntityAttribute(entityId, expandJsonLdKey(attrId, contexts)!!)
                 else
-                    entityService.deleteEntityAttributeInstance(entityId, expandJsonLdKey(attrId, contextLink)!!, datasetId)
+                    entityService.deleteEntityAttributeInstance(entityId, expandJsonLdKey(attrId, contexts)!!, datasetId)
             }
             .map {
                 if (it)

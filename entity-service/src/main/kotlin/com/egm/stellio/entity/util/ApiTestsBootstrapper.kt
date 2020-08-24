@@ -14,7 +14,7 @@ class ApiTestsBootstrapper(
     private val entityRepository: EntityRepository
 ) : CommandLineRunner {
 
-    @Value("\${application.api-tests.user-id}")
+    @Value("\${application.apitests.userid}")
     val apiTestUserId: String? = null
 
     companion object {

@@ -1,5 +1,7 @@
 package com.egm.stellio.entity.util
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
@@ -28,19 +30,20 @@ class ApiTestsBootstrapper(
 
     override fun run(vararg args: String?) {
         // well, this should not happen in api-tests profile as we start from a fresh database on each run
-        val apiTestsUser = entityRepository.findById(apiTestUserId!!)
+        val ngsiLdUserId = USER_PREFIX + apiTestUserId!!
+        val apiTestsUser = entityRepository.findById(ngsiLdUserId)
         if (!apiTestsUser.isPresent) {
             val entity = Entity(
-                id = apiTestUserId!!,
-                type = listOf(USER_TYPE),
+                id = ngsiLdUserId,
+                type = listOf(AUTHORIZATION_ONTOLOGY + USER_TYPE),
                 contexts = AUTHORIZATION_CONTEXTS,
                 properties = mutableListOf(
                     Property(
-                        name = "roles",
+                        name = AUTHORIZATION_ONTOLOGY + "roles",
                         value = USER_ROLES
                     ),
                     Property(
-                        name = "username",
+                        name = AUTHORIZATION_ONTOLOGY + "username",
                         value = "API Tests"
                     )
                 )

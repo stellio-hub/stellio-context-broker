@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CREATION_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -25,7 +26,7 @@ class ApiTestsBootstrapper(
             "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         )
         const val USER_TYPE = "User"
-        val USER_ROLES = listOf("stellio-creator")
+        val USER_ROLES = listOf(CREATION_ROLE_LABEL)
     }
 
     override fun run(vararg args: String?) {

@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
@@ -31,7 +32,7 @@ class Neo4jAuthorizationServiceTest {
     }
 
     @Test
-    fun `it should find user has not read  right on entity`() {
+    fun `it should find user has not read right on entity`() {
         assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanReadEntity)
     }
 
@@ -57,7 +58,9 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns setOf("admin")
+        every {
+            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user")
+        } returns setOf(ADMIN_ROLE_LABEL)
 
         assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId", "mock-user"))
         assert(neo4jAuthorizationService.userCanReadEntity("entityId", "mock-user"))
@@ -88,7 +91,9 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should keep all entities if user has admin rights`() {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns setOf("admin")
+        every {
+            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user")
+        } returns setOf(ADMIN_ROLE_LABEL)
 
         assert(
             neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId"), "mock-user") == listOf(

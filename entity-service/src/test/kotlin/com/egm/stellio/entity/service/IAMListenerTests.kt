@@ -148,7 +148,7 @@ class IAMListenerTests {
                             (it[0] as NgsiLdProperty).instances.size == 1 &&
                             (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
                             ((it[0] as NgsiLdProperty).instances[0].value as List<*>)
-                                .containsAll(setOf("stellio-administrator", "stellio-creator"))
+                                .containsAll(setOf("stellio-admin", "stellio-creator"))
                 }
             )
         }
@@ -170,7 +170,7 @@ class IAMListenerTests {
                             it[0] is NgsiLdProperty &&
                             (it[0] as NgsiLdProperty).instances.size == 1 &&
                             (it[0] as NgsiLdProperty).instances[0].value is String &&
-                            (it[0] as NgsiLdProperty).instances[0].value == "stellio-administrator"
+                            (it[0] as NgsiLdProperty).instances[0].value == "stellio-admin"
                 }
             )
         }

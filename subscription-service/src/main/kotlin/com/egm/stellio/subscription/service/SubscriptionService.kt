@@ -423,7 +423,6 @@ class SubscriptionService(
             try {
                 runQuery(query, entity)
             } catch (e: Exception) {
-                logger.warn(e.message)
                 false
             }
         }

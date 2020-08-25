@@ -140,7 +140,7 @@ object QueryUtils {
             try {
                 node = node.get(it)
             } catch (e: Exception) {
-                throw BadRequestDataException(e.message ?: "Unresolved value $it")
+                throw BadRequestDataException("Unmatched query since it contains an unknown attribute $it")
             }
         }
 

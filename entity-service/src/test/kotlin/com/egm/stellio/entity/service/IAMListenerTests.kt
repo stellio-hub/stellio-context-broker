@@ -140,12 +140,12 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event with two roles`() {
-        val roleUpdateEvent = loadSampleData("authorization/RealmRoleUpdateEventTwoRoles.json")
+        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventTwoRoles.json")
 
-        iamListener.processMessage(roleUpdateEvent)
+        iamListener.processMessage(roleAppendEvent)
 
         verify {
-            entityService.updateEntityAttributes(
+            entityService.appendEntityAttributes(
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
@@ -155,7 +155,8 @@ class IAMListenerTests {
                         (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
                         ((it[0] as NgsiLdProperty).instances[0].value as List<*>)
                             .containsAll(setOf("stellio-admin", "stellio-creator"))
-                }
+                },
+                false
             )
         }
         confirmVerified()
@@ -163,12 +164,12 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event with one role`() {
-        val roleUpdateEvent = loadSampleData("authorization/RealmRoleUpdateEventOneRole.json")
+        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventOneRole.json")
 
-        iamListener.processMessage(roleUpdateEvent)
+        iamListener.processMessage(roleAppendEvent)
 
         verify {
-            entityService.updateEntityAttributes(
+            entityService.appendEntityAttributes(
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
@@ -177,7 +178,8 @@ class IAMListenerTests {
                         (it[0] as NgsiLdProperty).instances.size == 1 &&
                         (it[0] as NgsiLdProperty).instances[0].value is String &&
                         (it[0] as NgsiLdProperty).instances[0].value == "stellio-admin"
-                }
+                },
+                false
             )
         }
         confirmVerified()
@@ -185,12 +187,12 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event with no roles`() {
-        val roleUpdateEvent = loadSampleData("authorization/RealmRoleUpdateEventNoRole.json")
+        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventNoRole.json")
 
-        iamListener.processMessage(roleUpdateEvent)
+        iamListener.processMessage(roleAppendEvent)
 
         verify {
-            entityService.updateEntityAttributes(
+            entityService.appendEntityAttributes(
                 "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
                 match {
                     it.size == 1 &&
@@ -199,7 +201,8 @@ class IAMListenerTests {
                         (it[0] as NgsiLdProperty).instances.size == 1 &&
                         (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
                         ((it[0] as NgsiLdProperty).instances[0].value as List<*>).isEmpty()
-                }
+                },
+                false
             )
         }
         confirmVerified()

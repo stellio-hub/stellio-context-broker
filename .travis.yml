@@ -1,0 +1,22 @@
+language: node_js
+node_js:
+  - 12.14
+
+services:
+  - docker
+
+install : >
+  curl -LO https://github.com/FIWARE/NGSI-LD_TestSuite/archive/master.zip;
+  shasum -a 256 master.zip;
+  unzip -q master.zip;
+  rm master.zip;
+  cd NGSI-LD_TestSuite-master;  
+  export EXCLUDED_TESTS="003|004|";
+  npm install;
+  docker-compose --log-level ERROR -f docker-compose/stellio.yml pull --ignore-pull-failures 
+
+script:  >
+   echo -e " \033[1;33mRunning NGSI-LD Integration Test Suite";
+   ./services stellio;
+   export TEST_ENDPOINT=http://localhost:8080;
+   npm test;

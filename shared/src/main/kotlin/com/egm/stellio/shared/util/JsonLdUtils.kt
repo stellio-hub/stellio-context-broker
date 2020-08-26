@@ -117,18 +117,7 @@ object JsonLdUtils {
         }
 
         // TODO find a way to avoid this extra parsing
-        val parsedInput: Map<String, Any> = mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
-
-        val contexts =
-            if (parsedInput["@context"] is List<*>)
-                parsedInput["@context"] as List<String>
-            else
-                listOf(parsedInput["@context"] as String)
+        val contexts = extractContextFromInput(input)
 
         return JsonLdEntity(expandedEntity as Map<String, Any>, contexts)
     }
@@ -137,6 +126,24 @@ object JsonLdUtils {
         return entities.map {
             expandJsonLdEntity(mapper.writeValueAsString(it))
         }
+    }
+
+    fun extractContextFromInput(input: String): List<String> {
+        val parsedInput: Map<String, Any> = mapper.readValue(
+            input,
+            mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
+
+        return if (!parsedInput.containsKey("@context"))
+            emptyList()
+        else if (parsedInput["@context"] is List<*>)
+            parsedInput["@context"] as List<String>
+        else if (parsedInput["@context"] is String)
+            listOf(parsedInput["@context"] as String)
+        else
+            emptyList()
     }
 
     // TODO it should be replaced by proper parsing to a NGSI-LD attribute

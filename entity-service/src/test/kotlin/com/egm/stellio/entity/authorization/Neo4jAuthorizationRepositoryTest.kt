@@ -125,6 +125,26 @@ class Neo4jAuthorizationRepositoryTest {
     }
 
     @Test
+    fun `it should get a user's single role`() {
+        createEntity(
+            "urn:ngsi-ld:User:01",
+            listOf("User"),
+            mutableListOf(
+                Property(
+                    name = EGM_ROLES,
+                    value = "admin"
+                )
+            )
+        )
+
+        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
+
+        assert(roles == setOf("admin"))
+
+        neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
+    }
+
+    @Test
     fun `it should get all user's roles from group`() {
         val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
 
@@ -135,6 +155,31 @@ class Neo4jAuthorizationRepositoryTest {
                 Property(
                     name = EGM_ROLES,
                     value = listOf("admin")
+                )
+            )
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
+
+        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:01")
+
+        assert(roles == setOf("admin"))
+
+        neo4jRepository.deleteEntity("urn:ngsi-ld:User:01")
+        neo4jRepository.deleteEntity("urn:ngsi-ld:Group:01")
+    }
+
+    @Test
+    fun `it should get a user's single role from group`() {
+        val userEntity = createEntity("urn:ngsi-ld:User:01", listOf("User"), mutableListOf())
+
+        val groupEntity = createEntity(
+            "urn:ngsi-ld:Group:01",
+            listOf("Group"),
+            mutableListOf(
+                Property(
+                    name = EGM_ROLES,
+                    value = "admin"
                 )
             )
         )

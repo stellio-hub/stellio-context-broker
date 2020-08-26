@@ -132,6 +132,7 @@ class EntityHandler(
      * Implements 6.5.3.1 - Retrieve Entity
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @Suppress("ThrowsCount")
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
         return extractSubjectOrEmpty()
             .doOnNext {

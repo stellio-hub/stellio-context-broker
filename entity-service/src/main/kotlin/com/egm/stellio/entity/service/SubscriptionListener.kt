@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 @EnableBinding(SubscriptionSink::class)
 class SubscriptionListener(
-    private val entityService: EntityService
+    private val subscriptionHandlerService: SubscriptionHandlerService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -32,7 +32,7 @@ class SubscriptionListener(
         when (entityEvent.operationType) {
             EventType.CREATE -> {
                 val parsedSubscription = parseJsonLdFragment(entityEvent.payload!!).minus("id").minus("type")
-                entityService.createSubscriptionEntity(
+                subscriptionHandlerService.createSubscriptionEntity(
                     entityEvent.entityId, entityEvent.entityType!!, parsedSubscription
                 )
             }
@@ -61,7 +61,7 @@ class SubscriptionListener(
                 val subscriptionId = parsedNotification["subscriptionId"] as String
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
-                entityService.createNotificationEntity(
+                subscriptionHandlerService.createNotificationEntity(
                     entityEvent.entityId,
                     entityEvent.entityType!!,
                     subscriptionId,

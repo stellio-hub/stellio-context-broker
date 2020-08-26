@@ -12,7 +12,6 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.repository.RelationshipRepository
 import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
 import com.egm.stellio.shared.model.AlreadyExistsException
@@ -31,12 +30,9 @@ import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_RAISED_NOTIFICATION
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
@@ -58,7 +54,6 @@ class EntityService(
     private val entityRepository: EntityRepository,
     private val entitiesGraphBuilder: EntitiesGraphBuilder,
     private val propertyRepository: PropertyRepository,
-    private val relationshipRepository: RelationshipRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -241,7 +236,7 @@ class EntityService(
                 (it["property"] as Property).id
             }
             .values
-            .map { buildInstanceFragment(it, entity.contexts) }
+            .map { buildPropertyFragment(it, entity.contexts) }
             .groupBy { it.first }
             .mapValues { propertyInstances ->
                 propertyInstances.value.map { instanceFragment ->
@@ -257,37 +252,7 @@ class EntityService(
                 (it["rel"] as Relationship).id
             }.values
             .map {
-                val relationship = it[0]["rel"] as Relationship
-                val primaryRelType = (it[0]["rel"] as Relationship).type[0]
-                val primaryRelation =
-                    it.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-                val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
-                val relationshipValue = mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
-                )
-
-                val relationshipValues = relationship.serializeCoreProperties()
-                relationshipValues.putAll(relationshipValue)
-
-                it.filter { relEntry -> relEntry["relOfRel"] != null }.forEach {
-                    val relationship = it["relOfRel"] as Relationship
-                    val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
-                    val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
-
-                    val innerRelationship = mapOf(
-                        JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
-                    )
-
-                    val innerRelationshipValues = relationship.serializeCoreProperties()
-                    innerRelationshipValues.putAll(innerRelationship)
-                    val expandedInnerRelationshipType =
-                        expandRelationshipType(mapOf(innerRelType to relationshipValue), entity.contexts)
-
-                    relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
-                }
-                Pair(primaryRelType, relationshipValues)
+                buildRelationshipFragment(it, entity.contexts)
             }
             .groupBy { it.first }
             .mapValues { relationshipInstances ->
@@ -302,7 +267,7 @@ class EntityService(
         return JsonLdEntity(resultEntity, entity.contexts)
     }
 
-    private fun buildInstanceFragment(
+    private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
         contexts: List<String>
     ): Pair<String, Map<String, Any>> {
@@ -335,6 +300,45 @@ class EntityService(
             }
 
         return Pair(propertyKey, propertyValues)
+    }
+
+    private fun buildRelationshipFragment(
+        rawRelationship: List<Map<String, Any>>,
+        contexts: List<String>
+    ): Pair<String, Map<String, Any>> {
+        val relationship = rawRelationship[0]["rel"] as Relationship
+        val primaryRelType = (rawRelationship[0]["rel"] as Relationship).type[0]
+        val primaryRelation =
+            rawRelationship.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
+        val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
+        val relationshipValue = mapOf(
+            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
+        )
+
+        val relationshipValues = relationship.serializeCoreProperties()
+        relationshipValues.putAll(relationshipValue)
+
+        rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
+            .forEach {
+                val relationship = it["relOfRel"] as Relationship
+                val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
+                val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
+
+                val innerRelationship = mapOf(
+                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
+                )
+
+                val innerRelationshipValues = relationship.serializeCoreProperties()
+                innerRelationshipValues.putAll(innerRelationship)
+                val expandedInnerRelationshipType =
+                    expandRelationshipType(mapOf(innerRelType to relationshipValue), contexts)
+
+                relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
+            }
+
+        return Pair(primaryRelType, relationshipValues)
     }
 
     fun getSerializedEntityById(entityId: String): String? {
@@ -666,7 +670,7 @@ class EntityService(
 
             val entity = neo4jRepository.getEntityByProperty(observedProperty)
             val rawProperty = entityRepository.getEntitySpecificProperty(entity.id, observedProperty.id)
-            val propertyFragment = buildInstanceFragment(rawProperty, entity.contexts)
+            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
             val propertyPayload = compactAndStringifyFragment(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts
@@ -678,81 +682,6 @@ class EntityService(
                 payload = propertyPayload
             )
             applicationEventPublisher.publishEvent(entityEvent)
-        }
-    }
-
-    @Transactional
-    fun createSubscriptionEntity(id: String, type: String, properties: Map<String, Any>) {
-        if (exists(id)) {
-            logger.warn("Subscription $id already exists")
-            return
-        }
-
-        val subscription = Entity(id = id, type = listOf(expandJsonLdKey(type, NGSILD_CORE_CONTEXT)!!))
-        properties.forEach {
-            val property = propertyRepository.save(
-                Property(
-                    name = expandJsonLdKey(it.key, NGSILD_CORE_CONTEXT)!!,
-                    value = serializeObject(it.value)
-                )
-            )
-            subscription.properties.add(property)
-        }
-        subscription.contexts = listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-        entityRepository.save(subscription)
-    }
-
-    @Transactional
-    fun createNotificationEntity(id: String, type: String, subscriptionId: String, properties: Map<String, Any>) {
-        val subscription = entityRepository.findById(subscriptionId)
-        if (!subscription.isPresent) {
-            logger.warn("Subscription $subscriptionId does not exist")
-            return
-        }
-
-        val notification = Entity(id = id, type = listOf(expandJsonLdKey(type, NGSILD_CORE_CONTEXT)!!))
-        properties.forEach {
-            val property = propertyRepository.save(
-                Property(
-                    name = expandJsonLdKey(it.key, NGSILD_CORE_CONTEXT)!!,
-                    value = serializeObject(it.value)
-                )
-            )
-            notification.properties.add(property)
-        }
-        notification.contexts = listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-        entityRepository.save(notification)
-
-        // Find the last notification of the subscription
-        val lastNotification = neo4jRepository.getRelationshipTargetOfSubject(
-            subscriptionId,
-            EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
-        )
-
-        // Create relationship between the subscription and the new notification
-        if (lastNotification != null) {
-            val relationship = neo4jRepository.getRelationshipOfSubject(
-                subscriptionId,
-                EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
-            )
-            neo4jRepository.updateRelationshipTargetOfAttribute(
-                relationship.id,
-                EGM_RAISED_NOTIFICATION.toRelationshipTypeName(),
-                lastNotification.id,
-                notification.id
-            )
-            relationshipRepository.save(relationship)
-            deleteEntity(lastNotification.id)
-        } else {
-            val rawRelationship = Relationship(
-                type = listOf(EGM_RAISED_NOTIFICATION)
-            )
-
-            neo4jRepository.createRelationshipOfSubject(
-                EntitySubjectNode(subscription.get().id),
-                rawRelationship,
-                notification.id
-            )
         }
     }
 }

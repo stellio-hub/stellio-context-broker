@@ -17,3 +17,5 @@ complexity:
 style:
   WildcardImport:
     active: false
+  ThrowsCount:
+    max: 4

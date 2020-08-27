@@ -1,18 +1,19 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
+import org.junit.jupiter.api.assertThrows
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.Optional
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ApiUtils::class])
 @ActiveProfiles("test")
 class ApiUtilsTests {
     private val webClient = WebTestClient.bindToController(MockkedHandler()).webFilter<WebTestClient.ControllerSpec>(
@@ -62,5 +63,75 @@ class ApiUtilsTests {
             .bodyValue("Some body")
             .exchange()
             .expectStatus().isCreated
+    }
+
+    @Test
+    fun `it should get a single @context from a JSON-LD input`() {
+        val httpHeaders = HttpHeaders().apply {
+            set("Content-Type", "application/ld+json")
+        }
+        val jsonLdInput =
+            """
+                {
+                    "id": "urn:ngsi-ld:Building:farm001",
+                    "type": "Building",
+                    "@context": "https://schema.lab.fiware.org/ld/context.jsonld"
+                }
+            """
+
+        val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
+        assertEquals(1, contexts.size)
+        assertEquals("https://schema.lab.fiware.org/ld/context.jsonld", contexts[0])
+    }
+
+    @Test
+    fun `it should get a list of @context from a JSON-LD input`() {
+        val httpHeaders = HttpHeaders().apply {
+            set("Content-Type", "application/ld+json")
+        }
+        val jsonLdInput =
+            """
+                {
+                    "id": "urn:ngsi-ld:Building:farm001",
+                    "type": "Building",
+                    "@context": [
+                        "https://fiware.github.io/data-models/context.jsonld",
+                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                    ]
+                }
+            """
+
+        val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
+        assertEquals(2, contexts.size)
+        assertTrue(
+            contexts.containsAll(
+                listOf(
+                    "https://fiware.github.io/data-models/context.jsonld",
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `it should throw an exception if a JSON-LD input has no @context`() {
+        val httpHeaders = HttpHeaders().apply {
+            set("Content-Type", "application/ld+json")
+        }
+        val jsonLdInput =
+            """
+                {
+                    "id": "urn:ngsi-ld:Building:farm001",
+                    "type": "Building"
+                }
+            """
+
+        val exception = assertThrows<BadRequestDataException> {
+            checkAndGetContext(httpHeaders, jsonLdInput)
+        }
+        assertEquals(
+            "Request payload must contain @context term for a request having an application/ld+json content type",
+            exception.message
+        )
     }
 }

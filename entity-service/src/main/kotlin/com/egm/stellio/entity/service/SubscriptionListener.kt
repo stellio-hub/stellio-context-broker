@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.egm.stellio.shared.util.JsonLdUtils.parseJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 @EnableBinding(SubscriptionSink::class)
 class SubscriptionListener(
-    private val entityService: EntityService
+    private val subscriptionHandlerService: SubscriptionHandlerService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -32,7 +32,9 @@ class SubscriptionListener(
         when (entityEvent.operationType) {
             EventType.CREATE -> {
                 val parsedSubscription = parseJsonLdFragment(entityEvent.payload!!).minus("id").minus("type")
-                entityService.createSubscriptionEntity(entityEvent.entityId, entityEvent.entityType!!, parsedSubscription)
+                subscriptionHandlerService.createSubscriptionEntity(
+                    entityEvent.entityId, entityEvent.entityType!!, parsedSubscription
+                )
             }
             EventType.APPEND -> logger.warn("Append operation is not yet implemented for subscriptions")
             EventType.UPDATE -> logger.warn("Update operation is not yet implemented for subscriptions")
@@ -59,14 +61,18 @@ class SubscriptionListener(
                 val subscriptionId = parsedNotification["subscriptionId"] as String
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
-                entityService.createNotificationEntity(
+                subscriptionHandlerService.createNotificationEntity(
                     entityEvent.entityId,
                     entityEvent.entityType!!,
                     subscriptionId,
                     parsedNotification
                 )
             }
-            else -> logger.warn("Received unexpected event type ${entityEvent.operationType} for notification ${entityEvent.entityId}")
+            else ->
+                logger.warn(
+                    "Received unexpected event type ${entityEvent.operationType} " +
+                        "for notification ${entityEvent.entityId}"
+                )
         }
     }
 }

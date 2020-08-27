@@ -46,7 +46,6 @@ class ApiUtilsTests {
 
     @Test
     fun `it should return 411 if Content-Length is null`() {
-
         webClient.post()
             .uri("/router/mockkedroute")
             .header(HttpHeaders.CONTENT_TYPE, "application/json")

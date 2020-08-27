@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.EnableAsync
 @EnableAsync
 class EntityServiceApplication
 
+@Suppress("SpreadOperator")
 fun main(args: Array<String>) {
     runApplication<EntityServiceApplication>(*args)
 }

@@ -12,12 +12,12 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -61,14 +61,11 @@ class EntityHandler(
                 throw AccessDeniedException("User forbidden to create entities")
             body.map {
                 expandJsonLdEntity(it, checkAndGetContext(httpHeaders, it)).toNgsiLdEntity()
-            }
-            .map {
+            }.map {
                 entityService.createEntity(it)
-            }
-            .doOnNext {
+            }.doOnNext {
                 authorizationService.createAdminLink(it.id, userId)
-            }
-            .map {
+            }.map {
                 ResponseEntity
                     .status(HttpStatus.CREATED)
                     .location(URI("/ngsi-ld/v1/entities/${it.id}"))
@@ -81,8 +78,10 @@ class EntityHandler(
      * Implements 6.4.3.2 - Query Entities
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getEntities(@RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap<String, String>):
-        Mono<ResponseEntity<*>> {
+    fun getEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): Mono<ResponseEntity<*>> {
         val type = params.getFirst("type") ?: ""
         val q = params.getOrDefault("q", emptyList())
 
@@ -91,7 +90,11 @@ class EntityHandler(
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2"))
+                .body(
+                    BadRequestDataResponse(
+                        "'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2)"
+                    )
+                )
                 .toMono()
 
         if (!JsonLdUtils.isTypeResolvable(type, contextLink))
@@ -99,12 +102,16 @@ class EntityHandler(
                 .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
                 .toMono()
 
-        /* Decoding query parameters is not supported by default so a call to a decode function was added query with the right parameters values */
+        /**
+         * Decoding query parameters is not supported by default so a call to a decode function was added query
+         * with the right parameters values
+         */
 
         return Mono.just(entityService.searchEntities(type, q.decode(), contextLink)).zipWith(extractSubjectOrEmpty())
             .map { entitiesAndUserId ->
                 Pair(
-                    entitiesAndUserId.t1, authorizationService.filterEntitiesUserCanRead(
+                    entitiesAndUserId.t1,
+                    authorizationService.filterEntitiesUserCanRead(
                         entitiesAndUserId.t1.map { it.id },
                         entitiesAndUserId.t2
                     )
@@ -125,6 +132,7 @@ class EntityHandler(
      * Implements 6.5.3.1 - Retrieve Entity
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @Suppress("ThrowsCount")
     fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
         return extractSubjectOrEmpty()
             .doOnNext {
@@ -235,7 +243,12 @@ class EntityHandler(
                     val entityEvent = EntityEvent(
                         operationType = EventType.UPDATE,
                         entityId = entityId,
-                        payload = compactAndStringifyFragment(expandedAttributeName, it.first[expandedAttributeName]!!, it.third)
+                        payload =
+                            compactAndStringifyFragment(
+                                expandedAttributeName,
+                                it.first[expandedAttributeName]!!,
+                                it.third
+                            )
                     )
                     applicationEventPublisher.publishEvent(entityEvent)
                 }
@@ -302,7 +315,9 @@ class EntityHandler(
                 if (deleteAll)
                     entityService.deleteEntityAttribute(entityId, expandJsonLdKey(attrId, contexts)!!)
                 else
-                    entityService.deleteEntityAttributeInstance(entityId, expandJsonLdKey(attrId, contexts)!!, datasetId)
+                    entityService.deleteEntityAttributeInstance(
+                        entityId, expandJsonLdKey(attrId, contexts)!!, datasetId
+                    )
             }
             .map {
                 if (it)

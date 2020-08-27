@@ -31,7 +31,8 @@ fun parseLocationFragmentToPointGeoProperty(
     longitude: Double,
     latitute: Double
 ): NgsiLdGeoProperty {
-    val locationFragment = """
+    val locationFragment =
+        """
             {
                 "location": {
                     "type": "GeoProperty",

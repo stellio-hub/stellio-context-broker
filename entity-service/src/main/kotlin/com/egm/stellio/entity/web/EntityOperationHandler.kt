@@ -31,27 +31,25 @@ class EntityOperationHandler(
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-
         return extractSubjectOrEmpty().flatMap { userId ->
             if (!authorizationService.userCanCreateEntities(userId))
                 throw AccessDeniedException("User forbidden to create entities")
             body.map {
                 extractAndParseBatchOfEntities(it)
-            }
-            .map {
+            }.map {
                 val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
                 val batchOperationResult = entityOperationService.create(newEntities)
 
                 batchOperationResult.errors.addAll(
                     existingEntities.map { entity ->
                         BatchEntityError(entity.id, arrayListOf("Entity already exists"))
-                    })
+                    }
+                )
 
                 authorizationService.createAdminLinks(batchOperationResult.success, userId)
 
                 batchOperationResult
-            }
-            .map {
+            }.map {
                 ResponseEntity.status(HttpStatus.OK).body(it)
             }
         }
@@ -80,9 +78,11 @@ class EntityOperationHandler(
                         entityOperationService.create(newEntities)
                     else
                         BatchOperationResult(
-                            errors = ArrayList(newEntities.map {
-                                BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
-                            })
+                            errors = ArrayList(
+                                newEntities.map {
+                                    BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
+                                }
+                            )
                         )
 
                 authorizationService.createAdminLinks(createBatchOperationResult.success, expandedEntitiesAndUserId.t2)
@@ -101,9 +101,11 @@ class EntityOperationHandler(
                     else -> entityOperationService.replace(existingEntitiesAuthorized, createBatchOperationResult)
                 }
 
-                updateBatchOperationResult.errors.addAll(existingEntitiesUnauthorized.map {
-                    BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
-                })
+                updateBatchOperationResult.errors.addAll(
+                    existingEntitiesUnauthorized.map {
+                        BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+                    }
+                )
 
                 BatchOperationResult(
                     ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),

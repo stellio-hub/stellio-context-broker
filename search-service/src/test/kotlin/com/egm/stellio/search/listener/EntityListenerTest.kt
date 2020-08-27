@@ -28,40 +28,45 @@ class EntityListenerTest {
     @MockkBean(relaxed = true)
     private lateinit var attributeInstanceService: AttributeInstanceService
 
-    private val entity = """
+    private val entity =
+        """
         {
             \"id\": \"urn:ngsi-ld:FishContainment:1234\",
             \"type\": \"FishContainment\",
             \"@context\": \"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld\"
         }
-    """.trimIndent()
+        """.trimIndent()
 
     @Test
     fun `it should create a temporal entity entry`() {
-        val content = """
+        val content =
+            """
             {
                 "operationType": "CREATE",
                 "entityId": "urn:ngsi-ld:FishContainment:1234",
                 "entityType": "FishContainment",
                 "payload": "$entity"
             }
-        """.trimIndent().replace("\n", "")
+            """.trimIndent().replace("\n", "")
 
         every { temporalEntityAttributeService.createEntityTemporalReferences(any()) } returns Mono.just(1)
 
         entityListener.processMessage(content)
 
         verify {
-            temporalEntityAttributeService.createEntityTemporalReferences(match {
-                it.contains("urn:ngsi-ld:FishContainment:1234")
-            })
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                match {
+                    it.contains("urn:ngsi-ld:FishContainment:1234")
+                }
+            )
         }
         confirmVerified(temporalEntityAttributeService)
     }
 
     @Test
     fun `it should create an attribute instance and update entity payload`() {
-        val eventPayload = """
+        val eventPayload =
+            """
             {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
@@ -69,7 +74,7 @@ class EntityListenerTest {
                     \"observedAt\":\"2020-03-12T08:33:38.000Z\"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
@@ -87,15 +92,20 @@ class EntityListenerTest {
             )
         }
         verify {
-            attributeInstanceService.create(match {
-                it.temporalEntityAttribute == temporalEntityAttributeUuid
-            })
+            attributeInstanceService.create(
+                match {
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
         }
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload("urn:ngsi-ld:FishContainment:1234", match {
-                it.contains("urn:ngsi-ld:FishContainment:1234")
-            })
+            temporalEntityAttributeService.updateEntityPayload(
+                "urn:ngsi-ld:FishContainment:1234",
+                match {
+                    it.contains("urn:ngsi-ld:FishContainment:1234")
+                }
+            )
         }
 
         confirmVerified(attributeInstanceService, temporalEntityAttributeService)
@@ -103,7 +113,8 @@ class EntityListenerTest {
 
     @Test
     fun `it should create an attribute instance with a numeric value`() {
-        val eventPayload = """
+        val eventPayload =
+            """
             {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
@@ -111,7 +122,7 @@ class EntityListenerTest {
                     \"observedAt\":\"2020-03-12T08:33:38.000Z\"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
@@ -122,12 +133,14 @@ class EntityListenerTest {
         entityListener.processMessage(content)
 
         verify {
-            attributeInstanceService.create(match {
-                it.value == null &&
-                    it.measuredValue == 33869.0 &&
-                    it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
-                    it.temporalEntityAttribute == temporalEntityAttributeUuid
-            })
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue == 33869.0 &&
+                        it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
         }
 
         confirmVerified(attributeInstanceService)
@@ -135,7 +148,8 @@ class EntityListenerTest {
 
     @Test
     fun `it should create an attribute instance with a textual value`() {
-        val eventPayload = """
+        val eventPayload =
+            """
             {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
@@ -143,7 +157,7 @@ class EntityListenerTest {
                     \"observedAt\":\"2020-03-12T08:33:38.000Z\"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
@@ -154,12 +168,14 @@ class EntityListenerTest {
         entityListener.processMessage(content)
 
         verify {
-            attributeInstanceService.create(match {
-                it.value == "some textual value" &&
+            attributeInstanceService.create(
+                match {
+                    it.value == "some textual value" &&
                         it.measuredValue == null &&
                         it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid
-            })
+                }
+            )
         }
 
         confirmVerified(attributeInstanceService)
@@ -167,7 +183,8 @@ class EntityListenerTest {
 
     @Test
     fun `it should create an attribute instance for a datasetId`() {
-        val eventPayload = """
+        val eventPayload =
+            """
             {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
@@ -176,7 +193,7 @@ class EntityListenerTest {
                     \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
@@ -191,25 +208,28 @@ class EntityListenerTest {
         }
 
         verify {
-            attributeInstanceService.create(match {
-                it.value == "some textual value" &&
-                    it.measuredValue == null &&
-                    it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
-                    it.temporalEntityAttribute == temporalEntityAttributeUuid
-            })
+            attributeInstanceService.create(
+                match {
+                    it.value == "some textual value" &&
+                        it.measuredValue == null &&
+                        it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
         }
     }
 
     @Test
     fun `it should ignore an attribute instance without observedAt information`() {
-        val eventPayload = """
+        val eventPayload =
+            """
             {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
                     \"value\":33869
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
         entityListener.processMessage(content)

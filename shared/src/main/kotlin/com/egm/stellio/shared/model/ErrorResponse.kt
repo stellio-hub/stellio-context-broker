@@ -38,13 +38,19 @@ data class TooComplexQueryResponse(override val detail: String) : ErrorResponse(
 
 data class TooManyResultsResponse(override val detail: String) : ErrorResponse(
     ErrorType.TOO_MANY_RESULTS.type,
-    "The query associated to the operation is producing so many results that can exhaust client or server resources. It should be made more restrictive",
+    """
+    The query associated to the operation is producing so many results that can exhaust client or server resources. 
+    It should be made more restrictive
+    """,
     detail
 )
 
 data class LdContextNotAvailableResponse(override val detail: String) : ErrorResponse(
     ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
-    "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
+    """
+    A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or 
+    compaction cannot be performed
+    """,
     detail
 )
 

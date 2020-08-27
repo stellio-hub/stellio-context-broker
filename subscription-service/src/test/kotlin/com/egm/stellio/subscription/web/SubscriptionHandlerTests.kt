@@ -100,7 +100,7 @@ class SubscriptionHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent()
+                """.trimIndent()
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }
@@ -168,13 +168,15 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":"JSON-LD @context not found in request payload body"
                 } 
-            """.trimIndent())
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -241,7 +243,6 @@ class SubscriptionHandlerTests {
 
     @Test
     fun `query subscriptions should return 200 and empty response if requested page does not exists`() {
-
         every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.empty()
 
@@ -264,9 +265,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Page number and Limit must be greater than zero\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Page number and Limit must be greater than zero"
+                } 
+                """.trimIndent()
             )
     }
 
@@ -282,9 +287,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"Page number and Limit must be greater than zero\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Page number and Limit must be greater than zero"
+                }
+                """.trimIndent()
             )
     }
 
@@ -371,13 +380,15 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":"JSON-LD @context not found in request payload body"
                 } 
-            """.trimIndent())
+                """.trimIndent()
+            )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
@@ -403,7 +414,7 @@ class SubscriptionHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent()
+                """.trimIndent()
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
@@ -492,7 +503,7 @@ class SubscriptionHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
-            """.trimIndent()
+                """.trimIndent()
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1") }

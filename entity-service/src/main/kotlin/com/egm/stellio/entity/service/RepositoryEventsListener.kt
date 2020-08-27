@@ -28,7 +28,6 @@ class RepositoryEventsListener(
     @Async
     @EventListener
     fun handleRepositoryEvent(entityEvent: EntityEvent) {
-
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
             EventType.CREATE -> sendCreateMessage(

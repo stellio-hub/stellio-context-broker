@@ -59,15 +59,17 @@ class ObservationListenerTests {
         observationListener.processMessage(observation)
 
         verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
+            entityService.updateEntityLastMeasure(
+                match { observation ->
+                    observation.attributeName == "incoming" &&
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
                         observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
                         observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
                         observation.longitude == 24.30623 &&
                         observation.latitude == 60.07966
-            })
+                }
+            )
         }
         confirmVerified(entityService)
     }
@@ -81,15 +83,17 @@ class ObservationListenerTests {
         observationListener.processMessage(observation)
 
         verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
+            entityService.updateEntityLastMeasure(
+                match { observation ->
+                    observation.attributeName == "incoming" &&
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
                         observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
                         observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
                         observation.latitude == null &&
                         observation.longitude == null
-            })
+                }
+            )
         }
         confirmVerified(entityService)
     }

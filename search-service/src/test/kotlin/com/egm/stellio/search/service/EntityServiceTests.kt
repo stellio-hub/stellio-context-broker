@@ -47,7 +47,6 @@ class EntityServiceTests {
 
     @Test
     fun `it should call the context registry with the correct entityId`() {
-
         // prepare our stub
         stubFor(
             get(urlMatching("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC"))

@@ -5,9 +5,9 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory

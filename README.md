@@ -110,13 +110,24 @@ If you want to build only one of the services, you can launch:
 ./gradlew entity-service:build
 ```
 
-### Formatting the code
+### Code quality
 
-To format the code, we use Intellij built-in formatter with settings that can be found in the `config/settings` directory.
+Code formatting and standard code quality checks are performed by [ktLint](https://ktlint.github.io/) and 
+[Detekt](https://detekt.github.io/detekt/index.html).
 
-Import settings with `File/Manage IDE Settings/Import Settings...`.
+ktLint and Detekt checks are automatically performed as part of the build and fail the build if any error is encountered.
 
-You can use plugins like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) that applies changed code refactoring and optimized imports on a save.
+If you use IntelliJ:
+* You can generate the corresponding ktLint settings with the following command:
+
+```shell script
+./gradlew ktlintApplyToIdea
+```
+
+* You may consider using a plugin like [Save Actions](https://plugins.jetbrains.com/plugin/7642-save-actions) 
+that applies changed code refactoring and optimized imports on a save.
+
+* You can enable Detekt support with the [Detekt plugin](https://github.com/detekt/detekt-intellij-plugin).
 
 ### Working locally with Docker images
 

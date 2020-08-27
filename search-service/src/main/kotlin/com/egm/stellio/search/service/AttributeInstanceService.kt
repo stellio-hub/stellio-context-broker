@@ -55,7 +55,6 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         temporalEntityAttribute: TemporalEntityAttribute
     ): Mono<List<AttributeInstanceResult>> {
-
         var selectQuery =
             when {
                 temporalQuery.timeBucket != null ->
@@ -83,7 +82,9 @@ class AttributeInstanceService(
         selectQuery = when (temporalQuery.timerel) {
             TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND observed_at < '${temporalQuery.time}'")
             TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND observed_at > '${temporalQuery.time}'")
-            else -> selectQuery.plus(" AND observed_at > '${temporalQuery.time}' AND observed_at < '${temporalQuery.endTime}'")
+            else -> selectQuery.plus(
+                " AND observed_at > '${temporalQuery.time}' AND observed_at < '${temporalQuery.endTime}'"
+            )
         }
 
         if (temporalQuery.timeBucket != null)
@@ -98,15 +99,18 @@ class AttributeInstanceService(
             .collectList()
     }
 
-    private fun rowToAttributeInstanceResult(row: Map<String, Any>, temporalEntityAttribute: TemporalEntityAttribute):
-        AttributeInstanceResult {
+    private fun rowToAttributeInstanceResult(
+        row: Map<String, Any>,
+        temporalEntityAttribute: TemporalEntityAttribute
+    ): AttributeInstanceResult {
         return AttributeInstanceResult(
             attributeName = temporalEntityAttribute.attributeName,
             instanceId = row["instance_id"]?.let { URI.create(it as String) },
             datasetId = temporalEntityAttribute.datasetId,
             value = row["value"]!!,
-            observedAt = row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                ?: row["observed_at"].let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+            observedAt =
+                row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                    ?: row["observed_at"].let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
         )
     }
 }

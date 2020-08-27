@@ -23,14 +23,16 @@ object QueryUtils {
     /**
      * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.
      * The query param is subscription related query to be transformed.
-     * the entity param is the used to define the query attributes types (Property, Relationship, other) wich is used to extract the value to be compared as mandated by clause 4.9.
+     * the entity param is the used to define the query attributes types (Property, Relationship, other)
+     * which is used to extract the value to be compared as mandated by clause 4.9.
 
      * Examples of transformations:
      * foodQuantity>=150 -> @.foodQuantity.value>=150
-     * foodQuantity>150;executes.createdAt=="2018-11-26T21:32:52.98601Z" -> @.foodQuantity.value>150&&@.executes.createdAt=="2018-11-26T21:32:52.98601Z"
-     * (executes=="urn:ngsi-ld:Feeder:018z5"|executes[createdAt]=="2018-11-26T21:32:52.98601Z)" -> (@.executes.object=="urn:ngsi-ld:Feeder:018z5"||@.executes["createdAt"]=="2018-11-26T21:32:52.98601Z")
+     * foodQuantity>150;executes.createdAt=="2018-11-26T21:32:52.98601Z" ->
+     *     @.foodQuantity.value>150&&@.executes.createdAt=="2018-11-26T21:32:52.98601Z"
+     * (executes=="urn:ngsi-ld:Feeder:018z5"|executes[createdAt]=="2018-11-26T21:32:52.98601Z)" ->
+     *     (@.executes.object=="urn:ngsi-ld:Feeder:018z5"||@.executes["createdAt"]=="2018-11-26T21:32:52.98601Z")
      */
-
     fun createQueryStatement(query: String?, entity: String): String {
         val mapper = jacksonObjectMapper()
         val parsedEntity = mapper.readTree(entity) as ObjectNode
@@ -80,9 +82,17 @@ object QueryUtils {
             createSqlGeometry(locationInstance.geoPropertyType, locationInstance.coordinates.toString())
         val georelParams = extractGeorelParams(geoQuery.georel)
 
-        if (georelParams.first == DISTANCE_QUERY_CLAUSE)
-            return "SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), ST_GeomFromText('$targetGeometryStatement')) ${georelParams.second} ${georelParams.third} as geoquery_result"
-        return "SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), ST_GeomFromText('$targetGeometryStatement')) as geoquery_result"
+        return if (georelParams.first == DISTANCE_QUERY_CLAUSE)
+            """
+            SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), 
+                                            ST_GeomFromText('$targetGeometryStatement')) 
+                    ${georelParams.second} ${georelParams.third} as geoquery_result
+            """.trimIndent()
+        else
+            """
+            SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), 
+                                            ST_GeomFromText('$targetGeometryStatement')) as geoquery_result
+            """.trimIndent()
     }
 
     fun createSqlGeometry(geometryType: String, coordinates: String): String {

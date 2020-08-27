@@ -6,6 +6,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
@@ -22,7 +23,7 @@ class ApiTestsBootstrapper(
 
     companion object {
         val AUTHORIZATION_CONTEXTS: List<String> = listOf(
-            "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
+            "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld",
             "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         )
         const val USER_TYPE = "User"

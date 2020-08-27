@@ -5,12 +5,15 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import org.neo4j.ogm.session.Session
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
 class Neo4jAuthorizationRepository(
     private val session: Session
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun filterEntitiesUserHasOneOfGivenRights(
         userId: String,
@@ -25,7 +28,8 @@ class Neo4jAuthorizationRepository(
             WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id
             UNION
-            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
+            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
+                [:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
             WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id
             """.trimIndent()
@@ -45,9 +49,9 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             MATCH (userEntity:Entity { id: ${'$'}userId })
-            OPTIONAL MATCH  (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
-            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-[:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->
-                (pgroup:Property {name: "$EGM_ROLES"})
+            OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
+                [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property {name: "$EGM_ROLES"})
             RETURN p, pgroup
             """.trimIndent()
 
@@ -64,11 +68,24 @@ class Neo4jAuthorizationRepository(
         return result
             .flatMap {
                 listOfNotNull(
-                    (it["p"] as Property?)?.value as List<String>?,
-                    (it["pgroup"] as Property?)?.value as List<String>?
+                    propertyToListOfRoles(it["p"]),
+                    propertyToListOfRoles(it["pgroup"])
                 ).flatten()
             }
             .toSet()
+    }
+
+    private fun propertyToListOfRoles(property: Any?): List<String> {
+        val rolesProperty = property as Property?
+
+        return when (rolesProperty?.value) {
+            is String -> listOf(rolesProperty.value as String)
+            is List<*> -> rolesProperty.value as List<String>
+            else -> {
+                logger.warn("Unknown value type for roles property: ${rolesProperty?.value}")
+                emptyList()
+            }
+        }
     }
 
     fun createAdminLinks(userId: String, relationships: List<Relationship>, entitiesId: List<String>): List<String> {

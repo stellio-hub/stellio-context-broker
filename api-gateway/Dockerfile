@@ -40,7 +40,12 @@ RUN \
 	curl -s -L https://github.com/"${GITHUB_ACCOUNT}"/"${GITHUB_REPOSITORY}"/archive/"${RELEASE}".zip > source.zip && \
 	unzip source.zip && \
 	rm source.zip && \
-	mv "${GITHUB_REPOSITORY}-${RELEASE_CONCAT}" /source
+	if ! case $DOWNLOAD in v*) false;; esac; \
+	then \
+    	mv "${GITHUB_REPOSITORY}-${RELEASE_CONCAT#?}" /source; \
+    else \
+    	mv "${GITHUB_REPOSITORY}-${RELEASE_CONCAT}" /source; \
+	fi
 
 WORKDIR /source
 RUN ./gradlew build -p api-gateway

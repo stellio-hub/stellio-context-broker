@@ -10,11 +10,11 @@ import java.time.ZonedDateTime
 
 @Component
 @EnableBinding(ObservationsSink::class)
-class EntitiesListener(
+class ObservationListener(
     private val entityService: EntityService
 ) {
 
-    private val logger = LoggerFactory.getLogger(EntitiesListener::class.java)
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Measures are received under the following format

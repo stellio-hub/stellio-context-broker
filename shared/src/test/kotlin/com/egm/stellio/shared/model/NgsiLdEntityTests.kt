@@ -16,13 +16,13 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse a minimal entity`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id": "urn:ngsi-ld:Device:01234",
                 "type": "Device"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS)
 
@@ -32,12 +32,12 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse an entity without an id`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "type": "Device"
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
@@ -50,8 +50,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse an entity without a type`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id": "urn:ngsi-ld:Device:01234",
                 "deviceState": {
@@ -59,7 +59,7 @@ class NgsiLdEntityTests {
                     "value": 23
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
@@ -72,8 +72,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a minimal property`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
               "id": "urn:ngsi-ld:Device:01234",
               "type": "Device",
@@ -82,7 +82,7 @@ class NgsiLdEntityTests {
                 "value": "Open"
               }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -96,8 +96,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a property having all core fields`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
               "id": "urn:ngsi-ld:Device:01234",
               "type": "Device",
@@ -109,7 +109,7 @@ class NgsiLdEntityTests {
                 "observedAt": "2020-07-19T00:00:00Z"
               }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -122,8 +122,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a multi-attribute property`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
               "id": "urn:ngsi-ld:Device:01234",
               "type": "Device",
@@ -138,7 +138,7 @@ class NgsiLdEntityTests {
                 "datasetId": "urn:ngsi-ld:Dataset:45678"
               }]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -153,8 +153,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse a property with different type instances`() {
-
-        val rawProperty = """
+        val rawProperty =
+            """
             {
                 "deviceState": [{
                     "type": "Property",
@@ -166,7 +166,7 @@ class NgsiLdEntityTests {
                     "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
                 }]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -181,7 +181,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse a property with a duplicated datasetId`() {
-        val rawProperty = """
+        val rawProperty =
+            """
             {
                 "deviceState": [
                     {
@@ -205,7 +206,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -213,14 +214,16 @@ class NgsiLdEntityTests {
             )
         }
         assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#deviceState can't have more than one instance with the same datasetId",
+            "Attribute https://uri.fiware.org/ns/data-models#deviceState " +
+                "can't have more than one instance with the same datasetId",
             exception.message
         )
     }
 
     @Test
     fun `it should not parse a property with more than one default instance`() {
-        val rawProperty = """
+        val rawProperty =
+            """
             {
                 "deviceState": [
                     {
@@ -238,7 +241,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -253,7 +256,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse a property with a datasetId`() {
-        val rawProperty = """
+        val rawProperty =
+            """
             {
                 "deviceState": [
                     {
@@ -263,7 +267,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandJsonLdFragment(rawProperty, DEFAULT_CONTEXTS))
 
@@ -277,8 +281,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a minimal relationship`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id": "urn:ngsi-ld:Device:01234",
                 "type": "Device",
@@ -287,7 +291,7 @@ class NgsiLdEntityTests {
                     "object": "urn:ngsi-ld:DeviceModel:09876"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -301,8 +305,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a relationship having all core fields`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id": "urn:ngsi-ld:Device:01234",
                 "type": "Device",
@@ -313,7 +317,7 @@ class NgsiLdEntityTests {
                     "observedAt": "2020-07-19T00:00:00Z"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -325,8 +329,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a multi-attribute relationship`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id": "urn:ngsi-ld:Device:01234",
                 "type": "Device",
@@ -343,7 +347,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -354,7 +358,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse a relationship with more than one default instance`() {
-        val rawRelationship = """
+        val rawRelationship =
+            """
             {
                 "refDeviceModel": [
                     {
@@ -368,7 +373,7 @@ class NgsiLdEntityTests {
                 ]
             }
 
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -383,7 +388,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should not parse a relationship with a duplicated datasetId`() {
-        val rawRelationship = """
+        val rawRelationship =
+            """
             {
                 "refDeviceModel": [
                     {
@@ -398,7 +404,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -406,14 +412,16 @@ class NgsiLdEntityTests {
             )
         }
         assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel can't have more than one instance with the same datasetId",
+            "Attribute https://uri.fiware.org/ns/data-models#refDeviceModel " +
+                "can't have more than one instance with the same datasetId",
             exception.message
         )
     }
 
     @Test
     fun `it should not parse a relationship with different type instances`() {
-        val rawRelationship = """
+        val rawRelationship =
+            """
             {
                 "refDeviceModel": [
                     {
@@ -432,7 +440,7 @@ class NgsiLdEntityTests {
                     }
                 ]
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
             parseToNgsiLdAttributes(
@@ -447,8 +455,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a Polygon location`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id":"urn:ngsi-ld:Device:01234",
                 "type":"Device",
@@ -466,7 +474,7 @@ class NgsiLdEntityTests {
                     }
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
@@ -488,8 +496,8 @@ class NgsiLdEntityTests {
 
     @Test
     fun `it should parse an entity with a Point location`() {
-
-        val rawEntity = """
+        val rawEntity =
+            """
             {
                 "id":"urn:ngsi-ld:Device:01234",
                 "type":"Device",
@@ -504,7 +512,7 @@ class NgsiLdEntityTests {
                     }
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 

@@ -144,7 +144,9 @@ class EntityOperationService(
         if (notUpdated.isEmpty()) {
             return Either.right(entity.id)
         } else {
-            throw BadRequestDataException(ArrayList(notUpdated.map { it.attributeName + " : " + it.reason }).joinToString())
+            throw BadRequestDataException(
+                ArrayList(notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
+            )
         }
     }
 
@@ -181,7 +183,9 @@ class EntityOperationService(
         return invalidEntityId
     }
 
-    private fun createEntitiesWithoutCircularDependencies(graph: Graph<NgsiLdEntity, DefaultEdge>): Pair<BatchOperationResult, Set<NgsiLdEntity>> {
+    private fun createEntitiesWithoutCircularDependencies(
+        graph: Graph<NgsiLdEntity, DefaultEdge>
+    ): Pair<BatchOperationResult, Set<NgsiLdEntity>> {
         val batchOperationResult = BatchOperationResult(arrayListOf(), arrayListOf())
         val temporaryGraph = DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java)
         Graphs.addGraph(temporaryGraph, graph)
@@ -203,11 +207,14 @@ class EntityOperationService(
                 }
             }
 
-            res.toList().fold(batchOperationResult, { result, (entity, error) ->
-                entity?.let { result.success.add(it) }
-                error?.let { result.errors.add(it) }
-                result
-            })
+            res.toList().fold(
+                batchOperationResult,
+                { result, (entity, error) ->
+                    entity?.let { result.success.add(it) }
+                    error?.let { result.errors.add(it) }
+                    result
+                }
+            )
 
             leaves.forEach {
                 temporaryGraph.removeVertex(it)
@@ -229,23 +236,26 @@ class EntityOperationService(
         }
 
         // TODO improve process, if an entity update fails, we should check linked entities to also not delete them
-        return entities.fold(BatchOperationResult(arrayListOf(), arrayListOf()), { (creations, errors), entity ->
-            try {
-                entityService.appendEntityAttributes(
-                    entity.id,
-                    entity.attributes,
-                    false
-                )
+        return entities.fold(
+            BatchOperationResult(arrayListOf(), arrayListOf()),
+            { (creations, errors), entity ->
+                try {
+                    entityService.appendEntityAttributes(
+                        entity.id,
+                        entity.attributes,
+                        false
+                    )
 
-                creations.add(entity.id)
-                entityService.publishCreationEvent(entity)
-            } catch (e: BadRequestDataException) {
-                entityService.deleteEntity(entity.id)
-                errors.add(BatchEntityError(entity.id, arrayListOf(e.message)))
+                    creations.add(entity.id)
+                    entityService.publishCreationEvent(entity)
+                } catch (e: BadRequestDataException) {
+                    entityService.deleteEntity(entity.id)
+                    errors.add(BatchEntityError(entity.id, arrayListOf(e.message)))
+                }
+
+                BatchOperationResult(creations, errors)
             }
-
-            BatchOperationResult(creations, errors)
-        })
+        )
     }
 
     private fun createTempEntityInBatch(

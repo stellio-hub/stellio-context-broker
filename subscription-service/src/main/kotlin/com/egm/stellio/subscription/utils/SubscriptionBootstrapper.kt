@@ -22,7 +22,6 @@ class SubscriptionBootstrapper(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun run(vararg args: String) {
-
         val subscription = Subscription(
             name = "My Subscription",
             entities = setOf(

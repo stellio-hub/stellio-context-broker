@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest
 class SubscriptionServiceApplicationTests {
 
     @Test
+    @Suppress("EmptyFunctionBlock")
     fun contextLoads() {
     }
 }

@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -65,7 +66,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @BeforeAll
     fun bootstrapSubscriptions() {
-
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         val subscription1 = gimmeRawSubscription(withGeoQuery = false, withEndpointInfo = false).copy(
@@ -131,7 +131,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create a subscription insert the 3 entities info`() {
+    fun `it should create a subscription and insert the 3 entities info`() {
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:FishContainment:1234567890", idPattern = null, type = "FishContainment"),
@@ -149,26 +149,47 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         // TODO this is not totally satisfying but well it's a first check that our inserts are triggered
         verify {
-            databaseClient.execute(match<String> {
-                it.startsWith("INSERT INTO subscription")
-            })
+            databaseClient.execute(
+                match<String> {
+                    it.startsWith("INSERT INTO subscription")
+                }
+            )
         }
-        verify(atLeast = 2) { databaseClient.execute("INSERT INTO entity_info (id, id_pattern, type, subscription_id) VALUES (:id, :id_pattern, :type, :subscription_id)") }
-        verify(atLeast = 1) { databaseClient.execute("INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) VALUES (:georel, :geometry, :coordinates, :subscription_id)") }
+        verify(atLeast = 2) {
+            databaseClient.execute(
+                match<String> {
+                    """
+                    INSERT INTO entity_info (id, id_pattern, type, subscription_id)
+                    VALUES (:id, :id_pattern, :type, :subscription_id)
+                    """.matchContent(it)
+                }
+            )
+        }
+        verify(atLeast = 1) {
+            databaseClient.execute(
+                match<String> {
+                    """
+                    INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id)
+                    VALUES (:georel, :geometry, :coordinates, :subscription_id)
+                    """.matchContent(it)
+                }
+            )
+        }
         verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-                entityEvent.entityType == "Subscription" &&
-                    entityEvent.entityId == subscription.id &&
-                    entityEvent.operationType == EventType.CREATE &&
-                    entityEvent.payload != null &&
-                    entityEvent.updatedEntity == null
-            })
+            subscriptionsEventsListener.handleSubscriptionEvent(
+                match { entityEvent ->
+                    entityEvent.entityType == "Subscription" &&
+                        entityEvent.entityId == subscription.id &&
+                        entityEvent.operationType == EventType.CREATE &&
+                        entityEvent.payload != null &&
+                        entityEvent.updatedEntity == null
+                }
+            )
         }
     }
 
     @Test
     fun `it should load and fill a persisted subscription with entities info`() {
-
         val persistedSubscription = subscriptionService.getById(subscription1Id)
 
         StepVerifier.create(persistedSubscription)
@@ -177,13 +198,18 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
-                    it.notification.endpoint == Endpoint(
-                    URI("http://localhost:8089/notification"),
-                    Endpoint.AcceptType.JSONLD,
-                    null
-                ) &&
+                    it.notification.endpoint ==
+                    Endpoint(
+                        URI("http://localhost:8089/notification"),
+                        Endpoint.AcceptType.JSONLD,
+                        null
+                    ) &&
                     it.entities.size == 2 &&
-                    it.entities.any { it.type == "Beekeeper" && it.id == null && it.idPattern == "urn:ngsi-ld:Beekeeper:1234*" } &&
+                    it.entities.any {
+                        it.type == "Beekeeper" &&
+                            it.id == null &&
+                            it.idPattern == "urn:ngsi-ld:Beekeeper:1234*"
+                    } &&
                     it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
                     it.geoQ == null
             }
@@ -192,7 +218,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with entities info and query`() {
-
         val persistedSubscription = subscriptionService.getById(subscription3Id)
 
         StepVerifier.create(persistedSubscription)
@@ -214,7 +239,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with entities info and geoquery and endpoint info`() {
-
         val persistedSubscription = subscriptionService.getById(subscription2Id)
 
         StepVerifier.create(persistedSubscription)
@@ -240,7 +264,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with entities info and active status`() {
-
         val persistedSubscription = subscriptionService.getById(subscription2Id)
 
         StepVerifier.create(persistedSubscription)
@@ -262,7 +285,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with entities info and inactive status`() {
-
         val persistedSubscription = subscriptionService.getById(subscription4Id)
 
         StepVerifier.create(persistedSubscription)
@@ -284,7 +306,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with entities info and watched attributes`() {
-
         val persistedSubscription = subscriptionService.getById(subscription4Id)
 
         StepVerifier.create(persistedSubscription)
@@ -298,8 +319,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should load and fill a persisted subscription with entities info and a null value for watched attributes`() {
-
+    fun `it should load and fill a persisted subscription with entities info and null value for watched attributes`() {
         val persistedSubscription = subscriptionService.getById(subscription2Id)
 
         StepVerifier.create(persistedSubscription)
@@ -351,13 +371,15 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val deletionResult = subscriptionService.delete(subscription.id).block()
 
         verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-                entityEvent.entityType == "Subscription" &&
-                    entityEvent.entityId == subscription.id &&
-                    entityEvent.operationType == EventType.DELETE &&
-                    entityEvent.payload == null &&
-                    entityEvent.updatedEntity == null
-            })
+            subscriptionsEventsListener.handleSubscriptionEvent(
+                match { entityEvent ->
+                    entityEvent.entityType == "Subscription" &&
+                        entityEvent.entityId == subscription.id &&
+                        entityEvent.operationType == EventType.DELETE &&
+                        entityEvent.payload == null &&
+                        entityEvent.updatedEntity == null
+                }
+            )
         }
 
         assertEquals(deletionResult, 1)
@@ -372,7 +394,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve a subscription matching an idPattern`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:12345678", "Beekeeper", "incoming")
 
@@ -383,7 +404,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not retrieve a subscription if idPattern does not match`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beekeeper:9876543", "Beekeeper", "incoming")
 
@@ -396,7 +416,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve a subscription matching a type and not one with non matching id`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:ABCD", "Beehive", "incoming")
 
@@ -414,7 +433,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve a subscription matching a type and an exact id`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
@@ -425,7 +443,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve a subscription matching an id`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Beehive:1234567890", "Beehive", "incoming")
 
@@ -436,7 +453,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not retrieve a subscription if type does not match`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:Sensor:1234567890", "Sensor", "incoming")
 
@@ -447,7 +463,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve an activated subscription matching an id`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:77", "smartDoor", "incoming")
 
@@ -460,7 +475,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not retrieve a deactivated subscription matching an id`() {
-
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions("urn:ngsi-ld:smartDoor:88", "smartDoor", "incoming")
 
@@ -518,7 +532,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should not retrieve a subscription if watched attributes does not contain any element of the updated attributes`() {
+    fun `it should not retrieve a subscription if watched attributes do not match any updated attributes`() {
         val subscription = gimmeRawSubscription().copy(
             name = "My subscription",
             entities = setOf(
@@ -543,14 +557,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should update a subscription `() {
-
         val parsedInput = Pair(
             mapOf(
                 "name" to "My Subscription Updated",
                 "description" to "My beautiful subscription has been updated",
                 "q" to "foodQuantity>=150",
                 "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
-            ), listOf(apicContext)
+            ),
+            listOf(apicContext)
         )
 
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
@@ -570,24 +584,25 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             .verifyComplete()
 
         verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(match { entityEvent ->
-                entityEvent.entityType == "Subscription" &&
-                    entityEvent.entityId == subscription4Id &&
-                    entityEvent.operationType == EventType.UPDATE &&
-                    entityEvent.payload != null &&
-                    read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
-                    read(
+            subscriptionsEventsListener.handleSubscriptionEvent(
+                match { entityEvent ->
+                    entityEvent.entityType == "Subscription" &&
+                        entityEvent.entityId == subscription4Id &&
+                        entityEvent.operationType == EventType.UPDATE &&
+                        entityEvent.payload != null &&
+                        read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
+                        read(
                         entityEvent.updatedEntity,
                         "$.description"
                     ) as String == "My beautiful subscription has been updated" &&
-                    read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
-            })
+                        read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
+                }
+            )
         }
     }
 
     @Test
     fun `it should update a subscription notification`() {
-
         val parsedInput = mapOf(
             "attributes" to listOf("outgoing"),
             "format" to "keyValues",
@@ -619,7 +634,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should update a subscription entities`() {
-
         val parsedInput = listOf(
             mapOf(
                 "id" to "urn:ngsi-ld:Beehive:123",
@@ -701,7 +715,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should update a subscription with a notification result`() {
-
         val persistedSubscription = subscriptionService.getById(subscription1Id).block()!!
         val notification = Notification(subscriptionId = subscription1Id, data = emptyList())
 

@@ -20,25 +20,25 @@ class SubscriptionListenerTests {
     private lateinit var subscriptionListener: SubscriptionListener
 
     @MockkBean
-    private lateinit var entityService: EntityService
+    private lateinit var subscriptionHandlerService: SubscriptionHandlerService
 
     @Test
     fun `it should parse and create subscription entity`() {
         val subscription =
             loadSampleData("subscriptionEvents/subscription_event.jsonld")
 
-        every { entityService.createSubscriptionEntity(any(), any(), any()) } just Runs
+        every { subscriptionHandlerService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
         subscriptionListener.processSubscription(subscription)
 
         verify {
-            entityService.createSubscriptionEntity(
+            subscriptionHandlerService.createSubscriptionEntity(
                 "urn:ngsi-ld:Subscription:04",
                 "Subscription",
                 mapOf("q" to "foodQuantity<150;foodName=='dietary fibres'")
             )
         }
-        confirmVerified(entityService)
+        confirmVerified(subscriptionHandlerService)
     }
 
     @Test
@@ -46,18 +46,18 @@ class SubscriptionListenerTests {
         val notification =
             loadSampleData("subscriptionEvents/notification_event.jsonld")
 
-        every { entityService.createNotificationEntity(any(), any(), any(), any()) } just Runs
+        every { subscriptionHandlerService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 
         subscriptionListener.processNotification(notification)
 
         verify {
-            entityService.createNotificationEntity(
+            subscriptionHandlerService.createNotificationEntity(
                 "urn:ngsi-ld:Notification:1234",
                 "Notification",
                 "urn:ngsi-ld:Subscription:1234",
                 mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
             )
         }
-        confirmVerified(entityService)
+        confirmVerified(subscriptionHandlerService)
     }
 }

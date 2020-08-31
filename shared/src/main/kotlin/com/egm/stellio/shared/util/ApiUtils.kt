@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
+import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -28,6 +28,8 @@ object ApiUtils {
     /**
      * As per 6.3.5, extract @context from request payload. In the absence of such context, then BadRequestDataException
      * shall be raised
+     *
+     * TODO still used in subscription service but it should be removed in favor of #extractContextFromInput
      */
     fun getContextOrThrowError(input: String): List<String> {
         val rawParsedData = mapper.readTree(input) as ObjectNode
@@ -84,7 +86,12 @@ fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
             throw BadRequestDataException(
                 "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
             )
-        getContextOrThrowError(body)
+        val contexts = extractContextFromInput(body)
+        if (contexts.isEmpty())
+            throw BadRequestDataException(
+                "Request payload must contain @context term for a request having an application/ld+json content type"
+            )
+        contexts
     }
 }
 

@@ -28,7 +28,6 @@ class RepositoryEventsListener(
     @Async
     @EventListener
     fun handleRepositoryEvent(entityEvent: EntityEvent) {
-
         // TODO BinderAwareChannelResolver is deprecated but there is no clear migration path yet, wait for maturity
         val result = when (entityEvent.operationType) {
             EventType.CREATE -> sendCreateMessage(
@@ -68,22 +67,25 @@ class RepositoryEventsListener(
 
     private fun sendUpdateMessage(entityId: String, payload: String): Boolean {
         val jsonLdEntity = entityService.getFullEntityById(entityId)
-        val entityType = jsonLdEntity.type.extractShortTypeFromExpanded()
-        val data = mapOf(
-            "operationType" to EventType.UPDATE.name,
-            "entityId" to entityId,
-            "entityType" to entityType,
-            "payload" to payload,
-            "updatedEntity" to compactAndSerialize(jsonLdEntity)
-        )
-
-        return resolver.resolveDestination(channelName(entityType))
-            .send(
-                MessageBuilder.createMessage(
-                    mapper.writeValueAsString(data),
-                    MessageHeaders(mapOf(MessageHeaders.ID to entityId))
-                )
+        jsonLdEntity?.let {
+            val entityType = jsonLdEntity.type.extractShortTypeFromExpanded()
+            val data = mapOf(
+                "operationType" to EventType.UPDATE.name,
+                "entityId" to entityId,
+                "entityType" to entityType,
+                "payload" to payload,
+                "updatedEntity" to compactAndSerialize(jsonLdEntity)
             )
+
+            return resolver.resolveDestination(channelName(entityType))
+                .send(
+                    MessageBuilder.createMessage(
+                        mapper.writeValueAsString(data),
+                        MessageHeaders(mapOf(MessageHeaders.ID to entityId))
+                    )
+                )
+        }
+        return false
     }
 
     private fun channelName(entityType: String) =

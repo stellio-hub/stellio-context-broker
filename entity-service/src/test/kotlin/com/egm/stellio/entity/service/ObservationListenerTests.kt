@@ -8,21 +8,19 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.just
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.format.DateTimeFormatter
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ObservationListener::class])
 @ActiveProfiles("test")
-class EntitiesListenerTests {
+class ObservationListenerTests {
 
     @Autowired
-    private lateinit var entitiesListener: EntitiesListener
+    private lateinit var observationListener: ObservationListener
 
     @MockkBean
     private lateinit var entityService: EntityService
@@ -31,7 +29,7 @@ class EntitiesListenerTests {
     fun `it should parse the incoming temporal property to an observation`() {
         val jsonLdObservation = loadSampleData("aquac/Observation.json")
 
-        val observation = entitiesListener.parseTemporalPropertyUpdate(jsonLdObservation)
+        val observation = observationListener.parseTemporalPropertyUpdate(jsonLdObservation)
 
         assertNotNull(observation)
         assertEquals("incoming", observation!!.attributeName)
@@ -47,7 +45,7 @@ class EntitiesListenerTests {
     fun `it should return a null object if the incoming payload is invalid`() {
         val jsonLdObservation = loadSampleData("aquac/ObservationWithoutUnitCode.json")
 
-        val observation = entitiesListener.parseTemporalPropertyUpdate(jsonLdObservation)
+        val observation = observationListener.parseTemporalPropertyUpdate(jsonLdObservation)
 
         assertNull(observation)
     }
@@ -58,18 +56,20 @@ class EntitiesListenerTests {
 
         every { entityService.updateEntityLastMeasure(any()) } just Runs
 
-        entitiesListener.processMessage(observation)
+        observationListener.processMessage(observation)
 
         verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
-                    observation.unitCode == "CEL" &&
-                    observation.value == 20.7 &&
-                    observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                    observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-                    observation.longitude == 24.30623 &&
-                    observation.latitude == 60.07966
-            })
+            entityService.updateEntityLastMeasure(
+                match { observation ->
+                    observation.attributeName == "incoming" &&
+                        observation.unitCode == "CEL" &&
+                        observation.value == 20.7 &&
+                        observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
+                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
+                        observation.longitude == 24.30623 &&
+                        observation.latitude == 60.07966
+                }
+            )
         }
         confirmVerified(entityService)
     }
@@ -80,18 +80,20 @@ class EntitiesListenerTests {
 
         every { entityService.updateEntityLastMeasure(any()) } just Runs
 
-        entitiesListener.processMessage(observation)
+        observationListener.processMessage(observation)
 
         verify {
-            entityService.updateEntityLastMeasure(match { observation ->
-                observation.attributeName == "incoming" &&
-                    observation.unitCode == "CEL" &&
-                    observation.value == 20.7 &&
-                    observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                    observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
-                    observation.latitude == null &&
-                    observation.longitude == null
-            })
+            entityService.updateEntityLastMeasure(
+                match { observation ->
+                    observation.attributeName == "incoming" &&
+                        observation.unitCode == "CEL" &&
+                        observation.value == 20.7 &&
+                        observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
+                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065" &&
+                        observation.latitude == null &&
+                        observation.longitude == null
+                }
+            )
         }
         confirmVerified(entityService)
     }
@@ -100,7 +102,7 @@ class EntitiesListenerTests {
     fun `it should ignore badly formed observations`() {
         val observation = loadSampleData("aquac/Observation_missingAttributes.json")
 
-        entitiesListener.processMessage(observation)
+        observationListener.processMessage(observation)
 
         verify { entityService wasNot Called }
     }

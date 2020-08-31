@@ -1,20 +1,24 @@
+import io.gitlab.arturbosch.detekt.detekt
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
-extra["springCloudVersion"] = "Hoxton.SR2"
+val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
+
+extra["springCloudVersion"] = "Hoxton.SR6"
 
 plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.2.5.RELEASE" apply false
+    id("org.springframework.boot") version "2.2.9.RELEASE" apply false
     id("io.spring.dependency-management") version "1.0.9.RELEASE" apply false
-    kotlin("jvm") version "1.3.61" apply false
-    kotlin("plugin.spring") version "1.3.61" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
+    kotlin("jvm") version "1.3.72" apply false
+    kotlin("plugin.spring") version "1.3.72" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "9.3.0"
     id("com.google.cloud.tools.jib") version "1.6.1" apply false
     kotlin("kapt") version "1.3.61" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
 }
 
 subprojects {
@@ -30,6 +34,7 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "kotlin-kapt")
+    apply(plugin = "io.gitlab.arturbosch.detekt")
 
     java.sourceCompatibility = JavaVersion.VERSION_11
 
@@ -62,6 +67,8 @@ subprojects {
         implementation("io.arrow-kt:arrow-syntax:0.10.4")
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
+        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.11.2")
+
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
         runtimeOnly("de.siegmar:logback-gelf:3.0.0")
@@ -82,7 +89,7 @@ subprojects {
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = "1.8"
+            jvmTarget = "11"
         }
     }
     tasks.withType<Test> {
@@ -90,6 +97,29 @@ subprojects {
         useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
+        }
+    }
+
+    ktlint {
+        enableExperimentalRules.set(true)
+        disabledRules.set(setOf("experimental:multiline-if-else", "no-wildcard-imports"))
+        reporters {
+            reporter(ReporterType.CHECKSTYLE)
+            reporter(ReporterType.PLAIN)
+        }
+    }
+
+    detekt {
+        toolVersion = "1.11.2"
+        input = files("src/main/kotlin", "src/test/kotlin")
+        config = files(detektConfigFile)
+        buildUponDefaultConfig = true
+        baseline = file("$projectDir/config/detekt/baseline.xml")
+
+        reports {
+            xml.enabled = true
+            txt.enabled = false
+            html.enabled = true
         }
     }
 
@@ -107,11 +137,4 @@ allprojects {
         maven { url = uri("https://repo.spring.io/milestone") }
         jcenter()
     }
-}
-
-ktlint {
-    verbose.set(true)
-    outputToConsole.set(true)
-    coloredOutput.set(true)
-    reporters.set(setOf(ReporterType.CHECKSTYLE, ReporterType.JSON))
 }

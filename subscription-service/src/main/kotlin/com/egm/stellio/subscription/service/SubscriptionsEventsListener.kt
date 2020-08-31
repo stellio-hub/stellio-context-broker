@@ -18,7 +18,6 @@ class SubscriptionsEventsListener(
     @Async
     @EventListener(condition = "#subscriptionEvent.entityType == 'Subscription'")
     fun handleSubscriptionEvent(subscriptionEvent: EntityEvent) {
-
         val result = when (subscriptionEvent.operationType) {
             EventType.CREATE -> eventMessageService.sendMessage(
                 channelName,

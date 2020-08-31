@@ -2,10 +2,10 @@ package com.egm.stellio.entity.model
 
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY

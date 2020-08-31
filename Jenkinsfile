@@ -39,17 +39,6 @@ pipeline {
                 sh './gradlew build -p entity-service'
             }
         }
-        stage('Build Subscription Service') {
-            when {
-                anyOf {
-                    changeset "subscription-service/**"
-                    changeset "shared/**"
-                }
-            }
-            steps {
-                sh './gradlew build -p subscription-service'
-            }
-        }
         stage('Build Search Service') {
             when {
                 anyOf {
@@ -59,6 +48,17 @@ pipeline {
             }
             steps {
                 sh './gradlew build -p search-service'
+            }
+        }
+        stage('Build Subscription Service') {
+            when {
+                anyOf {
+                    changeset "subscription-service/**"
+                    changeset "shared/**"
+                }
+            }
+            steps {
+                sh './gradlew build -p subscription-service'
             }
         }
         /* Jib only allows to add tags and always set the "latest" tag on the Docker images created.
@@ -157,6 +157,9 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: '**/build/reports/**', allowEmptyArchive: true
+
+            recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/reports/ktlint/ktlint*.xml')
+            recordIssues enabledForFailure: true, tool: detekt(pattern: '**/build/reports/detekt/detekt.xml')
         }
         success {
             script {

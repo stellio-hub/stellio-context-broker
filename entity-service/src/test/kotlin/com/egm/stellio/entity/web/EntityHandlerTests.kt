@@ -1,11 +1,13 @@
 package com.egm.stellio.entity.web
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.service.RepositoryEventsListener
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
@@ -14,13 +16,13 @@ import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
@@ -44,10 +46,10 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
-import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
@@ -60,11 +62,13 @@ import java.time.ZoneOffset
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockUser
+@WithMockCustomUser(name = "Mock User", username = "mock-user")
 class EntityHandlerTests {
 
     @Value("\${application.jsonld.aquac_context}")
     val aquacContext: String? = null
+
+    private lateinit var aquacHeaderLink: String
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -79,8 +83,13 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var repositoryEventsListener: RepositoryEventsListener
 
+    @MockkBean(relaxed = true)
+    private lateinit var authorizationService: AuthorizationService
+
     @BeforeAll
     fun configureWebClientDefaults() {
+        aquacHeaderLink = "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+
         webClient = webClient.mutate()
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
@@ -94,6 +103,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214"
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
 
@@ -103,12 +113,15 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
+
+        verify { authorizationService.createAdminLink(breedingServiceId, "mock-user") }
     }
 
     @Test
     fun `create entity should return a 409 if the entity already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } throws AlreadyExistsException("Already Exists")
 
         webClient.post()
@@ -127,6 +140,7 @@ class EntityHandlerTests {
     fun `create entity should return a 500 error if internal server Error`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
 
@@ -146,12 +160,11 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if JSON-LD payload is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(
-                "Link",
-                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-            )
+            .header("Link", aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -159,19 +172,38 @@ class EntityHandlerTests {
 
     @Test
     fun `create entity should return a 400 if entity is not NGSI-LD valid`() {
-        val entityWithoutId = """
+        val entityWithoutId =
+            """
             {
                 "type": "Beehive"
             }
-        """.trimIndent()
+            """.trimIndent()
+
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(
-                "Link",
-                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-            )
+            .header("Link", aquacHeaderLink)
             .bodyValue(entityWithoutId)
+            .exchange()
+            .expectStatus().isBadRequest
+    }
+
+    @Test
+    fun `create entity should return a 400 if entity does not have an type`() {
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        val entityWithoutType =
+            """
+            {
+                "id": "urn:ngsi-ld:Beehive:9876"
+            }
+            """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", aquacHeaderLink)
+            .accept(MediaType.valueOf("application/ld+json"))
+            .bodyValue(entityWithoutType)
             .exchange()
             .expectStatus().isBadRequest
     }
@@ -180,9 +212,12 @@ class EntityHandlerTests {
     fun `create entity should return a 400 if input data is not valid and creation was rejected`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.exists(any()) } returns false
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
-        every { entityService.createEntity(any()) } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
+        every {
+            entityService.createEntity(any())
+        } throws UndeclaredThrowableException(BadRequestDataException("Target entity does not exist"))
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -201,13 +236,38 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return 200 when entity exists`() {
+    fun `it should not authorize user without creator role to create entity`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities")
+            .header("Link", aquacHeaderLink)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden to create entities"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entity by id should return 200 when entity exists`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -229,8 +289,11 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -239,7 +302,6 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime`() {
-
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
@@ -256,19 +318,32 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"DateTime\",\"@value\":\"2015-10-18T11:20:30.000001Z\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                """
+                {
+                    "testedAt":{
+                        "type":"Property",
+                        "value":{
+                            "type":"DateTime",
+                            "@value":"2015-10-18T11:20:30.000001Z"
+                        }
+                    },
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                } 
+                """.trimIndent()
             )
     }
 
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
-
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
@@ -285,19 +360,32 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Date\",\"@value\":\"2015-10-18\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                """
+                {
+                    "testedAt":{
+                        "type":"Property",
+                        "value":{
+                            "type":"Date",
+                            "@value":"2015-10-18"
+                        }
+                    },
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                } 
+                """.trimIndent()
             )
     }
 
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
-
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
@@ -314,13 +402,27 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
-                "{\"testedAt\":{\"type\":\"Property\",\"value\":{\"type\":\"Time\",\"@value\":\"11:20:30\"}},\"@context\":\"$NGSILD_CORE_CONTEXT\"}"
+                """
+                {
+                    "testedAt":{
+                        "type":"Property",
+                        "value":{
+                            "type":"Time",
+                            "@value":"11:20:30"
+                        }
+                    },
+                    "@context":"$NGSILD_CORE_CONTEXT"
+                } 
+                """.trimIndent()
             )
     }
 
@@ -328,71 +430,78 @@ class EntityHandlerTests {
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
-                mapOf(
-                        "https://uri.etsi.org/ngsi-ld/name" to
-                                mapOf(
-                                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                                        NGSILD_PROPERTY_VALUE to "ruche",
-                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                            JSONLD_ID to "urn:ngsi-ld:Property:french-name"
-                                        )
-                                ),
-                        JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                        JSONLD_TYPE to listOf("Beehive")
-                ),
-                listOf(NGSILD_CORE_CONTEXT)
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/name" to
+                    mapOf(
+                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                        NGSILD_PROPERTY_VALUE to "ruche",
+                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                            JSONLD_ID to "urn:ngsi-ld:Property:french-name"
+                        )
+                    ),
+                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .exchange()
-                .expectStatus().isOk
-                .expectBody().json(
-                    """
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
                     {
                         "id":"urn:ngsi-ld:Beehive:4567",
                         "type":"Beehive",
                         "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
                         "@context":"$NGSILD_CORE_CONTEXT"
                     }
-                    """.trimIndent()
-                )
+                """.trimIndent()
+            )
     }
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
-                mapOf(
-                        "https://uri.etsi.org/ngsi-ld/name" to
-                                listOf(mapOf(
-                                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                                        NGSILD_PROPERTY_VALUE to "beehive",
-                                        NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                            JSONLD_ID to "urn:ngsi-ld:Property:english-name"
-                                        )
-                                    ),
-                                    mapOf(
-                                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
-                                            NGSILD_PROPERTY_VALUE to "ruche",
-                                            NGSILD_DATASET_ID_PROPERTY to mapOf(
-                                                JSONLD_ID to "urn:ngsi-ld:Property:french-name"
-                                            )
-                                    )
-                                ),
-                        JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
-                        JSONLD_TYPE to listOf("Beehive")
-                ),
-                listOf(NGSILD_CORE_CONTEXT)
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/name" to
+                    listOf(
+                        mapOf(
+                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                            NGSILD_PROPERTY_VALUE to "beehive",
+                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                JSONLD_ID to "urn:ngsi-ld:Property:english-name"
+                            )
+                        ),
+                        mapOf(
+                            JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Property",
+                            NGSILD_PROPERTY_VALUE to "ruche",
+                            NGSILD_DATASET_ID_PROPERTY to mapOf(
+                                JSONLD_ID to "urn:ngsi-ld:Property:french-name"
+                            )
+                        )
+                    ),
+                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-                .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .exchange()
-                .expectStatus().isOk
-                .expectBody().json(
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
                 """
                  {
                     "id":"urn:ngsi-ld:Beehive:4567",
@@ -432,8 +541,11 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -445,7 +557,7 @@ class EntityHandlerTests {
                         "managedBy":{"type":"Relationship", "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215", "object":"urn:ngsi-ld:Beekeeper:1230"},
                         "@context":"$NGSILD_CORE_CONTEXT"
                     }
-                    """.trimIndent()
+                """.trimIndent()
             )
     }
 
@@ -477,9 +589,12 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TESTC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -507,7 +622,6 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 when entity does not exist`() {
-
         every { entityService.exists(any()) } returns false
 
         webClient.get()
@@ -523,6 +637,27 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `it should not authorize user without read rights on entity to get it`() {
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanReadEntity("urn:ngsi-ld:BeeHive:TEST", "mock-user") } returns false
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `search on entities should return 400 if required parameters are missing`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entities")
@@ -530,9 +665,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/BadRequestData\"," +
-                    "\"title\":\"The request includes input data which does not meet the requirements of the operation\"," +
-                    "\"detail\":\"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2)"
+                }
+                """.trimIndent()
             )
     }
 
@@ -546,6 +685,7 @@ class EntityHandlerTests {
             listOf("fishNumber"),
             emptyList()
         )
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -574,6 +714,7 @@ class EntityHandlerTests {
                     listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
                 )
             )
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -583,7 +724,12 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
-                "{\"updated\":[\"fishNumber\"],\"notUpdated\":[{\"attributeName\":\"wrongAttribute\",\"reason\":\"overwrite disallowed\"}]}"
+                """
+                {
+                    "updated":["fishNumber"],
+                    "notUpdated":[{"attributeName":"wrongAttribute","reason":"overwrite disallowed"}]
+                } 
+                """.trimIndent()
             )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214")) }
@@ -598,6 +744,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
 
         every { entityService.exists(any()) } returns false
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -619,15 +766,17 @@ class EntityHandlerTests {
     @Test
     fun `append entity attribute should return a 400 if the attribute is not NGSI-LD valid`() {
         val entityId = "urn:ngsi-ld:BreedingService:0214"
-        val invalidPayload = """
+        val invalidPayload =
+            """
             {
                 "connectsTo":{
                     "type":"Relationship"
                 }
             }
-        """.trimIndent()
+            """.trimIndent()
 
         every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -636,13 +785,14 @@ class EntityHandlerTests {
             .bodyValue(invalidPayload)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title": "The request includes input data which does not meet the requirements of the operation",
                     "detail": "Relationship https://ontology.eglobalmark.com/egm#connectsTo does not have an object field"
                 } 
-            """.trimIndent()
+                """.trimIndent()
             )
     }
 
@@ -652,7 +802,9 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
         val attrId = "fishNumber"
 
+        every { entityService.exists(any()) } returns true
         every { entityService.updateEntityAttribute(any(), any(), any(), any()) } returns 1
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -662,8 +814,34 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
+        verify { entityService.exists(entityId) }
         verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(listOf(aquacContext!!))) }
         confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should not authorize user without write rights on entity to append attributes to it`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
+        val entityId = "urn:ngsi-ld:BreedingService:0214"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns false
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """ 
+                { 
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
+                    "title": "The request tried to access an unauthorized resource", 
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:BreedingService:0214" 
+                } 
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -672,6 +850,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
 
         every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every {
             entityService.updateEntityAttributes(
                 any(),
@@ -712,6 +891,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -722,12 +902,14 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify(timeout = 1000, exactly = 1) {
-            repositoryEventsListener.handleRepositoryEvent(match { entityEvent ->
-                entityEvent.entityId == entityId &&
-                    entityEvent.operationType == EventType.UPDATE &&
-                    jsonPayload.matchContent(entityEvent.payload) &&
-                    entityEvent.updatedEntity == null
-            })
+            repositoryEventsListener.handleRepositoryEvent(
+                match { entityEvent ->
+                    entityEvent.entityId == entityId &&
+                        entityEvent.operationType == EventType.UPDATE &&
+                        jsonPayload.matchContent(entityEvent.payload) &&
+                        entityEvent.updatedEntity == null
+                }
+            )
         }
         // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
         verify { repositoryEventsListener.equals(any()) }
@@ -736,25 +918,28 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should send two notification if two attributes are updated`() {
-        val fishNumberPayload = """
+        val fishNumberPayload =
+            """
             "fishNumber":{
                 "type":"Property",
                 "value":600
             }
-        """.trimIndent()
-        val fishNamePayload = """
+            """.trimIndent()
+        val fishNamePayload =
+            """
             "fishName":{
                 "type":"Property",
                 "value":"Salmon",
                 "unitCode": "C1"
             }
-        """.trimIndent()
-        val jsonPayload = """
+            """.trimIndent()
+        val jsonPayload =
+            """
             {
                 $fishNumberPayload,
                 $fishNamePayload
             }
-        """.trimIndent()
+            """.trimIndent()
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
 
         every { entityService.exists(any()) } returns true
@@ -766,12 +951,14 @@ class EntityHandlerTests {
         } returns UpdateResult(
             updated = arrayListOf(
                 "https://ontology.eglobalmark.com/aquac#fishName",
-                "https://ontology.eglobalmark.com/aquac#fishNumber"),
+                "https://ontology.eglobalmark.com/aquac#fishNumber"
+            ),
             notUpdated = arrayListOf()
         )
 
         val events = mutableListOf<EntityEvent>()
         every { repositoryEventsListener.handleRepositoryEvent(capture(events)) } just Runs
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -786,11 +973,15 @@ class EntityHandlerTests {
         }
         assertEquals(2, events.size)
         events.forEach { entityEvent ->
-            assertTrue(entityEvent.entityId == entityId &&
-                entityEvent.operationType == EventType.UPDATE &&
-                ("{$fishNumberPayload}".matchContent(entityEvent.payload) ||
-                    "{$fishNamePayload}".matchContent(entityEvent.payload)) &&
-                entityEvent.updatedEntity == null)
+            assertTrue(
+                entityEvent.entityId == entityId &&
+                    entityEvent.operationType == EventType.UPDATE &&
+                    (
+                        "{$fishNumberPayload}".matchContent(entityEvent.payload) ||
+                            "{$fishNamePayload}".matchContent(entityEvent.payload)
+                        ) &&
+                    entityEvent.updatedEntity == null
+            )
         }
 
         // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
@@ -800,8 +991,9 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 207 if some relationships objects are not found`() {
-        val jsonLdFile =
-            ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json")
+        val jsonLdFile = ClassPathResource(
+            "/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json"
+        )
         val entityId = "urn:ngsi-ld:DeadFishes:019BN"
         val notUpdatedAttribute = NotUpdatedDetails(
             "removedFrom",
@@ -818,6 +1010,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -834,53 +1027,55 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 400 if JSON-LD context is not correct`() {
-        val payload = """
+        val payload =
+            """
             {
                 "name" : "My precious sensor Updated",
                 "trigger" : "on"
             }
-        """.trimIndent()
+            """.trimIndent()
         val entityId = "urn:ngsi-ld:Sensor:0022CCC"
+        val wrongContext =
+            "<http://easyglobalmarket.com/contexts/diat.jsonld>; " +
+                "rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
 
         every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(
-                "Link",
-                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-            )
+            .header("Link", wrongContext)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(payload)
             .exchange()
             .expectStatus().isBadRequest
-            .expectBody().json("""
+            .expectBody().json(
+                """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title": "The request includes input data which does not meet the requirements of the operation",
                     "detail": "Unexpected error while parsing payload : loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld"
                 }
-            """.trimIndent())
+                """.trimIndent()
+            )
     }
 
     @Test
     fun `entity attributes update should return a 404 if entity does not exist`() {
-        val payload = """
+        val payload =
+            """
             {
                 "name" : "My precious sensor Updated",
                 "trigger" : "on"
             }
-        """.trimIndent()
+            """.trimIndent()
         val entityId = "urn:ngsi-ld:UnknownType:0022CCC"
 
         every { entityService.exists(any()) } returns false
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(
-                "Link",
-                "<http://easyglobalmarket.com/contexts/diat.jsonld>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-            )
+            .header("Link", aquacHeaderLink)
             .bodyValue(payload)
             .exchange()
             .expectStatus().isNotFound
@@ -894,36 +1089,75 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `it should not authorize user without write rights on entity to update it`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns false
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `delete entity should return a 204 if an entity has been successfully deleted`() {
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
+        every { entityService.exists(entityId) } returns true
+        every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        verify { entityService.deleteEntity(eq("urn:ngsi-ld:Sensor:0022CCC")) }
+        verify { entityService.exists(entityId) }
+        verify { entityService.deleteEntity(eq(entityId)) }
         confirmVerified(entityService)
     }
 
     @Test
     fun `delete entity should return a 404 if entity to be deleted has not been found`() {
-        every { entityService.deleteEntity(any()) } returns Pair(0, 0)
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
+        every { entityService.exists(entityId) } returns false
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .exchange()
             .expectStatus().isNotFound
-            .expectBody().isEmpty
+            .expectBody().json(
+                """
+                {"type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"Entity Not Found"}
+                """.trimIndent()
+            )
     }
 
     @Test
     fun `delete entity should return a 500 if entity could not be deleted`() {
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
+        every { entityService.exists(entityId) } returns true
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
+        every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 
         webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
+            .uri("/ngsi-ld/v1/entities/$entityId")
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
             .expectBody().json(
@@ -934,18 +1168,44 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `it should not authorize user without admin rights on entity to delete it`() {
+        val entityId = "urn:ngsi-ld:Sensor:0022CCC"
+        every { entityService.exists(entityId) } returns true
+        every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns false
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entities/$entityId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden admin access to entity urn:ngsi-ld:Sensor:0022CCC"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
 
-        webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.exists(eq(entityId)) }
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
@@ -958,20 +1218,23 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttribute(any(), any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
-        webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.exists(eq(entityId)) }
         verify {
             entityService.deleteEntityAttribute(
-                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq(entityId),
                 eq("https://ontology.eglobalmark.com/aquac#fishNumber")
             )
         }
@@ -980,20 +1243,23 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should delete instance with the provided datasetId`() {
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
-        webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
 
-        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.exists(eq(entityId)) }
         verify {
             entityService.deleteEntityAttributeInstance(
-                eq("urn:ngsi-ld:DeadFishes:019BN"),
+                eq(entityId),
                 eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
                 URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
             )
@@ -1005,15 +1271,16 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 404 if the entity is not found`() {
         every { entityService.exists(any()) } returns false
 
-        webClient.delete()
+        webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity Not Found\"}"
+                    "\"detail\":\"Entity urn:ngsi-ld:DeadFishes:019BN does not exist\"}"
             )
     }
 
@@ -1026,9 +1293,13 @@ class EntityHandlerTests {
                 any()
             )
         } throws ResourceNotFoundException("Attribute Not Found")
-        webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber?deleteAll=true")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNotFound
             .expectBody().json(
@@ -1037,7 +1308,7 @@ class EntityHandlerTests {
                     "\"detail\":\"Attribute Not Found\"}"
             )
 
-        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.exists(eq(entityId)) }
         verify {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
@@ -1051,19 +1322,22 @@ class EntityHandlerTests {
     fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns false
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 
-        webClient.delete()
-            .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
                     "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"An error occurred while deleting fishNumber from urn:ngsi-ld:DeadFishes:019BN\"}"
+                    "\"detail\":\"An error occurred while deleting fishNumber from $entityId\"}"
             )
 
-        verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN")) }
+        verify { entityService.exists(eq(entityId)) }
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN"),
@@ -1072,6 +1346,29 @@ class EntityHandlerTests {
             )
         }
         confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should not authorize user without write rights on entity to delete attributes`() {
+        every { entityService.exists(any()) } returns true
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN"
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns false
+
+        webClient.method(HttpMethod.DELETE)
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """
+                {
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
+                    "title": "The request tried to access an unauthorized resource",
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN"
+                }
+                """.trimIndent()
+            )
     }
 
     @Test

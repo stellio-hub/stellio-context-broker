@@ -113,7 +113,8 @@ class EntitiesGraphBuilderTest {
                     "1",
                     arrayListOf("Target entity 2 failed to be created because of an invalid relationship")
                 )
-            ), errors
+            ),
+            errors
         )
     }
 }

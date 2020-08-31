@@ -5,9 +5,9 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
@@ -73,11 +73,10 @@ class NotificationService(
                 }
                 .doOnNext {
                     val notificationEvent = EntityEvent(
-                        EventType.CREATE,
-                        it.second.id.toString(),
-                        it.second.type,
-                        serializeObject(it.second),
-                        null
+                        operationType = EventType.CREATE,
+                        entityId = it.second.id.toString(),
+                        entityType = it.second.type,
+                        payload = serializeObject(it.second)
                     )
                     applicationEventPublisher.publishEvent(notificationEvent)
                 }
@@ -112,11 +111,10 @@ class NotificationService(
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
                 val notificationEvent = EntityEvent(
-                    EventType.CREATE,
-                    notification.id.toString(),
-                    notification.type,
-                    serializeObject(notification),
-                    null
+                    operationType = EventType.CREATE,
+                    entityId = notification.id.toString(),
+                    entityType = notification.type,
+                    payload = serializeObject(notification)
                 )
                 applicationEventPublisher.publishEvent(notificationEvent)
             }

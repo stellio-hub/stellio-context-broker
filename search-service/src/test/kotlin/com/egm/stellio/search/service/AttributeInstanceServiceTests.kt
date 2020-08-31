@@ -64,7 +64,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve an observation and return the filled entity`() {
-
         val observation = gimmeAttributeInstance().copy(
             observedAt = observationDateTime,
             measuredValue = 12.4
@@ -87,7 +86,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                     it[0].attributeName == "incoming" &&
                     it[0].value == 12.4 &&
                     ZonedDateTime.parse(it[0].observedAt.toString()).toInstant()
-                        .atZone(ZoneOffset.UTC) == observationDateTime &&
+                    .atZone(ZoneOffset.UTC) == observationDateTime &&
                     (it[0].instanceId.toString()).startsWith("urn:ngsi-ld:Instance:")
             }
             .expectComplete()
@@ -96,7 +95,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should retrieve all known observations and return the filled entity`() {
-
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
@@ -119,7 +117,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should aggregate all observations for a day and return the filled entity`() {
-
         (1..10).forEach { _ ->
             val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance).block()
@@ -142,7 +139,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity atttribute`() {
-
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:BeeHive:TESTC",
             type = "BeeHive",
@@ -183,7 +179,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not retrieve temporal data if temporal entity does not match`() {
-
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
@@ -207,7 +202,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
-
         val attributeValues = mapOf(
             EGM_OBSERVED_BY to listOf(
                 mapOf(
@@ -221,7 +215,8 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             )
         )
 
-        val attributeInstance = attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
+        val attributeInstance =
+            attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
 
         StepVerifier.create(attributeInstance)
             .expectNextMatches {
@@ -233,7 +228,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not create an AttributeInstance if it has a null value and null measuredValue`() {
-
         val attributeValues = mapOf(
             EGM_OBSERVED_BY to listOf(
                 mapOf(

@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.web
 
 data class BatchOperationResult(
-    val success: ArrayList<String> = arrayListOf(),
-    val errors: ArrayList<BatchEntityError> = arrayListOf()
+    val success: MutableList<String> = mutableListOf(),
+    val errors: MutableList<BatchEntityError> = mutableListOf()
 ) {
 
     operator fun plusAssign(other: BatchOperationResult) {
@@ -13,6 +13,6 @@ data class BatchOperationResult(
 
 data class BatchEntityError(
     val entityId: String,
-    val error: ArrayList<String>
+    val error: MutableList<String>
 
 )

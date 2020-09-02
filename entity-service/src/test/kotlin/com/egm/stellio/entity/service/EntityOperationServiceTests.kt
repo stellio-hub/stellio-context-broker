@@ -51,9 +51,22 @@ class EntityOperationServiceTests {
         val secondEntity = mockkClass(NgsiLdEntity::class)
         every { secondEntity.id } returns "2"
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf("1", "2")) } returns listOf("1")
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2")) } returns listOf("1")
 
         val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(listOf(firstEntity, secondEntity))
+
+        assertEquals(listOf(firstEntity), exist)
+        assertEquals(listOf(secondEntity), doNotExist)
+    }
+    
+    @Test
+    fun `it should split entities per existence with ids`() {
+        val firstEntity = "1"
+        val secondEntity = "2"
+
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2")) } returns listOf("1")
+
+        val (exist, doNotExist) = entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
 
         assertEquals(listOf(firstEntity), exist)
         assertEquals(listOf(secondEntity), doNotExist)
@@ -137,8 +150,8 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns emptyList()
-        every { neo4jRepository.filterExistingEntitiesIds(listOf("3")) } returns emptyList()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns emptyList()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("3")) } returns emptyList()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
             emptyList()
@@ -163,7 +176,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns emptyList()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns emptyList()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
             emptyList()
@@ -193,7 +206,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns emptyList()
 
-        every { neo4jRepository.filterExistingEntitiesIds(emptyList()) } returns emptyList()
+        every { neo4jRepository.filterExistingEntitiesAsIds(emptyList()) } returns emptyList()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
             emptyList()
@@ -219,7 +232,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns emptyList()
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns emptyList()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns emptyList()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
             emptyList()
@@ -251,7 +264,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
         every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
@@ -279,7 +292,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
         every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
@@ -307,7 +320,7 @@ class EntityOperationServiceTests {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf()
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf()) } returns listOf()
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
         every { neo4jRepository.deleteEntityAttributes("1") } returns mockk()
         every { entityService.appendEntityAttributes(eq("1"), any(), any()) } returns UpdateResult(
             emptyList(),
@@ -333,4 +346,34 @@ class EntityOperationServiceTests {
             batchOperationResult.errors
         )
     }
+
+    @Test
+    fun `it should return entity ids in BatchOperationResult when their deletion in DB is successful`() {
+        val firstEntity = "1"
+        val secondEntity = "2"
+
+        every { entityService.deleteEntity(any())} returns mockk()
+
+        val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
+
+        assertEquals(listOf("1", "2"), batchOperationResult.success)
+        assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
+    }
+
+    @Test
+    fun `it should return error messages BatchOperationResult when deletion in DB has failed`() {
+        val firstEntity = "1"
+        val secondEntity = "2"
+
+        every { entityService.deleteEntity(any())} throws RuntimeException("Something went wrong with deletion request")
+
+        val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
+
+        assertEquals(emptyList<String>(), batchOperationResult.success)
+        assertEquals(listOf(
+            BatchEntityError("1", mutableListOf("Failed to delete entity with id 1")),
+                BatchEntityError("2", mutableListOf("Failed to delete entity with id 2")
+        )), batchOperationResult.errors)
+    }
+
 }

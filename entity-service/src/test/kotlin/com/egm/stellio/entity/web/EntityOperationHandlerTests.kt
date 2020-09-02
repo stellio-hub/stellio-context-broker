@@ -501,7 +501,6 @@ class EntityOperationHandlerTests {
         shouldReturn400WithBadPayload("upsert")
     }
 
-
     private fun shouldReturn400WithBadPayload(method: String) {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
 
@@ -544,9 +543,11 @@ class EntityOperationHandlerTests {
         val computedEntitiesIdsToDelete = slot<Set<String>>()
         every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
             BatchOperationResult(
-                mutableListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                mutableListOf(
+                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                     "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX1"),
+                    "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                ),
                 mutableListOf()
             )
 

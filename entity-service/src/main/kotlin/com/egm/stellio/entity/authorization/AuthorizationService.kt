@@ -22,6 +22,8 @@ interface AuthorizationService {
     fun userCanCreateEntities(userId: String): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<String>, userId: String): List<String>
     fun filterEntitiesUserCanUpdate(entitiesId: List<String>, userId: String): List<String>
+    fun filterEntitiesUserCanAdmin(entitiesId: List<String>, userId: String): List<String>
+    fun splitEntitiesByUserCanAdmin(entitiesId: List<String>, userId: String): Pair<List<String>, List<String>>
     fun userCanReadEntity(entityId: String, userId: String): Boolean
     fun userCanUpdateEntity(entityId: String, userId: String): Boolean
     fun userIsAdminOfEntity(entityId: String, userId: String): Boolean

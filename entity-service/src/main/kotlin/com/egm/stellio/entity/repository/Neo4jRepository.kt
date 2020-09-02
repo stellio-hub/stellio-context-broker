@@ -475,14 +475,19 @@ class Neo4jRepository(
             .first()
     }
 
-    fun filterExistingEntitiesIds(entitiesIds: List<String>): List<String> {
+    fun filterExistingEntitiesAsIds(entitiesIds: List<String>): List<String> {
+        val transformToId = { map : Map<String, Any> -> map["id"] as String }
+        return filterExistingEntitiesIdsAs(entitiesIds, transformToId)
+    }
+
+    private fun <T> filterExistingEntitiesIdsAs(entitiesIds: List<String>, transformFunc : (Map<String, Any>) -> T ): List<T> {
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }
 
         val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
-        return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
+        return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { transformFunc.invoke(it) }
     }
 
     fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property {

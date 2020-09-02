@@ -72,7 +72,7 @@ class EntitiesGraphBuilder(
     private fun getValidLinkedEntities(entity: NgsiLdEntity, entities: List<NgsiLdEntity>): List<NgsiLdEntity> {
         val linkedEntitiesIds = entity.getLinkedEntitiesIds().distinct()
         val nonExistingLinkedEntitiesIds =
-            linkedEntitiesIds.minus(neo4jRepository.filterExistingEntitiesIds(linkedEntitiesIds))
+            linkedEntitiesIds.minus(neo4jRepository.filterExistingEntitiesAsIds(linkedEntitiesIds))
         return nonExistingLinkedEntitiesIds.map {
             entities.find { entity -> entity.id == it }
                 ?: throw BadRequestDataException("Target entity $it does not exist")

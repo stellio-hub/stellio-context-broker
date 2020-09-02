@@ -607,14 +607,14 @@ class EntityOperationHandlerTests {
             .expectStatus().isOk
             .expectBody().json(
                 """
-                {
-                    "success": [],
-                    "errors": [
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["Entity does not exist"]},
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["Entity does not exist"]},
-                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["Entity does not exist"]}
-                    ]
-                }
+            {
+                "success": [],
+                "errors": [
+                    {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["Entity does not exist"]},
+                    {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["Entity does not exist"]},
+                    {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["Entity does not exist"]}
+                ]
+            }
                 """.trimIndent()
             )
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
@@ -655,14 +655,14 @@ class EntityOperationHandlerTests {
             .expectStatus().isOk
             .expectBody().json(
                 """
-                {
-                    "success": [],
-                    "errors": [
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["User forbidden to delete entity"]},
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["User forbidden to delete entity"]},
-                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["User forbidden to delete entity"]}
-                    ]
-                }
+    {
+        "success": [],
+        "errors": [
+            {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["User forbidden to delete entity"]},
+            {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["User forbidden to delete entity"]},
+            {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["User forbidden to delete entity"]}
+        ]
+    }
                 """.trimIndent()
             )
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)

@@ -23,7 +23,7 @@ class StandaloneAuthorizationService : AuthorizationService {
     }
 
     override fun filterEntitiesUserCanAdmin(entitiesId: List<String>, userId: String): List<String> {
-         return entitiesId
+        return entitiesId
     }
 
     override fun splitEntitiesByUserCanAdmin(

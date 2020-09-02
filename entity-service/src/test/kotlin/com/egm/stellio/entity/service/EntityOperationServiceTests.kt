@@ -58,7 +58,7 @@ class EntityOperationServiceTests {
         assertEquals(listOf(firstEntity), exist)
         assertEquals(listOf(secondEntity), doNotExist)
     }
-    
+
     @Test
     fun `it should split entities per existence with ids`() {
         val firstEntity = "1"
@@ -66,7 +66,8 @@ class EntityOperationServiceTests {
 
         every { neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2")) } returns listOf("1")
 
-        val (exist, doNotExist) = entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
+        val (exist, doNotExist) =
+            entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
 
         assertEquals(listOf(firstEntity), exist)
         assertEquals(listOf(secondEntity), doNotExist)
@@ -352,7 +353,7 @@ class EntityOperationServiceTests {
         val firstEntity = "1"
         val secondEntity = "2"
 
-        every { entityService.deleteEntity(any())} returns mockk()
+        every { entityService.deleteEntity(any()) } returns mockk()
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
 
@@ -365,15 +366,20 @@ class EntityOperationServiceTests {
         val firstEntity = "1"
         val secondEntity = "2"
 
-        every { entityService.deleteEntity(any())} throws RuntimeException("Something went wrong with deletion request")
+        every { entityService.deleteEntity(any()) } throws
+            RuntimeException("Something went wrong with deletion request")
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
 
         assertEquals(emptyList<String>(), batchOperationResult.success)
-        assertEquals(listOf(
-            BatchEntityError("1", mutableListOf("Failed to delete entity with id 1")),
-                BatchEntityError("2", mutableListOf("Failed to delete entity with id 2")
-        )), batchOperationResult.errors)
+        assertEquals(
+            listOf(
+                BatchEntityError("1", mutableListOf("Failed to delete entity with id 1")),
+                BatchEntityError(
+                    "2", mutableListOf("Failed to delete entity with id 2")
+                )
+            ),
+            batchOperationResult.errors
+        )
     }
-
 }

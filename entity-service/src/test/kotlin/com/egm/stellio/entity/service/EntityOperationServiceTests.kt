@@ -66,7 +66,8 @@ class EntityOperationServiceTests {
 
         every { neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2")) } returns listOf("1")
 
-        val (exist, doNotExist) = entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
+        val (exist, doNotExist) =
+            entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
 
         assertEquals(listOf(firstEntity), exist)
         assertEquals(listOf(secondEntity), doNotExist)

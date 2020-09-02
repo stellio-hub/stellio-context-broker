@@ -45,48 +45,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-        )
-        val expandedEntities = slot<List<NgsiLdEntity>>()
-
-        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
-            emptyList(),
-            emptyList()
-        )
-        every { entityOperationService.create(any()) } returns BatchOperationResult(
-            entitiesIds,
-            arrayListOf()
-        )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
-
-        assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
-
-        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
-        confirmVerified()
+        runCreateBatch()
     }
 
     @Test

@@ -122,7 +122,8 @@ class EntityOperationHandler(
         return extractSubjectOrEmpty().flatMap { userId ->
             body.map { ids ->
                 val (existingEntities, unknownEntities) = entityOperationService.splitEntitiesByExistenceWithIds(ids)
-                val (canAdminEntities, cannotAdminEntities) = authorizationService.splitEntitiesByUserCanAdmin(existingEntities, userId)
+                val (canAdminEntities, cannotAdminEntities) =
+                    authorizationService.splitEntitiesByUserCanAdmin(existingEntities, userId)
                 val batchOperationResult = entityOperationService.delete(canAdminEntities.toSet())
 
                 batchOperationResult.errors.addAll(

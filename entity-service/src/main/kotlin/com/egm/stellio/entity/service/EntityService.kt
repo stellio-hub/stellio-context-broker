@@ -115,6 +115,17 @@ class EntityService(
         }
     }
 
+    fun publishDeletionEvent(entityId: String) {
+        getSerializedEntityById(entityId)?.also {
+            val entityEvent = EntityEvent(
+                operationType = EventType.DELETE,
+                entityId = entityId,
+                payload = it
+            )
+            applicationEventPublisher.publishEvent(entityEvent)
+        }
+    }
+
     /**
      * @return the id of the created property
      */
@@ -592,8 +603,11 @@ class EntityService(
     }
 
     @Transactional
-    fun deleteEntity(entityId: String): Pair<Int, Int> =
-        neo4jRepository.deleteEntity(entityId)
+    fun deleteEntity(entityId: String): Pair<Int, Int> {
+        val nodesAndRelationshipsDeleted = neo4jRepository.deleteEntity(entityId)
+        publishDeletionEvent(entityId)
+        return nodesAndRelationshipsDeleted
+    }
 
     @Transactional
     fun deleteEntityAttribute(entityId: String, expandedAttributeName: String): Boolean {

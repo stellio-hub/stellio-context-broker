@@ -476,14 +476,11 @@ class Neo4jRepository(
     }
 
     fun filterExistingEntitiesAsIds(entitiesIds: List<String>): List<String> {
-        val transformToId = { map: Map<String, Any> -> map["id"] as String }
+        val transformToId = { map : Map<String, Any> -> map["id"] as String }
         return filterExistingEntitiesIdsAs(entitiesIds, transformToId)
     }
 
-    private fun <T> filterExistingEntitiesIdsAs(
-        entitiesIds: List<String>,
-        transformFunc: (Map<String, Any>) -> T
-    ): List<T> {
+    private fun <T> filterExistingEntitiesIdsAs(entitiesIds: List<String>, transformFunc : (Map<String, Any>) -> T ): List<T> {
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }

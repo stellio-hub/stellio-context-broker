@@ -501,6 +501,7 @@ class EntityOperationHandlerTests {
         shouldReturn400WithBadPayload("upsert")
     }
 
+
     private fun shouldReturn400WithBadPayload(method: String) {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
 
@@ -520,5 +521,194 @@ class EntityOperationHandlerTests {
                 "detail":"Unexpected error while parsing payload : Unable to parse input payload"}
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `delete batch for all entities should return a 200 if JSON-LD payload is correct`() {
+        runCreateBatch()
+        val entitiesIds = slot<List<String>>()
+        every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
+            Pair(
+                entitiesIds.captured,
+                emptyList()
+            )
+        }
+        val canAdminEntitiesIds = slot<List<String>>()
+        every { authorizationService.splitEntitiesByUserCanAdmin(capture(canAdminEntitiesIds), any()) } answers {
+            Pair(
+                canAdminEntitiesIds.captured,
+                emptyList()
+            )
+        }
+
+        val computedEntitiesIdsToDelete = slot<Set<String>>()
+        every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
+            BatchOperationResult(
+                mutableListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                    "urn:ngsi-ld:Device:HCMR-AQUABOX1"),
+                mutableListOf()
+            )
+
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/delete")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [],
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `delete batch for unknown entities should return a 200 with explicit error messages`() {
+        runCreateBatch()
+        val entitiesIds = slot<List<String>>()
+        every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
+            Pair(
+                emptyList(),
+                entitiesIds.captured
+            )
+        }
+        val existingEntitiesIds = slot<List<String>>()
+        every { authorizationService.splitEntitiesByUserCanAdmin(capture(existingEntitiesIds), any()) } answers {
+            Pair(
+                emptyList(),
+                emptyList()
+            )
+        }
+
+        val computedEntitiesIdsToDelete = slot<Set<String>>()
+        every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } answers {
+            BatchOperationResult(
+                computedEntitiesIdsToDelete.captured.toMutableList(),
+                mutableListOf()
+            )
+        }
+
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/delete")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "success": [],
+                    "errors": [
+                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["Entity does not exist"]},
+                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["Entity does not exist"]},
+                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["Entity does not exist"]}
+                    ]
+                }
+                """.trimIndent()
+            )
+        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+    }
+
+    @Test
+    fun `delete batch for entities that user cannot admin should return a 200 with explicit error messages`() {
+        runCreateBatch()
+        val entitiesIds = slot<List<String>>()
+        every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
+            Pair(
+                entitiesIds.captured,
+                emptyList()
+            )
+        }
+        val existingEntitiesIds = slot<List<String>>()
+        every { authorizationService.splitEntitiesByUserCanAdmin(capture(existingEntitiesIds), any()) } answers {
+            Pair(
+                emptyList(),
+                existingEntitiesIds.captured
+            )
+        }
+
+        val computedEntitiesIdsToDelete = slot<Set<String>>()
+        every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } answers {
+            BatchOperationResult(
+                computedEntitiesIdsToDelete.captured.toMutableList(),
+                mutableListOf()
+            )
+        }
+
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/delete")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "success": [],
+                    "errors": [
+                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["User forbidden to delete entity"]},
+                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["User forbidden to delete entity"]},
+                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["User forbidden to delete entity"]}
+                    ]
+                }
+                """.trimIndent()
+            )
+        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+    }
+
+    private fun runCreateBatch() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        )
+        val expandedEntities = slot<List<NgsiLdEntity>>()
+
+        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every { entityOperationService.create(any()) } returns BatchOperationResult(
+            entitiesIds,
+            arrayListOf()
+        )
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/create")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [],
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
+            )
+
+        assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
+
+        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
+        confirmVerified()
     }
 }

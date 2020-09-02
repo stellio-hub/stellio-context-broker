@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import arrow.core.Either
+import arrow.core.extensions.list.functorFilter.filter
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
@@ -13,6 +14,7 @@ import org.jgrapht.Graph
 import org.jgrapht.Graphs
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.DirectedPseudograph
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import kotlin.streams.toList
@@ -27,16 +29,30 @@ class EntityOperationService(
     private val entityService: EntityService,
     private val entitiesGraphBuilder: EntitiesGraphBuilder
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Splits [entities] by their existence in the DB.
      */
     fun splitEntitiesByExistence(entities: List<NgsiLdEntity>): Pair<List<NgsiLdEntity>, List<NgsiLdEntity>> {
-        val existingEntitiesIds =
-            neo4jRepository.filterExistingEntitiesIds(entities.map { it.id })
-        return entities.partition {
-            existingEntitiesIds.contains(it.id)
-        }
+        val extractIdFunc: (NgsiLdEntity) -> String = { it.id }
+        return splitEntitiesByExistenceGeneric(entities, extractIdFunc)
+    }
+
+    /**
+     * Splits [entityIds] by their existence in the DB.
+     */
+    fun splitEntitiesByExistenceWithIds(entityIds: List<String>): Pair<List<String>, List<String>> {
+        val identityFunc: (String) -> String = { it }
+        return splitEntitiesByExistenceGeneric(entityIds, identityFunc)
+    }
+
+    private fun <T> splitEntitiesByExistenceGeneric(
+        entities: List<T>,
+        extractIdFunc: (T) -> String
+    ): Pair<List<T>, List<T>> {
+        val existingEntitiesIds = neo4jRepository.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
+        return entities.partition { existingEntitiesIds.contains(extractIdFunc.invoke(it)) }
     }
 
     /**
@@ -56,6 +72,27 @@ class EntityOperationService(
         val errors = invalidRelationsErrors.plus(naiveBatchResult.errors).plus(circularCreateErrors)
 
         return BatchOperationResult(ArrayList(success), ArrayList(errors))
+    }
+
+    fun delete(entitiesIds: Set<String>): BatchOperationResult {
+        val deletedIdsResults = entitiesIds.map { it to kotlin.runCatching { entityService.deleteEntity(it) } }
+
+        val successfullyDeletedIds = deletedIdsResults
+            .filter { (_, value) -> value.isSuccess }
+            .map { it.first }
+            .toMutableList()
+
+        val deletionFailedIds = deletedIdsResults
+            .filter { (_, value) -> value.isFailure }
+            .onEach { logger.error("Failed to delete entity with id {}", it.first, it.second.exceptionOrNull()) }
+            .map { it.first }
+            .toMutableList()
+
+        val errors = deletionFailedIds
+            .map { BatchEntityError(it, arrayListOf("Failed to delete entity with id $it")) }
+            .toMutableList()
+
+        return BatchOperationResult(successfullyDeletedIds, errors)
     }
 
     /**
@@ -178,7 +215,7 @@ class EntityOperationService(
         if (invalidEntityId == null) {
             val unknownEntitiesIds = entitiesIds.minus(existingEntitiesIds)
             return unknownEntitiesIds
-                .minus(neo4jRepository.filterExistingEntitiesIds(unknownEntitiesIds)).firstOrNull()
+                .minus(neo4jRepository.filterExistingEntitiesAsIds(unknownEntitiesIds)).firstOrNull()
         }
         return invalidEntityId
     }

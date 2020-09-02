@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.model.Property
@@ -22,8 +23,10 @@ class Neo4jAuthorizationRepository(
     ): List<String> {
         val query =
             """
-            MATCH (userEntity:Entity {id : ${'$'}userId}), (entity:Entity)
+            MATCH (userEntity:Entity), (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
+            AND (userEntity.id = ${'$'}userId 
+                OR (userEntity)-[:HAS_VALUE]->(:Property { name: "${AUTHORIZATION_ONTOLOGY}serviceAccountId", value: ${'$'}userId }))
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
             WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id
@@ -51,6 +54,12 @@ class Neo4jAuthorizationRepository(
             MATCH (userEntity:Entity { id: ${'$'}userId })
             OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
+                [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property {name: "$EGM_ROLES"})
+            RETURN p, pgroup
+            UNION
+            MATCH (clientEntity:Client)-[:HAS_VALUE]->(sid:Property { name: "${AUTHORIZATION_ONTOLOGY}serviceAccountId", value: ${'$'}userId })
+            OPTIONAL MATCH (clientEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            OPTIONAL MATCH (clientEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
                 [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property {name: "$EGM_ROLES"})
             RETURN p, pgroup
             """.trimIndent()
@@ -92,7 +101,9 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
-            MATCH (user:Entity { id: ${'$'}userId}), (target:Entity { id: relPropAndTarget.second })
+            MATCH (user:Entity), (target:Entity { id: relPropAndTarget.second })
+            WHERE (user.id = ${'$'}userId 
+                OR (user)-[:HAS_VALUE]->(:Property { name: "${AUTHORIZATION_ONTOLOGY}serviceAccountId", value: ${'$'}userId }))
             CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)
             SET r = relPropAndTarget.first
             RETURN r.id as id

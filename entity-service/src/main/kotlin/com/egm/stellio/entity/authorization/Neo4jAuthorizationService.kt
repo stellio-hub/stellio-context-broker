@@ -34,13 +34,17 @@ class Neo4jAuthorizationService(
     override fun filterEntitiesUserCanAdmin(entitiesId: List<String>, userId: String): List<String> =
         filterEntitiesUserHaveOneOfGivenRights(entitiesId, ADMIN_RIGHT, userId)
 
-    override fun splitEntitiesByUserCanAdmin(entitiesId: List<String>, userId: String): Pair<List<String>, List<String>> {
-        val entitiesUserCanAdminIds =
-            filterEntitiesUserCanAdmin(entitiesId, userId)
-        return entitiesId.partition {
-            entitiesUserCanAdminIds.contains(it)
+    override fun splitEntitiesByUserCanAdmin(
+        entitiesId: List<String>,
+        userId: String
+    ):
+        Pair<List<String>, List<String>> {
+            val entitiesUserCanAdminIds =
+                filterEntitiesUserCanAdmin(entitiesId, userId)
+            return entitiesId.partition {
+                entitiesUserCanAdminIds.contains(it)
+            }
         }
-    }
 
     private fun filterEntitiesUserHaveOneOfGivenRights(
         entitiesId: List<String>,

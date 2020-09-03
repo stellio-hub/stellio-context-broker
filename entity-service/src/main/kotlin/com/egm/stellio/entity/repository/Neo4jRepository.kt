@@ -483,7 +483,7 @@ class Neo4jRepository(
     private fun <T> filterExistingEntitiesIdsAs(
         entitiesIds: List<String>,
         transformFunc: (Map<String, Any>) -> T
-    ):List<T> {
+    ): List<T> {
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }

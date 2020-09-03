@@ -57,7 +57,7 @@ class Neo4jAuthorizationRepository(
                 [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
             RETURN p, pgroup
             UNION
-            MATCH (client:Client)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
+            MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
             OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
                 [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })

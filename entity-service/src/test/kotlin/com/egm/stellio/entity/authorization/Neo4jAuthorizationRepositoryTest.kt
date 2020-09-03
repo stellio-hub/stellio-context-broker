@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -111,7 +111,7 @@ class Neo4jAuthorizationRepositoryTest {
             "urn:ngsi-ld:Client:01", listOf("Client"),
             mutableListOf(
                 Property(
-                    name = "${AUTHORIZATION_ONTOLOGY}serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "eb5599a3-513e-45ea-a78f-f9dd1e2bcca2"
                 )
             )
@@ -139,7 +139,7 @@ class Neo4jAuthorizationRepositoryTest {
             "urn:ngsi-ld:Client:01", listOf("Client"),
             mutableListOf(
                 Property(
-                    name = "${AUTHORIZATION_ONTOLOGY}serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "eb5599a3-513e-45ea-a78f-f9dd1e2bcca2"
                 )
             )
@@ -192,7 +192,7 @@ class Neo4jAuthorizationRepositoryTest {
                     value = listOf("admin", "creator")
                 ),
                 Property(
-                    name = AUTHORIZATION_ONTOLOGY + "serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "some-uuid"
                 )
             )
@@ -293,7 +293,7 @@ class Neo4jAuthorizationRepositoryTest {
             listOf("Client"),
             mutableListOf(
                 Property(
-                    name = AUTHORIZATION_ONTOLOGY + "serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "some-uuid"
                 )
             )
@@ -313,7 +313,7 @@ class Neo4jAuthorizationRepositoryTest {
             listOf("Client"),
             mutableListOf(
                 Property(
-                    name = AUTHORIZATION_ONTOLOGY + "serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "some-uuid"
                 ),
                 Property(
@@ -362,7 +362,7 @@ class Neo4jAuthorizationRepositoryTest {
             "urn:ngsi-ld:Client:01", listOf("Client"),
             mutableListOf(
                 Property(
-                    name = AUTHORIZATION_ONTOLOGY + "serviceAccountId",
+                    name = SERVICE_ACCOUNT_ID,
                     value = "eb5599a3-513e-45ea-a78f-f9dd1e2bcca2"
                 )
             )

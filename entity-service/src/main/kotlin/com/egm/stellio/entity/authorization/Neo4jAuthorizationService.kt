@@ -8,8 +8,6 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.repository.EntitySubjectNode
-import com.egm.stellio.entity.repository.Neo4jRepository
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -17,8 +15,7 @@ import java.net.URI
 @Component
 @ConditionalOnProperty("application.authentication.enabled")
 class Neo4jAuthorizationService(
-    private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository,
-    private val neo4jRepository: Neo4jRepository
+    private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 ) : AuthorizationService {
 
     override fun userIsAdmin(userId: String): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, userId)
@@ -68,14 +65,7 @@ class Neo4jAuthorizationService(
         ).isNotEmpty()
 
     override fun createAdminLink(entityId: String, userId: String) {
-        neo4jRepository.createRelationshipOfSubject(
-            EntitySubjectNode(USER_PREFIX + userId),
-            Relationship(
-                type = listOf(R_CAN_ADMIN),
-                datasetId = URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$entityId")
-            ),
-            entityId
-        )
+        createAdminLinks(listOf(entityId), userId)
     }
 
     override fun createAdminLinks(entitiesId: List<String>, userId: String) {

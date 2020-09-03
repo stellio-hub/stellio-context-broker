@@ -2,7 +2,6 @@ package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
-import com.egm.stellio.entity.repository.Neo4jRepository
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -22,9 +21,6 @@ class Neo4jAuthorizationServiceTest {
 
     @MockkBean
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
-
-    @MockkBean(relaxed = true)
-    private lateinit var neo4jRepository: Neo4jRepository
 
     @Test
     fun `it should find user has read right on entity`() {
@@ -68,7 +64,7 @@ class Neo4jAuthorizationServiceTest {
     }
 
     @Test
-    fun `it shoud filter entities which user has read right`() {
+    fun `it should filter entities which user has read right`() {
         val entitiesId = listOf("entityId", "entityId2", "entityId3", "entityId4", "entityId5")
 
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns emptySet()
@@ -107,16 +103,19 @@ class Neo4jAuthorizationServiceTest {
         val userId = "mock-user"
         val entityId = "urn:ngsi-ld:Apiary:01"
 
+        every { neo4jAuthorizationRepository.createAdminLinks(any(), any(), any()) } returns listOf("relId")
+
         neo4jAuthorizationService.createAdminLink(entityId, userId)
 
         verify {
-            neo4jRepository.createRelationshipOfSubject(
-                match { it.id == "urn:ngsi-ld:User:$userId" },
+            neo4jAuthorizationRepository.createAdminLinks(
+                "urn:ngsi-ld:User:$userId",
                 match {
-                    it.type == listOf(AuthorizationService.R_CAN_ADMIN) &&
-                        it.datasetId == URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$entityId")
+                    it.size == 1 &&
+                        it[0].type == listOf(AuthorizationService.R_CAN_ADMIN) &&
+                        it[0].datasetId == URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$entityId")
                 },
-                eq(entityId)
+                listOf(entityId)
             )
         }
         confirmVerified()

@@ -100,6 +100,36 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should parse and transmit client creation event`() {
+        val clientCreateEvent = loadSampleData("authorization/ClientCreateEvent.json")
+
+        iamListener.processMessage(clientCreateEvent)
+
+        verify {
+            entityService.createEntity(
+                match {
+                    it.id == "urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954" &&
+                        it.properties.size == 1 &&
+                        it.properties[0].compactName == "clientId" &&
+                        it.properties[0].instances.size == 1 &&
+                        it.properties[0].instances[0].value == "stellio-client"
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should parse and transmit client deletion event`() {
+        val clientDeleteEvent = loadSampleData("authorization/ClientDeleteEvent.json")
+
+        iamListener.processMessage(clientDeleteEvent)
+
+        verify { entityService.deleteEntity("urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should parse and transmit group membership append event`() {
         val groupMembershipAppendEvent = loadSampleData("authorization/GroupMembershipAppendEvent.json")
 
@@ -201,6 +231,25 @@ class IAMListenerTests {
                         (it[0] as NgsiLdProperty).instances.size == 1 &&
                         (it[0] as NgsiLdProperty).instances[0].value is List<*> &&
                         ((it[0] as NgsiLdProperty).instances[0].value as List<*>).isEmpty()
+                },
+                false
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should parse and transmit role update event for a client`() {
+        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendToClient.json")
+
+        iamListener.processMessage(roleAppendEvent)
+
+        verify {
+            entityService.appendEntityAttributes(
+                "urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                match {
+                    it.size == 2 &&
+                        it.map { it.compactName }.containsAll(listOf("roles", "serviceAccountId"))
                 },
                 false
             )

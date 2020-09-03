@@ -45,7 +45,48 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
-        runCreateBatch()
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        )
+        val expandedEntities = slot<List<NgsiLdEntity>>()
+
+        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every { entityOperationService.create(any()) } returns BatchOperationResult(
+            entitiesIds,
+            arrayListOf()
+        )
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/create")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                {
+                    "errors": [],
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
+            )
+
+        assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
+
+        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
+        confirmVerified()
     }
 
     @Test
@@ -481,7 +522,6 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch for all entities should return a 200 if JSON-LD payload is correct`() {
-        runCreateBatch()
         val entitiesIds = slot<List<String>>()
         every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
             Pair(
@@ -531,7 +571,6 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch for unknown entities should return a 200 with explicit error messages`() {
-        runCreateBatch()
         val entitiesIds = slot<List<String>>()
         every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
             Pair(
@@ -579,7 +618,6 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch for entities that user cannot admin should return a 200 with explicit error messages`() {
-        runCreateBatch()
         val entitiesIds = slot<List<String>>()
         every { entityOperationService.splitEntitiesByExistenceWithIds(capture(entitiesIds)) } answers {
             Pair(
@@ -623,50 +661,5 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
-    }
-
-    private fun runCreateBatch() {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-        )
-        val expandedEntities = slot<List<NgsiLdEntity>>()
-
-        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
-            emptyList(),
-            emptyList()
-        )
-        every { entityOperationService.create(any()) } returns BatchOperationResult(
-            entitiesIds,
-            arrayListOf()
-        )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
-
-        assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
-
-        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
-        confirmVerified()
     }
 }

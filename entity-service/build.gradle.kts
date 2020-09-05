@@ -40,7 +40,7 @@ jib.container.entrypoint = listOf(
     "/bin/sh", "-c",
     "/database/wait-for-neo4j.sh neo4j:7687 -t \$NEO4J_WAIT_TIMEOUT -- " +
         "java " +
-        project.ext["jibContainerJvmFlag"].toString() +
+        (project.ext["jibContainerJvmFlags"] as List<String>).joinToString(" ") +
         " -cp /app/resources:/app/classes:/app/libs/* " + mainClass
 )
 jib.container.environment = mapOf("NEO4J_WAIT_TIMEOUT" to "100")

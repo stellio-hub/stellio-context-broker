@@ -11,7 +11,7 @@ dependencies {
 
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.to.image = "stellio/stellio-api-gateway"
-jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
+jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8080")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
 jib.container.labels = project.ext["jibContainerLabels"] as Map<String, String>

@@ -123,7 +123,7 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "adoptopenjdk/openjdk11:alpine-jre")
+    project.ext.set("jibFromImage", "gcr.io/distroless/java:11")
     project.ext.set("jibContainerJvmFlag", "-Xms512m")
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
 }

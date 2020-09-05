@@ -49,3 +49,4 @@ jib.to.image = "stellio/stellio-search-service"
 jib.container.jvmFlags = listOf(project.ext["jibContainerJvmFlag"].toString())
 jib.container.ports = listOf("8083")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
+jib.container.labels = project.ext["jibContainerLabels"] as Map<String, String>

@@ -46,4 +46,5 @@ jib.container.entrypoint = listOf(
 jib.container.environment = mapOf("NEO4J_WAIT_TIMEOUT" to "100")
 jib.container.ports = listOf("8082")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
+jib.container.labels = project.ext["jibContainerLabels"] as Map<String, String>
 jib.extraDirectories.permissions = mapOf("/database/wait-for-neo4j.sh" to "775")

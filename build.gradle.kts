@@ -126,6 +126,21 @@ subprojects {
     project.ext.set("jibFromImage", "gcr.io/distroless/java:11")
     project.ext.set("jibContainerJvmFlag", "-Xms512m")
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
+    project.ext.set("jibContainerLabels", mapOf(
+        "maintainer" to "EGM",
+        "org.opencontainers.image.authors" to "EGM",
+        "org.opencontainers.image.documentation" to "https://stellio.readthedocs.io/",
+        "org.opencontainers.image.vendor" to "EGM",
+        "org.opencontainers.image.licenses" to "Apache-2.0",
+        "org.opencontainers.image.title" to "Stellio context broker",
+        "org.opencontainers.image.description" to
+            """
+                Stellio is an NGSI-LD compliant context broker developed by EGM. 
+                NGSI-LD is an Open API and data model specification for context management published by ETSI.
+            """.trimIndent(),
+        "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
+        "com.java.version" to "${JavaVersion.VERSION_11}"
+    ))
 }
 
 allprojects {

@@ -16,6 +16,7 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
@@ -33,6 +34,9 @@ import reactor.core.publisher.Mono
 @Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
+
+    @Value("\${application.jsonld.apic_context}")
+    val apicContext: String? = null
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -188,6 +192,7 @@ class SubscriptionHandlerTests {
     fun `create subscription should return a 400 if JSON-LD payload is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_incorrect_payload.json")
 
+        @Suppress("MaxLineLength")
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
             .bodyValue(jsonLdFile)
@@ -198,7 +203,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"JSON-LD @context not found in request payload body"
+                    "detail":"Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )
@@ -360,7 +365,10 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
-        val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+        val parsedSubscription = parseSubscriptionUpdate(
+            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
+            listOf(apicContext!!)
+        )
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
@@ -382,7 +390,10 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 500 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
-        val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
+        val parsedSubscription = parseSubscriptionUpdate(
+            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
+            listOf(apicContext!!)
+        )
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
@@ -434,6 +445,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
 
+        @Suppress("MaxLineLength")
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
             .bodyValue(jsonLdFile)
@@ -444,7 +456,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"JSON-LD @context not found in request payload body"
+                    "detail":"Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.ZonedDateTime
 
 data class NotificationParams(
-    var attributes: List<String>,
+    var attributes: List<String>?,
     val format: FormatType = FormatType.NORMALIZED,
     val endpoint: Endpoint,
     var status: StatusType?,

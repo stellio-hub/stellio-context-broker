@@ -90,7 +90,8 @@ class NotificationService(
     }
 
     private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
-        val filteredEntity = JsonLdUtils.filterCompactedEntityOnAttributes(entity.compact(), params.attributes.toSet())
+        val filteredEntity =
+            JsonLdUtils.filterCompactedEntityOnAttributes(entity.compact(), params.attributes?.toSet() ?: emptySet())
         val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
             filteredEntity.toKeyValues()
         else

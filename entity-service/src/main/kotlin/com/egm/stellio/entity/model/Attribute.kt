@@ -47,21 +47,21 @@ open class Attribute(
     @Id
     val id: String = "urn:ngsi-ld:$attributeType:${UUID.randomUUID()}"
 
-    open fun serializeCoreProperties(): MutableMap<String, Any> {
+    open fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-
-        resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
-            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-            JSONLD_VALUE_KW to createdAt
-        )
-
-        modifiedAt?.run {
-            resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+        if (includeSysAttrs) {
+            resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to this
+                JSONLD_VALUE_KW to createdAt
             )
-        }
 
+            modifiedAt?.run {
+                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
+                    JSONLD_VALUE_KW to this
+                )
+            }
+        }
         observedAt?.run {
             resultEntity[NGSILD_OBSERVED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,

@@ -48,6 +48,12 @@ class EntityHandler(
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val authorizationService: AuthorizationService
 ) {
+    companion object EntityHandler {
+        const val QUERY_PARAM_TYPE: String = "type"
+        const val QUERY_PARAM_FILTER: String = "q"
+        const val QUERY_PARAM_OPTIONS: String = "options"
+        const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
+    }
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -82,9 +88,10 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): Mono<ResponseEntity<*>> {
-        val type = params.getFirst("type") ?: ""
-        val q = params.getOrDefault("q", emptyList())
-
+        val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
+        val q = params.getOrDefault(QUERY_PARAM_FILTER, emptyList())
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
@@ -107,7 +114,8 @@ class EntityHandler(
          * with the right parameters values
          */
 
-        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink)).zipWith(extractSubjectOrEmpty())
+        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink, includeSysAttrs))
+            .zipWith(extractSubjectOrEmpty())
             .map { entitiesAndUserId ->
                 Pair(
                     entitiesAndUserId.t1,
@@ -133,7 +141,12 @@ class EntityHandler(
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     @Suppress("ThrowsCount")
-    fun getByURI(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
+    fun getByURI(
+        @PathVariable entityId: String,
+        @RequestParam params: MultiValueMap<String, String>
+    ): Mono<ResponseEntity<*>> {
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         return extractSubjectOrEmpty()
             .doOnNext {
                 if (!entityService.exists(entityId)) throw ResourceNotFoundException("Entity Not Found")
@@ -141,7 +154,8 @@ class EntityHandler(
                     throw AccessDeniedException("User forbidden read access to entity $entityId")
             }
             .map {
-                entityService.getFullEntityById(entityId) ?: throw ResourceNotFoundException("Entity Not Found")
+                entityService.getFullEntityById(entityId, includeSysAttrs)
+                    ?: throw ResourceNotFoundException("Entity Not Found")
             }
             .map {
                 it.compact()

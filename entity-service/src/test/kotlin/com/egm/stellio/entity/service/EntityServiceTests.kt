@@ -89,7 +89,7 @@ class EntityServiceTests {
         every { mockedBreedingService.properties } returns mutableListOf()
         every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z"
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
             "@type" to listOf("MortalityRemovalService")
         )
@@ -130,7 +130,7 @@ class EntityServiceTests {
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
             "@type" to listOf("MortalityRemovalService")
         )

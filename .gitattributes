@@ -1,0 +1,3 @@
+# normalize text files automatically
+* text=auto
+*.bat text eol=crlf

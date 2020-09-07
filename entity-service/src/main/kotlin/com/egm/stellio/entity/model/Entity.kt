@@ -51,22 +51,24 @@ class Entity(
 
 ) {
 
-    fun serializeCoreProperties(): MutableMap<String, Any> {
+    fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = id
         resultEntity[JSONLD_TYPE] = type
-        resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
-            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-            JSONLD_VALUE_KW to createdAt
-        )
 
-        modifiedAt?.run {
-            resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+        if (includeSysAttrs) {
+            resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to this
+                JSONLD_VALUE_KW to createdAt
             )
-        }
 
+            modifiedAt?.run {
+                resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
+                    JSONLD_VALUE_KW to this
+                )
+            }
+        }
         location?.run {
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
                 JSONLD_TYPE to "GeoProperty",

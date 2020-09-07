@@ -10,7 +10,7 @@ import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
-import com.egm.stellio.shared.web.extractJwT
+import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
@@ -53,9 +53,9 @@ class SubscriptionHandler(
             .flatMap {
                 checkSubscriptionNotExists(it)
             }
-            .zipWith(extractJwT())
+            .zipWith(extractSubjectOrEmpty())
             .flatMap { subscriptionAndSubject ->
-                subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2.subject)
+                subscriptionService.create(subscriptionAndSubject.t1, subscriptionAndSubject.t2)
                     .map { subscriptionAndSubject.t1 }
             }
             .map {
@@ -76,10 +76,10 @@ class SubscriptionHandler(
             ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
                 .toMono()
-        else extractJwT()
+        else extractSubjectOrEmpty()
             .flatMap {
-                subscriptionService.getSubscriptionsCount(it.subject).flatMap { count ->
-                    Mono.just(Pair(count, it.subject))
+                subscriptionService.getSubscriptionsCount(it).flatMap { count ->
+                    Mono.just(Pair(count, it))
                 }
             }
             .flatMap { subscriptionsCountAndSubject ->
@@ -113,10 +113,10 @@ class SubscriptionHandler(
     fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
-                extractJwT()
+                extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it.subject)
+                checkIsAllowed(subscriptionId, it)
             }
             .flatMap {
                 subscriptionService.getById(subscriptionId)
@@ -136,10 +136,10 @@ class SubscriptionHandler(
     fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
-                extractJwT()
+                extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it.subject)
+                checkIsAllowed(subscriptionId, it)
             }
             .flatMap {
                 body
@@ -160,10 +160,10 @@ class SubscriptionHandler(
     fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
-                extractJwT()
+                extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it.subject)
+                checkIsAllowed(subscriptionId, it)
             }
             .flatMap {
                 subscriptionService.delete(subscriptionId)

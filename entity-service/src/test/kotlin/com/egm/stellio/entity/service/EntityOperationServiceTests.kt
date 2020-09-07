@@ -74,20 +74,6 @@ class EntityOperationServiceTests {
     }
 
     @Test
-    fun `it should split entities per existence with ids`() {
-        val firstEntity = "1"
-        val secondEntity = "2"
-
-        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2")) } returns listOf("1")
-
-        val (exist, doNotExist) =
-            entityOperationService.splitEntitiesByExistenceWithIds(listOf(firstEntity, secondEntity))
-
-        assertEquals(listOf(firstEntity), exist)
-        assertEquals(listOf(secondEntity), doNotExist)
-    }
-
-    @Test
     fun `it should create naively isolated entities`() {
         val firstEntity = mockkClass(NgsiLdEntity::class)
         every { firstEntity.id } returns "1"

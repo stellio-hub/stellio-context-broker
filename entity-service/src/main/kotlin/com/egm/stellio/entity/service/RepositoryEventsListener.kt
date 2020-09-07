@@ -66,7 +66,7 @@ class RepositoryEventsListener(
     }
 
     private fun sendUpdateMessage(entityId: String, payload: String): Boolean {
-        val jsonLdEntity = entityService.getFullEntityById(entityId)
+        val jsonLdEntity = entityService.getFullEntityById(entityId, true)
         jsonLdEntity?.let {
             val entityType = jsonLdEntity.type.extractShortTypeFromExpanded()
             val data = mapOf(

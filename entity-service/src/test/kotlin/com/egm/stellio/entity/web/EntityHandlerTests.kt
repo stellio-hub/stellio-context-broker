@@ -23,6 +23,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
@@ -261,7 +262,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should return 200 when entity exists`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any(), false) } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         val entityId = "urn:ngsi-ld:BeeHive:TESTC"
         every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
@@ -276,14 +277,14 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
                     mapOf(
                         "@type" to NGSILD_DATE_TIME_TYPE,
                         "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                     ),
-                "@id" to "urn:ngsi-ld:Beehive:4567",
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
@@ -293,7 +294,7 @@ class EntityHandlerTests {
         every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -301,18 +302,11 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should correctly serialize properties of type DateTime`() {
+    fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
-                "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
-                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        "@type" to NGSILD_DATE_TIME_TYPE,
-                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
-                    )
-                ),
-                "@id" to "urn:ngsi-ld:Beehive:4567",
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
@@ -326,15 +320,138 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
+            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
+            .jsonPath("$.createdAt").doesNotExist()
+            .jsonPath("$.modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any<String>(), false) } returns listOf(
+            JsonLdEntity(
+                mapOf(
+                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                    "@type" to listOf("Beehive")
+                ),
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        )
+
+        val entityId = "urn:ngsi-ld:Beehive:TESTC"
+        every { authorizationService.filterEntitiesUserCanRead(any(), "mock-user") } returns listOf(entityId)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?type=Beehive")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "@context":"$NGSILD_CORE_CONTEXT"
+                        }
+                    ]
+                """.trimMargin()
+            )
+            .jsonPath("[0].createdAt").doesNotExist()
+            .jsonPath("[0].modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any<String>(), true) } returns listOf(
+            JsonLdEntity(
+                mapOf(
+                    NGSILD_CREATED_AT_PROPERTY to
+                        mapOf(
+                            "@type" to NGSILD_DATE_TIME_TYPE,
+                            "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                        ),
+                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                    "@type" to listOf("Beehive")
+                ),
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        )
+
+        val entityId = "urn:ngsi-ld:Beehive:TESTC"
+        every { authorizationService.filterEntitiesUserCanRead(any(), "mock-user") } returns listOf(entityId)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities?type=Beehive&options=sysAttrs")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "createdAt":"2015-10-18T11:20:30.000001Z",
+                            "@context":"$NGSILD_CORE_CONTEXT"
+                        }
+                    ]
+                """.trimMargin()
+            )
+    }
+
+    @Test
+    fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
+            mapOf(
+                NGSILD_CREATED_AT_PROPERTY to
+                    mapOf(
+                        "@type" to NGSILD_DATE_TIME_TYPE,
+                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    ),
+                "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@type" to NGSILD_DATE_TIME_TYPE,
+                        "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    ),
+                    NGSILD_CREATED_AT_PROPERTY to
+                        mapOf(
+                            "@type" to NGSILD_DATE_TIME_TYPE,
+                            "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                        ),
+                    NGSILD_MODIFIED_AT_PROPERTY to
+                        mapOf(
+                            "@type" to NGSILD_DATE_TIME_TYPE,
+                            "@value" to Instant.parse("2015-10-18T12:20:30.000001Z").atZone(ZoneOffset.UTC)
+                        )
+                ),
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@type" to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
             .expectBody().json(
                 """
                 {
+                    "createdAt":"2015-10-18T11:20:30.000001Z",
                     "testedAt":{
                         "type":"Property",
                         "value":{
                             "type":"DateTime",
                             "@value":"2015-10-18T11:20:30.000001Z"
-                        }
+                        },
+                        "createdAt":"2015-10-18T11:20:30.000001Z",
+                        "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
                     "@context":"$NGSILD_CORE_CONTEXT"
                 } 
@@ -345,7 +462,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -354,7 +471,7 @@ class EntityHandlerTests {
                         "@value" to LocalDate.of(2015, 10, 18)
                     )
                 ),
-                "@id" to "urn:ngsi-ld:Beehive:4567",
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
@@ -387,7 +504,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -429,7 +546,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
                     mapOf(
@@ -468,7 +585,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
                     listOf(
@@ -523,7 +640,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -562,9 +679,66 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should show relationship sysAttrs when asked`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
+            mapOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
+                    mapOf(
+                        JSONLD_TYPE to "https://uri.etsi.org/ngsi-ld/Relationship",
+                        NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            JSONLD_ID to "urn:ngsi-ld:Beekeeper:1230"
+                        ),
+                        NGSILD_DATASET_ID_PROPERTY to mapOf(
+                            JSONLD_ID to "urn:ngsi-ld:Dataset:managedBy:0215"
+                        ),
+                        NGSILD_CREATED_AT_PROPERTY to
+                            mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                            ),
+                        NGSILD_MODIFIED_AT_PROPERTY to
+                            mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to Instant.parse("2015-10-18T12:20:30.000001Z").atZone(ZoneOffset.UTC)
+                            )
+                    ),
+                JSONLD_ID to "urn:ngsi-ld:Beehive:4567",
+                JSONLD_TYPE to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC"
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """
+                    {
+                        "id":"urn:ngsi-ld:Beehive:4567",
+                        "type":"Beehive",
+                        "managedBy":{
+                            "type":"Relationship",
+                            "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
+                            "object":"urn:ngsi-ld:Beekeeper:1230",
+                            "createdAt":"2015-10-18T11:20:30.000001Z",
+                            "modifiedAt":"2015-10-18T12:20:30.000001Z"
+                        },
+                        "@context":"$NGSILD_CORE_CONTEXT"
+                    }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(

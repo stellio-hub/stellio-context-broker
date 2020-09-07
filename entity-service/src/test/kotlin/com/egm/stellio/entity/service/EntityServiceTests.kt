@@ -118,7 +118,8 @@ class EntityServiceTests {
                 }
             )
         }
-        // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
+        // I don't know where does this call come from (probably a Spring internal thing)
+        // but it is required for verification
         verify { repositoryEventsListener.equals(any()) }
         confirmVerified(repositoryEventsListener)
     }

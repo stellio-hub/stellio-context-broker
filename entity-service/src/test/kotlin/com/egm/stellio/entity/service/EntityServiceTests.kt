@@ -79,9 +79,9 @@ class EntityServiceTests {
         "id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
         "type":"MortalityRemovalService",
         "@context":[
-            "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
-            "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
-            "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         ]
     }
             """.trimIndent()

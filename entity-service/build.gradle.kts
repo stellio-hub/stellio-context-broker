@@ -34,7 +34,7 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
-jib.from.image = adoptopenjdk/openjdk11:alpine-jre
+jib.from.image = "adoptopenjdk/openjdk11:alpine-jre"
 jib.to.image = "stellio/stellio-entity-service"
 jib.container.entrypoint = listOf(
     "/bin/sh", "-c",

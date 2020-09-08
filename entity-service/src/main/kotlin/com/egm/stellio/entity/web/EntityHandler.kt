@@ -48,12 +48,6 @@ class EntityHandler(
     private val applicationEventPublisher: ApplicationEventPublisher,
     private val authorizationService: AuthorizationService
 ) {
-    companion object EntityHandler {
-        const val QUERY_PARAM_TYPE: String = "type"
-        const val QUERY_PARAM_FILTER: String = "q"
-        const val QUERY_PARAM_OPTIONS: String = "options"
-        const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
-    }
 
     private val logger = LoggerFactory.getLogger(javaClass)
 

@@ -227,7 +227,7 @@ class EntityService(
      * associated to the entity
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
-    fun getFullEntityById(entityId: String, includeSysAttrs: Boolean): JsonLdEntity? {
+    fun getFullEntityById(entityId: String, includeSysAttrs: Boolean = false): JsonLdEntity? {
         val entity = entityRepository.getEntityCoreById(entityId) ?: return null
         val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
 

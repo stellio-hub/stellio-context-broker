@@ -262,7 +262,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should return 200 when entity exists`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         val entityId = "urn:ngsi-ld:BeeHive:TESTC"
         every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
@@ -304,7 +304,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "@id" to "urn:ngsi-ld:Beehive:TESTC",
                 "@type" to listOf("Beehive")
@@ -462,7 +462,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -504,7 +504,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -546,7 +546,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
                     mapOf(
@@ -585,7 +585,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
                     listOf(
@@ -640,7 +640,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     mapOf(
@@ -679,7 +679,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should show relationship sysAttrs when asked`() {
+    fun `get entity by id should include relationship temporal properties if query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
@@ -738,7 +738,7 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+        every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
                     listOf(

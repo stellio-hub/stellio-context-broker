@@ -83,7 +83,7 @@ class EntityOperationService(
 
         val errors = failedToDeleteIdsWithResults
             .onEach { logger.warn("Failed to delete entity with id {}", it.first, it.second.exceptionOrNull()) }
-            .map { BatchEntityError(it.first, arrayListOf("Failed to delete entity with id $it.first")) }
+            .map { BatchEntityError(it.first, arrayListOf("Failed to delete entity with id ${it.first}")) }
             .toMutableList()
 
         return BatchOperationResult(successfullyDeletedIds, errors)

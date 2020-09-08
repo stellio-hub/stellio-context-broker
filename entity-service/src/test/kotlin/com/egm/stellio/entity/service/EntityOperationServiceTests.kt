@@ -437,8 +437,9 @@ class EntityOperationServiceTests {
         val firstEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         val secondEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX2"
 
-        every { entityService.deleteEntity(any()) } throws
-            RuntimeException("Something went wrong with deletion request")
+        every {
+            entityService.deleteEntity(any())
+        } throws RuntimeException("Something went wrong with deletion request")
 
         val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
 

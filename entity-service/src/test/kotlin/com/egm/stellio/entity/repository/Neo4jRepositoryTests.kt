@@ -266,13 +266,18 @@ class Neo4jRepositoryTests {
         neo4jRepository.updateEntityPropertyInstance(
             EntitySubjectNode(entity.id),
             "name",
-            NgsiLdPropertyInstance.invoke("name",
-                mapOf(JsonLdUtils.NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to 200L)),
-                JsonLdUtils.NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(JSONLD_ID to "urn:ngsi-ld:Dataset:name:1")))
+            NgsiLdPropertyInstance.invoke(
+                "name",
+                mapOf(
+                    JsonLdUtils.NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to 200L)),
+                    JsonLdUtils.NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(JSONLD_ID to "urn:ngsi-ld:Dataset:name:1"))
+                )
             )
         )
-        assertEquals(200L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "name", URI.create("urn:ngsi-ld:Dataset:name:1")).value)
+        assertEquals(
+            200L,
+            neo4jRepository.getPropertyOfSubject(entity.id, "name", URI.create("urn:ngsi-ld:Dataset:name:1")).value
+        )
 
         neo4jRepository.deleteEntity(entity.id)
     }

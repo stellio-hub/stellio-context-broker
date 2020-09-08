@@ -1,8 +1,6 @@
 package com.egm.stellio.entity.service
 
 import arrow.core.Either
-import arrow.core.extensions.list.functor.mapConst
-import arrow.core.extensions.list.functorFilter.filter
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
@@ -78,10 +76,10 @@ class EntityOperationService(
     fun delete(entitiesIds: Set<String>): BatchOperationResult {
         val deletedIdsResults = entitiesIds.map { it to kotlin.runCatching { entityService.deleteEntity(it) } }
 
-        val (successfullyDeletedIdsWithResults, failedToDeleteIdsWithResults)  = deletedIdsResults
+        val (successfullyDeletedIdsWithResults, failedToDeleteIdsWithResults) = deletedIdsResults
             .partition { (_, value) -> value.isSuccess }
 
-        val  successfullyDeletedIds = successfullyDeletedIdsWithResults.map { it.first }.toMutableList()
+        val successfullyDeletedIds = successfullyDeletedIdsWithResults.map { it.first }.toMutableList()
 
         val errors = failedToDeleteIdsWithResults
             .onEach { logger.warn("Failed to delete entity with id {}", it.first, it.second.exceptionOrNull()) }

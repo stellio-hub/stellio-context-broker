@@ -8,6 +8,7 @@ import com.egm.stellio.entity.util.isDate
 import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
 import com.egm.stellio.entity.util.isTime
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -25,7 +26,8 @@ class AttributeSubjectNode(id: String) : SubjectNodeInfo(id, "Attribute")
 @Component
 class Neo4jRepository(
     private val session: Session,
-    private val sessionFactory: SessionFactory
+    private val sessionFactory: SessionFactory,
+    private val entityRepository: EntityRepository
 ) {
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
@@ -95,6 +97,49 @@ class Neo4jRepository(
             "propertyName" to propertyName
         )
         return session.query(query, parameters).queryStatistics().propertiesSet
+    }
+
+    fun updateEntityPropertyInstance(
+        subjectNodeInfo: SubjectNodeInfo,
+        propertyName: String,
+        newPropertyInstance: NgsiLdPropertyInstance
+    ): Int {
+        /**
+         * Update a property instance:
+         *
+         * 1. Delete old instance
+         * 2. Create new instance
+         */
+        val datasetId = newPropertyInstance.datasetId
+        val matchQuery = if (datasetId == null)
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
+            WHERE NOT EXISTS (attribute.datasetId)
+            """.trimIndent()
+        else
+            """
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
+            """.trimIndent()
+
+        val createAttributeQuery =
+            """
+            CREATE (entity)-[:HAS_VALUE]->(newAttribute:Attribute:Property ${'$'}props)
+            """
+
+        val parameters = mapOf(
+            "entityId" to subjectNodeInfo.id,
+            "propertyName" to propertyName,
+            "datasetId" to datasetId?.toString(),
+            "props" to Property(propertyName, newPropertyInstance).nodeProperties(),
+            "propertiesOfProperty" to newPropertyInstance.properties.map { Property(it.name, it.instances[0]) },
+            "relationshipsOfProperty" to newPropertyInstance.relationships
+                .filter { entityRepository.exists(it.instances[0].objectId) ?: false }
+                .map { Pair(Relationship(it.name, it.instances[0]), it.instances[0].objectId) }
+                .map { Pair(it, Pair(it.first.type[0], it.first.type[0].toRelationshipTypeName())) }
+        )
+
+        return session.query(matchQuery + deleteAttributeQuery + createAttributeQuery, parameters)
+            .queryStatistics().nodesDeleted
     }
 
     fun updateEntityModifiedDate(entityId: String): Int {

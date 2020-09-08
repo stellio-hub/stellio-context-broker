@@ -544,8 +544,7 @@ class EntityService(
                 } else if (ngsiLdAttribute is NgsiLdProperty) {
                     val datasetId = ngsiLdAttribute.instances[0].datasetId
                     if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), ngsiLdAttribute.name, datasetId)) {
-                        deleteEntityAttributeInstance(id, ngsiLdAttribute.name, datasetId)
-                        createEntityProperty(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
+                        updateEntityAttributeInstance(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
                         updatedAttributes.add(ngsiLdAttribute.name)
                     } else {
                         val message = if (datasetId != null)
@@ -637,6 +636,19 @@ class EntityService(
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
+
+    // TODO add support for update relationship instance
+    @Transactional
+    fun updateEntityAttributeInstance(
+        entityId: String,
+        expandedAttributeName: String,
+        ngsiLdPropertyInstance: NgsiLdPropertyInstance
+    ) =
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entityId),
+            expandedAttributeName,
+            ngsiLdPropertyInstance
+        ) >= 1
 
     @Transactional
     fun updateEntityLastMeasure(observation: Observation) {

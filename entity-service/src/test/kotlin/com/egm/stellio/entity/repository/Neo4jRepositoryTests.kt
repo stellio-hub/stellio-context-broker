@@ -5,9 +5,13 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull
@@ -249,6 +253,27 @@ class Neo4jRepositoryTests {
             Pair(listOf(), listOf(Triple("testedAt", "=", "12:00:00")))
         )
         assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update given property`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = 100L, datasetId = URI.create("urn:ngsi-ld:Dataset:name:1")))
+        )
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "name",
+            NgsiLdPropertyInstance.invoke("name",
+                mapOf(JsonLdUtils.NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to 200L)),
+                JsonLdUtils.NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(JSONLD_ID to "urn:ngsi-ld:Dataset:name:1")))
+            )
+        )
+        assertEquals(200L,
+            neo4jRepository.getPropertyOfSubject(entity.id, "name", URI.create("urn:ngsi-ld:Dataset:name:1")).value)
+
         neo4jRepository.deleteEntity(entity.id)
     }
 

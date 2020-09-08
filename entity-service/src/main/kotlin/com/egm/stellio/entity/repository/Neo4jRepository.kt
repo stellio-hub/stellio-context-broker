@@ -123,6 +123,8 @@ class Neo4jRepository(
 
         val createAttributeQuery =
             """
+            WITH attribute
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })
             CREATE (entity)-[:HAS_VALUE]->(newAttribute:Attribute:Property ${'$'}props)
             """
 

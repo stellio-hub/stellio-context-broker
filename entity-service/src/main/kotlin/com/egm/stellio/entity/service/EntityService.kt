@@ -119,8 +119,7 @@ class EntityService(
         getSerializedEntityById(entityId)?.also {
             val entityEvent = EntityEvent(
                 operationType = EventType.DELETE,
-                entityId = entityId,
-                payload = it
+                entityId = entityId
             )
             applicationEventPublisher.publishEvent(entityEvent)
         }

@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import arrow.core.Either
+import arrow.core.extensions.list.functor.mapConst
 import arrow.core.extensions.list.functorFilter.filter
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.repository.EntityRepository
@@ -42,7 +43,7 @@ class EntityOperationService(
     /**
      * Splits [entityIds] by their existence in the DB.
      */
-    fun splitEntitiesByExistenceWithIds(entityIds: List<String>): Pair<List<String>, List<String>> {
+    fun splitEntitiesIdsByExistence(entityIds: List<String>): Pair<List<String>, List<String>> {
         val identityFunc: (String) -> String = { it }
         return splitEntitiesByExistenceGeneric(entityIds, identityFunc)
     }
@@ -77,19 +78,14 @@ class EntityOperationService(
     fun delete(entitiesIds: Set<String>): BatchOperationResult {
         val deletedIdsResults = entitiesIds.map { it to kotlin.runCatching { entityService.deleteEntity(it) } }
 
-        val successfullyDeletedIds = deletedIdsResults
-            .filter { (_, value) -> value.isSuccess }
-            .map { it.first }
-            .toMutableList()
+        val (successfullyDeletedIdsWithResults, failedToDeleteIdsWithResults)  = deletedIdsResults
+            .partition { (_, value) -> value.isSuccess }
 
-        val deletionFailedIds = deletedIdsResults
-            .filter { (_, value) -> value.isFailure }
-            .onEach { logger.error("Failed to delete entity with id {}", it.first, it.second.exceptionOrNull()) }
-            .map { it.first }
-            .toMutableList()
+        val  successfullyDeletedIds = successfullyDeletedIdsWithResults.map { it.first }.toMutableList()
 
-        val errors = deletionFailedIds
-            .map { BatchEntityError(it, arrayListOf("Failed to delete entity with id $it")) }
+        val errors = failedToDeleteIdsWithResults
+            .onEach { logger.warn("Failed to delete entity with id {}", it.first, it.second.exceptionOrNull()) }
+            .map { BatchEntityError(it.first, arrayListOf("Failed to delete entity with id $it.first")) }
             .toMutableList()
 
         return BatchOperationResult(successfullyDeletedIds, errors)

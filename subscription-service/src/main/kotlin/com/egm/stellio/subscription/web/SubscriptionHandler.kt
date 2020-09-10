@@ -7,7 +7,6 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
@@ -31,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.net.URI
+import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
@@ -70,8 +70,10 @@ class SubscriptionHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getSubscriptions(
         @RequestParam(required = false, defaultValue = "1") page: Int,
-        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
+        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int,
+        @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
+        val includeSysAttrs = options.map { it.contains("sysAttrs") }.orElse(false)
         return if (limit <= 0 || page <= 0)
             ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
@@ -91,7 +93,7 @@ class SubscriptionHandler(
             .map {
                 val prevLink = getSubscriptionsPagingLinks(it.first, page, limit).first
                 val nextLink = getSubscriptionsPagingLinks(it.first, page, limit).second
-                Triple(serializeObject(it.second), prevLink, nextLink)
+                Triple(Subscription.toJson(it.second, includeSysAttrs), prevLink, nextLink)
             }
             .map {
                 if (it.second != null && it.third != null)
@@ -110,7 +112,11 @@ class SubscriptionHandler(
      * Implements 6.11.3.1 - Retrieve Subscription
      */
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
+    fun getByURI(
+        @PathVariable subscriptionId: String,
+        @RequestParam options: Optional<String>
+    ): Mono<ResponseEntity<*>> {
+        val includeSysAttrs = options.map { it.contains("sysAttrs") }.orElse(false)
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractSubjectOrEmpty()
@@ -122,7 +128,7 @@ class SubscriptionHandler(
                 subscriptionService.getById(subscriptionId)
             }
             .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(it.toJson(includeSysAttrs))
             }
     }
 

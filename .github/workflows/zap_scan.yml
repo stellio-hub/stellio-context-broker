@@ -1,0 +1,21 @@
+on:
+  schedule:
+    # Runs every day At 01:00.
+    - cron:  '0 1 * * *'
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+    name: Scan Stellio sandbox
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+      # Here add a step to launch Stellio's docker-compose
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.3.0
+        # Then run the scan against the locally running instance
+        with:
+          target: 'https://stellio-dev.eglobalmark.com/ngsi-ld/v1/entities'
+

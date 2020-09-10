@@ -6,15 +6,11 @@ import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdProperty
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNotNull
@@ -265,28 +261,43 @@ class Neo4jRepositoryTests {
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "size", value = 100L),
-                Property(name = "size", value = 200L, datasetId = URI.create("urn:ngsi-ld:Dataset:size:1"))
-            )
-        )
-        neo4jRepository.updateEntityPropertyInstance(
-            EntitySubjectNode(entity.id),
-            "size",
-            NgsiLdPropertyInstance.invoke(
-                "size",
-                mapOf(
-                    JsonLdUtils.NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to 300L))
+                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(
+                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = 200L,
+                    datasetId = URI.create("urn:ngsi-ld:Dataset:size:1")
                 )
             )
         )
 
+        val newPropertyPayload =
+            """
+            {
+              "size": {
+                "type": "Property",
+                "value": 300
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/size",
+            newProperty.instances[0]
+        )
+
         assertEquals(
             300L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "size").value
+            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
         )
         assertEquals(
             200L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "size", URI.create("urn:ngsi-ld:Dataset:size:1")).value
+            neo4jRepository.getPropertyOfSubject(
+                entity.id, "https://uri.etsi.org/ngsi-ld/size", URI.create("urn:ngsi-ld:Dataset:size:1")
+            ).value
         )
 
         neo4jRepository.deleteEntity(entity.id)
@@ -298,63 +309,51 @@ class Neo4jRepositoryTests {
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "size", value = 100L),
-                Property(name = "size", value = 200L, datasetId = URI.create("urn:ngsi-ld:Dataset:size:1"))
-            )
-        )
-        neo4jRepository.updateEntityPropertyInstance(
-            EntitySubjectNode(entity.id),
-            "size",
-            NgsiLdPropertyInstance.invoke(
-                "size",
-                mapOf(
-                    JsonLdUtils.NGSILD_PROPERTY_VALUE to listOf(mapOf(JSONLD_VALUE_KW to 300L)),
-                    JsonLdUtils.NGSILD_DATASET_ID_PROPERTY to listOf(mapOf(JSONLD_ID to "urn:ngsi-ld:Dataset:size:1"))
+                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(
+                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = 200L,
+                    datasetId = URI.create("urn:ngsi-ld:Dataset:size:1")
                 )
             )
         )
 
+        val newPropertyPayload =
+            """
+            {
+              "size": {
+                "type": "Property",
+                "value": 300,
+                "datasetId": "urn:ngsi-ld:Dataset:size:1"
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/size",
+            newProperty.instances[0]
+        )
+
         assertEquals(
             100L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "size").value
+            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
         )
         assertEquals(
             300L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "size", URI.create("urn:ngsi-ld:Dataset:size:1")).value
+            neo4jRepository.getPropertyOfSubject(
+                entity.id, "https://uri.etsi.org/ngsi-ld/size", URI.create("urn:ngsi-ld:Dataset:size:1")
+            ).value
         )
 
         neo4jRepository.deleteEntity(entity.id)
     }
 
+    @Test
     fun `it should update properties of a property instance`() {
-        // Method 1
-        // val entityPayload =
-        //     """
-        //     {
-        //       "id": "urn:ngsi-ld:Beekeeper:1233",
-        //       "type": "Beekeeper",
-        //       "name": {
-        //         "type": "Property",
-        //         "value": "Charity",
-        //         "origin": {
-        //             "type": "Property",
-        //             "value": "Latin"
-        //         }
-        //       }
-        //     }
-        //     """.trimIndent()
-        // val ngsiLdEntity = expandJsonLdEntity(entityPayload, listOf()).toNgsiLdEntity()
-        // val rawEntity =
-        //     Entity(id = ngsiLdEntity.id, type = listOf(ngsiLdEntity.type), contexts = ngsiLdEntity.contexts)
-        //
-        // val entity = entityRepository.save(rawEntity)
-        // ngsiLdEntity.properties.forEach { ngsiLdProperty ->
-        //     ngsiLdProperty.instances.forEach { ngsiLdPropertyInstance ->
-        //         createEntityProperty(entity.id, ngsiLdProperty.name, ngsiLdPropertyInstance)
-        //     }
-        // }
-
-        // Method 2
         val nameProperty = createProperty("https://uri.etsi.org/ngsi-ld/name", "Charity")
         val originProperty = createProperty("https://uri.etsi.org/ngsi-ld/origin", "Latin")
         nameProperty.properties.add(originProperty)
@@ -387,6 +386,11 @@ class Neo4jRepositoryTests {
             "https://uri.etsi.org/ngsi-ld/name",
             newProperty.instances[0]
         )
+
+        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+            entity.id, "https://uri.etsi.org/ngsi-ld/name"
+        ).id
+        assertEquals(propertyRepository.findById(updatedPropertyId).get().properties[0].value, "English")
 
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -1051,45 +1055,5 @@ class Neo4jRepositoryTests {
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 
         return relationship
-    }
-
-    private fun createEntityProperty(
-        entityId: String,
-        propertyKey: String,
-        ngsiLdPropertyInstance: NgsiLdPropertyInstance
-    ): String {
-        val rawProperty = Property(propertyKey, ngsiLdPropertyInstance)
-        neo4jRepository.createPropertyOfSubject(
-            subjectNodeInfo = EntitySubjectNode(entityId),
-            property = rawProperty
-        )
-        createAttributeProperties(rawProperty.id, ngsiLdPropertyInstance.properties)
-        createAttributeRelationships(rawProperty.id, ngsiLdPropertyInstance.relationships)
-        return rawProperty.id
-    }
-
-    private fun createAttributeProperties(subjectId: String, properties: List<NgsiLdProperty>) {
-        properties.forEach { ngsiLdProperty ->
-            val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
-            val rawProperty = Property(ngsiLdProperty.name, ngsiLdPropertyInstance)
-            neo4jRepository.createPropertyOfSubject(
-                subjectNodeInfo = AttributeSubjectNode(subjectId),
-                property = rawProperty
-            )
-        }
-    }
-
-    private fun createAttributeRelationships(subjectId: String, relationships: List<NgsiLdRelationship>) {
-        relationships.forEach { ngsiLdRelationship ->
-            val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
-            val objectId = ngsiLdRelationshipInstance.objectId
-            val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
-
-            neo4jRepository.createRelationshipOfSubject(
-                AttributeSubjectNode(subjectId),
-                rawRelationship,
-                objectId
-            )
-        }
     }
 }

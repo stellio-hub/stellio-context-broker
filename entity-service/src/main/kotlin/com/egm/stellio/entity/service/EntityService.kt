@@ -225,10 +225,11 @@ class EntityService(
     /**
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
+     * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
-    fun getFullEntityById(entityId: String): JsonLdEntity? {
+    fun getFullEntityById(entityId: String, includeSysAttrs: Boolean = false): JsonLdEntity? {
         val entity = entityRepository.getEntityCoreById(entityId) ?: return null
-        val resultEntity = entity.serializeCoreProperties()
+        val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
 
         // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId)
@@ -236,7 +237,7 @@ class EntityService(
                 (it["property"] as Property).id
             }
             .values
-            .map { buildPropertyFragment(it, entity.contexts) }
+            .map { buildPropertyFragment(it, entity.contexts, includeSysAttrs) }
             .groupBy { it.first }
             .mapValues { propertyInstances ->
                 propertyInstances.value.map { instanceFragment ->
@@ -252,7 +253,7 @@ class EntityService(
                 (it["rel"] as Relationship).id
             }.values
             .map {
-                buildRelationshipFragment(it, entity.contexts)
+                buildRelationshipFragment(it, entity.contexts, includeSysAttrs)
             }
             .groupBy { it.first }
             .mapValues { relationshipInstances ->
@@ -269,16 +270,17 @@ class EntityService(
 
     private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
-        contexts: List<String>
+        contexts: List<String>,
+        includeSysAttrs: Boolean
     ): Pair<String, Map<String, Any>> {
         val property = rawProperty[0]["property"]!! as Property
         val propertyKey = property.name
-        val propertyValues = property.serializeCoreProperties()
+        val propertyValues = property.serializeCoreProperties(includeSysAttrs)
 
         rawProperty.filter { relEntry -> relEntry["propValue"] != null }
             .forEach {
                 val propertyOfProperty = it["propValue"] as Property
-                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties()
+                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties(includeSysAttrs)
             }
 
         rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
@@ -292,7 +294,7 @@ class EntityService(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
                     NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntity.id)
                 )
-                val relationshipValues = relationship.serializeCoreProperties()
+                val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
                 relationshipValues.putAll(relationshipValue)
                 val expandedRelationshipKey =
                     expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
@@ -304,7 +306,8 @@ class EntityService(
 
     private fun buildRelationshipFragment(
         rawRelationship: List<Map<String, Any>>,
-        contexts: List<String>
+        contexts: List<String>,
+        includeSysAttrs: Boolean
     ): Pair<String, Map<String, Any>> {
         val relationship = rawRelationship[0]["rel"] as Relationship
         val primaryRelType = (rawRelationship[0]["rel"] as Relationship).type[0]
@@ -316,7 +319,7 @@ class EntityService(
             NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
         )
 
-        val relationshipValues = relationship.serializeCoreProperties()
+        val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
         relationshipValues.putAll(relationshipValue)
 
         rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
@@ -330,7 +333,7 @@ class EntityService(
                     NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
                 )
 
-                val innerRelationshipValues = relationship.serializeCoreProperties()
+                val innerRelationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
                 innerRelationshipValues.putAll(innerRelationship)
                 val expandedInnerRelationshipType =
                     expandRelationshipType(mapOf(innerRelType to relationshipValue), contexts)
@@ -342,13 +345,20 @@ class EntityService(
     }
 
     fun getSerializedEntityById(entityId: String): String? {
-        return getFullEntityById(entityId)?.let {
+        return getFullEntityById(entityId, true)?.let {
             serializeObject(it.compact())
         }
     }
 
-    fun searchEntities(type: String, query: List<String>, contextLink: String): List<JsonLdEntity> =
-        searchEntities(type, query, listOf(contextLink))
+    /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
+     */
+    fun searchEntities(
+        type: String,
+        query: List<String>,
+        contextLink: String,
+        includeSysAttrs: Boolean
+    ): List<JsonLdEntity> =
+        searchEntities(type, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -356,11 +366,16 @@ class EntityService(
      * @param type the short-hand type (e.g "Measure")
      * @param query the list of raw query parameters (e.g "name==test")
      * @param contexts the list of contexts to consider
-     *
+     * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      * @return a list of entities represented as per #getFullEntityById result
      */
     @Transactional
-    fun searchEntities(type: String, query: List<String>, contexts: List<String>): List<JsonLdEntity> {
+    fun searchEntities(
+        type: String,
+        query: List<String>,
+        contexts: List<String>,
+        includeSysAttrs: Boolean
+    ): List<JsonLdEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
         val queryCriteria = query
@@ -377,7 +392,7 @@ class EntityService(
                 it.third.startsWith("urn:")
             }
         return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
-            .map { getFullEntityById(it) }
+            .map { getFullEntityById(it, includeSysAttrs) }
             .filterNotNull()
     }
 
@@ -670,7 +685,7 @@ class EntityService(
 
             val entity = neo4jRepository.getEntityByProperty(observedProperty)
             val rawProperty = entityRepository.getEntitySpecificProperty(entity.id, observedProperty.id)
-            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts)
+            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts, true)
             val propertyPayload = compactAndStringifyFragment(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts

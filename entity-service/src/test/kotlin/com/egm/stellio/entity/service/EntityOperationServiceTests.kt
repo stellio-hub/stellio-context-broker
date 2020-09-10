@@ -452,9 +452,11 @@ class EntityOperationServiceTests {
             listOf(
                 BatchEntityError(
                     "urn:ngsi-ld:Device:HCMR-AQUABOX2",
-                    mutableListOf("Failed to delete entity with id urn:ngsi-ld:Device:HCMR-AQUABOX2"))
+                    mutableListOf("Failed to delete entity with id urn:ngsi-ld:Device:HCMR-AQUABOX2")
+                )
             ),
-            batchOperationResult.errors)
+            batchOperationResult.errors
+        )
     }
 
     @Test

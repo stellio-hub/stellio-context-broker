@@ -396,6 +396,62 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should update relationships of a property instance`() {
+        val temperatureProperty = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
+        propertyRepository.save(temperatureProperty)
+
+        val targetEntity = createEntity(
+            "urn:ngsi-ld:Sensor:1233",
+            listOf("Sensor"),
+            mutableListOf()
+        )
+        createRelationship(AttributeSubjectNode(temperatureProperty.id), EGM_OBSERVED_BY, targetEntity.id)
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(temperatureProperty)
+        )
+
+        createEntity("urn:ngsi-ld:Sensor:6789", listOf("Sensor"), mutableListOf())
+        val newPropertyPayload =
+            """
+            {
+              "temperature": {
+                "type": "Property",
+                "value": 58,
+                "newRel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Sensor:6789"
+                },
+                "unit": {
+                    "type": "Property",
+                    "value": "celsius"
+                }
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/temperature",
+            newProperty.instances[0]
+        )
+
+        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+            entity.id, "https://uri.etsi.org/ngsi-ld/temperature"
+        ).id
+        assertEquals(
+            propertyRepository.findById(updatedPropertyId).get().relationships[0].type[0],
+            "https://uri.etsi.org/ngsi-ld/default-context/newRel"
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
     fun `it should update a property value of a string type`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233",

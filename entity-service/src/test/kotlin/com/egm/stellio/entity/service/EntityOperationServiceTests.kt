@@ -433,6 +433,31 @@ class EntityOperationServiceTests {
     }
 
     @Test
+    fun `it should return entity ids in success and in errors when their deletion in DB is partially successful`() {
+        val firstEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+        val secondEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX2"
+
+        every { entityService.deleteEntity(firstEntity) } returns Pair(1, 1)
+        every {
+            entityService.deleteEntity(secondEntity)
+        } throws RuntimeException("Something went wrong during deletion")
+
+        val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
+
+        assertEquals(
+            listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1"),
+            batchOperationResult.success
+        )
+        assertEquals(
+            listOf(
+                BatchEntityError(
+                    "urn:ngsi-ld:Device:HCMR-AQUABOX2",
+                    mutableListOf("Failed to delete entity with id urn:ngsi-ld:Device:HCMR-AQUABOX2"))
+            ),
+            batchOperationResult.errors)
+    }
+
+    @Test
     fun `it should return error messages BatchOperationResult when deletion in DB has failed`() {
         val firstEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
         val secondEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX2"

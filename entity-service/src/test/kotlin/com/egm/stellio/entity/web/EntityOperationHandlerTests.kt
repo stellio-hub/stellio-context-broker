@@ -521,7 +521,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `delete batch for all entities should return a 200 if JSON-LD payload is correct`() {
+    fun `delete batch for correct entities should return a 200 with explicit success message`() {
         val entitiesIds = slot<List<String>>()
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
             Pair(
@@ -613,11 +613,12 @@ class EntityOperationHandlerTests {
             }
                 """.trimIndent()
             )
+        assertEquals(emptyList<String>(), existingEntitiesIds.captured)
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
     }
 
     @Test
-    fun `delete batch for entities that user cannot admin should return a 200 with explicit error messages`() {
+    fun `delete batch for unauthorized entities should return a 200 with explicit error messages`() {
         val entitiesIds = slot<List<String>>()
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
             Pair(

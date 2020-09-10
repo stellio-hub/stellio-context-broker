@@ -13,7 +13,6 @@ import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
 import org.neo4j.ogm.session.event.EventListenerAdapter
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
@@ -30,7 +29,6 @@ class Neo4jRepository(
     private val sessionFactory: SessionFactory,
     private val entityRepository: EntityRepository
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
         val query =

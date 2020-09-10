@@ -679,7 +679,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should include relationship temporal properties if query param sysAttrs is present`() {
+    fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
@@ -717,22 +717,9 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                    {
-                        "id":"urn:ngsi-ld:Beehive:4567",
-                        "type":"Beehive",
-                        "managedBy":{
-                            "type":"Relationship",
-                            "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
-                            "object":"urn:ngsi-ld:Beekeeper:1230",
-                            "createdAt":"2015-10-18T11:20:30.000001Z",
-                            "modifiedAt":"2015-10-18T12:20:30.000001Z"
-                        },
-                        "@context":"$NGSILD_CORE_CONTEXT"
-                    }
-                """.trimIndent()
-            )
+            .expectBody()
+            .jsonPath("$..createdAt").isEqualTo("2015-10-18T11:20:30.000001Z")
+            .jsonPath("$..modifiedAt").isEqualTo("2015-10-18T12:20:30.000001Z")
     }
 
     @Test

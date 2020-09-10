@@ -13,6 +13,7 @@ import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
 import org.neo4j.ogm.session.event.EventListenerAdapter
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
@@ -29,6 +30,7 @@ class Neo4jRepository(
     private val sessionFactory: SessionFactory,
     private val entityRepository: EntityRepository
 ) {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
         val query =
@@ -111,34 +113,53 @@ class Neo4jRepository(
          * 2. Create new instance
          */
         val datasetId = newPropertyInstance.datasetId
+
         val matchQuery = if (datasetId == null)
             """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
+            ->(attribute:Property { name: ${'$'}propertyName })
             WHERE NOT EXISTS (attribute.datasetId)
             """.trimIndent()
         else
             """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
+            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
+            ->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
             """.trimIndent()
 
-        val createAttributeQuery =
+        var createAttributeQuery =
             """
-            WITH attribute
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })
+            WITH DISTINCT entity
             CREATE (entity)-[:HAS_VALUE]->(newAttribute:Attribute:Property ${'$'}props)
+            WITH newAttribute
+            UNWIND ${'$'}propertiesOfProperty AS propertyOfProperty
+            CREATE (newAttribute)-[:HAS_VALUE]->(newPropertyOfAttribute:Attribute:Property)
+            SET newPropertyOfAttribute = propertyOfProperty
             """
 
-        val parameters = mapOf(
+        val parameters = mutableMapOf(
             "entityId" to subjectNodeInfo.id,
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString(),
             "props" to Property(propertyName, newPropertyInstance).nodeProperties(),
-            "propertiesOfProperty" to newPropertyInstance.properties.map { Property(it.name, it.instances[0]) },
-            "relationshipsOfProperty" to newPropertyInstance.relationships
-                .filter { entityRepository.exists(it.instances[0].objectId) ?: false }
-                .map { Pair(Relationship(it.name, it.instances[0]), it.instances[0].objectId) }
-                .map { Pair(it, Pair(it.first.type[0], it.first.type[0].toRelationshipTypeName())) }
+            "propertiesOfProperty" to newPropertyInstance.properties
+                .map { Property(it.name, it.instances[0]).nodeProperties() }
         )
+
+        newPropertyInstance.relationships.filter {
+            entityRepository.exists(it.instances[0].objectId) ?: false
+        }.forEachIndexed { index, ngsiLdRelationship ->
+            val relationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationship.instances[0])
+            parameters["relationshipOfProperty_$index"] = relationship.nodeProperties()
+            createAttributeQuery = createAttributeQuery.plus(
+                """
+                    WITH DISTINCT newAttribute
+                    MATCH (target:Entity { id: "${ngsiLdRelationship.instances[0].objectId}" })
+                    CREATE (newAttribute)-[:HAS_OBJECT]
+                    ->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}relationshipOfProperty_$index)
+                    -[:${relationship.type[0].toRelationshipTypeName()}]->(target)
+                    """
+            )
+        }
 
         return session.query(matchQuery + deleteAttributeQuery + createAttributeQuery, parameters)
             .queryStatistics().nodesDeleted
@@ -583,7 +604,7 @@ class Neo4jRepository(
     private val deleteAttributeQuery =
         """
         OPTIONAL MATCH (attribute)-[:HAS_VALUE]->(propOfAttribute:Property)
-        WITH attribute, propOfAttribute
+        WITH entity, attribute, propOfAttribute
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
         """.trimIndent()

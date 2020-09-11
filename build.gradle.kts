@@ -16,7 +16,7 @@ plugins {
     kotlin("jvm") version "1.3.72" apply false
     kotlin("plugin.spring") version "1.3.72" apply false
     id("org.jlleitschuh.gradle.ktlint") version "9.3.0"
-    id("com.google.cloud.tools.jib") version "1.6.1" apply false
+    id("com.google.cloud.tools.jib") version "2.5.0" apply false
     kotlin("kapt") version "1.3.61" apply false
     id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
 }
@@ -123,9 +123,24 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "adoptopenjdk/openjdk11:alpine-jre")
-    project.ext.set("jibContainerJvmFlag", "-Xms512m")
+    project.ext.set("jibFromImage", "gcr.io/distroless/java:11")
+    project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
+    project.ext.set("jibContainerLabels", mapOf(
+        "maintainer" to "EGM",
+        "org.opencontainers.image.authors" to "EGM",
+        "org.opencontainers.image.documentation" to "https://stellio.readthedocs.io/",
+        "org.opencontainers.image.vendor" to "EGM",
+        "org.opencontainers.image.licenses" to "Apache-2.0",
+        "org.opencontainers.image.title" to "Stellio context broker",
+        "org.opencontainers.image.description" to
+            """
+                Stellio is an NGSI-LD compliant context broker developed by EGM. 
+                NGSI-LD is an Open API and data model specification for context management published by ETSI.
+            """.trimIndent(),
+        "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
+        "com.java.version" to "${JavaVersion.VERSION_11}"
+    ))
 }
 
 allprojects {

@@ -89,7 +89,7 @@ class EntityServiceTests {
         every { mockedBreedingService.properties } returns mutableListOf()
         every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z"
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
             "@type" to listOf("MortalityRemovalService")
         )
@@ -110,7 +110,8 @@ class EntityServiceTests {
                 }
             )
         }
-        // I don't know where does this call come from (probably a Spring internal thing) but it is required for verification
+        // I don't know where does this call come from (probably a Spring internal thing)
+        // but it is required for verification
         verify { repositoryEventsListener.equals(any()) }
         confirmVerified(repositoryEventsListener)
     }
@@ -130,7 +131,7 @@ class EntityServiceTests {
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties() } returns mutableMapOf(
+        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
             "@type" to listOf("MortalityRemovalService")
         )
@@ -334,12 +335,12 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any()) } returns 1
+        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
+        verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
 
         confirmVerified()
     }
@@ -366,12 +367,12 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any()) } returns 1
+        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
+        verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
 
         confirmVerified()
     }

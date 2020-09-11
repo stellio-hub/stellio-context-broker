@@ -136,8 +136,8 @@ class TemporalEntityAttributeService(
     fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
-            SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type, 
-                   entity_payload::TEXT, dataset_id
+            SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
+                payload::TEXT, dataset_id
             FROM temporal_entity_attribute
             LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id            
             WHERE temporal_entity_attribute.entity_id = :entity_id
@@ -212,7 +212,7 @@ class TemporalEntityAttributeService(
                 )!!
             ),
             datasetId = row.get("dataset_id", String::class.java)?.let { URI.create(it) },
-            entityPayload = row.get("entity_payload", String::class.java)
+            entityPayload = row.get("payload", String::class.java)
         )
     }
 

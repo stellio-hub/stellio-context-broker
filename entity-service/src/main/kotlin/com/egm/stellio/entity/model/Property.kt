@@ -41,8 +41,8 @@ class Property(
             datasetId = ngsiLdPropertyInstance.datasetId
         )
 
-    override fun serializeCoreProperties(): MutableMap<String, Any> {
-        val resultEntity = super.serializeCoreProperties()
+    override fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
+        val resultEntity = super.serializeCoreProperties(includeSysAttrs)
         resultEntity[JSONLD_TYPE] = JsonLdUtils.NGSILD_PROPERTY_TYPE.uri
         resultEntity[NGSILD_PROPERTY_VALUE] = when (value) {
             is ZonedDateTime -> mapOf(JSONLD_TYPE to NGSILD_DATE_TIME_TYPE, JSONLD_VALUE_KW to value)

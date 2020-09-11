@@ -22,6 +22,17 @@ class StandaloneAuthorizationService : AuthorizationService {
         return entitiesId
     }
 
+    override fun filterEntitiesUserCanAdmin(entitiesId: List<String>, userId: String): List<String> {
+        return entitiesId
+    }
+
+    override fun splitEntitiesByUserCanAdmin(
+        entitiesId: List<String>,
+        userId: String
+    ): Pair<List<String>, List<String>> {
+        return Pair(entitiesId, emptyList())
+    }
+
     override fun userCanReadEntity(entityId: String, userId: String): Boolean {
         return true
     }

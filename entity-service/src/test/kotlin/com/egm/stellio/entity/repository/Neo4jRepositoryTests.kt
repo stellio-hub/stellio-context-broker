@@ -304,7 +304,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should update the property instance that matches th given datasetId`() {
+    fun `it should update the property instance that matches the given datasetId`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233",
             listOf("Beekeeper"),
@@ -422,10 +422,6 @@ class Neo4jRepositoryTests {
                 "newRel": {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:Sensor:6789"
-                },
-                "unit": {
-                    "type": "Property",
-                    "value": "celsius"
                 }
               }
             }

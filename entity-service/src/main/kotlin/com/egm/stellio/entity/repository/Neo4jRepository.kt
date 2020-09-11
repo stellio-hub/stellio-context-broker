@@ -128,10 +128,6 @@ class Neo4jRepository(
             """
             WITH DISTINCT entity
             CREATE (entity)-[:HAS_VALUE]->(newAttribute:Attribute:Property ${'$'}props)
-            WITH newAttribute
-            UNWIND ${'$'}propertiesOfProperty AS propertyOfProperty
-            CREATE (newAttribute)-[:HAS_VALUE]->(newPropertyOfAttribute:Attribute:Property)
-            SET newPropertyOfAttribute = propertyOfProperty
             """
 
         val parameters = mutableMapOf(
@@ -142,6 +138,16 @@ class Neo4jRepository(
             "propertiesOfProperty" to newPropertyInstance.properties
                 .map { Property(it.name, it.instances[0]).nodeProperties() }
         )
+
+        if (newPropertyInstance.properties.isNotEmpty())
+            createAttributeQuery = createAttributeQuery.plus(
+                """
+                WITH newAttribute
+                UNWIND ${'$'}propertiesOfProperty AS propertyOfProperty
+                CREATE (newAttribute)-[:HAS_VALUE]->(newPropertyOfAttribute:Attribute:Property)
+                SET newPropertyOfAttribute = propertyOfProperty
+                """
+            )
 
         newPropertyInstance.relationships.filter {
             entityRepository.exists(it.instances[0].objectId) ?: false

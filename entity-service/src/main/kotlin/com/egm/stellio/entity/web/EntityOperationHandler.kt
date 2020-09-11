@@ -117,6 +117,28 @@ class EntityOperationHandler(
             }
     }
 
+    @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    fun delete(@RequestBody body: Mono<List<String>>): Mono<ResponseEntity<BatchOperationResult>> {
+        return body
+            .zipWith(extractSubjectOrEmpty())
+            .map { entitiesIdUserId ->
+                val (existingEntities, unknownEntities) = entityOperationService
+                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1)
+
+                val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
+                    .splitEntitiesByUserCanAdmin(existingEntities, entitiesIdUserId.t2)
+
+                val batchOperationResult = entityOperationService.delete(entitiesUserCanAdmin.toSet())
+                batchOperationResult.errors.addAll(
+                    unknownEntities.map { BatchEntityError(it, arrayListOf("Entity does not exist")) }
+                )
+                batchOperationResult.errors.addAll(
+                    entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
+                )
+                ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+            }
+    }
+
     private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {
         val extractedEntities = extractEntitiesFromJsonPayload(payload)
         return JsonLdUtils.expandJsonLdEntities(extractedEntities)

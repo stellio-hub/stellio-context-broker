@@ -63,8 +63,8 @@ class EntitiesGraphBuilderTest {
         every { secondEntity.id } returns "2"
         every { secondEntity.getLinkedEntitiesIds() } returns listOf("3")
 
-        every { neo4jRepository.filterExistingEntitiesIds(listOf("4")) } returns listOf("4")
-        every { neo4jRepository.filterExistingEntitiesIds(listOf("3")) } returns listOf("3")
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("4")) } returns listOf("4")
+        every { neo4jRepository.filterExistingEntitiesAsIds(listOf("3")) } returns listOf("3")
 
         val (graph, errors) = entitiesGraphBuilder.build(listOf(firstEntity, secondEntity))
 

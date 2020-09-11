@@ -475,7 +475,7 @@ class Neo4jRepository(
             .first()
     }
 
-    fun filterExistingEntitiesIds(entitiesIds: List<String>): List<String> {
+    fun filterExistingEntitiesAsIds(entitiesIds: List<String>): List<String> {
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }

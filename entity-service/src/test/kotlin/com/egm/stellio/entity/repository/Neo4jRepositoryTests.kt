@@ -459,7 +459,7 @@ class Neo4jRepositoryTests {
 
         assertEquals(
             listOf("urn:ngsi-ld:Beekeeper:1233"),
-            neo4jRepository.filterExistingEntitiesIds(entitiesIds)
+            neo4jRepository.filterExistingEntitiesAsIds(entitiesIds)
         )
         neo4jRepository.deleteEntity(entity.id)
     }

@@ -5,6 +5,9 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.shared.model.NgsiLdProperty
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
@@ -249,6 +252,198 @@ class Neo4jRepositoryTests {
             Pair(listOf(), listOf(Triple("testedAt", "=", "12:00:00")))
         )
         assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update the default property instance`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(
+                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = 200L,
+                    datasetId = URI.create("urn:ngsi-ld:Dataset:size:1")
+                )
+            )
+        )
+
+        val newPropertyPayload =
+            """
+            {
+              "size": {
+                "type": "Property",
+                "value": 300
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/size",
+            newProperty.instances[0]
+        )
+
+        assertEquals(
+            300L,
+            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+        )
+        assertEquals(
+            200L,
+            neo4jRepository.getPropertyOfSubject(
+                entity.id, "https://uri.etsi.org/ngsi-ld/size", URI.create("urn:ngsi-ld:Dataset:size:1")
+            ).value
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update the property instance that matches the given datasetId`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(
+                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = 200L,
+                    datasetId = URI.create("urn:ngsi-ld:Dataset:size:1")
+                )
+            )
+        )
+
+        val newPropertyPayload =
+            """
+            {
+              "size": {
+                "type": "Property",
+                "value": 300,
+                "datasetId": "urn:ngsi-ld:Dataset:size:1"
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/size",
+            newProperty.instances[0]
+        )
+
+        assertEquals(
+            100L,
+            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+        )
+        assertEquals(
+            300L,
+            neo4jRepository.getPropertyOfSubject(
+                entity.id, "https://uri.etsi.org/ngsi-ld/size", URI.create("urn:ngsi-ld:Dataset:size:1")
+            ).value
+        )
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update properties of a property instance`() {
+        val nameProperty = createProperty("https://uri.etsi.org/ngsi-ld/name", "Charity")
+        val originProperty = createProperty("https://uri.etsi.org/ngsi-ld/origin", "Latin")
+        nameProperty.properties.add(originProperty)
+        propertyRepository.save(nameProperty)
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(nameProperty)
+        )
+
+        val newPropertyPayload =
+            """
+            {
+              "name": {
+                "type": "Property",
+                "value": "Roman",
+                "origin": {
+                    "type": "Property",
+                    "value": "English"
+                }
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/name",
+            newProperty.instances[0]
+        )
+
+        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+            entity.id, "https://uri.etsi.org/ngsi-ld/name"
+        ).id
+        assertEquals(propertyRepository.findById(updatedPropertyId).get().properties[0].value, "English")
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should update relationships of a property instance`() {
+        val temperatureProperty = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
+        propertyRepository.save(temperatureProperty)
+
+        val targetEntity = createEntity(
+            "urn:ngsi-ld:Sensor:1233",
+            listOf("Sensor"),
+            mutableListOf()
+        )
+        createRelationship(AttributeSubjectNode(temperatureProperty.id), EGM_OBSERVED_BY, targetEntity.id)
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1233",
+            listOf("Beekeeper"),
+            mutableListOf(temperatureProperty)
+        )
+
+        createEntity("urn:ngsi-ld:Sensor:6789", listOf("Sensor"), mutableListOf())
+        val newPropertyPayload =
+            """
+            {
+              "temperature": {
+                "type": "Property",
+                "value": 58,
+                "newRel": {
+                    "type": "Relationship",
+                    "object": "urn:ngsi-ld:Sensor:6789"
+                }
+              }
+            }
+            """.trimIndent()
+        val newProperty = parseToNgsiLdAttributes(
+            JsonLdUtils.expandJsonLdFragment(newPropertyPayload, emptyList())
+        )[0] as NgsiLdProperty
+
+        neo4jRepository.updateEntityPropertyInstance(
+            EntitySubjectNode(entity.id),
+            "https://uri.etsi.org/ngsi-ld/temperature",
+            newProperty.instances[0]
+        )
+
+        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+            entity.id, "https://uri.etsi.org/ngsi-ld/temperature"
+        ).id
+        assertEquals(
+            propertyRepository.findById(updatedPropertyId).get().relationships[0].type[0],
+            "https://uri.etsi.org/ngsi-ld/default-context/newRel"
+        )
+
         neo4jRepository.deleteEntity(entity.id)
     }
 

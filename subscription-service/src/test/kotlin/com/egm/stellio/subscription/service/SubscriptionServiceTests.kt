@@ -125,7 +125,10 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     private fun createSubscription4() {
-        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true, withEndpointInfo = false,
+        val subscription4 = gimmeRawSubscription(
+            withQuery = true,
+            withGeoQuery = true,
+            withEndpointInfo = false,
             withNotifParams = Pair(false, listOf("incoming"))
         ).copy(
             name = "Subscription 4",

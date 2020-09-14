@@ -168,7 +168,7 @@ class NotificationServiceTests {
 
     @Test
     fun `it should send payload a simplified payload when format is keyValues and include the specified attributes`() {
-        val subscription = gimmeRawSubscription(withKeyValues = true, withAttributes = listOf("location"))
+        val subscription = gimmeRawSubscription(withNotifParams = Pair(true, listOf("location")))
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }

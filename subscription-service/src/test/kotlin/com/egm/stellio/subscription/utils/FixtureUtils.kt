@@ -13,8 +13,7 @@ fun gimmeRawSubscription(
     withQuery: Boolean = true,
     withGeoQuery: Boolean = true,
     withEndpointInfo: Boolean = true,
-    withKeyValues: Boolean = false,
-    withAttributes: List<String> = emptyList(),
+    withNotifParams: Pair<Boolean, List<String>> = Pair(false, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
@@ -49,8 +48,8 @@ fun gimmeRawSubscription(
         entities = emptySet(),
         geoQ = geoQuery,
         notification = NotificationParams(
-            attributes = withAttributes,
-            format = if (withKeyValues)
+            attributes = withNotifParams.second,
+            format = if (withNotifParams.first)
                 NotificationParams.FormatType.KEY_VALUES
             else
                 NotificationParams.FormatType.NORMALIZED,

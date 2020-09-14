@@ -72,7 +72,7 @@ class JsonLdUtilsTests {
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
         val simplifiedMap = mapper.readValue(simplifiedJson, Map::class.java)
 
-        val resultMap = JsonLdUtils.simplifyJsonldMap(normalizedMap as Map<String, Any>)
+        val resultMap = (normalizedMap as Map<String, Any>).toKeyValues()
 
         Assertions.assertEquals(simplifiedMap, resultMap)
     }

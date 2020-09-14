@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
@@ -52,8 +53,10 @@ class NotificationService(
         entityId: String,
         entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
-        val processedEntity = buildNotifData(entity, subscription.notification)
-        val notification = Notification(subscriptionId = subscription.id, data = processedEntity)
+        val notification = Notification(
+            subscriptionId = subscription.id,
+            data = buildNotifData(entity, subscription.notification)
+        )
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
@@ -88,7 +91,7 @@ class NotificationService(
     private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
         val filteredEntity = JsonLdUtils.filterJsonldMapOnAttributes(entity.compact(), params.attributes.toSet())
         val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
-            JsonLdUtils.simplifyJsonldMap(filteredEntity)
+            filteredEntity.toKeyValues()
         else
             filteredEntity
 

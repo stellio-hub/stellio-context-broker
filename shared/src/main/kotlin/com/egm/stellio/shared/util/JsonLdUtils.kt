@@ -39,6 +39,7 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE_KW = "@value"
+    val JSONLD_ENTITY_MANDATORY_FIELDS = setOf("id", "type", "@context")
     val JSONLD_ENTITY_CORE_PROPERTIES = setOf("id", "type", "@context")
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
@@ -283,28 +284,8 @@ object JsonLdUtils {
         return if (includedAttributes.isEmpty()) {
             input
         } else {
-            val mandatoryKeys = setOf("id", "type", "@context")
-            val includedKeys = mandatoryKeys.plus(includedAttributes)
+            val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
             input.filterKeys { includedKeys.contains(it) }
-        }
-    }
-
-    fun simplifyJsonldMap(input: Map<String, Any>): Map<String, Any> {
-        return input.map { (key, value) -> key to simplifyValueIfNeeded(value) }.toMap()
-    }
-
-    private fun simplifyValueIfNeeded(value: Any): Any {
-        return when (value) {
-            is Map<*, *> -> simplifyValue(value)
-            else -> value
-        }
-    }
-
-    private fun simplifyValue(value: Map<*, *>): Any {
-        return when (value["type"]) {
-            "Property", "GeoProperty" -> value.getOrDefault("value", value)!!
-            "Relationship" -> value.getOrDefault("object", value)!!
-            else -> value
         }
     }
 }
@@ -315,3 +296,22 @@ fun String.extractShortTypeFromExpanded(): String =
      * TODO do a clean implementation using info from @context
      */
     this.substringAfterLast("/").substringAfterLast("#")
+
+fun Map<String, Any>.toKeyValues(): Map<String, Any> {
+    return this.map { (key, value) -> key to simplifyValueIfNeeded(value) }.toMap()
+}
+
+private fun simplifyValueIfNeeded(value: Any): Any {
+    return when (value) {
+        is Map<*, *> -> simplifyValue(value)
+        else -> value
+    }
+}
+
+private fun simplifyValue(value: Map<*, *>): Any {
+    return when (value["type"]) {
+        "Property", "GeoProperty" -> value.getOrDefault("value", value)!!
+        "Relationship" -> value.getOrDefault("object", value)!!
+        else -> value
+    }
+}

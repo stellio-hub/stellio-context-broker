@@ -712,7 +712,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.watchedAttributes!! == listOf("incoming", "temperature") &&
-                it.modifiedAt != null
+                    it.modifiedAt != null
             }
             .verifyComplete()
     }

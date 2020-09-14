@@ -52,12 +52,12 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement =
-        """
+            """
         INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
             notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
         VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
             :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
-        """.trimIndent()
+            """.trimIndent()
 
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)

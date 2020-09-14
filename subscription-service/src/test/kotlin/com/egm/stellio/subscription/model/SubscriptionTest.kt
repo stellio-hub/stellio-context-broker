@@ -1,8 +1,8 @@
 package com.egm.stellio.subscription.model
 
+import com.jayway.jsonpath.JsonPath.read
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import com.jayway.jsonpath.JsonPath.read
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset

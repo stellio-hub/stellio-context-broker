@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.model
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import com.jayway.jsonpath.JsonPath.read
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -32,12 +33,6 @@ class SubscriptionTest {
     )
 
     @Test
-    fun `it should initialize the createdAt and modifiedAt attributes upon Subscription creation`() {
-        assertNotNull(modifiedSubscription.createdAt)
-        assertNotNull(modifiedSubscription.modifiedAt)
-    }
-
-    @Test
     fun `it should serialize Subscription as JSON without createdAt and modifiedAt if not specified`() {
         val serializedSub = modifiedSubscription.toJson(false)
         assertFalse(serializedSub.contains("createdAt"))
@@ -46,24 +41,27 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize Subscription as JSON with createdAt and modifiedAt if specified`() {
-        val serializedSub = modifiedSubscription.toJson(true)
-        assertTrue(serializedSub.contains("createdAt"))
-        assertTrue(serializedSub.contains("modifiedAt"))
+        val serializedSubscription = modifiedSubscription.toJson(true)
+        assertTrue(serializedSubscription.contains("createdAt"))
+        assertTrue(serializedSubscription.contains("modifiedAt"))
     }
 
     @Test
     fun `it should serialize a list of subscriptions as JSON without createdAt and modifiedAt if not specified`() {
         val otherModifiedSubscription = modifiedSubscription.copy(id = "2")
-        val serializedSubs = Subscription.toJson(listOf(modifiedSubscription, otherModifiedSubscription), false)
-        assertFalse(serializedSubs.contains("createdAt"))
-        assertFalse(serializedSubs.contains("modifiedAt"))
+        val serializedSubscription = listOf(modifiedSubscription, otherModifiedSubscription).toJson()
+
+        assertFalse(serializedSubscription.contains("createdAt"))
+        assertFalse(serializedSubscription.contains("modifiedAt"))
     }
 
     @Test
     fun `it should serialize a list of subscriptions as JSON with createdAt and modifiedAt if specified`() {
         val otherModifiedSubscription = modifiedSubscription.copy(id = "2")
-        val serializedSubs = Subscription.toJson(listOf(modifiedSubscription, otherModifiedSubscription), true)
-        assertTrue(serializedSubs.contains("createdAt"))
-        assertTrue(serializedSubs.contains("modifiedAt"))
+        val serializedSubscriptions = listOf(modifiedSubscription, otherModifiedSubscription).toJson(true)
+        with(serializedSubscriptions) {
+            assertTrue(read<List<String>>(this, "$[*].createdAt").size == 2)
+            assertTrue(read<List<String>>(this, "$[*].modifiedAt").size == 2)
+        }
     }
 }

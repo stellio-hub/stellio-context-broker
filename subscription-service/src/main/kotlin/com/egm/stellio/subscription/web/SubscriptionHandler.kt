@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.toJson
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -73,7 +74,7 @@ class SubscriptionHandler(
         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int,
         @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
-        val includeSysAttrs = options.map { it.contains("sysAttrs") }.orElse(false)
+        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         return if (limit <= 0 || page <= 0)
             ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
@@ -93,7 +94,7 @@ class SubscriptionHandler(
             .map {
                 val prevLink = getSubscriptionsPagingLinks(it.first, page, limit).first
                 val nextLink = getSubscriptionsPagingLinks(it.first, page, limit).second
-                Triple(Subscription.toJson(it.second, includeSysAttrs), prevLink, nextLink)
+                Triple(it.second.toJson(includeSysAttrs), prevLink, nextLink)
             }
             .map {
                 if (it.second != null && it.third != null)
@@ -116,7 +117,7 @@ class SubscriptionHandler(
         @PathVariable subscriptionId: String,
         @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
-        val includeSysAttrs = options.map { it.contains("sysAttrs") }.orElse(false)
+        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         return checkSubscriptionExists(subscriptionId)
             .flatMap {
                 extractSubjectOrEmpty()

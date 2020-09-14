@@ -52,10 +52,12 @@ class SubscriptionService(
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement =
-"""|INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
-   |notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
-   |VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
-   | :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)""".trimMargin()
+        """
+        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
+            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
+        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
+            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
+        """.trimIndent()
 
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
@@ -178,7 +180,10 @@ class SubscriptionService(
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
 
-        subscriptionUpdateInput.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
+        val subscriptionInputWithModifiedAt = parsedInput.first
+            .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+
+        subscriptionInputWithModifiedAt.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
             when (it.key) {
                 "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>
@@ -197,13 +202,10 @@ class SubscriptionService(
                     val value = it.value.toSqlValue(it.key)
 
                     val updateStatement = Update.update(columnName, value)
-                    updates.add(prepareUpdateSubOnId(it.key, updateStatement, subscriptionId))
+                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, updateStatement))
                 }
             }
         }
-
-        val updateModifiedAtStatement = Update.update("modified_at", Instant.now().atZone(ZoneOffset.UTC))
-        updates.add(prepareUpdateSubOnId("modifiedAt", updateModifiedAtStatement, subscriptionId))
 
         return updates.toFlux()
             .flatMap { updateOperation ->
@@ -226,11 +228,15 @@ class SubscriptionService(
             .map { it.t1.size }
     }
 
-    private fun prepareUpdateSubOnId(attributeName: String, update: Update, id: String): Mono<Int> {
+    private fun updateSubscriptionAttribute(
+        subscriptionId: String,
+        attributeName: String,
+        updateStatement: Update
+    ): Mono<Int> {
         return databaseClient.update()
             .table("subscription")
-            .using(update)
-            .matching(Criteria.where("id").`is`(id))
+            .using(updateStatement)
+            .matching(Criteria.where("id").`is`(subscriptionId))
             .fetch()
             .rowsUpdated()
             .doOnError { e ->

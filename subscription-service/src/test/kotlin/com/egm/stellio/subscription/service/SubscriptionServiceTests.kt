@@ -211,8 +211,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                             it.idPattern == "urn:ngsi-ld:Beekeeper:1234*"
                     } &&
                     it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
-                    it.geoQ == null &&
-                    it.createdAt != null
+                    it.geoQ == null
             }
             .verifyComplete()
     }
@@ -233,8 +232,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     Endpoint.AcceptType.JSONLD,
                     null
                 ) &&
-                    it.entities.size == 1 &&
-                    it.createdAt != null
+                    it.entities.size == 1
             }
             .verifyComplete()
     }
@@ -259,8 +257,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     georel = "within",
                     geometry = GeoQuery.GeometryType.Polygon,
                     coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
-                ) &&
-                    it.createdAt != null
+                )
             }
             .verifyComplete()
     }
@@ -281,8 +278,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                 ) &&
                     it.entities.size == 2 &&
-                    it.isActive &&
-                    it.createdAt != null
+                    it.isActive
             }
             .verifyComplete()
     }
@@ -303,8 +299,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     null
                 ) &&
                     it.entities.size == 1 &&
-                    !it.isActive &&
-                    it.createdAt != null
+                    !it.isActive
             }
             .verifyComplete()
     }
@@ -318,8 +313,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 4" &&
                     it.description == "My beautiful subscription" &&
                     it.entities.size == 1 &&
-                    it.watchedAttributes!! == listOf("incoming", "outgoing") &&
-                    it.createdAt != null
+                    it.watchedAttributes!! == listOf("incoming", "outgoing")
             }
             .verifyComplete()
     }
@@ -333,8 +327,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.entities.size == 2 &&
-                    it.watchedAttributes == null &&
-                    it.createdAt != null
+                    it.watchedAttributes == null
             }
             .verifyComplete()
     }
@@ -689,8 +682,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                it.isActive &&
-                    it.modifiedAt != null
+                it.isActive && it.modifiedAt != null
             }
             .verifyComplete()
     }
@@ -704,8 +696,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                !it.isActive &&
-                    it.modifiedAt != null
+                !it.isActive && it.modifiedAt != null
             }
             .verifyComplete()
     }
@@ -721,7 +712,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.watchedAttributes!! == listOf("incoming", "temperature") &&
-                    it.modifiedAt != null
+                it.modifiedAt != null
             }
             .verifyComplete()
     }

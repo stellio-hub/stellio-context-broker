@@ -61,24 +61,6 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
             .exchange()
             .expectStatus().isOk
-
-        verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
-        verify { subscriptionService.getById(subscription.id) }
-    }
-
-    @Test
-    fun `get subscription by id should return 200 without sysAttrs when options query param doesn't specify it`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
-        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
-            .exchange()
-            .expectStatus().isOk
             .expectBody()
             .jsonPath("$..createdAt").doesNotExist()
             .jsonPath("$..modifiedAt").doesNotExist()

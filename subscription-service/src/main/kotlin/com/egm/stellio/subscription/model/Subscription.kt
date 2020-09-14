@@ -23,23 +23,6 @@ data class Subscription(
     val notification: NotificationParams,
     val isActive: Boolean = true
 ) {
-    companion object {
-        fun toJson(subscriptions: List<Subscription>, includeSysAttrs: Boolean): String {
-            return if (includeSysAttrs)
-                JsonUtils.serializeObject(subscriptions)
-            else
-                serializeWithoutSysAttrs(subscriptions)
-        }
-
-        private fun serializeWithoutSysAttrs(input: Any) =
-            JsonUtils.serializeObject(
-                input,
-                Subscription::class,
-                SysAttrsMixinFilter::class,
-                "sysAttrs",
-                setOf("createdAt", "modifiedAt")
-            )
-    }
     fun expandTypes(context: List<String>) {
         this.entities.forEach {
             it.type = JsonLdUtils.expandJsonLdKey(it.type, context)!!
@@ -49,13 +32,29 @@ data class Subscription(
         }
     }
 
-    fun toJson(includeSysAttrs: Boolean): String {
+    fun toJson(includeSysAttrs: Boolean = false): String {
         return if (includeSysAttrs)
             JsonUtils.serializeObject(this)
         else
             serializeWithoutSysAttrs(this)
     }
 }
+
+fun List<Subscription>.toJson(includeSysAttrs: Boolean = false): String {
+    return if (includeSysAttrs)
+        JsonUtils.serializeObject(this)
+    else
+        serializeWithoutSysAttrs(this)
+}
+
+private fun serializeWithoutSysAttrs(input: Any) =
+    JsonUtils.serializeObject(
+        input,
+        Subscription::class,
+        SysAttrsMixinFilter::class,
+        "sysAttrs",
+        setOf("createdAt", "modifiedAt")
+    )
 
 @JsonFilter("sysAttrs")
 class SysAttrsMixinFilter

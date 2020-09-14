@@ -68,7 +68,20 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun bootstrapSubscriptions() {
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
-        val subscription1 = gimmeRawSubscription(withGeoQuery = false, withEndpointInfo = false).copy(
+        createSubscription1()
+        createSubscription2()
+        createSubscription3()
+        createSubscription4()
+        createSubscription5()
+        createSubscription6()
+    }
+
+    private fun createSubscription1() {
+        val subscription1 = gimmeRawSubscription(
+            withGeoQuery = false,
+            withEndpointInfo = false,
+            withNotifParams = Pair(false, listOf("incoming"))
+        ).copy(
             name = "Subscription 1",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive"),
@@ -77,8 +90,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription1, MOCK_USER_SUB).block()
         subscription1Id = subscription1.id
+    }
 
-        val subscription2 = gimmeRawSubscription(withGeoQuery = true, withEndpointInfo = true).copy(
+    private fun createSubscription2() {
+        val subscription2 = gimmeRawSubscription(
+            withGeoQuery = true,
+            withEndpointInfo = true,
+            withNotifParams = Pair(false, listOf("incoming"))
+        ).copy(
             name = "Subscription 2",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
@@ -87,8 +106,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription2, MOCK_USER_SUB).block()
         subscription2Id = subscription2.id
+    }
 
-        val subscription3 = gimmeRawSubscription(withQuery = true, withEndpointInfo = false).copy(
+    private fun createSubscription3() {
+        val subscription3 = gimmeRawSubscription(
+            withQuery = true,
+            withEndpointInfo = false,
+            withNotifParams = Pair(false, listOf("incoming"))
+        ).copy(
             name = "Subscription 3",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Apiary")
@@ -97,8 +122,12 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription3, MOCK_USER_SUB).block()
         subscription3Id = subscription3.id
+    }
 
-        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true, withEndpointInfo = false).copy(
+    private fun createSubscription4() {
+        val subscription4 = gimmeRawSubscription(withQuery = true, withGeoQuery = true, withEndpointInfo = false,
+            withNotifParams = Pair(false, listOf("incoming"))
+        ).copy(
             name = "Subscription 4",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive")
@@ -108,8 +137,10 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription4, MOCK_USER_SUB).block()
         subscription4Id = subscription4.id
+    }
 
-        val subscription5 = gimmeRawSubscription().copy(
+    private fun createSubscription5() {
+        val subscription5 = gimmeRawSubscription(withNotifParams = Pair(false, listOf("incoming"))).copy(
             name = "Subscription 5",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77", idPattern = null, type = "smartDoor")
@@ -118,8 +149,10 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         subscriptionService.create(subscription5, MOCK_USER_SUB).block()
         subscription5Id = subscription5.id
+    }
 
-        val subscription6 = gimmeRawSubscription().copy(
+    private fun createSubscription6() {
+        val subscription6 = gimmeRawSubscription(withNotifParams = Pair(false, listOf("incoming"))).copy(
             name = "Subscription 6",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:88", idPattern = null, type = "smartDoor")
@@ -197,7 +230,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 1" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
                     it.notification.endpoint ==
                     Endpoint(
                         URI("http://localhost:8089/notification"),
@@ -226,7 +259,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.description == "My beautiful subscription" &&
                     it.q == "speed>50;foodName==dietary fibres" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -246,7 +279,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -271,7 +304,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -292,7 +325,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 4" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.KEY_VALUES &&
+                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,

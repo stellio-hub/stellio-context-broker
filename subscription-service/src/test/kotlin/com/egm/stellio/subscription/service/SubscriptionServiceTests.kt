@@ -67,7 +67,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @BeforeAll
     fun bootstrapSubscriptions() {
         every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         createSubscription1()
         createSubscription2()
         createSubscription3()

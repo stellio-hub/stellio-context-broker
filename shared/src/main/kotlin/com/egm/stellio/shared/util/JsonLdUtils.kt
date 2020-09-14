@@ -278,6 +278,35 @@ object JsonLdUtils {
         entities.map {
             it.compact()
         }
+
+    fun filterJsonldMapOnAttributes(input: Map<String, Any>, includedAttributes: Set<String>): Map<String, Any> {
+        return if (includedAttributes.isEmpty()) {
+            input
+        } else {
+            val mandatoryKeys = setOf("id", "type", "@context")
+            val includedKeys = mandatoryKeys.plus(includedAttributes)
+            input.filterKeys { includedKeys.contains(it) }
+        }
+    }
+
+    fun simplifyJsonldMap(input: Map<String, Any>): Map<String, Any> {
+        return input.map { (key, value) -> key to simplifyValueIfNeeded(value) }.toMap()
+    }
+
+    private fun simplifyValueIfNeeded(value: Any): Any {
+        return when (value) {
+            is Map<*, *> -> simplifyValue(value)
+            else -> value
+        }
+    }
+
+    private fun simplifyValue(value: Map<*, *>): Any {
+        return when (value["type"]) {
+            "Property", "GeoProperty" -> value.getOrDefault("value", value)!!
+            "Relationship" -> value.getOrDefault("object", value)!!
+            else -> value
+        }
+    }
 }
 
 fun String.extractShortTypeFromExpanded(): String =

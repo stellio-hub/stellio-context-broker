@@ -5,10 +5,11 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.firebase.FCMService
+import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -51,7 +52,8 @@ class NotificationService(
         entityId: String,
         entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
-        val notification = Notification(subscriptionId = subscription.id, data = compactEntities(listOf(entity)))
+        val processedEntity = buildNotifData(entity, subscription.notification)
+        val notification = Notification(subscriptionId = subscription.id, data = processedEntity)
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
@@ -81,6 +83,16 @@ class NotificationService(
                     applicationEventPublisher.publishEvent(notificationEvent)
                 }
         }
+    }
+
+    private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
+        val filteredEntity = JsonLdUtils.filterJsonldMapOnAttributes(entity.compact(), params.attributes.toSet())
+        val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
+            JsonLdUtils.simplifyJsonldMap(filteredEntity)
+        else
+            filteredEntity
+
+        return listOf(processedEntity)
     }
 
     fun callFCMSubscriber(

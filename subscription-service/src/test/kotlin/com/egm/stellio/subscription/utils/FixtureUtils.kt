@@ -13,6 +13,8 @@ fun gimmeRawSubscription(
     withQuery: Boolean = true,
     withGeoQuery: Boolean = true,
     withEndpointInfo: Boolean = true,
+    withKeyValues: Boolean = false,
+    withAttributes: List<String> = emptyList(),
     withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
@@ -47,8 +49,11 @@ fun gimmeRawSubscription(
         entities = emptySet(),
         geoQ = geoQuery,
         notification = NotificationParams(
-            attributes = listOf("incoming"),
-            format = NotificationParams.FormatType.KEY_VALUES,
+            attributes = withAttributes,
+            format = if (withKeyValues)
+                NotificationParams.FormatType.KEY_VALUES
+            else
+                NotificationParams.FormatType.NORMALIZED,
             endpoint = Endpoint(
                 uri = URI.create("http://localhost:8089/notification"),
                 accept = Endpoint.AcceptType.JSONLD,

@@ -334,7 +334,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should load and fill a persisted subscription with the correct format for temporal values`() {
+        val createdAt = Instant.now().atZone(ZoneOffset.UTC)
         val subscription = gimmeRawSubscription().copy(
+            createdAt = createdAt,
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77", idPattern = null, type = "smartDoor")
             )
@@ -355,7 +357,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
                 it.notification.lastNotification == notifiedAt &&
-                    it.notification.lastSuccess == notifiedAt
+                    it.notification.lastSuccess == notifiedAt &&
+                    it.createdAt.isEqual(createdAt)
             }
             .verifyComplete()
     }
@@ -679,7 +682,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                it.isActive
+                it.isActive && it.modifiedAt != null
             }
             .verifyComplete()
     }
@@ -693,7 +696,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                !it.isActive
+                !it.isActive && it.modifiedAt != null
             }
             .verifyComplete()
     }
@@ -708,7 +711,8 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                it.watchedAttributes!! == listOf("incoming", "temperature")
+                it.watchedAttributes!! == listOf("incoming", "temperature") &&
+                    it.modifiedAt != null
             }
             .verifyComplete()
     }

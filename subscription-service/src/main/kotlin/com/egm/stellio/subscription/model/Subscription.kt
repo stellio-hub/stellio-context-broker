@@ -1,13 +1,20 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils
+import com.fasterxml.jackson.annotation.JsonFilter
 import org.springframework.data.annotation.Id
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.UUID
 
 data class Subscription(
     @Id val id: String = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}",
     val type: String = "Subscription",
     val name: String? = null,
+    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
+    val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,
     val entities: Set<EntityInfo>,
     val watchedAttributes: List<String>? = null,
@@ -24,4 +31,30 @@ data class Subscription(
             JsonLdUtils.expandJsonLdKey(it, context)!!
         }
     }
+
+    fun toJson(includeSysAttrs: Boolean = false): String {
+        return if (includeSysAttrs)
+            JsonUtils.serializeObject(this)
+        else
+            serializeWithoutSysAttrs(this)
+    }
 }
+
+fun List<Subscription>.toJson(includeSysAttrs: Boolean = false): String {
+    return if (includeSysAttrs)
+        JsonUtils.serializeObject(this)
+    else
+        serializeWithoutSysAttrs(this)
+}
+
+private fun serializeWithoutSysAttrs(input: Any) =
+    JsonUtils.serializeObject(
+        input,
+        Subscription::class,
+        SysAttrsMixinFilter::class,
+        "sysAttrs",
+        setOf("createdAt", "modifiedAt")
+    )
+
+@JsonFilter("sysAttrs")
+class SysAttrsMixinFilter

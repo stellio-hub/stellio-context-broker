@@ -6,11 +6,14 @@ import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
 
 fun gimmeRawSubscription(
     withQuery: Boolean = true,
     withGeoQuery: Boolean = true,
     withEndpointInfo: Boolean = true,
+    withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
     val q =
@@ -35,8 +38,10 @@ fun gimmeRawSubscription(
         else
             null
 
+    val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
     return Subscription(
         name = "My Subscription",
+        modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",
         q = q,
         entities = emptySet(),

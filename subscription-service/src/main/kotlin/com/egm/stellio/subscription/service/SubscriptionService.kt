@@ -37,6 +37,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
+import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
@@ -52,14 +53,17 @@ class SubscriptionService(
     fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement =
             """
-            INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
-            VALUES(:id, :type, :name, :description, :watched_attributes, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
+        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
+            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
+        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
+            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
             """.trimIndent()
 
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
             .bind("name", subscription.name)
+            .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
             .bind("q", subscription.q)
@@ -135,8 +139,8 @@ class SubscriptionService(
     fun getById(id: String): Mono<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
+                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
@@ -176,7 +180,10 @@ class SubscriptionService(
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
 
-        subscriptionUpdateInput.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
+        val subscriptionInputWithModifiedAt = parsedInput.first
+            .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+
+        subscriptionInputWithModifiedAt.filterKeys { it !in JsonLdUtils.JSONLD_ENTITY_CORE_PROPERTIES }.forEach {
             when (it.key) {
                 "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>
@@ -193,21 +200,7 @@ class SubscriptionService(
                 else -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
-
-                    val updateStatement = Update.update(columnName, value)
-                    updates.add(
-                        databaseClient.update()
-                            .table("subscription")
-                            .using(updateStatement)
-                            .matching(Criteria.where("id").`is`(subscriptionId))
-                            .fetch()
-                            .rowsUpdated()
-                            .doOnError { e ->
-                                throw BadRequestDataException(
-                                    e.message ?: "Could not update attribute ${it.key}"
-                                )
-                            }
-                    )
+                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
             }
         }
@@ -233,6 +226,25 @@ class SubscriptionService(
             .map { it.t1.size }
     }
 
+    private fun updateSubscriptionAttribute(
+        subscriptionId: String,
+        attributeName: String,
+        columnName: String,
+        value: Any?
+    ): Mono<Int> {
+        val updateStatement = Update.update(columnName, value)
+        return databaseClient.update()
+            .table("subscription")
+            .using(updateStatement)
+            .matching(Criteria.where("id").`is`(subscriptionId))
+            .fetch()
+            .rowsUpdated()
+            .doOnError { e ->
+                throw BadRequestDataException(
+                    e.message ?: "Could not update attribute $attributeName"
+                )
+            }
+    }
     fun updateGeometryQuery(subscriptionId: String, geoQuery: Map<String, Any>): Mono<Int> {
         try {
             val firstValue = geoQuery.entries.iterator().next()
@@ -368,8 +380,8 @@ class SubscriptionService(
     fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
+                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
@@ -516,6 +528,8 @@ class SubscriptionService(
             id = row.get("sub_id", String::class.java)!!,
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
+            createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
+            modifiedAt = row.get("modified_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             description = row.get("description", String::class.java),
             watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
             q = row.get("q", String::class.java),

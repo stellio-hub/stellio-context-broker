@@ -61,6 +61,30 @@ class SubscriptionHandlerTests {
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
             .exchange()
             .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$..createdAt").doesNotExist()
+            .jsonPath("$..modifiedAt").doesNotExist()
+
+        verify { subscriptionService.exists(subscription.id) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.getById(subscription.id) }
+    }
+
+    @Test
+    fun `get subscription by id should return 200 with sysAttrs when options query param specify it`() {
+        val subscription = gimmeRawSubscription(withModifiedAt = true)
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
+        every { subscriptionService.getById(any()) } returns Mono.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/${subscription.id}?options=sysAttrs")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$..createdAt").exists()
+            .jsonPath("$..modifiedAt").exists()
 
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
@@ -177,6 +201,40 @@ class SubscriptionHandlerTests {
                 } 
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `query subscriptions should return 200 without sysAttrs when options query param doesn't specify it`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(1)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().doesNotExist("Link")
+            .expectBody()
+            .jsonPath("$[0].createdAt").doesNotExist()
+            .jsonPath("$[0].modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with sysAttrs when options query param specify it`() {
+        val subscription = gimmeRawSubscription(withModifiedAt = true)
+
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(1)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions?options=sysAttrs")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().doesNotExist("Link")
+            .expectBody()
+            .jsonPath("$[0].createdAt").exists()
+            .jsonPath("$[0].modifiedAt").exists()
     }
 
     @Test

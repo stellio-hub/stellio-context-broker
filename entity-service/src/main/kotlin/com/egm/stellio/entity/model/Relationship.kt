@@ -31,14 +31,3 @@ class Relationship(
 
 fun String.toRelationshipTypeName(): String =
     this.extractShortTypeFromExpanded()
-        .map {
-            if (it.isUpperCase()) "_$it"
-            else "${it.toUpperCase()}"
-        }.joinToString("")
-
-fun String.toNgsiLdRelationshipKey(): String =
-    this.mapIndexed { index, c ->
-        if (index > 1 && this[index - 1] == '_') "$c"
-        else if (c == '_') ""
-        else "${c.toLowerCase()}"
-    }.joinToString("")

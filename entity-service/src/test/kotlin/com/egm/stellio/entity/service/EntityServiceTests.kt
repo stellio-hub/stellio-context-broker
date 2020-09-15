@@ -205,7 +205,7 @@ class EntityServiceTests {
         entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
 
         confirmVerified()
@@ -246,7 +246,7 @@ class EntityServiceTests {
         entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
@@ -300,13 +300,13 @@ class EntityServiceTests {
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { neo4jRepository.hasRelationshipOfType(any(), eq("FILLED_IN")) }
+        verify { neo4jRepository.hasRelationshipOfType(any(), eq("filledIn")) }
         verify {
             neo4jRepository.deleteEntityRelationship(
                 match {
                     it.id == sensorId
                 },
-                eq("FILLED_IN"), null, true
+                eq("filledIn"), null, true
             )
         }
         verify { neo4jRepository.createRelationshipOfSubject(any(), any(), eq("urn:ngsi-ld:FishContainment:1234")) }
@@ -513,7 +513,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
         verify {
@@ -555,7 +555,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
 
@@ -599,7 +599,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
         verify {
@@ -608,7 +608,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO", null, false
+                "connectsTo", null, false
             )
         }
 

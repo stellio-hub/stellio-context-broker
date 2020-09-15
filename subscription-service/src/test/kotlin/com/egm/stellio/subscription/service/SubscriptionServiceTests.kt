@@ -842,4 +842,5 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         assertEquals(res, true)
     }
+    
 }

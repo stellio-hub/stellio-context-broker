@@ -46,7 +46,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     private lateinit var databaseClient: DatabaseClient
 
     /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * As Spring's ApplicationEventPublisher is not easily mockable  (https://github.com/spring-projects/spring-framework/issues/18907),
      * we are directly mocking the event listener to check it receives what is expected
      */
     @MockkBean(relaxed = true)
@@ -842,5 +842,4 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         assertEquals(res, true)
     }
-    
 }

@@ -39,6 +39,7 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE_KW = "@value"
+    val JSONLD_ENTITY_CORE_PROPERTIES = setOf("id", "type", "@context")
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"

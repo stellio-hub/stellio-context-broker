@@ -183,7 +183,7 @@ class SubscriptionService(
         val subscriptionInputWithModifiedAt = parsedInput.first
             .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
 
-        subscriptionInputWithModifiedAt.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
+        subscriptionInputWithModifiedAt.filterKeys { it !in JsonLdUtils.JSONLD_ENTITY_CORE_PROPERTIES }.forEach {
             when (it.key) {
                 "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>
@@ -200,9 +200,7 @@ class SubscriptionService(
                 else -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
-
-                    val updateStatement = Update.update(columnName, value)
-                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, updateStatement))
+                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
             }
         }
@@ -231,8 +229,10 @@ class SubscriptionService(
     private fun updateSubscriptionAttribute(
         subscriptionId: String,
         attributeName: String,
-        updateStatement: Update
+        columnName: String,
+        value: Any?
     ): Mono<Int> {
+        val updateStatement = Update.update(columnName, value)
         return databaseClient.update()
             .table("subscription")
             .using(updateStatement)

@@ -419,7 +419,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 }
             )
         }
-
         assertEquals(deletionResult, 1)
     }
 

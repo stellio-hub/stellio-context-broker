@@ -1,8 +1,10 @@
 package com.egm.stellio.shared.model
 
+import java.net.URI
+
 data class EntityEvent(
     val operationType: EventType,
-    val entityId: String,
+    val entityId: URI,
     // TODO not so nice because we expect it to be not null once sent
     val entityType: String? = null,
     val attributeName: String? = null,

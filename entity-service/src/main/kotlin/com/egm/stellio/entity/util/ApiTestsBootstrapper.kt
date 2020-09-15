@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Profile("api-tests")
 @Component
@@ -32,8 +33,8 @@ class ApiTestsBootstrapper(
 
     override fun run(vararg args: String?) {
         // well, this should not happen in api-tests profile as we start from a fresh database on each run
-        val ngsiLdUserId = USER_PREFIX + apiTestUserId!!
-        val apiTestsUser = entityRepository.findById(ngsiLdUserId)
+        val ngsiLdUserId = URI.create(USER_PREFIX + apiTestUserId!!)
+        val apiTestsUser = entityRepository.findById(ngsiLdUserId.toString())
         if (!apiTestsUser.isPresent) {
             val entity = Entity(
                 id = ngsiLdUserId,

@@ -45,7 +45,8 @@ open class Attribute(
 
 ) {
     @Id
-    val id: String = "urn:ngsi-ld:$attributeType:${UUID.randomUUID()}"
+    @Convert(UriConverter::class)
+    val id: URI = URI.create("urn:ngsi-ld:$attributeType:${UUID.randomUUID()}")
 
     open fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()

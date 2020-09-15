@@ -1,5 +1,7 @@
 package com.egm.stellio.entity.authorization
 
+import java.net.URI
+
 interface AuthorizationService {
 
     companion object {
@@ -19,15 +21,15 @@ interface AuthorizationService {
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)
     }
 
-    fun userIsAdmin(userId: String): Boolean
-    fun userCanCreateEntities(userId: String): Boolean
-    fun filterEntitiesUserCanRead(entitiesId: List<String>, userId: String): List<String>
-    fun filterEntitiesUserCanUpdate(entitiesId: List<String>, userId: String): List<String>
-    fun filterEntitiesUserCanAdmin(entitiesId: List<String>, userId: String): List<String>
-    fun splitEntitiesByUserCanAdmin(entitiesId: List<String>, userId: String): Pair<List<String>, List<String>>
-    fun userCanReadEntity(entityId: String, userId: String): Boolean
-    fun userCanUpdateEntity(entityId: String, userId: String): Boolean
-    fun userIsAdminOfEntity(entityId: String, userId: String): Boolean
-    fun createAdminLink(entityId: String, userId: String)
-    fun createAdminLinks(entitiesId: List<String>, userId: String)
+    fun userIsAdmin(userId: URI): Boolean
+    fun userCanCreateEntities(userId: URI): Boolean
+    fun filterEntitiesUserCanRead(entitiesId: List<URI>, userId: URI): List<URI>
+    fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userId: URI): List<URI>
+    fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userId: URI): List<URI>
+    fun splitEntitiesByUserCanAdmin(entitiesId: List<URI>, userId: URI): Pair<List<URI>, List<URI>>
+    fun userCanReadEntity(entityId: URI, userId: URI): Boolean
+    fun userCanUpdateEntity(entityId: URI, userId: URI): Boolean
+    fun userIsAdminOfEntity(entityId: URI, userId: URI): Boolean
+    fun createAdminLink(entityId: URI, userId: URI)
+    fun createAdminLinks(entitiesId: List<URI>, userId: URI)
 }

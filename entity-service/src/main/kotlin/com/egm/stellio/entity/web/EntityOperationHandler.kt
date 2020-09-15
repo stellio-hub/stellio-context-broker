@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
@@ -123,7 +124,7 @@ class EntityOperationHandler(
             .zipWith(extractSubjectOrEmpty())
             .map { entitiesIdUserId ->
                 val (existingEntities, unknownEntities) = entityOperationService
-                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1)
+                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1.map { URI.create(it) })
 
                 val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
                     .splitEntitiesByUserCanAdmin(existingEntities, entitiesIdUserId.t2)

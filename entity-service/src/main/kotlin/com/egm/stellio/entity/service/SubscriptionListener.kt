@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 @EnableBinding(SubscriptionSink::class)
@@ -58,7 +59,7 @@ class SubscriptionListener(
         when (entityEvent.operationType) {
             EventType.CREATE -> {
                 var parsedNotification = parseJsonLdFragment(entityEvent.payload!!)
-                val subscriptionId = parsedNotification["subscriptionId"] as String
+                val subscriptionId = URI.create(parsedNotification["subscriptionId"] as String)
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
                 subscriptionHandlerService.createNotificationEntity(

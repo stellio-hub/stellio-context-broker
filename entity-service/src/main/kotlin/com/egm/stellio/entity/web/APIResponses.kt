@@ -1,7 +1,9 @@
 package com.egm.stellio.entity.web
 
+import java.net.URI
+
 data class BatchOperationResult(
-    val success: MutableList<String> = mutableListOf(),
+    val success: MutableList<URI> = mutableListOf(),
     val errors: MutableList<BatchEntityError> = mutableListOf()
 ) {
 
@@ -12,7 +14,7 @@ data class BatchOperationResult(
 }
 
 data class BatchEntityError(
-    val entityId: String,
+    val entityId: URI,
     val error: MutableList<String>
 
 )

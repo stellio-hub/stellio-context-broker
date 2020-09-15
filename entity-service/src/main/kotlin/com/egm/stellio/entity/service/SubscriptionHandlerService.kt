@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 
 @Component
 class SubscriptionHandlerService(
@@ -27,7 +28,7 @@ class SubscriptionHandlerService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun createSubscriptionEntity(id: String, type: String, properties: Map<String, Any>) {
+    fun createSubscriptionEntity(id: URI, type: String, properties: Map<String, Any>) {
         if (entityService.exists(id)) {
             logger.warn("Subscription $id already exists")
             return
@@ -51,8 +52,8 @@ class SubscriptionHandlerService(
     }
 
     @Transactional
-    fun createNotificationEntity(id: String, type: String, subscriptionId: String, properties: Map<String, Any>) {
-        val subscription = entityRepository.findById(subscriptionId)
+    fun createNotificationEntity(id: URI, type: String, subscriptionId: URI, properties: Map<String, Any>) {
+        val subscription = entityRepository.findById(subscriptionId.toString())
         if (!subscription.isPresent) {
             logger.warn("Subscription $subscriptionId does not exist")
             return

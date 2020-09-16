@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
 @ActiveProfiles("test")
@@ -33,7 +34,7 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createSubscriptionEntity(
-                "urn:ngsi-ld:Subscription:04",
+                URI.create("urn:ngsi-ld:Subscription:04"),
                 "Subscription",
                 mapOf("q" to "foodQuantity<150;foodName=='dietary fibres'")
             )
@@ -52,9 +53,9 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createNotificationEntity(
-                "urn:ngsi-ld:Notification:1234",
+                URI.create("urn:ngsi-ld:Notification:1234"),
                 "Notification",
-                "urn:ngsi-ld:Subscription:1234",
+                URI.create("urn:ngsi-ld:Subscription:1234"),
                 mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
             )
         }

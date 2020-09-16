@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.util.Optional
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionHandlerService::class])
@@ -45,7 +46,7 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should create a new subscription`() {
-        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
         val subscriptionType = "Subscription"
         val properties = mapOf(
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
@@ -68,7 +69,7 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should not create subscription if exists`() {
-        val subscriptionId = "urn:ngsi-ld:Subscription:04"
+        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
         val subscriptionType = "Subscription"
         val properties = mapOf(
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
@@ -86,9 +87,9 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should create a new notification and add a relationship to the subscription`() {
-        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
-        val notificationId = "urn:ngsi-ld:Notification:1234"
-        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610"
+        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
+        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
+        val relationshipId = URI.create("urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610")
         val notificationType = "Notification"
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
@@ -108,7 +109,7 @@ class SubscriptionHandlerServiceTests {
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { entityRepository.findById(eq(subscriptionId.toString())) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
@@ -123,10 +124,10 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should remove the last notification create a new one and update the relationship to the subscription`() {
-        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
-        val notificationId = "urn:ngsi-ld:Notification:1234"
-        val lastNotificationId = "urn:ngsi-ld:Notification:1233"
-        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610"
+        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
+        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
+        val lastNotificationId = URI.create("urn:ngsi-ld:Notification:1233")
+        val relationshipId = URI.create("urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610")
         val notificationType = "Notification"
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
@@ -153,7 +154,7 @@ class SubscriptionHandlerServiceTests {
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { entityRepository.findById(eq(subscriptionId.toString())) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
@@ -184,9 +185,9 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should not create notification if the related subscription does not exist`() {
-        val notificationId = "urn:ngsi-ld:Notification:1234"
+        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
         val notificationType = "Notification"
-        val subscriptionId = "urn:ngsi-ld:Subscription:1234"
+        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
         )
@@ -197,7 +198,7 @@ class SubscriptionHandlerServiceTests {
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId)) }
+        verify { entityRepository.findById(eq(subscriptionId.toString())) }
         verify { propertyRepository wasNot Called }
 
         confirmVerified()

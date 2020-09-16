@@ -50,7 +50,7 @@ class Neo4jRepository(
         subjectNodeInfo: SubjectNodeInfo,
         relationship: Relationship,
         targetId: URI
-    ): String {
+    ): URI {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
         val query =
             """
@@ -64,8 +64,7 @@ class Neo4jRepository(
             "subjectId" to subjectNodeInfo.id.toString(),
             "targetId" to targetId.toString()
         )
-        return session.query(query, parameters)
-            .first()["id"] as String
+        return URI.create(session.query(query, parameters).first()["id"] as String)
     }
 
     /**
@@ -495,7 +494,7 @@ class Neo4jRepository(
             .map { URI.create(it["id"] as String) }
     }
 
-    fun getObservingSensorEntity(observerId: String, propertyName: String, measureName: String): Entity? {
+    fun getObservingSensorEntity(observerId: URI, propertyName: String, measureName: String): Entity? {
         // definitely not bullet proof since we are looking for a property whose name ends with the property name
         // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
         // TODO : this will have to be resolved with a clean provisioning architecture
@@ -559,7 +558,7 @@ class Neo4jRepository(
             .map { URI.create(it["id"] as String) }
     }
 
-    fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property {
+    fun getPropertyOfSubject(subjectId: URI, propertyName: String, datasetId: URI? = null): Property {
         val query = if (datasetId == null)
             """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })

@@ -31,7 +31,7 @@ class IAMListenerTests {
         verify {
             entityService.createEntity(
                 match {
-                    it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0" &&
+                    it.id == URI.create("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") &&
                         it.properties.size == 1 &&
                         it.properties[0].compactName == "username" &&
                         it.properties[0].instances.size == 1 &&
@@ -48,7 +48,7 @@ class IAMListenerTests {
 
         iamListener.processMessage(userDeleteEvent)
 
-        verify { entityService.deleteEntity("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") }
+        verify { entityService.deleteEntity(URI.create("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")) }
         confirmVerified()
     }
 
@@ -61,7 +61,7 @@ class IAMListenerTests {
         verify {
             entityService.createEntity(
                 match {
-                    it.id == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"
+                    it.id == URI.create("urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb")
                 }
             )
         }
@@ -76,7 +76,7 @@ class IAMListenerTests {
 
         verify {
             entityService.updateEntityAttributes(
-                "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                URI.create("urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
                     it.size == 1 &&
                         it[0].compactName == "name" &&
@@ -95,7 +95,7 @@ class IAMListenerTests {
 
         iamListener.processMessage(groupDeleteEvent)
 
-        verify { entityService.deleteEntity("urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8") }
+        verify { entityService.deleteEntity(URI.create("urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8")) }
         confirmVerified()
     }
 
@@ -108,7 +108,7 @@ class IAMListenerTests {
         verify {
             entityService.createEntity(
                 match {
-                    it.id == "urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954" &&
+                    it.id == URI.create("urn:ngsi-ld:Client:191a6f0d-df07-4697-afde-da9d8a91d954") &&
                         it.properties.size == 1 &&
                         it.properties[0].compactName == "clientId" &&
                         it.properties[0].instances.size == 1 &&
@@ -125,7 +125,7 @@ class IAMListenerTests {
 
         iamListener.processMessage(clientDeleteEvent)
 
-        verify { entityService.deleteEntity("urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0") }
+        verify { entityService.deleteEntity(URI.create("urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0")) }
         confirmVerified()
     }
 
@@ -137,7 +137,7 @@ class IAMListenerTests {
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",
+                URI.create("urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5"),
                 match {
                     it.size == 1 &&
                         it[0].name == "https://ontology.eglobalmark.com/authorization#isMemberOf" &&
@@ -145,7 +145,7 @@ class IAMListenerTests {
                         (it[0] as NgsiLdRelationship).instances[0].datasetId ==
                         URI.create("7cdad168-96ee-4649-b768-a060ac2ef435") &&
                         (it[0] as NgsiLdRelationship).instances[0].objectId ==
-                        "urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435"
+                        URI.create("urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435")
                 },
                 false
             )
@@ -161,7 +161,7 @@ class IAMListenerTests {
 
         verify {
             entityService.deleteEntityAttributeInstance(
-                "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+                URI.create("urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0"),
                 "https://ontology.eglobalmark.com/authorization#isMemberOf",
                 URI.create("urn:ngsi-ld:Dataset:isMemberOf:7cdad168-96ee-4649-b768-a060ac2ef435")
             )
@@ -176,7 +176,7 @@ class IAMListenerTests {
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                URI.create("urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
                     it.size == 1 &&
                         it[0].compactName == "roles" &&
@@ -200,7 +200,7 @@ class IAMListenerTests {
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                URI.create("urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
                     it.size == 1 &&
                         it[0].compactName == "roles" &&
@@ -223,7 +223,7 @@ class IAMListenerTests {
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                URI.create("urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
                     it.size == 1 &&
                         it[0].compactName == "roles" &&
@@ -246,7 +246,7 @@ class IAMListenerTests {
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb",
+                URI.create("urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb"),
                 match {
                     it.size == 2 &&
                         it.map { it.compactName }.containsAll(listOf("roles", "serviceAccountId"))

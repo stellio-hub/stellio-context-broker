@@ -495,10 +495,10 @@ class EntityService(
         disallowOverwrite: Boolean
     ): Triple<String, Boolean, String?> {
         return if (!neo4jRepository.hasPropertyInstance(
-                EntitySubjectNode(entityId),
-                ngsiLdProperty.name,
-                ngsiLdPropertyInstance.datasetId
-            )
+            EntitySubjectNode(entityId),
+            ngsiLdProperty.name,
+            ngsiLdPropertyInstance.datasetId
+        )
         ) {
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             Triple(ngsiLdProperty.name, true, null)
@@ -526,9 +526,9 @@ class EntityService(
         disallowOverwrite: Boolean
     ): List<Triple<String, Boolean, String?>> {
         return if (!neo4jRepository.hasGeoPropertyOfName(
-                EntitySubjectNode(entityId),
-                ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
-            )
+            EntitySubjectNode(entityId),
+            ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
+        )
         ) {
             createLocationProperty(
                 entityId,
@@ -559,7 +559,7 @@ class EntityService(
         }
     }
 
-        @Transactional
+    @Transactional
     fun updateEntityAttribute(id: URI, attribute: String, payload: String, contexts: List<String>): Int {
         val expandedAttributeName = expandJsonLdKey(attribute, contexts)!!
         val attributeValue = parseJsonLdFragment(payload)["value"]!!

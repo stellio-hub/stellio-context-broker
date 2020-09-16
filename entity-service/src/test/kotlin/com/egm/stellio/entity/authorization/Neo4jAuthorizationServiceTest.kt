@@ -55,32 +55,38 @@ class Neo4jAuthorizationServiceTest {
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
         every {
-            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user")
+            neo4jAuthorizationRepository.getUserRoles(URI.create("urn:ngsi-ld:User:mock-user"))
         } returns setOf(ADMIN_ROLE_LABEL)
 
-        assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId", "mock-user"))
-        assert(neo4jAuthorizationService.userCanReadEntity("entityId", "mock-user"))
-        assert(neo4jAuthorizationService.userCanUpdateEntity("entityId", "mock-user"))
+        assert(neo4jAuthorizationService.userIsAdminOfEntity(URI.create("entityId"), URI.create("mock-user")))
+        assert(neo4jAuthorizationService.userCanReadEntity(URI.create("entityId"), URI.create("mock-user")))
+        assert(neo4jAuthorizationService.userCanUpdateEntity(URI.create("entityId"), URI.create("mock-user")))
     }
 
     @Test
     fun `it should filter entities which user has read right`() {
-        val entitiesId = listOf("entityId", "entityId2", "entityId3", "entityId4", "entityId5")
+        val entitiesId = listOf(
+            URI.create("entityId"),
+            URI.create("entityId2"),
+            URI.create("entityId3"),
+            URI.create("entityId4"),
+            URI.create("entityId5")
+        )
 
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns emptySet()
+        every { neo4jAuthorizationRepository.getUserRoles(URI.create("urn:ngsi-ld:User:mock-user")) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-                "urn:ngsi-ld:User:mock-user",
+                URI.create("urn:ngsi-ld:User:mock-user"),
                 entitiesId,
                 READ_RIGHT
             )
-        } returns listOf("entityId", "entityId3", "entityId4")
+        } returns listOf(URI.create("entityId"), URI.create("entityId3"), URI.create("entityId4"))
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, "mock-user") == listOf(
-                "entityId",
-                "entityId3",
-                "entityId4"
+            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, URI.create("mock-user")) == listOf(
+                URI.create("entityId"),
+                URI.create("entityId3"),
+                URI.create("entityId4")
             )
         )
     }
@@ -88,28 +94,27 @@ class Neo4jAuthorizationServiceTest {
     @Test
     fun `it should keep all entities if user has admin rights`() {
         every {
-            neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user")
+            neo4jAuthorizationRepository.getUserRoles(URI.create("urn:ngsi-ld:User:mock-user"))
         } returns setOf(ADMIN_ROLE_LABEL)
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId"), "mock-user") == listOf(
-                "entityId"
-            )
+            neo4jAuthorizationService.filterEntitiesUserCanRead(listOf(URI.create("entityId")), URI.create("mock-user"))
+                == listOf(URI.create("entityId"))
         )
     }
 
     @Test
     fun `it should create an admin link to an entity`() {
-        val userId = "mock-user"
-        val entityId = "urn:ngsi-ld:Apiary:01"
+        val userId = URI.create("mock-user")
+        val entityId = URI.create("urn:ngsi-ld:Apiary:01")
 
-        every { neo4jAuthorizationRepository.createAdminLinks(any(), any(), any()) } returns listOf("relId")
+        every { neo4jAuthorizationRepository.createAdminLinks(any(), any(), any()) } returns listOf(URI.create("relId"))
 
         neo4jAuthorizationService.createAdminLink(entityId, userId)
 
         verify {
             neo4jAuthorizationRepository.createAdminLinks(
-                "urn:ngsi-ld:User:$userId",
+                URI.create("urn:ngsi-ld:User:$userId"),
                 match {
                     it.size == 1 &&
                         it[0].type == listOf(AuthorizationService.R_CAN_ADMIN) &&
@@ -121,27 +126,27 @@ class Neo4jAuthorizationServiceTest {
         confirmVerified()
     }
 
-    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (String, String) -> Boolean) {
+    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (URI, URI) -> Boolean) {
         assertUserHasRightOnEntity(userHasRightOnEntity, true)
     }
 
-    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (String, String) -> Boolean) {
+    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (URI, URI) -> Boolean) {
         assertUserHasRightOnEntity(userHasRightOnEntity, false)
     }
 
     private fun assertUserHasRightOnEntity(
-        userHasRightOnEntity: (String, String) -> Boolean,
+        userHasRightOnEntity: (URI, URI) -> Boolean,
         can: Boolean
     ) {
-        every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user") } returns emptySet()
+        every { neo4jAuthorizationRepository.getUserRoles(URI.create("urn:ngsi-ld:User:mock-user")) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-                "urn:ngsi-ld:User:mock-user",
-                listOf("entityId"),
+                URI.create("urn:ngsi-ld:User:mock-user"),
+                listOf(URI.create("entityId")),
                 any()
             )
-        } returns if (can) listOf("entityId") else emptyList()
+        } returns if (can) listOf(URI.create("entityId")) else emptyList()
 
-        assert(userHasRightOnEntity("entityId", "mock-user") == can)
+        assert(userHasRightOnEntity(URI.create("entityId"), URI.create("mock-user")) == can)
     }
 }

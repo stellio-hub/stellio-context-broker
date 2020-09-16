@@ -27,7 +27,7 @@ class SubscriptionBootstrapper(
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
                 EntityInfo(
-                    id = "urn:ngsi-ld:FeedingService:018z59",
+                    id = URI.create("urn:ngsi-ld:FeedingService:018z59"),
                     idPattern = null,
                     type = "https://ontology.eglobalmark.com/aquac#FeedingService"
                 ),
@@ -56,7 +56,7 @@ class SubscriptionBootstrapper(
             )
         )
 
-        subscriptionService.create(subscription, "subscription-bootstrapper")
+        subscriptionService.create(subscription, URI.create("subscription-bootstrapper"))
             .thenEmpty {
                 logger.debug("Created subscription !")
             }

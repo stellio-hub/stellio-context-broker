@@ -146,7 +146,10 @@ class NotificationServiceTests {
                 match { entityEvent ->
                     entityEvent.entityType == "Notification" &&
                         entityEvent.operationType == EventType.CREATE &&
-                        read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
+                        read(
+                        entityEvent.payload!!,
+                        "$.subscriptionId"
+                    ) as String == subscription.id.toString() &&
                         read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
                         entityEvent.updatedEntity == null
                 }
@@ -155,7 +158,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01",
+                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -251,7 +254,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01",
+                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -295,7 +298,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01",
+                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -324,7 +327,7 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, "urn:ngsi-ld:Apiary:XYZ01", expandJsonLdEntity(rawEntity)
+                subscription, URI.create("urn:ngsi-ld:Apiary:XYZ01"), expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {
@@ -367,7 +370,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01",
+                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
                 expandJsonLdEntity(rawEntity)
             )
         )
@@ -407,7 +410,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01",
+                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
                 expandJsonLdEntity(rawEntity)
             )
         )

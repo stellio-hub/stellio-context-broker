@@ -6,6 +6,7 @@ import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class EventMessageService(
@@ -15,14 +16,14 @@ class EventMessageService(
     fun sendMessage(
         channelName: String,
         eventType: EventType,
-        entityId: String,
+        entityId: URI,
         entityType: String,
         payload: String?,
         updatedEntity: String?
     ): Boolean {
         val data = mapOf(
             "operationType" to eventType.name,
-            "entityId" to entityId,
+            "entityId" to entityId.toString(),
             "entityType" to entityType,
             "payload" to payload,
             "updatedEntity" to updatedEntity

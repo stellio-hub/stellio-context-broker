@@ -118,15 +118,16 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
-        return checkSubscriptionExists(subscriptionId)
+        val subscriptionIdUri = URI.create(subscriptionId)
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
-                subscriptionService.getById(subscriptionId)
+                subscriptionService.getById(subscriptionIdUri)
             }
             .map {
                 ResponseEntity.status(HttpStatus.OK).body(it.toJson(includeSysAttrs))
@@ -141,19 +142,20 @@ class SubscriptionHandler(
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return checkSubscriptionExists(subscriptionId)
+        val subscriptionIdUri = URI.create(subscriptionId)
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
                 body
             }
             .flatMap {
                 val parsedInput = parseSubscriptionUpdate(it)
-                subscriptionService.update(subscriptionId, parsedInput)
+                subscriptionService.update(subscriptionIdUri, parsedInput)
             }
             .map {
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -165,22 +167,23 @@ class SubscriptionHandler(
      */
     @DeleteMapping("/{subscriptionId}")
     fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
-        return checkSubscriptionExists(subscriptionId)
+        val subscriptionIdUri = URI.create(subscriptionId)
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
-                subscriptionService.delete(subscriptionId)
+                subscriptionService.delete(subscriptionIdUri)
             }
             .map {
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
-    private fun checkSubscriptionExists(subscriptionId: String): Mono<String> =
+    private fun checkSubscriptionExists(subscriptionId: URI): Mono<URI> =
         subscriptionService.exists(subscriptionId)
             .flatMap {
                 if (!it)
@@ -198,7 +201,7 @@ class SubscriptionHandler(
                     Mono.just(subscription)
             }
 
-    private fun checkIsAllowed(subscriptionId: String, userSub: String): Mono<String> =
+    private fun checkIsAllowed(subscriptionId: URI, userSub: URI): Mono<URI> =
         subscriptionService.isCreatorOf(subscriptionId, userSub)
             .flatMap {
                 if (!it)

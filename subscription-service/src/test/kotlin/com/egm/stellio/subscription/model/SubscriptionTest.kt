@@ -13,7 +13,7 @@ class SubscriptionTest {
         listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
 
     private val modifiedSubscription = Subscription(
-        id = "1",
+        id = URI.create("1"),
         entities = emptySet(),
         createdAt = Instant.now().atZone(ZoneOffset.UTC),
         modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
@@ -48,7 +48,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a list of subscriptions as JSON without createdAt and modifiedAt if not specified`() {
-        val otherModifiedSubscription = modifiedSubscription.copy(id = "2")
+        val otherModifiedSubscription = modifiedSubscription.copy(id = URI.create("2"))
         val serializedSubscription = listOf(modifiedSubscription, otherModifiedSubscription).toJson()
 
         assertFalse(serializedSubscription.contains("createdAt"))
@@ -57,7 +57,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a list of subscriptions as JSON with createdAt and modifiedAt if specified`() {
-        val otherModifiedSubscription = modifiedSubscription.copy(id = "2")
+        val otherModifiedSubscription = modifiedSubscription.copy(id = URI.create("2"))
         val serializedSubscriptions = listOf(modifiedSubscription, otherModifiedSubscription).toJson(true)
         with(serializedSubscriptions) {
             assertTrue(read<List<String>>(this, "$[*].createdAt").size == 2)

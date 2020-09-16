@@ -4,13 +4,14 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.fasterxml.jackson.annotation.JsonFilter
 import org.springframework.data.annotation.Id
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
 data class Subscription(
-    @Id val id: String = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}",
+    @Id val id: URI = URI.create("urn:ngsi-ld:Subscription:${UUID.randomUUID()}"),
     val type: String = "Subscription",
     val name: String? = null,
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),

@@ -4,6 +4,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.model.Subscription
 import java.net.URI
 import java.time.Instant
@@ -13,7 +14,7 @@ fun gimmeRawSubscription(
     withQuery: Boolean = true,
     withGeoQuery: Boolean = true,
     withEndpointInfo: Boolean = true,
-    withNotifParams: Pair<Boolean, List<String>> = Pair(false, emptyList()),
+    withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
@@ -49,10 +50,7 @@ fun gimmeRawSubscription(
         geoQ = geoQuery,
         notification = NotificationParams(
             attributes = withNotifParams.second,
-            format = if (withNotifParams.first)
-                NotificationParams.FormatType.KEY_VALUES
-            else
-                NotificationParams.FormatType.NORMALIZED,
+            format = withNotifParams.first,
             endpoint = Endpoint(
                 uri = URI.create("http://localhost:8089/notification"),
                 accept = Endpoint.AcceptType.JSONLD,

@@ -8,7 +8,7 @@ import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
-import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.jayway.jsonpath.JsonPath.read
 import com.ninjasquad.springmockk.MockkBean
@@ -79,7 +79,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription1 = gimmeRawSubscription(
             withGeoQuery = false,
             withEndpointInfo = false,
-            withNotifParams = Pair(false, listOf("incoming"))
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 1",
             entities = setOf(
@@ -95,7 +95,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription2 = gimmeRawSubscription(
             withGeoQuery = true,
             withEndpointInfo = true,
-            withNotifParams = Pair(false, listOf("incoming"))
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 2",
             entities = setOf(
@@ -111,7 +111,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription3 = gimmeRawSubscription(
             withQuery = true,
             withEndpointInfo = false,
-            withNotifParams = Pair(false, listOf("incoming"))
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 3",
             entities = setOf(
@@ -128,7 +128,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             withQuery = true,
             withGeoQuery = true,
             withEndpointInfo = false,
-            withNotifParams = Pair(false, listOf("incoming"))
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 4",
             entities = setOf(
@@ -142,7 +142,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     private fun createSubscription5() {
-        val subscription5 = gimmeRawSubscription(withNotifParams = Pair(false, listOf("incoming"))).copy(
+        val subscription5 = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
+        ).copy(
             name = "Subscription 5",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77", idPattern = null, type = "smartDoor")
@@ -154,7 +156,9 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     private fun createSubscription6() {
-        val subscription6 = gimmeRawSubscription(withNotifParams = Pair(false, listOf("incoming"))).copy(
+        val subscription6 = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
+        ).copy(
             name = "Subscription 6",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:88", idPattern = null, type = "smartDoor")
@@ -232,7 +236,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 1" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
+                    it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint ==
                     Endpoint(
                         URI("http://localhost:8089/notification"),
@@ -261,7 +265,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.description == "My beautiful subscription" &&
                     it.q == "speed>50;foodName==dietary fibres" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
+                    it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -281,7 +285,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
+                    it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -306,7 +310,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
+                    it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -327,7 +331,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 it.name == "Subscription 4" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
-                    it.notification.format == NotificationParams.FormatType.NORMALIZED &&
+                    it.notification.format == FormatType.NORMALIZED &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD,
@@ -762,7 +766,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.id == subscription1Id &&
-                    it.notification.status == NotificationParams.StatusType.OK &&
+                    it.notification.status == StatusType.OK &&
                     it.notification.timesSent == 1 &&
                     it.notification.lastNotification != null &&
                     it.notification.lastSuccess != null &&

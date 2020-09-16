@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -275,12 +276,15 @@ object JsonLdUtils {
     fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =
         mapper.writeValueAsString(jsonLdEntity.compact())
 
-    fun compactEntities(entities: List<JsonLdEntity>): List<Map<String, Any>> =
+    fun compactEntities(entities: List<JsonLdEntity>): List<CompactedJsonLdEntity> =
         entities.map {
             it.compact()
         }
 
-    fun filterJsonldMapOnAttributes(input: Map<String, Any>, includedAttributes: Set<String>): Map<String, Any> {
+    fun filterCompactedEntityOnAttributes(
+        input: CompactedJsonLdEntity,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
         return if (includedAttributes.isEmpty()) {
             input
         } else {
@@ -297,11 +301,11 @@ fun String.extractShortTypeFromExpanded(): String =
      */
     this.substringAfterLast("/").substringAfterLast("#")
 
-fun Map<String, Any>.toKeyValues(): Map<String, Any> {
-    return this.map { (key, value) -> key to simplifyValueIfNeeded(value) }.toMap()
+fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
+    return this.map { (key, value) -> key to simplifyRepresentation(value) }.toMap()
 }
 
-private fun simplifyValueIfNeeded(value: Any): Any {
+private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
         is Map<*, *> -> simplifyValue(value)
         else -> value

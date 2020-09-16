@@ -7,6 +7,7 @@ import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.configureFor
@@ -167,8 +168,8 @@ class NotificationServiceTests {
     }
 
     @Test
-    fun `it should send payload a simplified payload when format is keyValues and include the specified attributes`() {
-        val subscription = gimmeRawSubscription(withNotifParams = Pair(true, listOf("location")))
+    fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() {
+        val subscription = gimmeRawSubscription(withNotifParams = Pair(FormatType.KEY_VALUES, listOf("location")))
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
@@ -346,7 +347,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = listOf("incoming"),
-                format = NotificationParams.FormatType.KEY_VALUES,
+                format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
                     uri = URI.create("embedded-firebase"),
                     accept = Endpoint.AcceptType.JSONLD,
@@ -388,7 +389,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = listOf("incoming"),
-                format = NotificationParams.FormatType.KEY_VALUES,
+                format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
                     uri = URI.create("embedded-firebase"),
                     accept = Endpoint.AcceptType.JSONLD,

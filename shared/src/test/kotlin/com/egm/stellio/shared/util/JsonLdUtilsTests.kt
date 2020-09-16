@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -72,7 +73,7 @@ class JsonLdUtilsTests {
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
         val simplifiedMap = mapper.readValue(simplifiedJson, Map::class.java)
 
-        val resultMap = (normalizedMap as Map<String, Any>).toKeyValues()
+        val resultMap = (normalizedMap as CompactedJsonLdEntity).toKeyValues()
 
         Assertions.assertEquals(simplifiedMap, resultMap)
     }
@@ -82,8 +83,8 @@ class JsonLdUtilsTests {
         val mapper = ObjectMapper()
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
 
-        val resultMap = JsonLdUtils.filterJsonldMapOnAttributes(
-            normalizedMap as Map<String, Any>,
+        val resultMap = JsonLdUtils.filterCompactedEntityOnAttributes(
+            normalizedMap as CompactedJsonLdEntity,
             setOf("brandName", "location")
         )
 

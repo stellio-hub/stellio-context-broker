@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -86,7 +87,7 @@ class EntityListenerTest {
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq("urn:ngsi-ld:FishContainment:1234"),
+                eq(URI.create("urn:ngsi-ld:FishContainment:1234")),
                 eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
                 isNull()
             )
@@ -101,7 +102,7 @@ class EntityListenerTest {
 
         verify {
             temporalEntityAttributeService.updateEntityPayload(
-                "urn:ngsi-ld:FishContainment:1234",
+                URI.create("urn:ngsi-ld:FishContainment:1234"),
                 match {
                     it.contains("urn:ngsi-ld:FishContainment:1234")
                 }

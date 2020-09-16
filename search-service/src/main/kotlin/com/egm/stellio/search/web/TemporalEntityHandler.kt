@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
+import java.net.URI
 import java.util.Optional
 
 @RestController
@@ -51,6 +52,7 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody body: Mono<String>
     ): Mono<ResponseEntity<*>> {
+        val entityIdUri = URI.create(entityId)
         return body
             .map {
                 val contexts = checkAndGetContext(httpHeaders, it)
@@ -60,7 +62,10 @@ class TemporalEntityHandler(
                 Flux.fromIterable(expandJsonLdFragment(it.first, it.second).asIterable())
             }
             .flatMap {
-                temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
+                temporalEntityAttributeService.getForEntityAndAttribute(
+                    entityIdUri,
+                    it.key.extractShortTypeFromExpanded()
+                )
                     .map { temporalEntityAttributeUuid ->
                         Pair(temporalEntityAttributeUuid, it)
                     }
@@ -90,6 +95,7 @@ class TemporalEntityHandler(
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
+        val entityIdUri = URI.create(entityId)
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
@@ -104,8 +110,8 @@ class TemporalEntityHandler(
         }
 
         // FIXME this is way too complex, refactor it later
-        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs, contextLink)
-            .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
+        return temporalEntityAttributeService.getForEntity(entityIdUri, temporalQuery.attrs, contextLink)
+            .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityIdUri was not found")))
             .flatMap { temporalEntityAttribute ->
                 attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
                     .map { results ->

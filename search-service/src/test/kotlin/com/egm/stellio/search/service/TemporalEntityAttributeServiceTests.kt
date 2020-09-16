@@ -68,20 +68,20 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
-                "urn:ngsi-ld:BeeHive:TESTD",
+                URI.create("urn:ngsi-ld:BeeHive:TESTD"),
                 listOf("incoming", "outgoing"),
                 apicContext!!
             )
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
-                it.entityId == "urn:ngsi-ld:BeeHive:TESTD" &&
+                it.entityId == URI.create("urn:ngsi-ld:BeeHive:TESTD") &&
                     it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
                     it.attributeName == "https://ontology.eglobalmark.com/apic#incoming" &&
                     it.entityPayload !== null
             }
             .expectNextMatches {
-                it.entityId == "urn:ngsi-ld:BeeHive:TESTD"
+                it.entityId == URI.create("urn:ngsi-ld:BeeHive:TESTD")
             }
             .expectComplete()
             .verify()
@@ -101,7 +101,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .verify()
 
         verify {
-            temporalEntityAttributeService.createEntityPayload("urn:ngsi-ld:BeeHive:TESTC", any())
+            temporalEntityAttributeService.createEntityPayload(URI.create("urn:ngsi-ld:BeeHive:TESTC"), any())
         }
 
         confirmVerified()
@@ -280,7 +280,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            "urn:ngsi-ld:BeeHive:TESTC", "https://ontology.eglobalmark.com/apic#incoming"
+            URI.create("urn:ngsi-ld:BeeHive:TESTC"), "https://ontology.eglobalmark.com/apic#incoming"
         )
 
         StepVerifier.create(temporalEntityAttributeId)
@@ -296,7 +296,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            "urn:ngsi-ld:BeeHive:TESTC",
+            URI.create("urn:ngsi-ld:BeeHive:TESTC"),
             "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:01234"
         )
 
@@ -313,7 +313,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            "urn:ngsi-ld:BeeHive:TESTC",
+            URI.create("urn:ngsi-ld:BeeHive:TESTC"),
             "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:Unknown"
         )
 

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
@@ -41,7 +42,7 @@ class SubscriptionListenerTest {
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
+                        entityTemporalProperty.entityId == URI.create("urn:ngsi-ld:Subscription:1234") &&
                         entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
                 }
             )
@@ -59,7 +60,7 @@ class SubscriptionListenerTest {
 
         subscriptionListener.processNotification(notification)
 
-        verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234")) }
+        verify { temporalEntityAttributeService.getFirstForEntity(eq(URI.create("urn:ngsi-ld:Subscription:1234"))) }
         verify {
             attributeInstanceService.create(
                 match {

@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
+import java.net.URI
 
 // TODO : it should be possible to have this test not depend on the whole application
 //        (ie to only load the target service)
@@ -53,7 +54,7 @@ class EntityServiceTests {
                 .willReturn(okJson(loadSampleData("beehive.jsonld")))
         )
 
-        val entity = entityService.getEntityById("urn:ngsi-ld:BeeHive:TESTC", "Bearer 1234")
+        val entity = entityService.getEntityById(URI.create("urn:ngsi-ld:BeeHive:TESTC"), "Bearer 1234")
 
         // verify the steps in getEntityById
         StepVerifier.create(entity)

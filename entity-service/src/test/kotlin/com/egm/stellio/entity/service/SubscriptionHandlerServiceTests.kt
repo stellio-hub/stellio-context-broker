@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.util.Optional
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionHandlerService::class])
 @ActiveProfiles("test")
@@ -98,7 +97,7 @@ class SubscriptionHandlerServiceTests {
         val mockkedNotification = mockkClass(Entity::class)
         val mockkedProperty = mockkClass(Property::class)
 
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSubscription)
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedSubscription
         every { propertyRepository.save<Property>(any()) } returns mockkedProperty
         every { entityRepository.save<Entity>(any()) } returns mockkedNotification
         every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
@@ -109,7 +108,7 @@ class SubscriptionHandlerServiceTests {
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId.toString())) }
+        verify { entityRepository.getEntityCoreById(eq(subscriptionId.toString())) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
@@ -138,7 +137,7 @@ class SubscriptionHandlerServiceTests {
         val mockkedProperty = mockkClass(Property::class)
         val mockkedRelationship = mockkClass(Relationship::class)
 
-        every { entityRepository.findById(any()) } returns Optional.of(mockkedSubscription)
+        every { entityRepository.getEntityCoreById(any()) } returns mockkedSubscription
         every { propertyRepository.save<Property>(any()) } returns mockkedProperty
         every { entityRepository.save<Entity>(any()) } returns mockkedNotification
         every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedLastNotification
@@ -154,7 +153,7 @@ class SubscriptionHandlerServiceTests {
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId.toString())) }
+        verify { entityRepository.getEntityCoreById(eq(subscriptionId.toString())) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
@@ -192,13 +191,13 @@ class SubscriptionHandlerServiceTests {
             "notifiedAt" to "2020-03-10T00:00:00Z"
         )
 
-        every { entityRepository.findById(any()) } returns Optional.empty()
+        every { entityRepository.getEntityCoreById(any()) } returns null
 
         subscriptionHandlerService.createNotificationEntity(
             notificationId, notificationType, subscriptionId, properties
         )
 
-        verify { entityRepository.findById(eq(subscriptionId.toString())) }
+        verify { entityRepository.getEntityCoreById(eq(subscriptionId.toString())) }
         verify { propertyRepository wasNot Called }
 
         confirmVerified()

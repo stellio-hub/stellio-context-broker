@@ -53,8 +53,8 @@ class SubscriptionHandlerService(
 
     @Transactional
     fun createNotificationEntity(id: URI, type: String, subscriptionId: URI, properties: Map<String, Any>) {
-        val subscription = entityRepository.findById(subscriptionId.toString())
-        if (!subscription.isPresent) {
+        val subscription = entityRepository.getEntityCoreById(subscriptionId.toString())
+        if (subscription == null) {
             logger.warn("Subscription $subscriptionId does not exist")
             return
         }
@@ -101,7 +101,7 @@ class SubscriptionHandlerService(
             )
 
             neo4jRepository.createRelationshipOfSubject(
-                EntitySubjectNode(subscription.get().id),
+                EntitySubjectNode(subscription.id),
                 rawRelationship,
                 notification.id
             )

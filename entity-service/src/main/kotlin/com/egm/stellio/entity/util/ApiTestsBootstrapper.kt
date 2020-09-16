@@ -34,8 +34,8 @@ class ApiTestsBootstrapper(
     override fun run(vararg args: String?) {
         // well, this should not happen in api-tests profile as we start from a fresh database on each run
         val ngsiLdUserId = URI.create(USER_PREFIX + apiTestUserId!!)
-        val apiTestsUser = entityRepository.findById(ngsiLdUserId.toString())
-        if (!apiTestsUser.isPresent) {
+        val apiTestsUser = entityRepository.getEntityCoreById(ngsiLdUserId.toString())
+        if (apiTestsUser != null) {
             val entity = Entity(
                 id = ngsiLdUserId,
                 type = listOf(AUTHORIZATION_ONTOLOGY + USER_TYPE),

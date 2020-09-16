@@ -417,17 +417,14 @@ class EntityService(
         val updateStatuses = attributes
             .flatMap { ngsiLdAttribute ->
                 logger.debug("Fragment is of type $ngsiLdAttribute")
-                if (ngsiLdAttribute is NgsiLdRelationship)
-                    appendEntityRelationship(entityId, ngsiLdAttribute, disallowOverwrite)
-                else if (ngsiLdAttribute is NgsiLdProperty) {
-                    ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
+                when (ngsiLdAttribute) {
+                    is NgsiLdRelationship -> appendEntityRelationship(entityId, ngsiLdAttribute, disallowOverwrite)
+                    is NgsiLdProperty -> ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
                         appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
                     }
-                } else if (ngsiLdAttribute is NgsiLdGeoProperty) {
-                    appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite)
-                } else {
+                    is NgsiLdGeoProperty -> appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite)
                     // TODO we should avoid this fake else
-                    listOf(Triple("", false, "Unknown attribute type $ngsiLdAttribute"))
+                    else -> listOf(Triple("", false, "Unknown attribute type $ngsiLdAttribute"))
                 }
             }
             .toList()

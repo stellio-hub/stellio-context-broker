@@ -128,7 +128,7 @@ class EntityServiceTests {
         every { entitiesGraphBuilder.build(any()) } returns
             Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns URI.create(UUID.randomUUID().toString())
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
@@ -467,7 +467,7 @@ class EntityServiceTests {
 
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns URI.create(UUID.randomUUID().toString())
 
         entityService.createEntityProperty(entityId, "temperature", ngsiLdPropertyInstance)
 
@@ -650,7 +650,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
         every { mockkedEntity.id } returns entityId
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns URI.create(UUID.randomUUID().toString())
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -712,7 +712,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
             neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties))
-        } returns UUID.randomUUID().toString()
+        } returns URI.create(UUID.randomUUID().toString())
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 

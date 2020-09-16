@@ -30,7 +30,7 @@ class Neo4jRepository(
     private val entityRepository: EntityRepository
 ) {
 
-    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
+    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): URI {
         val query =
             """
             MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
@@ -42,8 +42,7 @@ class Neo4jRepository(
             "props" to property.nodeProperties(),
             "subjectId" to subjectNodeInfo.id.toString()
         )
-        return session.query(query, parameters)
-            .first()["id"] as String
+        return URI.create(session.query(query, parameters).first()["id"] as String)
     }
 
     fun createRelationshipOfSubject(
@@ -186,7 +185,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id
+            "attributeId" to subjectNodeInfo.id.toString()
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
@@ -199,7 +198,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id,
+            "attributeId" to subjectNodeInfo.id.toString(),
             "propertyName" to propertyName
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
@@ -213,7 +212,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id
+            "attributeId" to subjectNodeInfo.id.toString()
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }

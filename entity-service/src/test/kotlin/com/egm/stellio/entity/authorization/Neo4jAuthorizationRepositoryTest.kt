@@ -52,7 +52,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(EGM_CAN_READ, EGM_CAN_WRITE)
             )
 
-        assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
+        assert(availableRightsForEntities == listOf(URI.create("urn:ngsi-ld:Apiary:01")))
 
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:User:01"))
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:Apiary:01"))
@@ -98,7 +98,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(EGM_CAN_READ, EGM_CAN_WRITE)
             )
 
-        assert(authorizedEntitiesId == listOf("urn:ngsi-ld:Apiary:01", "urn:ngsi-ld:Apiary:02"))
+        assert(authorizedEntitiesId == listOf(URI.create("urn:ngsi-ld:Apiary:01"), URI.create("urn:ngsi-ld:Apiary:02")))
 
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:User:01"))
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:Apiary:01"))
@@ -155,7 +155,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(EGM_CAN_READ, EGM_CAN_WRITE)
             )
 
-        assert(availableRightsForEntities == listOf("urn:ngsi-ld:Apiary:01"))
+        assert(availableRightsForEntities == listOf(URI.create("urn:ngsi-ld:Apiary:01")))
 
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:Client:01"))
         neo4jRepository.deleteEntity(URI.create("urn:ngsi-ld:Apiary:01"))

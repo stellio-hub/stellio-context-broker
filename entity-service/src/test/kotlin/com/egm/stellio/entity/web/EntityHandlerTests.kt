@@ -863,9 +863,13 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify { entityService.exists(eq(URI.create("urn:ngsi-ld:BreedingService:0214"))) }
-        verify { entityService.appendEntityAttributes(
-                eq(URI.create("urn:ngsi-ld:BreedingService:0214")), any(), eq(false)
-        ) }
+        verify {
+            entityService.appendEntityAttributes(
+                eq(URI.create("urn:ngsi-ld:BreedingService:0214")),
+                any(),
+                eq(false)
+            )
+        }
 
         confirmVerified()
     }
@@ -902,9 +906,13 @@ class EntityHandlerTests {
             )
 
         verify { entityService.exists(eq(URI.create("urn:ngsi-ld:BreedingService:0214"))) }
-        verify { entityService.appendEntityAttributes(
-            eq(URI.create("urn:ngsi-ld:BreedingService:0214")), any(), eq(false)
-        ) }
+        verify {
+            entityService.appendEntityAttributes(
+                eq(URI.create("urn:ngsi-ld:BreedingService:0214")),
+                any(),
+                eq(false)
+            )
+        }
 
         confirmVerified()
     }

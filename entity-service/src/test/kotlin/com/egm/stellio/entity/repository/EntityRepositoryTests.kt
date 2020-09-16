@@ -31,7 +31,7 @@ class EntityRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        assertNotNull(entityRepository.findById("urn:ngsi-ld:Beekeeper:1233").get().modifiedAt)
+        assertNotNull(entityRepository.getEntityCoreById("urn:ngsi-ld:Beekeeper:1233")!!.modifiedAt)
         neo4jRepository.deleteEntity(entity.id)
     }
 

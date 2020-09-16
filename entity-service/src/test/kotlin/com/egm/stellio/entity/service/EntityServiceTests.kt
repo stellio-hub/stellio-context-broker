@@ -183,11 +183,13 @@ class EntityServiceTests {
 
         entityService.updateEntityLastMeasure(observation)
 
-        verify { neo4jRepository.getObservingSensorEntity(
-            URI.create("urn:ngsi-ld:Sensor:01XYZ"),
-            EGM_VENDOR_ID,
-            "incoming"
-        ) }
+        verify {
+            neo4jRepository.getObservingSensorEntity(
+                URI.create("urn:ngsi-ld:Sensor:01XYZ"),
+                EGM_VENDOR_ID,
+                "incoming"
+            )
+        }
 
         confirmVerified(neo4jRepository)
     }
@@ -313,11 +315,13 @@ class EntityServiceTests {
                 eq("filledIn"), null, true
             )
         }
-        verify { neo4jRepository.createRelationshipOfSubject(
-            any(),
-            any(),
-            eq(URI.create("urn:ngsi-ld:FishContainment:1234"))
-        ) }
+        verify {
+            neo4jRepository.createRelationshipOfSubject(
+                any(),
+                any(),
+                eq(URI.create("urn:ngsi-ld:FishContainment:1234"))
+            )
+        }
 
         confirmVerified()
     }

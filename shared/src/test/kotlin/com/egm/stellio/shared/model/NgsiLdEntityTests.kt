@@ -300,7 +300,7 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.fiware.org/ns/data-models#refDeviceModel", ngsiLdRelationship.name)
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876", ngsiLdRelationshipInstance.objectId)
+        assertEquals(URI.create("urn:ngsi-ld:DeviceModel:09876"), ngsiLdRelationshipInstance.objectId)
     }
 
     @Test
@@ -322,7 +322,7 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876", ngsiLdRelationshipInstance.objectId)
+        assertEquals(URI.create("urn:ngsi-ld:DeviceModel:09876"), ngsiLdRelationshipInstance.objectId)
         assertEquals(URI.create("urn:ngsi-ld:Dataset:01234"), ngsiLdRelationshipInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdRelationshipInstance.observedAt)
     }
@@ -541,7 +541,7 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(arrayListOf("relation1"), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(arrayListOf(URI.create("relation1")), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -568,7 +568,7 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(listOf("Radar", "relation1"), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(listOf(URI.create("Radar"), URI.create("relation1")), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -591,6 +591,8 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertTrue(listOf("relation1", "relation2").containsAll(expandedEntity.getLinkedEntitiesIds()))
+        assertTrue(
+            listOf(URI.create("relation1"), URI.create("relation2")).containsAll(expandedEntity.getLinkedEntitiesIds())
+        )
     }
 }

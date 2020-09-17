@@ -535,7 +535,7 @@ class SubscriptionService(
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java).let { URI.create(it) },
+                    id = row.get("entity_id", String::class.java)?.let { URI.create(it) },
                     idPattern = row.get("id_pattern", String::class.java),
                     type = row.get("entity_type", String::class.java)!!
                 )

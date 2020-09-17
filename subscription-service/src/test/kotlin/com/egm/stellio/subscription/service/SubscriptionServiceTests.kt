@@ -758,7 +758,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         subscriptionService.update(subscription3Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription3Id)
-        
         StepVerifier.create(updateResult)
             .expectNextMatches {
                 it.isActive && it.modifiedAt != null

@@ -5,7 +5,6 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.toNgsiLdRelationshipKey
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
@@ -297,7 +296,7 @@ class EntityService(
             .forEach {
                 val relationship = it["relOfProp"] as Relationship
                 val targetEntity = it["relOfPropObject"] as Entity
-                val relationshipKey = (it["relType"] as String).toNgsiLdRelationshipKey()
+                val relationshipKey = (it["relType"] as String)
                 logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
 
                 val relationshipValue = mapOf(
@@ -335,7 +334,7 @@ class EntityService(
         rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
             .forEach {
                 val relationship = it["relOfRel"] as Relationship
-                val innerRelType = (it["relOfRelType"] as String).toNgsiLdRelationshipKey()
+                val innerRelType = (it["relOfRelType"] as String)
                 val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
 
                 val innerRelationship = mapOf(
@@ -420,7 +419,7 @@ class EntityService(
                     val relationshipTypeName = ngsiLdAttribute.name.extractShortTypeFromExpanded()
                     if (!neo4jRepository.hasRelationshipOfType(
                         EntitySubjectNode(entityId),
-                        relationshipTypeName.toRelationshipTypeName()
+                        relationshipTypeName
                     )
                     ) {
                         createEntityRelationship(
@@ -446,7 +445,7 @@ class EntityService(
                     } else {
                         neo4jRepository.deleteEntityRelationship(
                             EntitySubjectNode(entityId),
-                            relationshipTypeName.toRelationshipTypeName()
+                            relationshipTypeName
                         )
                         createEntityRelationship(
                             entityId,
@@ -690,7 +689,7 @@ class EntityService(
             return
         }
         // Find the previous observation of the same unit for the given sensor, then create or update it
-        val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded().toRelationshipTypeName()
+        val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded()
         val observedProperty = neo4jRepository.getObservedProperty(observingEntity.id, observedByRelationshipType)
         if (observedProperty == null ||
             observedProperty.name.extractShortTypeFromExpanded() != observation.attributeName

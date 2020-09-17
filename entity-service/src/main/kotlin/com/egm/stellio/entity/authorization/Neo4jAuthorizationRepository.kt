@@ -32,7 +32,7 @@ class Neo4jAuthorizationRepository(
             return entity.id as id
             UNION
             MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
-                [:IS_MEMBER_OF]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
+                [:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
             WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id
             """.trimIndent()
@@ -54,13 +54,13 @@ class Neo4jAuthorizationRepository(
             MATCH (userEntity:Entity { id: ${'$'}userId })
             OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
             RETURN p, pgroup
             UNION
             MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
             OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:IS_MEMBER_OF]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
             RETURN p, pgroup
             """.trimIndent()
 
@@ -104,7 +104,7 @@ class Neo4jAuthorizationRepository(
             MATCH (user:Entity), (target:Entity { id: relPropAndTarget.second })
             WHERE (user.id = ${'$'}userId 
                 OR (user)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId }))
-            CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:R_CAN_ADMIN]->(target)
+            CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:rCanAdmin]->(target)
             SET r = relPropAndTarget.first
             RETURN r.id as id
         """

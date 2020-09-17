@@ -505,13 +505,14 @@ class Neo4jRepository(
             WHERE e.id = '$observerId' 
             RETURN e 
             UNION 
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
             WHERE m.name ENDS WITH '$measureName' 
             AND p.name = '$propertyName' 
             AND toLower(p.value) = toLower('$observerId') 
             RETURN e
             UNION
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_OBJECT]-()-[:IS_CONTAINED_IN]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->
+            (e:Entity)-[:HAS_OBJECT]-()-[:isContainedIn]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
             WHERE m.name ENDS WITH '$measureName' 
             AND deviceProp.name = '$propertyName' 
             AND toLower(deviceProp.value) = toLower('$observerId') 

@@ -4,10 +4,7 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.subscription.config.TimescaleBasedTests
-import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.EntityInfo
-import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.jayway.jsonpath.JsonPath.read
@@ -75,9 +72,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         createSubscription6()
     }
 
+    private fun createSubscription(subscription: Subscription): String {
+        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        return subscription.id
+    }
+
     private fun createSubscription1() {
-        val subscription1 = gimmeRawSubscription(
-            withGeoQuery = false,
+        val subscription = gimmeRawSubscription(
+            withQueryAndGeoQuery = Pair(true, false),
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
@@ -87,13 +89,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = "Beekeeper")
             )
         )
-        subscriptionService.create(subscription1, MOCK_USER_SUB).block()
-        subscription1Id = subscription1.id
+        subscription1Id = createSubscription(subscription)
     }
 
     private fun createSubscription2() {
-        val subscription2 = gimmeRawSubscription(
-            withGeoQuery = true,
+        val subscription = gimmeRawSubscription(
             withEndpointInfo = true,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
@@ -103,13 +103,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890", idPattern = null, type = "Beehive")
             )
         )
-        subscriptionService.create(subscription2, MOCK_USER_SUB).block()
-        subscription2Id = subscription2.id
+        subscription2Id = createSubscription(subscription)
     }
 
     private fun createSubscription3() {
-        val subscription3 = gimmeRawSubscription(
-            withQuery = true,
+        val subscription = gimmeRawSubscription(
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
@@ -119,14 +117,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             ),
             isActive = false
         )
-        subscriptionService.create(subscription3, MOCK_USER_SUB).block()
-        subscription3Id = subscription3.id
+        subscription3Id = createSubscription(subscription)
     }
 
     private fun createSubscription4() {
-        val subscription4 = gimmeRawSubscription(
-            withQuery = true,
-            withGeoQuery = true,
+        val subscription = gimmeRawSubscription(
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
@@ -137,12 +132,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             isActive = false,
             watchedAttributes = listOf("incoming", "outgoing")
         )
-        subscriptionService.create(subscription4, MOCK_USER_SUB).block()
-        subscription4Id = subscription4.id
+        subscription4Id = createSubscription(subscription)
     }
 
     private fun createSubscription5() {
-        val subscription5 = gimmeRawSubscription(
+        val subscription = gimmeRawSubscription(
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 5",
@@ -151,12 +145,11 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             ),
             isActive = true
         )
-        subscriptionService.create(subscription5, MOCK_USER_SUB).block()
-        subscription5Id = subscription5.id
+        subscription5Id = createSubscription(subscription)
     }
 
     private fun createSubscription6() {
-        val subscription6 = gimmeRawSubscription(
+        val subscription = gimmeRawSubscription(
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
             name = "Subscription 6",
@@ -165,8 +158,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             ),
             isActive = false
         )
-        subscriptionService.create(subscription6, MOCK_USER_SUB).block()
-        subscription6Id = subscription6.id
+        subscription6Id = createSubscription(subscription)
     }
 
     @Test

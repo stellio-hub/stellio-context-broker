@@ -11,21 +11,20 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 fun gimmeRawSubscription(
-    withQuery: Boolean = true,
-    withGeoQuery: Boolean = true,
+    withQueryAndGeoQuery: Pair<Boolean, Boolean> = Pair(true, true),
     withEndpointInfo: Boolean = true,
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
     val q =
-        if (withQuery)
+        if (withQueryAndGeoQuery.first)
             "speed>50;foodName==dietary fibres"
         else
             null
 
     val geoQuery =
-        if (withGeoQuery)
+        if (withQueryAndGeoQuery.second)
             GeoQuery(
                 georel = georel,
                 geometry = GeoQuery.GeometryType.Polygon,

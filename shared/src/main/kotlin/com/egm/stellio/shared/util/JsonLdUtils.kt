@@ -302,12 +302,14 @@ fun String.extractShortTypeFromExpanded(): String =
     this.substringAfterLast("/").substringAfterLast("#")
 
 fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
-    return this.map { (key, value) -> key to simplifyRepresentation(value) }.toMap()
+    return this.mapValues { (_, value) -> simplifyRepresentation(value) }
 }
 
 private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
+        //entity property value is always a Map
         is Map<*, *> -> simplifyValue(value)
+        // we keep id, type and @context values as they are (String and List<String>)
         else -> value
     }
 }

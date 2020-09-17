@@ -121,6 +121,7 @@ class EntityEventListenerService(
             return
         }
         val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val ngsiLdEntity = expandJsonLdEntity(jsonLdUpdatedEntity).toNgsiLdEntity()
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -132,11 +133,14 @@ class EntityEventListenerService(
         temporalEntityAttributeService.getForEntityAndAttribute(
             entityId, expandedAttributeName, datasetId
         ).zipWhen {
+            val (longitude, latitude) = ngsiLdEntity.extractCoordinatesFromLocationPoint()
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = it,
                 observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                 value = parsedAttributeValue.first,
-                measuredValue = parsedAttributeValue.second
+                measuredValue = parsedAttributeValue.second,
+                longitude = longitude,
+                latitude = latitude
             )
             attributeInstanceService.create(attributeInstance)
                 .then(
@@ -161,6 +165,7 @@ class EntityEventListenerService(
     ) {
         if (!attributeValuesNode.has("observedAt")) return
         val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val ngsiLdEntity = expandJsonLdEntity(jsonLdUpdatedEntity).toNgsiLdEntity()
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -179,11 +184,14 @@ class EntityEventListenerService(
             attributeValueType = attributeValueType,
             datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
         )
+        val (longitude, latitude) = ngsiLdEntity.extractCoordinatesFromLocationPoint()
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
             measuredValue = parsedAttributeValue.second,
-            value = parsedAttributeValue.first
+            value = parsedAttributeValue.first,
+            longitude = longitude,
+            latitude = latitude
         )
 
         temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {

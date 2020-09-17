@@ -2,6 +2,13 @@
   "id": "urn:ngsi-ld:BeeHive:TESTC",
   "type": "BeeHive",
   "createdAt": "2020-01-24T13:01:21.938Z",
+  "location": {
+      "type":"GeoProperty",
+      "value": {
+          "type": "Point",
+          "coordinates": [-8.5, 41.2]
+      }
+  },
   "name": {
     "type": "Property",
     "value": "ParisBeehive12",

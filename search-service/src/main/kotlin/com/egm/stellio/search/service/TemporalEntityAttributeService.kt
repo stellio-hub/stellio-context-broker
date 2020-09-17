@@ -79,6 +79,7 @@ class TemporalEntityAttributeService(
     fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
         val entity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         logger.debug("Analyzing create event for entity ${entity.id}")
+        val (long, lat) = entity.extractCoordinatesFromLocationPoint()
 
         val temporalProperties = entity.properties
             .filter {
@@ -118,7 +119,9 @@ class TemporalEntityAttributeService(
                     temporalEntityAttribute = temporalEntityAttribute.id,
                     observedAt = it.second.observedAt!!,
                     measuredValue = valueToDoubleOrNull(it.second.value),
-                    value = valueToStringOrNull(it.second.value)
+                    value = valueToStringOrNull(it.second.value),
+                    longitude = long,
+                    latitude = lat
                 )
 
                 Pair(temporalEntityAttribute, attributeInstance)

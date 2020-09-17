@@ -10,5 +10,7 @@ data class AttributeInstance(
     val instanceId: URI = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri(),
     val observedAt: ZonedDateTime,
     val value: String? = null,
-    val measuredValue: Double? = null
+    val measuredValue: Double? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )

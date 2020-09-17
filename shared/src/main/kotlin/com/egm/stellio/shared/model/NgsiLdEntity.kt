@@ -73,6 +73,14 @@ class NgsiLdEntity private constructor(
 
     fun getLocation(): NgsiLdGeoProperty? =
         geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
+
+    fun extractCoordinatesFromLocationPoint(): Pair<Double?, Double?> {
+        val geoPropertyInstance = getLocation()?.instances?.get(0)
+        return if (geoPropertyInstance?.geoPropertyType == "Point") {
+            Pair(geoPropertyInstance.coordinates[0] as Double?, geoPropertyInstance.coordinates[1] as Double?)
+        } else
+            Pair(null, null)
+    }
 }
 
 sealed class NgsiLdAttribute {

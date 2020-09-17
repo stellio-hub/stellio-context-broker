@@ -68,7 +68,9 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     fun `it should retrieve an observation and return the filled entity`() {
         val observation = gimmeAttributeInstance().copy(
             observedAt = observationDateTime,
-            measuredValue = 12.4
+            measuredValue = 12.4,
+            longitude = 7.2661,
+            latitude = 43.7031
         )
         attributeInstanceService.create(observation).block()
 
@@ -298,7 +300,9 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = Random.nextDouble(),
-            observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            observedAt = Instant.now().atZone(ZoneOffset.UTC),
+            longitude = 7.2661,
+            latitude = 43.7031
         )
     }
 }

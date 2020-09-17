@@ -15,6 +15,13 @@
     "object" : "urn:ngsi-ld:Beekeeper:Pascal"
   },
   "createdAt" : "2020-01-24T13:01:21.938Z",
+  "location" : {
+    "type" : "GeoProperty",
+    "value" : {
+      "type" : "Point",
+      "coordinates" : [ -8.5, 41.2 ]
+    }
+  },
   "name" : {
     "type" : "Property",
     "createdAt" : "2020-01-24T13:01:22.066Z",

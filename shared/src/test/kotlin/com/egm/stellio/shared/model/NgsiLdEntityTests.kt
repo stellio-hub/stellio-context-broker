@@ -215,8 +215,8 @@ class NgsiLdEntityTests {
             )
         }
         assertEquals(
-            "Attribute https://uri.fiware.org/ns/data-models#deviceState " +
-                "can't have more than one instance with the same datasetId",
+            "Attribute https://uri.fiware.org/ns/data-models#deviceState" +
+                " can't have more than one instance with the same datasetId",
             exception.message
         )
     }
@@ -524,6 +524,10 @@ class NgsiLdEntityTests {
         val locationInstance = location.instances[0]
         assertEquals("Point", locationInstance.geoPropertyType)
         assertEquals(listOf(24.30623, 60.07966), locationInstance.coordinates)
+
+        val (long, lat) = ngsiLdEntity.extractCoordinatesFromLocationPoint()
+        assertEquals(24.30623, long)
+        assertEquals(60.07966, lat)
     }
 
     @Test

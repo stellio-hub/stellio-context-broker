@@ -39,7 +39,14 @@ class EntityEventListenerServiceTest {
         {
             \"id\": \"$fishContainmentId\",
             \"type\": \"FishContainment\",
-            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\",
+            \"location\": {
+                \"type\": \"GeoProperty\",
+                \"value\": {
+                    \"type\": \"Point\",
+                    \"coordinates\": [ 7.2661, 43.7031 ]
+                }
+            }
         }
         """.trimIndent()
 
@@ -107,7 +114,9 @@ class EntityEventListenerServiceTest {
                 match {
                     it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
                         it.value == null &&
-                        it.measuredValue == 33869.0
+                        it.measuredValue == 33869.0 &&
+                        it.longitude == 7.2661 &&
+                        it.latitude == 43.7031
                 }
             )
         }
@@ -202,7 +211,9 @@ class EntityEventListenerServiceTest {
                     it.value == null &&
                         it.measuredValue == 33869.0 &&
                         it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid &&
+                        it.longitude == 7.2661 &&
+                        it.latitude == 43.7031
                 }
             )
         }
@@ -390,7 +401,9 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
-                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid &&
+                        it.longitude == 7.2661 &&
+                        it.latitude == 43.7031
                 }
             )
         }

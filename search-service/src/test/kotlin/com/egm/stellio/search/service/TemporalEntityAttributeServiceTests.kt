@@ -34,6 +34,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Autowired
+    @SpykBean
+    private lateinit var attributeInstanceService: AttributeInstanceService
+
+    @Autowired
     private lateinit var databaseClient: DatabaseClient
 
     @Value("\${application.jsonld.apic_context}")
@@ -335,5 +339,29 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectNextCount(0)
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should create attribute instance including longitude and latitude`() {
+        val rawEntity = loadSampleData()
+
+        StepVerifier.create(
+            temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!))
+        )
+            .expectNextMatches {
+                it == 2
+            }
+            .expectComplete()
+            .verify()
+
+        verify(exactly = 1) {
+            attributeInstanceService.create(
+                match {
+                    it.longitude == -8.5 &&
+                        it.latitude == 41.2
+                }
+            )
+        }
+        confirmVerified(attributeInstanceService)
     }
 }

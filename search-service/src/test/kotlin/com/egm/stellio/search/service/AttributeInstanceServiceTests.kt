@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -17,7 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
-import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -41,7 +41,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     @BeforeAll
     fun createTemporalEntityAttribute() {
         temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = URI.create("urn:ngsi-ld:BeeHive:TESTC"),
+            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -141,7 +141,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity atttribute`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
-            entityId = URI.create("urn:ngsi-ld:BeeHive:TESTC"),
+            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE

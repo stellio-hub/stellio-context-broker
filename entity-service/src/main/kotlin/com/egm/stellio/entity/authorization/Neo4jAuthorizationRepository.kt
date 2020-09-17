@@ -5,6 +5,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -45,7 +46,7 @@ class Neo4jAuthorizationRepository(
         )
 
         return session.query(query, parameters).map {
-            URI.create(it["id"] as String)
+            (it["id"] as String).toUri()
         }
     }
 
@@ -116,7 +117,7 @@ class Neo4jAuthorizationRepository(
         )
 
         return session.query(query, parameters).map {
-            URI.create(it["id"] as String)
+            (it["id"] as String).toUri()
         }
     }
 }

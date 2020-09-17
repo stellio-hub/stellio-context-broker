@@ -2,11 +2,11 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.util.JsonUtils.parseJsonContent
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
 import org.springframework.stereotype.Component
-import java.net.URI
 import java.time.ZonedDateTime
 
 @Component
@@ -80,7 +80,7 @@ class ObservationListener(
 
         return Observation(
             attributeName = propertyName,
-            observedBy = URI.create(propertyValues["observedBy"]["object"].asText()),
+            observedBy = (propertyValues["observedBy"]["object"].asText()).toUri(),
             observedAt = ZonedDateTime.parse(propertyValues["observedAt"].asText()),
             value = propertyValues["value"].asDouble(),
             unitCode = propertyValues["unitCode"].asText(),

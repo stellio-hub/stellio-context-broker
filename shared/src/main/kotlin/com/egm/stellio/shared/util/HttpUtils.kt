@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import org.slf4j.LoggerFactory
-import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -15,7 +14,7 @@ object HttpUtils {
         .build()
 
     fun doGet(uri: String): String? {
-        val request = HttpRequest.newBuilder().GET().uri(URI.create(uri)).build()
+        val request = HttpRequest.newBuilder().GET().uri(uri.toUri()).build()
         return try {
             val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             response.body()

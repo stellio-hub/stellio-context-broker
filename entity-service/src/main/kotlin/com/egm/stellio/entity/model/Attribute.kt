@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.NodeEntity
@@ -46,7 +47,7 @@ open class Attribute(
 ) {
     @Id
     @Convert(UriConverter::class)
-    val id: URI = URI.create("urn:ngsi-ld:$attributeType:${UUID.randomUUID()}")
+    val id: URI = "urn:ngsi-ld:$attributeType:${UUID.randomUUID()}".toUri()
 
     open fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()

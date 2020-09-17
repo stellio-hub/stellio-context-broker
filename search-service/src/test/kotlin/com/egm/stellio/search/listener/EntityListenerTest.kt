@@ -2,6 +2,7 @@ package com.egm.stellio.search.listener
 
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.confirmVerified
@@ -12,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -87,7 +87,7 @@ class EntityListenerTest {
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq(URI.create("urn:ngsi-ld:FishContainment:1234")),
+                eq("urn:ngsi-ld:FishContainment:1234".toUri()),
                 eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
                 isNull()
             )
@@ -102,7 +102,7 @@ class EntityListenerTest {
 
         verify {
             temporalEntityAttributeService.updateEntityPayload(
-                URI.create("urn:ngsi-ld:FishContainment:1234"),
+                "urn:ngsi-ld:FishContainment:1234".toUri(),
                 match {
                     it.contains("urn:ngsi-ld:FishContainment:1234")
                 }

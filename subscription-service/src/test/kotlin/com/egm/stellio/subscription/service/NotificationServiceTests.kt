@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -38,7 +39,6 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -158,7 +158,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -254,7 +254,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -298,7 +298,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -327,7 +327,7 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, URI.create("urn:ngsi-ld:Apiary:XYZ01"), expandJsonLdEntity(rawEntity)
+                subscription, "urn:ngsi-ld:Apiary:XYZ01".toUri(), expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {
@@ -352,7 +352,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = URI.create("embedded-firebase"),
+                    uri = "embedded-firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "deviceToken", value = "deviceToken-value"))
                 ),
@@ -370,7 +370,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )
@@ -394,7 +394,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = URI.create("embedded-firebase"),
+                    uri = "embedded-firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "unknownToken-key", value = "deviceToken-value"))
                 ),
@@ -410,7 +410,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                URI.create("urn:ngsi-ld:Apiary:XYZ01"),
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )

@@ -5,6 +5,7 @@ import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -48,9 +49,9 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"),
-            URI.create("urn:ngsi-ld:Device:HCMR-AQUABOX1")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         val expandedEntities = slot<List<NgsiLdEntity>>()
 
@@ -62,8 +63,8 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
-        every { authorizationService.createAdminLink(any(), eq(URI.create("mock-user"))) } just runs
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user".toUri())) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -86,7 +87,7 @@ class EntityOperationHandlerTests {
 
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
-        verify { authorizationService.createAdminLinks(entitiesIds, URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -94,15 +95,15 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 200 when an entity is targetting an unknown object`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_not_valid.json")
         val createdEntitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:FishContainment:0012")
+            "urn:ngsi-ld:FishContainment:0012".toUri()
         )
         val errors = arrayListOf(
             BatchEntityError(
-                URI.create("urn:ngsi-ld:MortalityService:014YFA9Z"),
+                "urn:ngsi-ld:MortalityService:014YFA9Z".toUri(),
                 arrayListOf("Target entity urn:ngsi-ld:BreedingService:0214 does not exist")
             ),
             BatchEntityError(
-                URI.create("urn:ngsi-ld:DeadFishes:019BN"),
+                "urn:ngsi-ld:DeadFishes:019BN".toUri(),
                 arrayListOf("Target entity urn:ngsi-ld:BreedingService:0214 does not exist")
             )
         )
@@ -115,7 +116,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             errors
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -147,7 +148,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -155,11 +156,11 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 200 when some entities already exist`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
-            URI.create("urn:ngsi-ld:Device:HCMR-AQUABOX1")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         val existingEntity = mockk<NgsiLdEntity>()
-        every { existingEntity.id } returns URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen")
+        every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(existingEntity),
@@ -169,7 +170,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -196,7 +197,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -204,7 +205,7 @@ class EntityOperationHandlerTests {
     fun `create batch should not authorize user without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -227,11 +228,11 @@ class EntityOperationHandlerTests {
     fun `upsert batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
         )
         val entitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"),
-            URI.create("urn:ngsi-ld:Device:HCMR-AQUABOX1")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         val createdBatchResult = BatchOperationResult(
             createdEntitiesIds,
@@ -251,9 +252,9 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), URI.create("mock-user"))
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
         } returns emptyList()
 
         webClient.post()
@@ -275,7 +276,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -284,11 +285,11 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val errors = arrayListOf(
             BatchEntityError(
-                URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
                 arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
             ),
             BatchEntityError(
-                URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"),
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
                 arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
             )
         )
@@ -305,9 +306,9 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             errors
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), URI.create("mock-user"))
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
         } returns emptyList()
 
         webClient.post()
@@ -338,7 +339,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -346,9 +347,9 @@ class EntityOperationHandlerTests {
     fun `upsert batch entity without option should replace entities`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val entitiesIds = arrayListOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"),
-            URI.create("urn:ngsi-ld:Device:HCMR-AQUABOX1")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         val existingEntities = emptyList<NgsiLdEntity>()
 
@@ -364,9 +365,9 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), URI.create("mock-user"))
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
         } returns emptyList()
 
         webClient.post()
@@ -388,7 +389,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
         confirmVerified()
     }
 
@@ -396,10 +397,10 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to create entities without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
 
         val expandedEntity = mockk<NgsiLdEntity>()
-        every { expandedEntity.id } returns URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature")
+        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
         val nonExistingEntities = listOf(expandedEntity)
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
@@ -410,9 +411,9 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), URI.create("mock-user"))
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
         } returns emptyList()
 
         webClient.post()
@@ -442,30 +443,30 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to updates entities without write right`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
 
         val entitiesId = listOf(
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
-            URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen")
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
         )
 
         val expandedEntity = mockk<NgsiLdEntity>()
-        every { expandedEntity.id } returns URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature")
+        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
         val expandedEntity2 = mockk<NgsiLdEntity>()
-        every { expandedEntity2.id } returns URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen")
+        every { expandedEntity2.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
         val existingEntities = listOf(expandedEntity, expandedEntity2)
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             existingEntities,
             emptyList()
         )
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
 
         val entitiesIdToUpdate = listOf(expandedEntity.id)
         every {
             authorizationService.filterEntitiesUserCanUpdate(
                 entitiesId,
-                URI.create("mock-user")
+                "mock-user".toUri()
             )
         } returns entitiesIdToUpdate
 
@@ -496,13 +497,13 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), URI.create("mock-user")) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
         confirmVerified()
     }
 
     @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
-        every { authorizationService.userCanCreateEntities(URI.create("mock-user")) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
         shouldReturn400WithBadPayload("create")
     }
 
@@ -552,9 +553,9 @@ class EntityOperationHandlerTests {
         every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
             BatchOperationResult(
                 mutableListOf(
-                    URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature"),
-                    URI.create("urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"),
-                    URI.create("urn:ngsi-ld:Device:HCMR-AQUABOX1")
+                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+                    "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
                 ),
                 mutableListOf()
             )

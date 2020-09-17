@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -525,7 +526,7 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.let { URI.create(it) },
+            id = row.get("sub_id", String::class.java)!!.let { it.toUri() },
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
@@ -535,7 +536,7 @@ class SubscriptionService(
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java)?.let { URI.create(it) },
+                    id = row.get("entity_id", String::class.java)?.let { it.toUri() },
                     idPattern = row.get("id_pattern", String::class.java),
                     type = row.get("entity_type", String::class.java)!!
                 )
@@ -562,7 +563,7 @@ class SubscriptionService(
 
     private var rowToRawSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.let { URI.create(it) },
+            id = row.get("sub_id", String::class.java)!!.let { it.toUri() },
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             description = row.get("description", String::class.java),
@@ -605,6 +606,6 @@ class SubscriptionService(
     }
 
     private var rowToSub: (Row) -> URI = { row ->
-        row.get("sub", String::class.java)!!.let { URI.create(it) }
+        row.get("sub", String::class.java)!!.let { it.toUri() }
     }
 }

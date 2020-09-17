@@ -8,11 +8,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
 import org.springframework.stereotype.Component
-import java.net.URI
 
 @Component
 @EnableBinding(IAMEventSink::class)
@@ -69,7 +69,7 @@ class IAMListener(
             entityService.deleteEntityAttributeInstance(
                 entityEvent.entityId,
                 expandJsonLdKey(entityEvent.attributeName!!, entityEvent.context!!)!!,
-                URI.create(entityEvent.datasetId!!)
+                entityEvent.datasetId!!.toUri()
             )
         } else {
             entityService.deleteEntity(entityEvent.entityId)

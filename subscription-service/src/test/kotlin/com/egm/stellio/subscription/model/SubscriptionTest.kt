@@ -1,9 +1,9 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.toUri
 import com.jayway.jsonpath.JsonPath.read
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -13,7 +13,7 @@ class SubscriptionTest {
         listOf(EndpointInfo(key = "Authorization-token", value = "Authorization-token-value"))
 
     private val modifiedSubscription = Subscription(
-        id = URI.create("1"),
+        id = "1".toUri(),
         entities = emptySet(),
         createdAt = Instant.now().atZone(ZoneOffset.UTC),
         modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
@@ -21,7 +21,7 @@ class SubscriptionTest {
             attributes = listOf("incoming"),
             format = NotificationParams.FormatType.KEY_VALUES,
             endpoint = Endpoint(
-                uri = URI.create("http://localhost:8089/notification"),
+                uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 info = endpointInfo
             ),
@@ -48,7 +48,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a list of subscriptions as JSON without createdAt and modifiedAt if not specified`() {
-        val otherModifiedSubscription = modifiedSubscription.copy(id = URI.create("2"))
+        val otherModifiedSubscription = modifiedSubscription.copy(id = "2".toUri())
         val serializedSubscription = listOf(modifiedSubscription, otherModifiedSubscription).toJson()
 
         assertFalse(serializedSubscription.contains("createdAt"))
@@ -57,7 +57,7 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a list of subscriptions as JSON with createdAt and modifiedAt if specified`() {
-        val otherModifiedSubscription = modifiedSubscription.copy(id = URI.create("2"))
+        val otherModifiedSubscription = modifiedSubscription.copy(id = "2".toUri())
         val serializedSubscriptions = listOf(modifiedSubscription, otherModifiedSubscription).toJson(true)
         with(serializedSubscriptions) {
             assertTrue(read<List<String>>(this, "$[*].createdAt").size == 2)

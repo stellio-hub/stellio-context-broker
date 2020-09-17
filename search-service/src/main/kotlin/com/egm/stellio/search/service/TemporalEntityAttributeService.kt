@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
+import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -202,7 +203,7 @@ class TemporalEntityAttributeService(
     private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->
         TemporalEntityAttribute(
             id = row.get("id", UUID::class.java)!!,
-            entityId = row.get("entity_id", String::class.java)!!.let { URI.create(it) },
+            entityId = row.get("entity_id", String::class.java)!!.let { it.toUri() },
             type = row.get("type", String::class.java)!!,
             attributeName = row.get("attribute_name", String::class.java)!!,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
@@ -211,7 +212,7 @@ class TemporalEntityAttributeService(
                     String::class.java
                 )!!
             ),
-            datasetId = row.get("dataset_id", String::class.java)?.let { URI.create(it) },
+            datasetId = row.get("dataset_id", String::class.java)?.let { it.toUri() },
             entityPayload = row.get("payload", String::class.java)
         )
     }

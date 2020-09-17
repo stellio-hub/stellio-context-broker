@@ -9,6 +9,7 @@ import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -42,7 +43,7 @@ class Neo4jRepository(
             "props" to property.nodeProperties(),
             "subjectId" to subjectNodeInfo.id.toString()
         )
-        return URI.create(session.query(query, parameters).first()["id"] as String)
+        return (session.query(query, parameters).first()["id"] as String).toUri()
     }
 
     fun createRelationshipOfSubject(
@@ -63,7 +64,7 @@ class Neo4jRepository(
             "subjectId" to subjectNodeInfo.id.toString(),
             "targetId" to targetId.toString()
         )
-        return URI.create(session.query(query, parameters).first()["id"] as String)
+        return (session.query(query, parameters).first()["id"] as String).toUri()
     }
 
     /**
@@ -490,7 +491,7 @@ class Neo4jRepository(
             """
 
         return session.query(finalQuery, emptyMap<String, Any>(), true)
-            .map { URI.create(it["id"] as String) }
+            .map { (it["id"] as String).toUri() }
     }
 
     fun getObservingSensorEntity(observerId: URI, propertyName: String, measureName: String): Entity? {
@@ -554,7 +555,7 @@ class Neo4jRepository(
         val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
         return session.query(query, mapOf("entitiesIds" to entitiesIds.map { it.toString() }), true)
-            .map { URI.create(it["id"] as String) }
+            .map { (it["id"] as String).toUri() }
     }
 
     fun getPropertyOfSubject(subjectId: URI, propertyName: String, datasetId: URI? = null): Property {

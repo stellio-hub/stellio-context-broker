@@ -8,6 +8,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -23,7 +24,7 @@ class Neo4jAuthorizationService(
     override fun userCanCreateEntities(userId: URI): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, userId)
 
     private fun userIsOneOfGivenRoles(roles: Set<String>, userId: URI): Boolean =
-        neo4jAuthorizationRepository.getUserRoles(URI.create(USER_PREFIX + userId.toString()))
+        neo4jAuthorizationRepository.getUserRoles((USER_PREFIX + userId.toString()).toUri())
             .intersect(roles)
             .isNotEmpty()
 
@@ -56,7 +57,7 @@ class Neo4jAuthorizationService(
         if (userIsAdmin(userId))
             entitiesId
         else neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            URI.create(USER_PREFIX + userId.toString()),
+            (USER_PREFIX + userId.toString()).toUri(),
             entitiesId,
             rights
         )
@@ -76,7 +77,7 @@ class Neo4jAuthorizationService(
         userId: URI
     ): Boolean =
         userIsAdmin(userId) || neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            URI.create(USER_PREFIX + userId.toString()),
+            (USER_PREFIX + userId.toString()).toUri(),
             listOf(entityId),
             rights
         ).isNotEmpty()
@@ -89,11 +90,11 @@ class Neo4jAuthorizationService(
         val relationships = entitiesId.map {
             Relationship(
                 type = listOf(R_CAN_ADMIN),
-                datasetId = URI.create("urn:ngsi-ld:Dataset:rCanAdmin:$it")
+                datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
             )
         }
         neo4jAuthorizationRepository.createAdminLinks(
-            URI.create(USER_PREFIX + userId.toString()),
+            (USER_PREFIX + userId.toString()).toUri(),
             relationships,
             entitiesId
         )

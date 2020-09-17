@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.web
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -25,7 +26,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.net.URI
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
@@ -67,7 +67,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").doesNotExist()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -88,7 +88,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").exists()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -106,7 +106,7 @@ class SubscriptionHandlerTests {
                     "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}"
             )
 
-        verify { subscriptionService.exists(URI.create("urn:ngsi-ld:Subscription:1")) }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
     }
 
     @Test
@@ -128,8 +128,8 @@ class SubscriptionHandlerTests {
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists(URI.create("urn:ngsi-ld:Subscription:1")) }
-        verify { subscriptionService.isCreatorOf(URI.create("urn:ngsi-ld:Subscription:1"), URI.create("mock-user")) }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
     }
 
     @Test
@@ -359,7 +359,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
@@ -373,7 +373,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         verify { subscriptionService.exists(eq((subscriptionId))) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
@@ -381,7 +381,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 500 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
         val parsedSubscription = parseSubscriptionUpdate(jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8))
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
@@ -400,7 +400,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
@@ -408,7 +408,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 404 if subscription to be updated has not been found`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
 
@@ -429,7 +429,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 400 if JSON-LD context is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update_incorrect_payload.json")
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
@@ -450,13 +450,13 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
     }
 
     @Test
     fun `update subscription should return a 403 if subscription does not belong to the user`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
@@ -477,7 +477,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
 
         confirmVerified(subscriptionService)
     }
@@ -496,7 +496,7 @@ class SubscriptionHandlerTests {
             .expectBody().isEmpty
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, URI.create("mock-user")) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
         verify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)
@@ -520,7 +520,7 @@ class SubscriptionHandlerTests {
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists(URI.create("urn:ngsi-ld:Subscription:1")) }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
 
         confirmVerified(subscriptionService)
     }
@@ -541,9 +541,9 @@ class SubscriptionHandlerTests {
                     "\"detail\":\"Unexpected server error\"}"
             )
 
-        verify { subscriptionService.exists(URI.create("urn:ngsi-ld:Subscription:1")) }
-        verify { subscriptionService.isCreatorOf(URI.create("urn:ngsi-ld:Subscription:1"), URI.create("mock-user")) }
-        verify { subscriptionService.delete(eq(URI.create("urn:ngsi-ld:Subscription:1"))) }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
+        verify { subscriptionService.delete(eq("urn:ngsi-ld:Subscription:1".toUri())) }
     }
 
     @Test
@@ -565,8 +565,8 @@ class SubscriptionHandlerTests {
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists(URI.create("urn:ngsi-ld:Subscription:1")) }
-        verify { subscriptionService.isCreatorOf(URI.create("urn:ngsi-ld:Subscription:1"), URI.create("mock-user")) }
+        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
     }
 
     @Test

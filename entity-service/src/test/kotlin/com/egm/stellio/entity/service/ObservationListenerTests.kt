@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.Runs
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.net.URI
 import java.time.format.DateTimeFormatter
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ObservationListener::class])
@@ -36,7 +36,7 @@ class ObservationListenerTests {
         assertEquals("incoming", observation!!.attributeName)
         assertEquals(20.7, observation.value)
         assertEquals("CEL", observation.unitCode)
-        assertEquals(URI.create("urn:sosa:Sensor:10e2073a01080065"), observation.observedBy)
+        assertEquals("urn:sosa:Sensor:10e2073a01080065".toUri(), observation.observedBy)
         assertEquals("2019-10-18T07:31:39.770Z", observation.observedAt.toString())
         assertEquals(24.30623, observation.longitude)
         assertEquals(60.07966, observation.latitude)
@@ -66,7 +66,7 @@ class ObservationListenerTests {
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
                         observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                        observation.observedBy == URI.create("urn:sosa:Sensor:10e2073a01080065") &&
+                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065".toUri() &&
                         observation.longitude == 24.30623 &&
                         observation.latitude == 60.07966
                 }
@@ -90,7 +90,7 @@ class ObservationListenerTests {
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
                         observation.observedAt.format(DateTimeFormatter.ISO_INSTANT) == "2019-10-18T07:31:39.770Z" &&
-                        observation.observedBy == URI.create("urn:sosa:Sensor:10e2073a01080065") &&
+                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065".toUri() &&
                         observation.latitude == null &&
                         observation.longitude == null
                 }

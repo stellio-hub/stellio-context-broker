@@ -22,6 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -39,7 +40,7 @@ class NgsiLdEntity private constructor(
         operator fun invoke(parsedKeys: Map<String, Any>, contexts: List<String>): NgsiLdEntity {
             if (!parsedKeys.containsKey(JSONLD_ID))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
-            val id = URI.create(parsedKeys[JSONLD_ID]!! as String)
+            val id = (parsedKeys[JSONLD_ID]!! as String).toUri()
 
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
@@ -222,7 +223,7 @@ class NgsiLdRelationshipInstance private constructor(
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
 
-            return NgsiLdRelationshipInstance(URI.create(objectId), observedAt, datasetId, properties, relationships)
+            return NgsiLdRelationshipInstance(objectId.toUri(), observedAt, datasetId, properties, relationships)
         }
     }
 
@@ -358,7 +359,7 @@ fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)
 
 fun Map<String, List<Any>>.getDatasetId(): URI? =
-    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?)?.get(JSONLD_ID)?.let { URI.create(it) }
+    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?)?.get(JSONLD_ID)?.let { it.toUri() }
 
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
     JSONLD_ID,

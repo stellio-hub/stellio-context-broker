@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import java.net.URI
 import kotlin.reflect.KClass
 
 object JsonUtils {
@@ -51,3 +52,9 @@ object JsonUtils {
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
 }
+
+fun String.toUri(): URI =
+    URI.create(this)
+
+fun List<String>.toListOfUri(): List<URI> =
+    this.map { it.toUri() }

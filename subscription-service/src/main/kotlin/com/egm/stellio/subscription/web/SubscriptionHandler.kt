@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
@@ -118,7 +119,7 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
-        val subscriptionIdUri = URI.create(subscriptionId)
+        val subscriptionIdUri = subscriptionId.toUri()
         return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
@@ -142,7 +143,7 @@ class SubscriptionHandler(
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        val subscriptionIdUri = URI.create(subscriptionId)
+        val subscriptionIdUri = subscriptionId.toUri()
         return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
@@ -167,7 +168,7 @@ class SubscriptionHandler(
      */
     @DeleteMapping("/{subscriptionId}")
     fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
-        val subscriptionIdUri = URI.create(subscriptionId)
+        val subscriptionIdUri = subscriptionId.toUri()
         return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()

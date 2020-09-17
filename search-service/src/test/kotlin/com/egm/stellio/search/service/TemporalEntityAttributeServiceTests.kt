@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.parseSampleDataToJsonLd
+import com.egm.stellio.shared.util.toUri
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
@@ -22,7 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
-import java.net.URI
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -68,20 +68,20 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
-                URI.create("urn:ngsi-ld:BeeHive:TESTD"),
+                "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                 listOf("incoming", "outgoing"),
                 apicContext!!
             )
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
-                it.entityId == URI.create("urn:ngsi-ld:BeeHive:TESTD") &&
+                it.entityId == "urn:ngsi-ld:BeeHive:TESTD".toUri() &&
                     it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
                     it.attributeName == "https://ontology.eglobalmark.com/apic#incoming" &&
                     it.entityPayload !== null
             }
             .expectNextMatches {
-                it.entityId == URI.create("urn:ngsi-ld:BeeHive:TESTD")
+                it.entityId == "urn:ngsi-ld:BeeHive:TESTD".toUri()
             }
             .expectComplete()
             .verify()
@@ -101,7 +101,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .verify()
 
         verify {
-            temporalEntityAttributeService.createEntityPayload(URI.create("urn:ngsi-ld:BeeHive:TESTC"), any())
+            temporalEntityAttributeService.createEntityPayload("urn:ngsi-ld:BeeHive:TESTC".toUri(), any())
         }
 
         confirmVerified()
@@ -202,13 +202,13 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 AttributeInstanceResult(
                     attributeName = "https://uri.etsi.org/ngsi-ld/notification",
                     value = "urn:ngsi-ld:Beehive:1234",
-                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:1234"),
+                    instanceId = "urn:ngsi-ld:Beehive:notification:1234".toUri(),
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 AttributeInstanceResult(
                     attributeName = "https://uri.etsi.org/ngsi-ld/notification",
                     value = "urn:ngsi-ld:Beehive:5678",
-                    instanceId = URI.create("urn:ngsi-ld:Beehive:notification:4567"),
+                    instanceId = "urn:ngsi-ld:Beehive:notification:4567".toUri(),
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
             )
@@ -280,7 +280,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            URI.create("urn:ngsi-ld:BeeHive:TESTC"), "https://ontology.eglobalmark.com/apic#incoming"
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(), "https://ontology.eglobalmark.com/apic#incoming"
         )
 
         StepVerifier.create(temporalEntityAttributeId)
@@ -296,7 +296,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            URI.create("urn:ngsi-ld:BeeHive:TESTC"),
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:01234"
         )
 
@@ -313,7 +313,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            URI.create("urn:ngsi-ld:BeeHive:TESTC"),
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:Unknown"
         )
 

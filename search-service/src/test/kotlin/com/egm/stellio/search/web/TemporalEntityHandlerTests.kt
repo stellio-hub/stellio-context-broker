@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.parseSampleDataToJsonLd
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -32,7 +33,6 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -87,7 +87,7 @@ class TemporalEntityHandlerTests {
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq(URI.create("urn:ngsi-ld:BeeHive:TESTC")),
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 eq("incoming")
             )
         }
@@ -313,7 +313,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = URI.create("entityId"),
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -344,12 +344,12 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == URI.create("entityId") }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
 
-        verify { entityService.getEntityById(eq(URI.create("entityId")), any()) }
+        verify { entityService.getEntityById(eq("entityId".toUri()), any()) }
         confirmVerified(entityService)
 
         verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
@@ -370,13 +370,13 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a single entity if the entity has two temporal properties`() {
         val entityTemporalProperty1 = TemporalEntityAttribute(
-            entityId = URI.create("entityId"),
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val entityTemporalProperty2 = TemporalEntityAttribute(
-            entityId = URI.create("entityId"),
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -405,7 +405,7 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == URI.create("entityId") }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
@@ -414,7 +414,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should correctly dispatch queries on entities having properties with a raw value`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = URI.create("entityId"),
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
@@ -443,7 +443,7 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == URI.create("entityId") }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)

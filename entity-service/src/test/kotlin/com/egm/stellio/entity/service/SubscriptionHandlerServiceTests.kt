@@ -9,6 +9,7 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.confirmVerified
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.net.URI
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionHandlerService::class])
 @ActiveProfiles("test")
@@ -45,7 +45,7 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should create a new subscription`() {
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
         val subscriptionType = "Subscription"
         val properties = mapOf(
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
@@ -68,7 +68,7 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should not create subscription if exists`() {
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:04")
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
         val subscriptionType = "Subscription"
         val properties = mapOf(
             "q" to "foodQuantity<150;foodName=='dietary fibres'"
@@ -86,9 +86,9 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should create a new notification and add a relationship to the subscription`() {
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
-        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
-        val relationshipId = URI.create("urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610")
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234".toUri()
+        val notificationId = "urn:ngsi-ld:Notification:1234".toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610".toUri()
         val notificationType = "Notification"
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
@@ -123,10 +123,10 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should remove the last notification create a new one and update the relationship to the subscription`() {
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
-        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
-        val lastNotificationId = URI.create("urn:ngsi-ld:Notification:1233")
-        val relationshipId = URI.create("urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610")
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234".toUri()
+        val notificationId = "urn:ngsi-ld:Notification:1234".toUri()
+        val lastNotificationId = "urn:ngsi-ld:Notification:1233".toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610".toUri()
         val notificationType = "Notification"
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
@@ -184,9 +184,9 @@ class SubscriptionHandlerServiceTests {
 
     @Test
     fun `it should not create notification if the related subscription does not exist`() {
-        val notificationId = URI.create("urn:ngsi-ld:Notification:1234")
+        val notificationId = "urn:ngsi-ld:Notification:1234".toUri()
         val notificationType = "Notification"
-        val subscriptionId = URI.create("urn:ngsi-ld:Subscription:1234")
+        val subscriptionId = "urn:ngsi-ld:Subscription:1234".toUri()
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
         )

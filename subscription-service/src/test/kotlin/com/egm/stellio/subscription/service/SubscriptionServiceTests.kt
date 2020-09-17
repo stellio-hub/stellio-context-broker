@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.matchContent
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.*
@@ -49,7 +50,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @MockkBean(relaxed = true)
     private lateinit var subscriptionsEventsListener: SubscriptionsEventsListener
 
-    private val MOCK_USER_SUB = URI.create("mock-user-sub")
+    private val MOCK_USER_SUB = "mock-user-sub".toUri()
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI
@@ -100,7 +101,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             name = "Subscription 2",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
-                EntityInfo(id = URI.create("urn:ngsi-ld:Beehive:1234567890"), idPattern = null, type = "Beehive")
+                EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = "Beehive")
             )
         )
         subscription2Id = createSubscription(subscription)
@@ -141,7 +142,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         ).copy(
             name = "Subscription 5",
             entities = setOf(
-                EntityInfo(id = URI.create("urn:ngsi-ld:smartDoor:77"), idPattern = null, type = "smartDoor")
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = "smartDoor")
             ),
             isActive = true
         )
@@ -154,7 +155,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         ).copy(
             name = "Subscription 6",
             entities = setOf(
-                EntityInfo(id = URI.create("urn:ngsi-ld:smartDoor:88"), idPattern = null, type = "smartDoor")
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = "smartDoor")
             ),
             isActive = false
         )
@@ -166,7 +167,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
             entities = setOf(
                 EntityInfo(
-                    id = URI.create("urn:ngsi-ld:FishContainment:1234567890"),
+                    id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
                     idPattern = null,
                     type = "FishContainment"
                 ),
@@ -373,7 +374,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         val subscription = gimmeRawSubscription().copy(
             createdAt = createdAt,
             entities = setOf(
-                EntityInfo(id = URI.create("urn:ngsi-ld:smartDoor:77"), idPattern = null, type = "smartDoor")
+                EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = "smartDoor")
             )
         )
         val notifiedAt = Instant.now().atZone(ZoneOffset.UTC)
@@ -424,7 +425,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not delete an unknown subscription`() {
-        val deletionResult = subscriptionService.delete(URI.create("urn:ngsi-ld:Subscription:UnknownSubscription"))
+        val deletionResult = subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription".toUri())
             .block()
 
         assertEquals(deletionResult, 0)
@@ -434,7 +435,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should retrieve a subscription matching an idPattern`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beekeeper:12345678"),
+                "urn:ngsi-ld:Beekeeper:12345678".toUri(),
                 "Beekeeper",
                 "incoming"
             )
@@ -448,7 +449,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should not retrieve a subscription if idPattern does not match`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beekeeper:9876543"),
+                "urn:ngsi-ld:Beekeeper:9876543".toUri(),
                 "Beekeeper",
                 "incoming"
             )
@@ -464,7 +465,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should retrieve a subscription matching a type and not one with non matching id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:ABCD"),
+                "urn:ngsi-ld:Beehive:ABCD".toUri(),
                 "Beehive",
                 "incoming"
             )
@@ -485,7 +486,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should retrieve a subscription matching a type and an exact id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:1234567890"),
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 "Beehive",
                 "incoming"
             )
@@ -499,7 +500,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should retrieve a subscription matching an id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:1234567890"),
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 "Beehive",
                 "incoming"
             )
@@ -513,7 +514,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should not retrieve a subscription if type does not match`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Sensor:1234567890"),
+                "urn:ngsi-ld:Sensor:1234567890".toUri(),
                 "Sensor",
                 "incoming"
             )
@@ -527,7 +528,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should retrieve an activated subscription matching an id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:smartDoor:77"),
+                "urn:ngsi-ld:smartDoor:77".toUri(),
                 "smartDoor",
                 "incoming"
             )
@@ -543,7 +544,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should not retrieve a deactivated subscription matching an id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:smartDoor:88"),
+                "urn:ngsi-ld:smartDoor:88".toUri(),
                 "smartDoor",
                 "incoming"
             )
@@ -569,7 +570,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:1234567890"),
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 "BeeHive",
                 "incoming"
             )
@@ -597,7 +598,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:1234567890"),
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 "BeeHive",
                 "incoming"
             )
@@ -625,7 +626,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
-                URI.create("urn:ngsi-ld:Beehive:1234567890"),
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
                 "BeeHive",
                 "incoming"
             )
@@ -734,7 +735,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 .expectNextMatches {
                     it.entities.contains(
                         EntityInfo(
-                            id = URI.create("urn:ngsi-ld:Beehive:123"),
+                            id = "urn:ngsi-ld:Beehive:123".toUri(),
                             idPattern = null,
                             type = "https://uri.etsi.org/ngsi-ld/default-context/Beehive"
                         )

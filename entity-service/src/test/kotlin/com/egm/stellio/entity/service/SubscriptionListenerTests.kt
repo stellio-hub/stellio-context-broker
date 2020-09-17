@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.confirmVerified
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.net.URI
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
 @ActiveProfiles("test")
@@ -34,7 +34,7 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createSubscriptionEntity(
-                URI.create("urn:ngsi-ld:Subscription:04"),
+                "urn:ngsi-ld:Subscription:04".toUri(),
                 "Subscription",
                 mapOf("q" to "foodQuantity<150;foodName=='dietary fibres'")
             )
@@ -53,9 +53,9 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createNotificationEntity(
-                URI.create("urn:ngsi-ld:Notification:1234"),
+                "urn:ngsi-ld:Notification:1234".toUri(),
                 "Notification",
-                URI.create("urn:ngsi-ld:Subscription:1234"),
+                "urn:ngsi-ld:Subscription:1234".toUri(),
                 mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
             )
         }

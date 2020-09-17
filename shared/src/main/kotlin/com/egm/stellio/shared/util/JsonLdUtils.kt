@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -39,6 +40,7 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE_KW = "@value"
+    val JSONLD_ENTITY_MANDATORY_FIELDS = setOf("id", "type", "@context")
     val JSONLD_ENTITY_CORE_PROPERTIES = setOf("id", "type", "@context")
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
@@ -274,10 +276,22 @@ object JsonLdUtils {
     fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =
         mapper.writeValueAsString(jsonLdEntity.compact())
 
-    fun compactEntities(entities: List<JsonLdEntity>): List<Map<String, Any>> =
+    fun compactEntities(entities: List<JsonLdEntity>): List<CompactedJsonLdEntity> =
         entities.map {
             it.compact()
         }
+
+    fun filterCompactedEntityOnAttributes(
+        input: CompactedJsonLdEntity,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
+        return if (includedAttributes.isEmpty()) {
+            input
+        } else {
+            val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
+            input.filterKeys { includedKeys.contains(it) }
+        }
+    }
 }
 
 fun String.extractShortTypeFromExpanded(): String =
@@ -286,3 +300,24 @@ fun String.extractShortTypeFromExpanded(): String =
      * TODO do a clean implementation using info from @context
      */
     this.substringAfterLast("/").substringAfterLast("#")
+
+fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
+    return this.mapValues { (_, value) -> simplifyRepresentation(value) }
+}
+
+private fun simplifyRepresentation(value: Any): Any {
+    return when (value) {
+        // entity property value is always a Map
+        is Map<*, *> -> simplifyValue(value)
+        // we keep id, type and @context values as they are (String and List<String>)
+        else -> value
+    }
+}
+
+private fun simplifyValue(value: Map<*, *>): Any {
+    return when (value["type"]) {
+        "Property", "GeoProperty" -> value.getOrDefault("value", value)!!
+        "Relationship" -> value.getOrDefault("object", value)!!
+        else -> value
+    }
+}

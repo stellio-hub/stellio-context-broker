@@ -14,7 +14,7 @@ class QueryUtilsTests {
 
     @Test
     fun `it should create a disjoints geoquery statement`() {
-        val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "disjoint").geoQ
+        val geoQuery = gimmeRawSubscription(georel = "disjoint").geoQ
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(24.30623, 60.07966)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
@@ -33,7 +33,7 @@ class QueryUtilsTests {
 
     @Test
     fun `it should create a maxDistance geoquery statement`() {
-        val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "near;maxDistance==2000").geoQ
+        val geoQuery = gimmeRawSubscription(georel = "near;maxDistance==2000").geoQ
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.07966, 24.30623)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
@@ -50,7 +50,7 @@ class QueryUtilsTests {
 
     @Test
     fun `it should create a minDistance geoquery statement`() {
-        val geoQuery = gimmeRawSubscription(withGeoQuery = true, georel = "near;minDistance==15").geoQ
+        val geoQuery = gimmeRawSubscription(georel = "near;minDistance==15").geoQ
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.30623, 30.07966)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
@@ -67,7 +67,7 @@ class QueryUtilsTests {
 
     @Test
     fun `it should create an sql Polygon geometry`() {
-        val geoQuery = gimmeRawSubscription(withGeoQuery = true).geoQ
+        val geoQuery = gimmeRawSubscription().geoQ
 
         val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
 
@@ -94,7 +94,7 @@ class QueryUtilsTests {
 
     @Test
     fun `it should correctly parse Polygon coordinates`() {
-        val geoQuery = gimmeRawSubscription(withGeoQuery = true).geoQ
+        val geoQuery = gimmeRawSubscription().geoQ
 
         val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates)
 

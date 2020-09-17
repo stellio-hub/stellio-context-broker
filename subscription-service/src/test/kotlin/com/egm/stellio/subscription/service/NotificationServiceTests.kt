@@ -7,6 +7,7 @@ import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.configureFor
@@ -70,6 +71,10 @@ class NotificationServiceTests {
                "name":{
                   "type":"Property",
                   "value":"ApiarySophia"
+               },
+               "excludedProp":{
+                  "type":"Property",
+                  "value":"excluded"
                },
                "location": {
                   "type": "GeoProperty",
@@ -143,6 +148,60 @@ class NotificationServiceTests {
                         entityEvent.operationType == EventType.CREATE &&
                         read(entityEvent.payload!!, "$.subscriptionId") as String == subscription.id &&
                         read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
+                        entityEvent.updatedEntity == null
+                }
+            )
+        }
+
+        verify {
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Apiary:XYZ01",
+                "https://ontology.eglobalmark.com/apic#Apiary",
+                "name"
+            )
+        }
+        verify { subscriptionService.isMatchingQuery(subscription.q, any()) }
+        verify { subscriptionService.isMatchingGeoQuery(subscription.id, any()) }
+        verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
+
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() {
+        val subscription = gimmeRawSubscription(withNotifParams = Pair(FormatType.KEY_VALUES, listOf("location")))
+
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+
+        StepVerifier.create(notificationResult)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0].second.subscriptionId == subscription.id &&
+                    it[0].second.data.size == 1 &&
+                    it[0].third
+            }
+            .expectComplete()
+            .verify()
+
+        verify(timeout = 1000, exactly = 1) {
+            notificationsEventsListener.handleNotificationEvent(
+                match { entityEvent ->
+                    entityEvent.entityType == "Notification" &&
+                        entityEvent.operationType == EventType.CREATE &&
+                        (read(entityEvent.payload!!, "$.data[*]..value") as List<String>).isEmpty() &&
+                        (read(entityEvent.payload!!, "$.data[*]..object") as List<String>).isEmpty() &&
+                        (read(entityEvent.payload!!, "$.data[*].excludedProp") as List<String>).isEmpty() &&
                         entityEvent.updatedEntity == null
                 }
             )
@@ -288,7 +347,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = listOf("incoming"),
-                format = NotificationParams.FormatType.KEY_VALUES,
+                format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
                     uri = URI.create("embedded-firebase"),
                     accept = Endpoint.AcceptType.JSONLD,
@@ -330,7 +389,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription().copy(
             notification = NotificationParams(
                 attributes = listOf("incoming"),
-                format = NotificationParams.FormatType.KEY_VALUES,
+                format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
                     uri = URI.create("embedded-firebase"),
                     accept = Endpoint.AcceptType.JSONLD,

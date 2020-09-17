@@ -5,11 +5,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 
+typealias CompactedJsonLdEntity = Map<String, Any>
+
 data class JsonLdEntity(
     val properties: Map<String, Any>,
     val contexts: List<String>
 ) {
-    fun compact(): Map<String, Any> =
+    fun compact(): CompactedJsonLdEntity =
         JsonLdProcessor.compact(properties, mapOf("@context" to contexts), JsonLdOptions())
 
     // FIXME kinda hacky but we often just need the id or type... how can it be improved?

@@ -446,7 +446,7 @@ class Neo4jRepositoryTests {
         ).id
         assertEquals(
             propertyRepository.getPropertyRelationships(updatedPropertyId.toString())[0]["relType"],
-            "NEW_REL"
+            "newRel"
         )
 
         neo4jRepository.deleteEntity(entity.id)

@@ -446,9 +446,9 @@ class EntityService(
     ): List<Triple<String, Boolean, String?>> {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
         return if (!neo4jRepository.hasRelationshipOfType(
-                EntitySubjectNode(entityId),
-                relationshipTypeName
-            )
+            EntitySubjectNode(entityId),
+            relationshipTypeName
+        )
         ) {
             createEntityRelationship(
                 entityId,

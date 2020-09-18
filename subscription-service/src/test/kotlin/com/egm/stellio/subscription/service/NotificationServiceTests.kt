@@ -212,7 +212,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01",
+                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )

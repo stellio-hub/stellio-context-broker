@@ -73,7 +73,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         createSubscription6()
     }
 
-    private fun createSubscription(subscription: Subscription): String {
+    private fun createSubscription(subscription: Subscription): URI {
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
         return subscription.id
     }

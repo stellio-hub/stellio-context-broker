@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.model.Subscription
@@ -11,8 +10,6 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import java.net.URI
-import java.net.URISyntaxException
 import kotlin.reflect.KClass
 
 object JsonUtils {
@@ -54,16 +51,3 @@ object JsonUtils {
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
 }
-
-fun String.toUri(): URI =
-    try {
-        URI(this)
-    } catch (e: URISyntaxException) {
-        throw BadRequestDataException("URIError: malformed URI $this")
-    }
-
-fun List<String>.toListOfUri(): List<URI> =
-    this.map { it.toUri() }
-
-fun List<URI>.toListOfString(): List<String> =
-    this.map { it.toString() }

@@ -7,7 +7,7 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpStatus
@@ -124,7 +124,7 @@ class EntityOperationHandler(
             .zipWith(extractSubjectOrEmpty())
             .map { entitiesIdUserId ->
                 val (existingEntities, unknownEntities) = entityOperationService
-                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1.map { it.toUri() })
+                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1.toListOfUri())
 
                 val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
                     .splitEntitiesByUserCanAdmin(existingEntities, entitiesIdUserId.t2)

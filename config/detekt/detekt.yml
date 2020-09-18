@@ -13,11 +13,6 @@ complexity:
     thresholdInClasses: 20
     thresholdInInterfaces: 20
     thresholdInObjects: 20
-  LongParameterList:
-    functionThreshold: 7
-    constructorThreshold: 9
-  NestedBlockDepth:
-    threshold: 6
 
 style:
   WildcardImport:

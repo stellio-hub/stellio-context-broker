@@ -42,7 +42,7 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "props" to property.nodeProperties(),
-            "subjectId" to subjectNodeInfo.id.toString()
+            "subjectId" to subjectNodeInfo.id
         )
         return (session.query(query, parameters).first()["id"] as String).toUri()
     }
@@ -62,8 +62,8 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "props" to relationship.nodeProperties(),
-            "subjectId" to subjectNodeInfo.id.toString(),
-            "targetId" to targetId.toString()
+            "subjectId" to subjectNodeInfo.id,
+            "targetId" to targetId
         )
         return (session.query(query, parameters).first()["id"] as String).toUri()
     }
@@ -79,7 +79,7 @@ class Neo4jRepository(
             """
 
         val parameters = mapOf(
-            "subjectId" to subjectId.toString()
+            "subjectId" to subjectId
         )
         return session.query(query, parameters).queryStatistics().propertiesSet
     }
@@ -93,7 +93,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to entityId.toString(),
+            "entityId" to entityId,
             "propertyName" to propertyName
         )
         return session.query(query, parameters).queryStatistics().propertiesSet
@@ -131,7 +131,7 @@ class Neo4jRepository(
             """
 
         val parameters = mutableMapOf(
-            "entityId" to subjectNodeInfo.id.toString(),
+            "entityId" to subjectNodeInfo.id,
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString(),
             "props" to Property(propertyName, newPropertyInstance).nodeProperties(),
@@ -176,7 +176,7 @@ class Neo4jRepository(
             ON MATCH SET entity.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
         """
 
-        return session.query(query, mapOf("entityId" to entityId.toString())).queryStatistics().propertiesSet
+        return session.query(query, mapOf("entityId" to entityId)).queryStatistics().propertiesSet
     }
 
     fun hasRelationshipOfType(subjectNodeInfo: SubjectNodeInfo, relationshipType: String): Boolean {
@@ -187,7 +187,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id.toString()
+            "attributeId" to subjectNodeInfo.id
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
@@ -200,7 +200,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id.toString(),
+            "attributeId" to subjectNodeInfo.id,
             "propertyName" to propertyName
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
@@ -214,7 +214,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id.toString()
+            "attributeId" to subjectNodeInfo.id
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
@@ -233,7 +233,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id.toString(),
+            "attributeId" to subjectNodeInfo.id,
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString()
         )
@@ -259,7 +259,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id.toString(),
+            "attributeId" to subjectNodeInfo.id,
             "datasetId" to datasetId?.toString()
         )
         return session.query(query, parameters, true).toList().isNotEmpty()
@@ -280,9 +280,9 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to attributeId.toString(),
-            "oldRelationshipObjectId" to oldRelationshipObjectId.toString(),
-            "newRelationshipObjectId" to newRelationshipObjectId.toString()
+            "attributeId" to attributeId,
+            "oldRelationshipObjectId" to oldRelationshipObjectId,
+            "newRelationshipObjectId" to newRelationshipObjectId
         )
         return session.query(relationshipTypeQuery, parameters).queryStatistics().nodesDeleted
     }
@@ -326,7 +326,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to entityId.toString()
+            "entityId" to entityId
         )
         val queryStatistics = session.query(query, parameters).queryStatistics()
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
@@ -361,7 +361,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to entityId.toString()
+            "entityId" to entityId
         )
         val queryStatistics = session.query(query, parameters).queryStatistics()
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
@@ -395,7 +395,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectNodeInfo.id.toString(),
+            "entityId" to subjectNodeInfo.id,
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString()
         )
@@ -431,7 +431,7 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectNodeInfo.id.toString(),
+            "entityId" to subjectNodeInfo.id,
             "datasetId" to datasetId?.toString()
         )
 

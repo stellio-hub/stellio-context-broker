@@ -53,7 +53,7 @@ spec:
               configMapKeyRef:
                 name: stellio-conf
                 key: KAFKA_URL
-          image: 'stellio/stellio-entity-service:dev'
+          image: 'stellio/stellio-entity-service:latest'
           name: stellio-entity-service
           ports:
             - containerPort: 8082

@@ -6,7 +6,7 @@ data:
   NEO4J_PASSWORD: neo4j_password
   POSTGRES_PASSWORD: postgres_password
   STELLIO_AUTHENTICATION_ENABLED: "false"
-  STELLIO_DOCKER_TAG: dev
+  STELLIO_DOCKER_TAG: latest
   STELLIO_SEARCH_DB_DATABASE: stellio_search
   STELLIO_SEARCH_DB_PASSWORD: stellio_search_db_password
   STELLIO_SEARCH_DB_USER: stellio_search

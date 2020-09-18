@@ -202,7 +202,7 @@ class SubscriptionHandler(
                     Mono.just(subscription)
             }
 
-    private fun checkIsAllowed(subscriptionId: URI, userSub: URI): Mono<URI> =
+    private fun checkIsAllowed(subscriptionId: URI, userSub: String): Mono<URI> =
         subscriptionService.isCreatorOf(subscriptionId, userSub)
             .flatMap {
                 if (!it)

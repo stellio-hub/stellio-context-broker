@@ -56,7 +56,7 @@ class SubscriptionBootstrapper(
             )
         )
 
-        subscriptionService.create(subscription, "subscription-bootstrapper".toUri())
+        subscriptionService.create(subscription, "subscription-bootstrapper")
             .thenEmpty {
                 logger.debug("Created subscription !")
             }

@@ -8,7 +8,7 @@ fun String.toUri(): URI =
     try {
         URI(this)
     } catch (e: URISyntaxException) {
-        throw BadRequestDataException("URIError: malformed URI $this")
+        throw BadRequestDataException("The supplied identifier was expected to be an URI but it is not: $this")
     }
 
 fun List<String>.toListOfUri(): List<URI> =

@@ -60,9 +60,9 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user".toUri())
         } returns setOf(ADMIN_ROLE_LABEL)
 
-        assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId".toUri(), "mock-user".toUri()))
-        assert(neo4jAuthorizationService.userCanReadEntity("entityId".toUri(), "mock-user".toUri()))
-        assert(neo4jAuthorizationService.userCanUpdateEntity("entityId".toUri(), "mock-user".toUri()))
+        assert(neo4jAuthorizationService.userIsAdminOfEntity("entityId".toUri(), "mock-user"))
+        assert(neo4jAuthorizationService.userCanReadEntity("entityId".toUri(), "mock-user"))
+        assert(neo4jAuthorizationService.userCanUpdateEntity("entityId".toUri(), "mock-user"))
     }
 
     @Test
@@ -79,7 +79,7 @@ class Neo4jAuthorizationServiceTest {
         } returns listOf("entityId", "entityId3", "entityId4").toListOfUri()
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, "mock-user".toUri())
+            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, "mock-user")
                 == listOf("entityId", "entityId3", "entityId4").toListOfUri()
         )
     }
@@ -91,14 +91,14 @@ class Neo4jAuthorizationServiceTest {
         } returns setOf(ADMIN_ROLE_LABEL)
 
         assert(
-            neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId").toListOfUri(), "mock-user".toUri())
+            neo4jAuthorizationService.filterEntitiesUserCanRead(listOf("entityId").toListOfUri(), "mock-user")
                 == listOf("entityId").toListOfUri()
         )
     }
 
     @Test
     fun `it should create an admin link to an entity`() {
-        val userId = "mock-user".toUri()
+        val userId = "mock-user"
         val entityId = "urn:ngsi-ld:Apiary:01".toUri()
 
         every { neo4jAuthorizationRepository.createAdminLinks(any(), any(), any()) } returns listOf("relId")
@@ -120,16 +120,16 @@ class Neo4jAuthorizationServiceTest {
         confirmVerified()
     }
 
-    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (URI, URI) -> Boolean) {
+    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (URI, String) -> Boolean) {
         assertUserHasRightOnEntity(userHasRightOnEntity, true)
     }
 
-    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (URI, URI) -> Boolean) {
+    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (URI, String) -> Boolean) {
         assertUserHasRightOnEntity(userHasRightOnEntity, false)
     }
 
     private fun assertUserHasRightOnEntity(
-        userHasRightOnEntity: (URI, URI) -> Boolean,
+        userHasRightOnEntity: (URI, String) -> Boolean,
         can: Boolean
     ) {
         every { neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:mock-user".toUri()) } returns emptySet()
@@ -141,6 +141,6 @@ class Neo4jAuthorizationServiceTest {
             )
         } returns if (can) listOf("entityId").toListOfUri() else emptyList()
 
-        assert(userHasRightOnEntity("entityId".toUri(), "mock-user".toUri()) == can)
+        assert(userHasRightOnEntity("entityId".toUri(), "mock-user") == can)
     }
 }

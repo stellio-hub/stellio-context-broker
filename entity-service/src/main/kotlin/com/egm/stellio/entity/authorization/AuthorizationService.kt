@@ -21,15 +21,15 @@ interface AuthorizationService {
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)
     }
 
-    fun userIsAdmin(userId: URI): Boolean
-    fun userCanCreateEntities(userId: URI): Boolean
-    fun filterEntitiesUserCanRead(entitiesId: List<URI>, userId: URI): List<URI>
-    fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userId: URI): List<URI>
-    fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userId: URI): List<URI>
-    fun splitEntitiesByUserCanAdmin(entitiesId: List<URI>, userId: URI): Pair<List<URI>, List<URI>>
-    fun userCanReadEntity(entityId: URI, userId: URI): Boolean
-    fun userCanUpdateEntity(entityId: URI, userId: URI): Boolean
-    fun userIsAdminOfEntity(entityId: URI, userId: URI): Boolean
-    fun createAdminLink(entityId: URI, userId: URI)
-    fun createAdminLinks(entitiesId: List<URI>, userId: URI)
+    fun userIsAdmin(userId: String): Boolean
+    fun userCanCreateEntities(userId: String): Boolean
+    fun filterEntitiesUserCanRead(entitiesId: List<URI>, userId: String): List<URI>
+    fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userId: String): List<URI>
+    fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userId: String): List<URI>
+    fun splitEntitiesByUserCanAdmin(entitiesId: List<URI>, userId: String): Pair<List<URI>, List<URI>>
+    fun userCanReadEntity(entityId: URI, userId: String): Boolean
+    fun userCanUpdateEntity(entityId: URI, userId: String): Boolean
+    fun userIsAdminOfEntity(entityId: URI, userId: String): Boolean
+    fun createAdminLink(entityId: URI, userId: String)
+    fun createAdminLinks(entitiesId: List<URI>, userId: String)
 }

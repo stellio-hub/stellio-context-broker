@@ -51,7 +51,7 @@ class SubscriptionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(subscription: Subscription, sub: URI): Mono<Int> {
+    fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement =
             """
         INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
@@ -160,7 +160,7 @@ class SubscriptionService(
             }
     }
 
-    fun isCreatorOf(subscriptionId: URI, sub: URI): Mono<Boolean> {
+    fun isCreatorOf(subscriptionId: URI, sub: String): Mono<Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -378,7 +378,7 @@ class SubscriptionService(
             .fetch()
             .rowsUpdated()
 
-    fun getSubscriptions(limit: Int, offset: Int, sub: URI): Flux<Subscription> {
+    fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
@@ -414,7 +414,7 @@ class SubscriptionService(
             }
     }
 
-    fun getSubscriptionsCount(sub: URI): Mono<Int> {
+    fun getSubscriptionsCount(sub: String): Mono<Int> {
         val selectStatement =
             """
             SELECT count(*) from subscription
@@ -605,7 +605,7 @@ class SubscriptionService(
         row.get("count", Integer::class.java)!!.toInt()
     }
 
-    private var rowToSub: (Row) -> URI = { row ->
-        row.get("sub", String::class.java)!!.toUri()
+    private var rowToSub: (Row) -> String = { row ->
+        row.get("sub", String::class.java)!!
     }
 }

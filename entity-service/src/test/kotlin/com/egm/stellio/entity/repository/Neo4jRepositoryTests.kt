@@ -5,6 +5,8 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.entity.util.PropertyRepositoryTest
+import com.egm.stellio.entity.util.RelationshipRepositoryTest
 import com.egm.stellio.shared.model.NgsiLdProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -41,10 +43,10 @@ class Neo4jRepositoryTests {
     private lateinit var entityRepository: EntityRepository
 
     @Autowired
-    private lateinit var propertyRepository: PropertyRepository
+    private lateinit var propertyRepository: PropertyRepositoryTest
 
     @Autowired
-    private lateinit var relationshipRepository: RelationshipRepository
+    private lateinit var relationshipRepository: RelationshipRepositoryTest
 
     @Test
     fun `it should return an entity if type and string properties are correct`() {

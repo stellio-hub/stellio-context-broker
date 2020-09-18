@@ -50,7 +50,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @MockkBean(relaxed = true)
     private lateinit var subscriptionsEventsListener: SubscriptionsEventsListener
 
-    private val MOCK_USER_SUB = "mock-user-sub".toUri()
+    private val MOCK_USER_SUB = "mock-user-sub"
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI

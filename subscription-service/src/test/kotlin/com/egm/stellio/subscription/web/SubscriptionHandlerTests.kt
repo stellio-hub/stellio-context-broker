@@ -67,7 +67,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").doesNotExist()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -88,7 +88,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").exists()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -129,7 +129,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
     }
 
     @Test
@@ -373,7 +373,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         verify { subscriptionService.exists(eq((subscriptionId))) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
@@ -400,7 +400,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         confirmVerified(subscriptionService)
     }
@@ -450,7 +450,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
     }
 
     @Test
@@ -477,7 +477,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
 
         confirmVerified(subscriptionService)
     }
@@ -496,7 +496,7 @@ class SubscriptionHandlerTests {
             .expectBody().isEmpty
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.delete(eq(subscription.id)) }
 
         confirmVerified(subscriptionService)
@@ -542,7 +542,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
         verify { subscriptionService.delete(eq("urn:ngsi-ld:Subscription:1".toUri())) }
     }
 
@@ -566,7 +566,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user".toUri()) }
+        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
     }
 
     @Test

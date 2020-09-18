@@ -63,8 +63,8 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
-        every { authorizationService.createAdminLink(any(), eq("mock-user".toUri())) } just runs
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -87,7 +87,7 @@ class EntityOperationHandlerTests {
 
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
-        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
         confirmVerified()
     }
 
@@ -116,7 +116,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             errors
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -148,7 +148,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
         confirmVerified()
     }
 
@@ -170,7 +170,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -197,7 +197,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
         confirmVerified()
     }
 
@@ -205,7 +205,7 @@ class EntityOperationHandlerTests {
     fun `create batch should not authorize user without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -252,9 +252,9 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
 
         webClient.post()
@@ -276,7 +276,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
         confirmVerified()
     }
 
@@ -306,9 +306,9 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             errors
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
 
         webClient.post()
@@ -339,7 +339,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         confirmVerified()
     }
 
@@ -365,9 +365,9 @@ class EntityOperationHandlerTests {
             entitiesIds,
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
 
         webClient.post()
@@ -389,7 +389,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         confirmVerified()
     }
 
@@ -397,7 +397,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to create entities without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val expandedEntity = mockk<NgsiLdEntity>()
         every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
@@ -411,9 +411,9 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user".toUri())
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
 
         webClient.post()
@@ -443,7 +443,7 @@ class EntityOperationHandlerTests {
     fun `upsert batch should not authorize user to updates entities without write right`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val entitiesId = listOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -460,13 +460,13 @@ class EntityOperationHandlerTests {
             existingEntities,
             emptyList()
         )
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns false
+        every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         val entitiesIdToUpdate = listOf(expandedEntity.id)
         every {
             authorizationService.filterEntitiesUserCanUpdate(
                 entitiesId,
-                "mock-user".toUri()
+                "mock-user"
             )
         } returns entitiesIdToUpdate
 
@@ -497,13 +497,13 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user".toUri()) }
+        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         confirmVerified()
     }
 
     @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
-        every { authorizationService.userCanCreateEntities("mock-user".toUri()) } returns true
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
         shouldReturn400WithBadPayload("create")
     }
 

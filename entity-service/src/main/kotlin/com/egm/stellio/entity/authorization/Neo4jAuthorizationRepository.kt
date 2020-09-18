@@ -5,6 +5,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
@@ -41,7 +42,7 @@ class Neo4jAuthorizationRepository(
 
         val parameters = mapOf(
             "userId" to userId.toString(),
-            "entitiesId" to entitiesId.map { it.toString() },
+            "entitiesId" to entitiesId.toListOfString(),
             "rights" to rights
         )
 
@@ -112,7 +113,7 @@ class Neo4jAuthorizationRepository(
         """
 
         val parameters = mapOf(
-            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId.map { it.toString() }),
+            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId.toListOfString()),
             "userId" to userId.toString()
         )
 

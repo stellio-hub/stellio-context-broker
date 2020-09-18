@@ -57,7 +57,7 @@ class Neo4jAuthorizationService(
         if (userIsAdmin(userId))
             entitiesId
         else neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            (USER_PREFIX + userId.toString()).toUri(),
+            (USER_PREFIX + userId).toUri(),
             entitiesId,
             rights
         )

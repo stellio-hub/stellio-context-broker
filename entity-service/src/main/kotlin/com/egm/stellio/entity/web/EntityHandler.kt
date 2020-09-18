@@ -116,7 +116,7 @@ class EntityHandler(
                     authorizationService.filterEntitiesUserCanRead(
                         entitiesAndUserId.t1.map { it.id.toUri() },
                         entitiesAndUserId.t2
-                    ).map { it.toString() }
+                    ).toListOfString()
                 )
             }
             .map { (searchEntities, authorizedIds) ->

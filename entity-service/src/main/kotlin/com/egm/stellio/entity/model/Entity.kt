@@ -56,7 +56,7 @@ class Entity(
 
     fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        resultEntity[JSONLD_ID] = id
+        resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = type
 
         if (includeSysAttrs) {

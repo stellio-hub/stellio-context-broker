@@ -46,6 +46,7 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import kotlin.math.log
 
 @Component
 class EntityService(
@@ -303,7 +304,7 @@ class EntityService(
 
                 val relationshipValue = mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntity.id)
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntity.id.toString())
                 )
                 val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
                 relationshipValues.putAll(relationshipValue)
@@ -327,7 +328,7 @@ class EntityService(
         val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
         val relationshipValue = mapOf(
             JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
+            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId.toString())
         )
 
         val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
@@ -341,7 +342,7 @@ class EntityService(
 
                 val innerRelationship = mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId.toString())
                 )
 
                 val innerRelationshipValues = relationship.serializeCoreProperties(includeSysAttrs)

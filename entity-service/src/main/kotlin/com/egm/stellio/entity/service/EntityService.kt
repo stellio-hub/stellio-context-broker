@@ -46,7 +46,6 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import kotlin.math.log
 
 @Component
 class EntityService(

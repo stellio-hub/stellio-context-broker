@@ -314,7 +314,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): Mono<ResponseEntity<*>> {
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
-        val datasetId = params.getFirst("datasetId")?.let { it.toUri() }
+        val datasetId = params.getFirst("datasetId")?.toUri()
         return extractSubjectOrEmpty()
             .doOnNext {
                 if (!entityService.exists(entityId.toUri()))

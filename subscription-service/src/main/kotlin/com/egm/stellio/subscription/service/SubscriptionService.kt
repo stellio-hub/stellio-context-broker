@@ -526,7 +526,7 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.let { it.toUri() },
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
@@ -536,7 +536,7 @@ class SubscriptionService(
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java)?.let { it.toUri() },
+                    id = row.get("entity_id", String::class.java)?.toUri(),
                     idPattern = row.get("id_pattern", String::class.java),
                     type = row.get("entity_type", String::class.java)!!
                 )
@@ -563,7 +563,7 @@ class SubscriptionService(
 
     private var rowToRawSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.let { it.toUri() },
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             description = row.get("description", String::class.java),
@@ -606,6 +606,6 @@ class SubscriptionService(
     }
 
     private var rowToSub: (Row) -> URI = { row ->
-        row.get("sub", String::class.java)!!.let { it.toUri() }
+        row.get("sub", String::class.java)!!.toUri()
     }
 }

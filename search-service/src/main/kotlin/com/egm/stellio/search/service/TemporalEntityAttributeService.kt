@@ -203,7 +203,7 @@ class TemporalEntityAttributeService(
     private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->
         TemporalEntityAttribute(
             id = row.get("id", UUID::class.java)!!,
-            entityId = row.get("entity_id", String::class.java)!!.let { it.toUri() },
+            entityId = row.get("entity_id", String::class.java)!!.toUri(),
             type = row.get("type", String::class.java)!!,
             attributeName = row.get("attribute_name", String::class.java)!!,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
@@ -212,7 +212,7 @@ class TemporalEntityAttributeService(
                     String::class.java
                 )!!
             ),
-            datasetId = row.get("dataset_id", String::class.java)?.let { it.toUri() },
+            datasetId = row.get("dataset_id", String::class.java)?.toUri(),
             entityPayload = row.get("payload", String::class.java)
         )
     }

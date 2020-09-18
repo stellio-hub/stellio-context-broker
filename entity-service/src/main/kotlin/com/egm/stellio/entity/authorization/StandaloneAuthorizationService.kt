@@ -7,46 +7,46 @@ import java.net.URI
 @Component
 @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
 class StandaloneAuthorizationService : AuthorizationService {
-    override fun userIsAdmin(userId: String): Boolean {
+    override fun userIsAdmin(userSub: String): Boolean {
         return true
     }
 
-    override fun userCanCreateEntities(userId: String): Boolean {
+    override fun userCanCreateEntities(userSub: String): Boolean {
         return true
     }
 
-    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, userId: String): List<URI> {
+    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, userSub: String): List<URI> {
         return entitiesId
     }
 
-    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userId: String): List<URI> {
+    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userSub: String): List<URI> {
         return entitiesId
     }
 
-    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userId: String): List<URI> {
+    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userSub: String): List<URI> {
         return entitiesId
     }
 
     override fun splitEntitiesByUserCanAdmin(
         entitiesId: List<URI>,
-        userId: String
+        userSub: String
     ): Pair<List<URI>, List<URI>> {
         return Pair(entitiesId, emptyList())
     }
 
-    override fun userCanReadEntity(entityId: URI, userId: String): Boolean {
+    override fun userCanReadEntity(entityId: URI, userSub: String): Boolean {
         return true
     }
 
-    override fun userCanUpdateEntity(entityId: URI, userId: String): Boolean {
+    override fun userCanUpdateEntity(entityId: URI, userSub: String): Boolean {
         return true
     }
 
-    override fun userIsAdminOfEntity(entityId: URI, userId: String): Boolean {
+    override fun userIsAdminOfEntity(entityId: URI, userSub: String): Boolean {
         return true
     }
 
-    override fun createAdminLink(entityId: URI, userId: String) {}
+    override fun createAdminLink(entityId: URI, userSub: String) {}
 
-    override fun createAdminLinks(entitiesId: List<URI>, userId: String) {}
+    override fun createAdminLinks(entitiesId: List<URI>, userSub: String) {}
 }

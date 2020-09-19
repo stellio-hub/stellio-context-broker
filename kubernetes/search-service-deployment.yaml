@@ -72,7 +72,7 @@ spec:
               configMapKeyRef:
                 name: stellio-conf
                 key: KAFKA_URL
-          image: 'stellio/stellio-search-service:dev'
+          image: 'stellio/stellio-search-service:latest'
           name: stellio-search-service
           ports:
           - containerPort: 8083

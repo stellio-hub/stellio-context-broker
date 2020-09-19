@@ -44,7 +44,7 @@ spec:
             configMapKeyRef:
               name: stellio-conf
               key: APPLICATION_SUBSCRIPTION_SERVICE_URL
-        image: 'stellio/stellio-api-gateway:dev'
+        image: 'stellio/stellio-api-gateway:latest'
         name: stellio-api-gateway
         ports:
         - containerPort: 8080

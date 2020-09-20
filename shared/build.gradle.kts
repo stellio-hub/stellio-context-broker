@@ -16,11 +16,11 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
-    testFixturesImplementation("org.testcontainers:testcontainers:1.12.3")
+    testFixturesImplementation("org.testcontainers:testcontainers")
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testFixturesImplementation("org.springframework:spring-core")
     testFixturesImplementation("org.springframework.security:spring-security-oauth2-jose")
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-    testImplementation("org.hamcrest:hamcrest:2.1")
+    testImplementation("org.hamcrest:hamcrest:2.2")
 }

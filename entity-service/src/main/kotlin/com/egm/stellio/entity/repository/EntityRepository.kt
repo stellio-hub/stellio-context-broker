@@ -4,9 +4,10 @@ import com.egm.stellio.entity.model.Entity
 import org.springframework.data.neo4j.annotation.Query
 import org.springframework.data.neo4j.repository.Neo4jRepository
 import org.springframework.stereotype.Repository
+import java.net.URI
 
 @Repository
-interface EntityRepository : Neo4jRepository<Entity, String> {
+interface EntityRepository : Neo4jRepository<Entity, URI> {
 
     @Query(
         "MATCH (entity:Entity { id: \$id }) " +

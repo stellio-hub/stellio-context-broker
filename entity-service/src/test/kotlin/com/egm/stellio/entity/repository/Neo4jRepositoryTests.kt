@@ -391,7 +391,6 @@ class Neo4jRepositoryTests {
         val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
             entity.id, "https://uri.etsi.org/ngsi-ld/name"
         ).id
-
         assertEquals(propertyRepository.findById(updatedPropertyId).get().properties[0].value, "English")
 
         neo4jRepository.deleteEntity(entity.id)
@@ -441,7 +440,6 @@ class Neo4jRepositoryTests {
         val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
             entity.id, "https://uri.etsi.org/ngsi-ld/temperature"
         ).id
-
         assertEquals(
             propertyRepository.findById(updatedPropertyId).get().relationships[0].type[0],
             "https://uri.etsi.org/ngsi-ld/default-context/newRel"
@@ -718,7 +716,6 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName")
 
         val properties = entityRepository.findById(entity.id).get().properties
-
         assertNull(
             properties.find {
                 it.name == "firstName" &&
@@ -793,7 +790,6 @@ class Neo4jRepositoryTests {
         )
 
         assertEquals(entityRepository.findById(sensor.id).get().relationships.size, 0)
-
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -811,8 +807,8 @@ class Neo4jRepositoryTests {
         )
 
         neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName())
-        val relationships = entityRepository.findById(sensor.id).get().relationships
 
+        val relationships = entityRepository.findById(sensor.id).get().relationships
         assertNull(
             relationships.find {
                 it.type == listOf(EGM_OBSERVED_BY) &&

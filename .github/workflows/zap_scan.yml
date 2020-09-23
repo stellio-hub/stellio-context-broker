@@ -1,7 +1,12 @@
+# on:
+#   schedule:
+#     # Runs every day At 01:00.
+#     - cron:  '0 1 * * *'
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
 on:
-  schedule:
-    # Runs every day At 01:00.
-    - cron:  '0 1 * * *'
+  workflow_dispatch:
 
 jobs:
   zap_scan:
@@ -18,5 +23,4 @@ jobs:
         uses: zaproxy/action-baseline@v0.3.0
         # Then run the scan against the locally running instance
         with:
-          target: 'https://stellio-dev.eglobalmark.com/ngsi-ld/v1/entities'
-
+          target: 'http://localhost:8080/ngsi-ld/v1/entities'

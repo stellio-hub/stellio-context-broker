@@ -1,6 +1,5 @@
 {
-  "fishNumber":{
-    "type":"Property",
-    "value":600
-  }
+  "type":"Property",
+  "datasetId": "urn:ngsi-ld:Dataset:1",
+  "value":600
 }

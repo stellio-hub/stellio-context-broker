@@ -60,6 +60,7 @@ class EntityServiceTests {
     private lateinit var entityEventService: EntityEventService
 
     private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
+    private val fishContainmentUri = "urn:ngsi-ld:FishContainment:1234".toUri()
 
     @Test
     fun `it should create an entity with a property having a property`() {
@@ -73,7 +74,7 @@ class EntityServiceTests {
         every { entityRepository.existsById(eq(breedingServiceUri)) } returns false
         every { partialEntityRepository.existsById(breedingServiceUri) } returns false
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to mortalityRemovalServiceUri.toString(),
@@ -147,7 +148,7 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation.name } returns observation.attributeName
-        every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
+        every { mockkedObservation.updateValues(any(), any(), any()) } returns mockkedObservation
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
         every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
         every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
@@ -201,7 +202,7 @@ class EntityServiceTests {
             {
               "filledIn": {
                 "type": "Relationship",
-                "object": "urn:ngsi-ld:FishContainment:1234"
+                "object": "$fishContainmentUri"
               }
             }
             """.trimIndent()
@@ -220,7 +221,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId".toUri()
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -237,7 +238,7 @@ class EntityServiceTests {
             neo4jRepository.createRelationshipOfSubject(
                 any(),
                 any(),
-                eq("urn:ngsi-ld:FishContainment:1234".toUri())
+                eq(fishContainmentUri)
             )
         }
 
@@ -385,7 +386,7 @@ class EntityServiceTests {
 
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
 
         entityService.createEntityProperty(entityId, "temperature", ngsiLdPropertyInstance)
 
@@ -433,7 +434,7 @@ class EntityServiceTests {
         every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
@@ -519,7 +520,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
@@ -568,7 +569,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
         every { mockkedEntity.id } returns entityId
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -630,7 +631,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
             neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties))
-        } returns UUID.randomUUID().toString().toUri()
+        } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -698,7 +699,7 @@ class EntityServiceTests {
         every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
         every {
             neo4jRepository.createPropertyOfSubject(any(), any())
-        } returns UUID.randomUUID().toString().toUri()
+        } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 

@@ -87,7 +87,7 @@ class SubscriptionHandlerService(
                 subscriptionId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
-            neo4jRepository.updateRelationshipTargetOfAttribute(
+            neo4jRepository.updateTargetOfRelationship(
                 relationship.id,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName(),
                 lastNotification.id,

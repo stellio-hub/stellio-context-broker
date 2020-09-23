@@ -4,6 +4,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
@@ -20,6 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -60,6 +62,9 @@ class EntityHandlerTests {
 
     @MockkBean
     private lateinit var entityService: EntityService
+
+    @MockkBean
+    private lateinit var entityAttributeService: EntityAttributeService
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
@@ -977,13 +982,23 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val deadFish =
+            """
+                {
+                    "id": "$entityId",
+                    "type": "DeadFishes",
+                    "@context": "$aquacContext"
+                }
+            """.trimIndent()
         val attrId = "fishNumber"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttribute(any(), any(), any(), any()) } returns 1
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns true
+        every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -994,7 +1009,103 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify { entityService.exists(entityId) }
-        verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(listOf(aquacContext!!))) }
+        verify {
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+        }
+        verify { entityService.getFullEntityById(entityId, true) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeUpdateEvent
+                    it.operationType == EventsType.ATTRIBUTE_UPDATE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
+                        it.contexts == listOf(aquacContext) &&
+                        it.operationPayload.matchContent(jsonLdFile) &&
+                        it.updatedEntity.removeNoise() == deadFish.removeNoise()
+                },
+                "DeadFishes"
+            )
+        }
+        confirmVerified(entityService, entityEventService)
+    }
+
+    @Test
+    fun `partial attribute update should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns false
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { entityService.exists(entityId) }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `partial attribute update should return a 404 if attribute does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } throws
+            ResourceNotFoundException("Unknown attribute $attrId in entity $entityId")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { entityService.exists(entityId) }
+        verify { authorizationService.userCanUpdateEntity(entityId, "mock-user") }
+        verify {
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `partial attribute update should not authorize user without write rights on entity to update attribute`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns false
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """ 
+                { 
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
+                    "title": "The request tried to access an unauthorized resource", 
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN" 
+                } 
+                """.trimIndent()
+            )
+
+        verify { entityService.exists(entityId) }
+        verify { authorizationService.userCanUpdateEntity(entityId, "mock-user") }
         confirmVerified(entityService)
     }
 
@@ -1025,7 +1136,7 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         every { entityService.exists(any()) } returns true
@@ -1060,7 +1171,7 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should notify for an updated attribute`() {
-        val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         every { entityService.exists(any()) } returns true
@@ -1191,12 +1302,12 @@ class EntityHandlerTests {
     @Test
     fun `entity attributes update should return a 207 if some relationships objects are not found`() {
         val jsonLdFile = ClassPathResource(
-            "/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json"
+            "/ngsild/aquac/fragments/DeadFishes_updateEntityAttributes_invalidAttribute.json"
         )
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val notUpdatedAttribute = NotUpdatedDetails(
             "removedFrom",
-            "Target entity unknownObject in property does not exist, create it first"
+            "Property is not valid"
         )
         every { entityService.exists(any()) } returns true
         every {
@@ -1294,7 +1405,7 @@ class EntityHandlerTests {
 
     @Test
     fun `it should not authorize user without write rights on entity to update it`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
 
         every { entityService.exists(any()) } returns true

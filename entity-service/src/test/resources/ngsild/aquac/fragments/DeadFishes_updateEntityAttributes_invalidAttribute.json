@@ -1,0 +1,10 @@
+{
+  "fishNumber":{
+    "type":"Property",
+    "value":600
+  },
+  "removedFrom":{
+    "type":"Relationship",
+    "object": "urn:ngsi-ld:Feeder:1234"
+  }
+}

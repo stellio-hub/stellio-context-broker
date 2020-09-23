@@ -1,5 +1,9 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
@@ -16,6 +20,7 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -263,6 +268,30 @@ object JsonLdUtils {
             val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
             input.filterKeys { includedKeys.contains(it) }
         }
+    }
+
+    fun extractRelationshipObject(name: String, values: Map<String, List<Any>>): Either<BadRequestDataException, URI> {
+        return values.right()
+            .flatMap {
+                if (!it.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
+                    BadRequestDataException("Relationship $name does not have an object field").left()
+                else it[NGSILD_RELATIONSHIP_HAS_OBJECT]!!.right()
+            }
+            .flatMap {
+                if (it.isEmpty())
+                    BadRequestDataException("Relationship $name is empty").left()
+                else it[0].right()
+            }
+            .flatMap {
+                if (it !is Map<*, *>)
+                    BadRequestDataException("Relationship $name has an invalid object type: ${it.javaClass}").left()
+                else it[JSONLD_ID].right()
+            }
+            .flatMap {
+                if (it !is String)
+                    BadRequestDataException("Relationship $name has an invalid or no object id: $it").left()
+                else it.toUri().right()
+            }
     }
 }
 

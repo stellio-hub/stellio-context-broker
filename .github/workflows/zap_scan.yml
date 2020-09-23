@@ -24,3 +24,7 @@ jobs:
         # Then run the scan against the locally running instance
         with:
           target: 'https://stellio-dev.eglobalmark.com/ngsi-ld/v1/entities'
+      - name: ZAP Full Scan
+        uses: zaproxy/action-full-scan@v0.1.0
+        with:
+          target: 'https://stellio-dev.eglobalmark.com/ngsi-ld/v1/entities'

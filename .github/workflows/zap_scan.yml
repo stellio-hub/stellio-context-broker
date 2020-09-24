@@ -1,29 +1,31 @@
+# Uncomment the following to run the scan on a scheduled basis
 # on:
 #   schedule:
 #     # Runs every day At 01:00.
 #     - cron:  '0 1 * * *'
 
-# Controls when the action will run. Workflow runs when manually triggered using the UI
-# or API.
+# For now, the workflow runs when manually triggered using the UI or API
 on:
   workflow_dispatch:
 
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
-    name: Scan Stellio sandbox
+    name: Scan Stellio sandbox environment
     steps:
+       # Use the following two steps if you want to start an on-demand Stellio instance
 #      - name: Checkout
 #        uses: actions/checkout@v2
 #        with:
 #          ref: develop
 #      - name: Launh docker-compose stack
 #        run: docker-compose -f docker-compose.yml up -d
+       # Uncomment the following step to run a base scan
 #      - name: ZAP Scan
 #        uses: zaproxy/action-baseline@v0.3.0
-        # Then run the scan against the locally running instance
 #        with:
 #          target: 'https://stellio-dev.eglobalmark.com/ngsi-ld/v1/entities'
+      # Use the following step to run a full scan
       - name: ZAP Full Scan
         uses: zaproxy/action-full-scan@v0.1.0
         with:

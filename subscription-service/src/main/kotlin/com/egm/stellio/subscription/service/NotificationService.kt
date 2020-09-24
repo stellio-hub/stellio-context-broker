@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @Service
 class NotificationService(
@@ -50,7 +51,7 @@ class NotificationService(
 
     fun callSubscriber(
         subscription: Subscription,
-        entityId: String,
+        entityId: URI,
         entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(
@@ -79,7 +80,7 @@ class NotificationService(
                 .doOnNext {
                     val notificationEvent = EntityEvent(
                         operationType = EventType.CREATE,
-                        entityId = it.second.id.toString(),
+                        entityId = it.second.id,
                         entityType = it.second.type,
                         payload = serializeObject(it.second)
                     )
@@ -99,7 +100,7 @@ class NotificationService(
     }
 
     fun callFCMSubscriber(
-        entityId: String,
+        entityId: URI,
         subscription: Subscription,
         notification: Notification,
         fcmDeviceToken: String?
@@ -115,9 +116,9 @@ class NotificationService(
             mapOf("title" to subscription.name, "body" to subscription.description),
             mapOf(
                 "id_alert" to notification.id.toString(),
-                "id_subscription" to subscription.id,
+                "id_subscription" to subscription.id.toString(),
                 "timestamp" to notification.notifiedAt.toString(),
-                "id_beehive" to entityId
+                "id_beehive" to entityId.toString()
             ),
             fcmDeviceToken
         )
@@ -127,7 +128,7 @@ class NotificationService(
             .doOnNext {
                 val notificationEvent = EntityEvent(
                     operationType = EventType.CREATE,
-                    entityId = notification.id.toString(),
+                    entityId = notification.id,
                     entityType = notification.type,
                     payload = serializeObject(notification)
                 )

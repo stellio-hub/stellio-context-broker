@@ -16,6 +16,7 @@ import org.jgrapht.graph.DirectedPseudograph
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.net.URI
 import kotlin.streams.toList
 
 /**
@@ -34,21 +35,21 @@ class EntityOperationService(
      * Splits [entities] by their existence in the DB.
      */
     fun splitEntitiesByExistence(entities: List<NgsiLdEntity>): Pair<List<NgsiLdEntity>, List<NgsiLdEntity>> {
-        val extractIdFunc: (NgsiLdEntity) -> String = { it.id }
+        val extractIdFunc: (NgsiLdEntity) -> URI = { it.id }
         return splitEntitiesByExistenceGeneric(entities, extractIdFunc)
     }
 
     /**
      * Splits [entityIds] by their existence in the DB.
      */
-    fun splitEntitiesIdsByExistence(entityIds: List<String>): Pair<List<String>, List<String>> {
-        val identityFunc: (String) -> String = { it }
+    fun splitEntitiesIdsByExistence(entityIds: List<URI>): Pair<List<URI>, List<URI>> {
+        val identityFunc: (URI) -> URI = { it }
         return splitEntitiesByExistenceGeneric(entityIds, identityFunc)
     }
 
     private fun <T> splitEntitiesByExistenceGeneric(
         entities: List<T>,
-        extractIdFunc: (T) -> String
+        extractIdFunc: (T) -> URI
     ): Pair<List<T>, List<T>> {
         val existingEntitiesIds = neo4jRepository.filterExistingEntitiesAsIds(entities.map { extractIdFunc.invoke(it) })
         return entities.partition { existingEntitiesIds.contains(extractIdFunc.invoke(it)) }
@@ -73,7 +74,7 @@ class EntityOperationService(
         return BatchOperationResult(ArrayList(success), ArrayList(errors))
     }
 
-    fun delete(entitiesIds: Set<String>): BatchOperationResult {
+    fun delete(entitiesIds: Set<URI>): BatchOperationResult {
         val deletedIdsResults = entitiesIds.map { it to kotlin.runCatching { entityService.deleteEntity(it) } }
 
         val (successfullyDeletedIdsWithResults, failedToDeleteIdsWithResults) = deletedIdsResults
@@ -114,7 +115,7 @@ class EntityOperationService(
     private fun processEntities(
         entities: List<NgsiLdEntity>,
         createBatchResult: BatchOperationResult,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, String>
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, URI>
     ): BatchOperationResult {
         val existingEntitiesIds = createBatchResult.success.plus(entities.map { it.id })
         val nonExistingEntitiesIds = createBatchResult.errors.map { it.entityId }
@@ -138,10 +139,10 @@ class EntityOperationService(
 
     private fun processEntity(
         entity: NgsiLdEntity,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, String>,
-        existingEntitiesIds: List<String>,
-        nonExistingEntitiesIds: List<String>
-    ): Either<BatchEntityError, String> {
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, URI>,
+        existingEntitiesIds: List<URI>,
+        nonExistingEntitiesIds: List<URI>
+    ): Either<BatchEntityError, URI> {
         // All new attributes linked entities should be existing in the DB.
         val linkedEntitiesIds = entity.getLinkedEntitiesIds()
         val invalidLinkedEntityId =
@@ -169,7 +170,7 @@ class EntityOperationService(
      */
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
-    private fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, String> {
+    private fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, URI> {
         neo4jRepository.deleteEntityAttributes(entity.id)
         val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
         if (notUpdated.isEmpty()) {
@@ -181,7 +182,7 @@ class EntityOperationService(
         }
     }
 
-    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, String> {
+    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, URI> {
         val (_, notUpdated) = entityService.appendEntityAttributes(
             entity.id,
             entity.attributes,
@@ -201,10 +202,10 @@ class EntityOperationService(
     }
 
     private fun findInvalidEntityId(
-        entitiesIds: List<String>,
-        existingEntitiesIds: List<String>,
-        nonExistingEntitiesIds: List<String>
-    ): String? {
+        entitiesIds: List<URI>,
+        existingEntitiesIds: List<URI>,
+        nonExistingEntitiesIds: List<URI>
+    ): URI? {
         val invalidEntityId = entitiesIds.intersect(nonExistingEntitiesIds).firstOrNull()
         if (invalidEntityId == null) {
             val unknownEntitiesIds = entitiesIds.minus(existingEntitiesIds)
@@ -290,7 +291,7 @@ class EntityOperationService(
     }
 
     private fun createTempEntityInBatch(
-        entityId: String,
+        entityId: URI,
         entityType: String,
         contexts: List<String> = listOf()
     ): Entity {

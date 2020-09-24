@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.confirmVerified
@@ -33,7 +34,7 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createSubscriptionEntity(
-                "urn:ngsi-ld:Subscription:04",
+                "urn:ngsi-ld:Subscription:04".toUri(),
                 "Subscription",
                 mapOf("q" to "foodQuantity<150;foodName=='dietary fibres'")
             )
@@ -52,9 +53,9 @@ class SubscriptionListenerTests {
 
         verify {
             subscriptionHandlerService.createNotificationEntity(
-                "urn:ngsi-ld:Notification:1234",
+                "urn:ngsi-ld:Notification:1234".toUri(),
                 "Notification",
-                "urn:ngsi-ld:Subscription:1234",
+                "urn:ngsi-ld:Subscription:1234".toUri(),
                 mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
             )
         }

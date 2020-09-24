@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @Component
 class EntityService(
@@ -22,7 +23,7 @@ class EntityService(
         .baseUrl(entityServiceProperties.url)
         .build()
 
-    fun getEntityById(entityId: String, bearerToken: String): Mono<JsonLdEntity> =
+    fun getEntityById(entityId: URI, bearerToken: String): Mono<JsonLdEntity> =
         webClient.get()
             .uri("/entities/$entityId")
             .header("Authorization", bearerToken)

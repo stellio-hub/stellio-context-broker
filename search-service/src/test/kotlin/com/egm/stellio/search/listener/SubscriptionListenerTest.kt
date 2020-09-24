@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -41,7 +42,7 @@ class SubscriptionListenerTest {
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234" &&
+                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234".toUri() &&
                         entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
                 }
             )
@@ -59,7 +60,7 @@ class SubscriptionListenerTest {
 
         subscriptionListener.processNotification(notification)
 
-        verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234")) }
+        verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
         verify {
             attributeInstanceService.create(
                 match {

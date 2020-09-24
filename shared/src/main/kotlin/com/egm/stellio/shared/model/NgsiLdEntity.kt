@@ -22,11 +22,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
 
 class NgsiLdEntity private constructor(
-    val id: String,
+    val id: URI,
     val type: String,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
@@ -39,7 +40,7 @@ class NgsiLdEntity private constructor(
         operator fun invoke(parsedKeys: Map<String, Any>, contexts: List<String>): NgsiLdEntity {
             if (!parsedKeys.containsKey(JSONLD_ID))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain an id property")
-            val id = parsedKeys[JSONLD_ID]!! as String
+            val id = (parsedKeys[JSONLD_ID]!! as String).toUri()
 
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
@@ -60,7 +61,7 @@ class NgsiLdEntity private constructor(
      * Gets linked entities ids.
      * Entities can be linked either by a relation or a property.
      */
-    fun getLinkedEntitiesIds(): List<String> =
+    fun getLinkedEntitiesIds(): List<URI> =
         properties.flatMap {
             it.getLinkedEntitiesIds()
         }.plus(
@@ -78,7 +79,7 @@ interface NgsiLdAttribute {
     val compactName: String
         get() = name.extractShortTypeFromExpanded()
 
-    fun getLinkedEntitiesIds(): List<String>
+    fun getLinkedEntitiesIds(): List<URI>
 }
 
 class NgsiLdProperty private constructor(
@@ -100,7 +101,7 @@ class NgsiLdProperty private constructor(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
 }
 
@@ -123,7 +124,7 @@ class NgsiLdRelationship private constructor(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
 }
 
@@ -146,7 +147,7 @@ class NgsiLdGeoProperty private constructor(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
 }
 
@@ -159,7 +160,7 @@ sealed class NgsiLdAttributeInstance(
 
     fun isTemporalAttribute(): Boolean = observedAt != null
 
-    open fun getLinkedEntitiesIds(): List<String> =
+    open fun getLinkedEntitiesIds(): List<URI> =
         properties.flatMap {
             it.getLinkedEntitiesIds()
         }
@@ -191,12 +192,12 @@ class NgsiLdPropertyInstance private constructor(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
 }
 
 class NgsiLdRelationshipInstance private constructor(
-    val objectId: String,
+    val objectId: URI,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     properties: List<NgsiLdProperty>,
@@ -222,11 +223,11 @@ class NgsiLdRelationshipInstance private constructor(
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
 
-            return NgsiLdRelationshipInstance(objectId, observedAt, datasetId, properties, relationships)
+            return NgsiLdRelationshipInstance(objectId.toUri(), observedAt, datasetId, properties, relationships)
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }.plus(objectId)
 }
 
@@ -284,7 +285,7 @@ class NgsiLdGeoPropertyInstance(
         }
     }
 
-    override fun getLinkedEntitiesIds(): List<String> =
+    override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
 }
 
@@ -358,7 +359,7 @@ fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)
 
 fun Map<String, List<Any>>.getDatasetId(): URI? =
-    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?)?.get(JSONLD_ID)?.let { URI.create(it) }
+    (this[NGSILD_DATASET_ID_PROPERTY]?.get(0) as Map<String, String>?)?.get(JSONLD_ID)?.toUri()
 
 val NGSILD_ENTITY_CORE_MEMBERS = listOf(
     JSONLD_ID,

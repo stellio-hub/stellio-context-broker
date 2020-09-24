@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -101,11 +102,11 @@ class SubscriptionService(
             }
     }
 
-    fun exists(subscriptionId: String): Mono<Boolean> {
-        return subscriptionRepository.existsById(subscriptionId)
+    fun exists(subscriptionId: URI): Mono<Boolean> {
+        return subscriptionRepository.existsById(subscriptionId.toString())
     }
 
-    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: String): Mono<Int> =
+    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Mono<Int> =
         databaseClient.execute(
             """
             INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
@@ -119,7 +120,7 @@ class SubscriptionService(
             .fetch()
             .rowsUpdated()
 
-    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: String): Mono<Int> =
+    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Mono<Int> =
         if (geoQuery != null)
             databaseClient.execute(
                 """
@@ -136,7 +137,7 @@ class SubscriptionService(
         else
             Mono.just(0)
 
-    fun getById(id: String): Mono<Subscription> {
+    fun getById(id: URI): Mono<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
@@ -159,7 +160,7 @@ class SubscriptionService(
             }
     }
 
-    fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
+    fun isCreatorOf(subscriptionId: URI, sub: String): Mono<Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -175,7 +176,7 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
+    fun update(subscriptionId: URI, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
         val contexts = parsedInput.second
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
@@ -227,7 +228,7 @@ class SubscriptionService(
     }
 
     private fun updateSubscriptionAttribute(
-        subscriptionId: String,
+        subscriptionId: URI,
         attributeName: String,
         columnName: String,
         value: Any?
@@ -245,7 +246,7 @@ class SubscriptionService(
                 )
             }
     }
-    fun updateGeometryQuery(subscriptionId: String, geoQuery: Map<String, Any>): Mono<Int> {
+    fun updateGeometryQuery(subscriptionId: URI, geoQuery: Map<String, Any>): Mono<Int> {
         try {
             val firstValue = geoQuery.entries.iterator().next()
             var updateStatement = Update.update(firstValue.key, firstValue.value.toString())
@@ -267,7 +268,7 @@ class SubscriptionService(
         }
     }
 
-    fun updateNotification(subscriptionId: String, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
+    fun updateNotification(subscriptionId: URI, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
         try {
             val firstValue = notification.entries.iterator().next()
             val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
@@ -339,7 +340,7 @@ class SubscriptionService(
         }
     }
 
-    fun updateEntities(subscriptionId: String, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
+    fun updateEntities(subscriptionId: URI, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
         return deleteEntityInfo(subscriptionId).doOnNext {
             entities.forEach {
                 createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).subscribe {}
@@ -347,7 +348,7 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: String): Mono<Int> {
+    fun delete(subscriptionId: URI): Mono<Int> {
         val deleteStatement =
             """
             DELETE FROM subscription 
@@ -370,7 +371,7 @@ class SubscriptionService(
             }
     }
 
-    fun deleteEntityInfo(subscriptionId: String): Mono<Int> =
+    fun deleteEntityInfo(subscriptionId: URI): Mono<Int> =
         databaseClient.delete()
             .from("entity_info")
             .matching(Criteria.where("subscription_id").`is`(subscriptionId))
@@ -425,7 +426,7 @@ class SubscriptionService(
             .first()
     }
 
-    fun getMatchingSubscriptions(id: String, type: String, updatedAttributes: String): Flux<Subscription> {
+    fun getMatchingSubscriptions(id: URI, type: String, updatedAttributes: String): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
@@ -469,7 +470,7 @@ class SubscriptionService(
         return res.isNotEmpty()
     }
 
-    fun isMatchingGeoQuery(subscriptionId: String, location: NgsiLdGeoProperty?): Mono<Boolean> {
+    fun isMatchingGeoQuery(subscriptionId: URI, location: NgsiLdGeoProperty?): Mono<Boolean> {
         return if (location == null)
             Mono.just(true)
         else {
@@ -483,7 +484,7 @@ class SubscriptionService(
         }
     }
 
-    fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {
+    fun getMatchingGeoQuery(subscriptionId: URI): Mono<GeoQuery?> {
         val selectStatement =
             """
             SELECT *
@@ -525,7 +526,7 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!,
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
@@ -535,7 +536,7 @@ class SubscriptionService(
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java),
+                    id = row.get("entity_id", String::class.java)?.toUri(),
                     idPattern = row.get("id_pattern", String::class.java),
                     type = row.get("entity_type", String::class.java)!!
                 )
@@ -562,7 +563,7 @@ class SubscriptionService(
 
     private var rowToRawSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!,
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             description = row.get("description", String::class.java),

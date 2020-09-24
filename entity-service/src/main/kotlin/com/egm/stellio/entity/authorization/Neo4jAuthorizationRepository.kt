@@ -5,9 +5,12 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.toListOfString
+import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class Neo4jAuthorizationRepository(
@@ -17,10 +20,10 @@ class Neo4jAuthorizationRepository(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun filterEntitiesUserHasOneOfGivenRights(
-        userId: String,
-        entitiesId: List<String>,
+        userId: URI,
+        entitiesId: List<URI>,
         rights: Set<String>
-    ): List<String> {
+    ): List<URI> {
         val query =
             """
             MATCH (userEntity:Entity), (entity:Entity)
@@ -38,17 +41,17 @@ class Neo4jAuthorizationRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "userId" to userId,
-            "entitiesId" to entitiesId,
+            "userId" to userId.toString(),
+            "entitiesId" to entitiesId.toListOfString(),
             "rights" to rights
         )
 
         return session.query(query, parameters).map {
-            it["id"] as String
+            (it["id"] as String).toUri()
         }
     }
 
-    fun getUserRoles(userId: String): Set<String> {
+    fun getUserRoles(userId: URI): Set<String> {
         val query =
             """
             MATCH (userEntity:Entity { id: ${'$'}userId })
@@ -65,7 +68,7 @@ class Neo4jAuthorizationRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "userId" to userId
+            "userId" to userId.toString()
         )
 
         val result = session.query(query, parameters)
@@ -97,7 +100,7 @@ class Neo4jAuthorizationRepository(
         }
     }
 
-    fun createAdminLinks(userId: String, relationships: List<Relationship>, entitiesId: List<String>): List<String> {
+    fun createAdminLinks(userId: URI, relationships: List<Relationship>, entitiesId: List<URI>): List<URI> {
         val query =
             """
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
@@ -110,12 +113,12 @@ class Neo4jAuthorizationRepository(
         """
 
         val parameters = mapOf(
-            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId),
-            "userId" to userId
+            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId.toListOfString()),
+            "userId" to userId.toString()
         )
 
         return session.query(query, parameters).map {
-            it["id"] as String
+            (it["id"] as String).toUri()
         }
     }
 }

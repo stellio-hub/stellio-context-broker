@@ -1,12 +1,12 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.model.Subscription
-import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -51,7 +51,7 @@ fun gimmeRawSubscription(
             attributes = withNotifParams.second,
             format = withNotifParams.first,
             endpoint = Endpoint(
-                uri = URI.create("http://localhost:8089/notification"),
+                uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 info = endpointInfo
             ),

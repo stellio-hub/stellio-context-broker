@@ -7,6 +7,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.toUri
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
@@ -32,9 +33,9 @@ class ApiTestsBootstrapper(
 
     override fun run(vararg args: String?) {
         // well, this should not happen in api-tests profile as we start from a fresh database on each run
-        val ngsiLdUserId = USER_PREFIX + apiTestUserId!!
-        val apiTestsUser = entityRepository.findById(ngsiLdUserId)
-        if (!apiTestsUser.isPresent) {
+        val ngsiLdUserId = (USER_PREFIX + apiTestUserId!!).toUri()
+        val apiTestsUser = entityRepository.getEntityCoreById(ngsiLdUserId.toString())
+        if (apiTestsUser == null) {
             val entity = Entity(
                 id = ngsiLdUserId,
                 type = listOf(AUTHORIZATION_ONTOLOGY + USER_TYPE),

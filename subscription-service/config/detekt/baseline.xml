@@ -3,7 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>LargeClass:SubscriptionServiceTests.kt$SubscriptionServiceTests : TimescaleBasedTests</ID>
-    <ID>LongParameterList:EventMessageService.kt$EventMessageService$( channelName: String, eventType: EventType, entityId: String, entityType: String, payload: String?, updatedEntity: String? )</ID>
+    <ID>LongParameterList:EventMessageService.kt$EventMessageService$( channelName: String, eventType: EventType, entityId: URI, entityType: String, payload: String?, updatedEntity: String? )</ID>
     <ID>MaxLineLength:NotificationServiceTests.kt$NotificationServiceTests$ </ID>
     <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ AND ( string_to_array(watched_attributes, ',') &amp;&amp; string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )</ID>
     <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) </ID>

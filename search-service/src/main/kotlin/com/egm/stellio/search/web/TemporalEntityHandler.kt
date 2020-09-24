@@ -60,7 +60,10 @@ class TemporalEntityHandler(
                 Flux.fromIterable(expandJsonLdFragment(it.first, it.second).asIterable())
             }
             .flatMap {
-                temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
+                temporalEntityAttributeService.getForEntityAndAttribute(
+                    entityId.toUri(),
+                    it.key.extractShortTypeFromExpanded()
+                )
                     .map { temporalEntityAttributeUuid ->
                         Pair(temporalEntityAttributeUuid, it)
                     }
@@ -104,7 +107,7 @@ class TemporalEntityHandler(
         }
 
         // FIXME this is way too complex, refactor it later
-        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs, contextLink)
+        return temporalEntityAttributeService.getForEntity(entityId.toUri(), temporalQuery.attrs, contextLink)
             .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
             .flatMap { temporalEntityAttribute ->
                 attributeInstanceService.search(temporalQuery, temporalEntityAttribute)

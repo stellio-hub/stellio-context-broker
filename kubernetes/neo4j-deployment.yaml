@@ -69,6 +69,21 @@ spec:
             configMapKeyRef:
               name: stellio-conf
               key: NEO4J_DEFAULT_DATABASE
+        - name: NEO4J_dbms_security_procedures_unrestricted
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: NEO4J_SECURITY_PROCEDURES_UNRESTRICTED
+        - name: NEO4J_dbms_security_procedures_whitelist
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: NEO4J_SECURITY_PROCEDURES_WHITELIST
+        - name: NEO4JLABS_PLUGINS
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: NEO4J_PLUGINS
         image: neo4j:4.0
         name: stellio-neo4j
         ports:

@@ -37,5 +37,6 @@ jobs:
             -Dsonar.organization=stellio-hub
             -Dsonar.projectKey=stellio-hub_stellio-context-broker
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

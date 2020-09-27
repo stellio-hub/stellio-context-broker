@@ -7,9 +7,14 @@ pipeline {
         EGM_CI_DH = credentials('egm-ci-dh')
     }
     stages {
-        stage('Pre Build') {
+        stage('Notify build in Slack') {
             steps {
                 slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
+            }
+        }
+        stage('Clean previous build') {
+            steps {
+                sh './gradlew clean'
             }
         }
         stage('Build Shared Lib') {

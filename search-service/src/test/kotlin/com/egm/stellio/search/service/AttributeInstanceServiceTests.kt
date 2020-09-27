@@ -72,7 +72,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         attributeInstanceService.create(observation).block()
 
         val temporalQuery = TemporalQuery(
-            emptyList(),
+            emptySet(),
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
@@ -96,7 +96,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
-            emptyList(),
+            emptySet(),
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
@@ -118,7 +118,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         }
 
         val temporalQuery = TemporalQuery(
-            emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, "1 day", TemporalQuery.Aggregate.SUM
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
@@ -145,7 +145,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         }
 
         val temporalQuery = TemporalQuery(
-            emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(12),
+            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(12),
             null, "2 hours", TemporalQuery.Aggregate.SUM, 3
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
@@ -166,7 +166,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         }
 
         val temporalQuery = TemporalQuery(
-            emptyList(),
+            emptySet(),
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             lastN = 5
@@ -204,7 +204,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         }
 
         val temporalQuery = TemporalQuery(
-            emptyList(),
+            emptySet(),
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
@@ -223,7 +223,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
-            emptyList(),
+            emptySet(),
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )

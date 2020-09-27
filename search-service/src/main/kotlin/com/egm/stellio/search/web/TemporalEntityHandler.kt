@@ -126,7 +126,7 @@ class TemporalEntityHandler(
                 temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
             }
             .map {
-                it.compact()
+                JsonLdUtils.filterCompactedEntityOnAttributes(it.compact(), temporalQuery.attrs)
             }
             .map {
                 ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
@@ -198,7 +198,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     }
 
     return TemporalQuery(
-        attrs = params.getFirst("attrs")?.split(",").orEmpty(),
+        attrs = params.getFirst("attrs")?.split(",")?.toSet().orEmpty(),
         timerel = timerel,
         time = time,
         endTime = endTime,

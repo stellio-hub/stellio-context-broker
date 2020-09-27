@@ -87,8 +87,13 @@ class AttributeInstanceService(
             )
         }
 
-        if (temporalQuery.timeBucket != null)
-            selectQuery = selectQuery.plus(" GROUP BY time_bucket")
+        selectQuery = if (temporalQuery.timeBucket != null)
+            selectQuery.plus(" GROUP BY time_bucket ORDER BY time_bucket DESC")
+        else
+            selectQuery.plus(" ORDER BY observed_at DESC")
+
+        if (temporalQuery.lastN != null)
+            selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.execute(selectQuery)
             .fetch()

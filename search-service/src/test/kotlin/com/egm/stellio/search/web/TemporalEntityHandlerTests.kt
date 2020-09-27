@@ -16,6 +16,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -481,5 +482,41 @@ class TemporalEntityHandlerTests {
         val temporalQuery = buildTemporalQuery(queryParams)
 
         assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+    }
+
+    @Test
+    fun `it should parse lastN parameter if it is a positive integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "2")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.lastN == 2)
+    }
+
+    @Test
+    fun `it should ignore lastN parameter if it is not an integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "A")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertNull(temporalQuery.lastN)
+    }
+
+    @Test
+    fun `it should ignore lastN parameter if it is not a positive integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "-2")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertNull(temporalQuery.lastN)
     }
 }

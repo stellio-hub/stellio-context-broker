@@ -198,7 +198,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     }
 
     return TemporalQuery(
-        attrs = params["attrs"].orEmpty(),
+        attrs = params.getFirst("attrs")?.split(",").orEmpty(),
         timerel = timerel,
         time = time,
         endTime = endTime,

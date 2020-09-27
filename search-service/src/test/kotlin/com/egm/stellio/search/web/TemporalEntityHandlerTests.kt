@@ -476,12 +476,22 @@ class TemporalEntityHandlerTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("attrs", "outgoing")
-        queryParams.add("attrs", "incoming")
+        queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
         assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+    }
+
+    @Test
+    fun `it should parse a query containing no attrs parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.attrs.isEmpty())
     }
 
     @Test

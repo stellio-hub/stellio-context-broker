@@ -1,10 +1,6 @@
-val developmentOnly by configurations.creating
 val mainClass = "com.egm.stellio.entity.EntityServiceApplicationKt"
 
 configurations {
-    runtimeClasspath {
-        extendsFrom(developmentOnly)
-    }
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
@@ -19,12 +15,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
     implementation("org.jgrapht:jgrapht-core:1.4.0")
-    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.12")
+    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.13")
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-    testImplementation("org.hamcrest:hamcrest:2.1")
+    testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation(testFixtures(project(":shared")))
 }
 

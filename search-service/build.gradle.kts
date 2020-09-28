@@ -1,8 +1,4 @@
-val developmentOnly by configurations.creating
 configurations {
-    runtimeClasspath {
-        extendsFrom(developmentOnly)
-    }
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
     }
@@ -14,10 +10,9 @@ plugins {
 }
 
 dependencies {
-    implementation("org.springframework.boot.experimental:spring-boot-actuator-autoconfigure-r2dbc")
-    implementation("org.springframework.boot.experimental:spring-boot-starter-data-r2dbc")
-    implementation("org.springframework:spring-jdbc")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     // required for Flyway's direct access to the DB to apply migration scripts
+    implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation(project(":shared"))
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
@@ -27,15 +22,8 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("org.springframework.boot.experimental:spring-boot-test-autoconfigure-r2dbc")
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
     testImplementation(testFixtures(project(":shared")))
-}
-
-dependencyManagement {
-    imports {
-        mavenBom("org.springframework.boot.experimental:spring-boot-bom-r2dbc:0.1.0.M3")
-    }
 }
 
 defaultTasks("bootRun")

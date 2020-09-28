@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
-import org.springframework.data.r2dbc.query.Criteria
-import org.springframework.data.r2dbc.query.Update
+import org.springframework.data.relational.core.query.Criteria
+import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux

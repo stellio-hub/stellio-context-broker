@@ -511,7 +511,11 @@ class EntityService(
                     "and overwrite is not allowed, ignoring"
             )
         } else {
-            neo4jRepository.deleteEntityProperty(EntitySubjectNode(entityId), ngsiLdProperty.name)
+            neo4jRepository.deleteEntityProperty(
+                EntitySubjectNode(entityId),
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId
+            )
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             Triple(ngsiLdProperty.name, true, null)
         }

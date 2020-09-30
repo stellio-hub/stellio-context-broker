@@ -760,6 +760,60 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should overwrite the property instance with given datasetId`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+
+        val newProperty =
+            """
+            {
+              "fishNumber": {
+                "type": "Property",
+                "value": 500,
+                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
+              }
+            }
+            """.trimIndent()
+        val expandedNewProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newProperty, aquacContext!!)
+        )
+
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every {
+            neo4jRepository.createPropertyOfSubject(any(), any())
+        } returns UUID.randomUUID().toString().toUri()
+
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+
+        verify {
+            neo4jRepository.deleteEntityProperty(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                "https://ontology.eglobalmark.com/aquac#fishNumber",
+                datasetId = "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+            )
+        }
+
+        verify {
+            neo4jRepository.createPropertyOfSubject(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                match {
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                        it.value == 500 &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+                }
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should not override the default instance if overwrite is disallowed`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newProperty =

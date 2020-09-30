@@ -74,10 +74,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         val temporalQuery = TemporalQuery(
             emptyList(),
             TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null,
-            null,
-            null
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -101,10 +98,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         val temporalQuery = TemporalQuery(
             emptyList(),
             TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null,
-            null,
-            null
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -139,7 +133,56 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should only retrieve the temporal evolution of the provided temporal entity atttribute`() {
+    fun `it should only return the last n aggregates asked in the temporal query`() {
+        (1..10).forEachIndexed { index, _ ->
+            val attributeInstance =
+                gimmeAttributeInstance()
+                    .copy(
+                        measuredValue = 1.0,
+                        observedAt = Instant.now().atZone(ZoneOffset.UTC).minusHours(index.toLong())
+                    )
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            emptyList(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(12),
+            null, "2 hours", TemporalQuery.Aggregate.SUM, 3
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 3
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should only return the last n observations asked in the temporal query`() {
+        (1..10).forEach { _ ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            emptyList(),
+            TemporalQuery.Timerel.AFTER,
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            lastN = 5
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 5
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             type = "BeeHive",
@@ -163,10 +206,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         val temporalQuery = TemporalQuery(
             emptyList(),
             TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null,
-            null,
-            null
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
 
@@ -185,10 +225,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         val temporalQuery = TemporalQuery(
             emptyList(),
             TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null,
-            null,
-            null
+            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
         val enrichedEntity =
             attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()))

@@ -193,5 +193,17 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         else
             null
 
-    return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime, params.getFirst("timeBucket"), aggregate)
+    val lastN = params.getFirst("lastN")?.toIntOrNull()?.let {
+        if (it >= 1) it else null
+    }
+
+    return TemporalQuery(
+        attrs = params["attrs"].orEmpty(),
+        timerel = timerel,
+        time = time,
+        endTime = endTime,
+        timeBucket = params.getFirst("timeBucket"),
+        aggregate = aggregate,
+        lastN = lastN
+    )
 }

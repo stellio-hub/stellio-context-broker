@@ -6,9 +6,10 @@ data class TemporalQuery(
     val attrs: List<String> = emptyList(),
     val timerel: Timerel,
     val time: ZonedDateTime,
-    val endTime: ZonedDateTime?,
-    val timeBucket: String?,
-    val aggregate: Aggregate?
+    val endTime: ZonedDateTime? = null,
+    val timeBucket: String? = null,
+    val aggregate: Aggregate? = null,
+    val lastN: Int? = null
 ) {
     enum class Timerel {
         BEFORE,

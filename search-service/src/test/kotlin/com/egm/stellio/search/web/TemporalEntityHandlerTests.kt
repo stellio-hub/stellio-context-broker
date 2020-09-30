@@ -451,6 +451,49 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `it should only return attributes asked as request parameters`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+        )
+        val rawEntity = parseSampleDataToJsonLd()
+
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
+        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&attrs=incoming"
+            )
+            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.name").doesNotExist()
+            .jsonPath("$.connectsTo").doesNotExist()
+            .jsonPath("$.incoming").isMap
+
+        verify {
+            attributeInstanceService.search(
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
+                        temporalQuery.attrs == setOf("incoming")
+                },
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+            )
+        }
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
     @WithAnonymousUser
     fun `it should not authorize an anonymous to call the API`() {
         webClient.get()
@@ -468,7 +511,7 @@ class TemporalEntityHandlerTests {
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
-        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs[0] == "outgoing")
+        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs.contains("outgoing"))
     }
 
     @Test
@@ -476,12 +519,22 @@ class TemporalEntityHandlerTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("attrs", "outgoing")
-        queryParams.add("attrs", "incoming")
+        queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
         assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+    }
+
+    @Test
+    fun `it should parse a query containing no attrs parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.attrs.isEmpty())
     }
 
     @Test

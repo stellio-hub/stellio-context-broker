@@ -5,10 +5,12 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.subscription.firebase.FCMService
+import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
@@ -16,6 +18,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @Service
 class NotificationService(
@@ -48,10 +51,13 @@ class NotificationService(
 
     fun callSubscriber(
         subscription: Subscription,
-        entityId: String,
+        entityId: URI,
         entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
-        val notification = Notification(subscriptionId = subscription.id, data = compactEntities(listOf(entity)))
+        val notification = Notification(
+            subscriptionId = subscription.id,
+            data = buildNotifData(entity, subscription.notification)
+        )
 
         if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
@@ -74,7 +80,7 @@ class NotificationService(
                 .doOnNext {
                     val notificationEvent = EntityEvent(
                         operationType = EventType.CREATE,
-                        entityId = it.second.id.toString(),
+                        entityId = it.second.id,
                         entityType = it.second.type,
                         payload = serializeObject(it.second)
                     )
@@ -83,8 +89,18 @@ class NotificationService(
         }
     }
 
+    private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
+        val filteredEntity = JsonLdUtils.filterCompactedEntityOnAttributes(entity.compact(), params.attributes.toSet())
+        val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
+            filteredEntity.toKeyValues()
+        else
+            filteredEntity
+
+        return listOf(processedEntity)
+    }
+
     fun callFCMSubscriber(
-        entityId: String,
+        entityId: URI,
         subscription: Subscription,
         notification: Notification,
         fcmDeviceToken: String?
@@ -100,9 +116,9 @@ class NotificationService(
             mapOf("title" to subscription.name, "body" to subscription.description),
             mapOf(
                 "id_alert" to notification.id.toString(),
-                "id_subscription" to subscription.id,
+                "id_subscription" to subscription.id.toString(),
                 "timestamp" to notification.notifiedAt.toString(),
-                "id_beehive" to entityId
+                "id_beehive" to entityId.toString()
             ),
             fcmDeviceToken
         )
@@ -112,7 +128,7 @@ class NotificationService(
             .doOnNext {
                 val notificationEvent = EntityEvent(
                     operationType = EventType.CREATE,
-                    entityId = notification.id.toString(),
+                    entityId = notification.id,
                     entityType = notification.type,
                     payload = serializeObject(notification)
                 )

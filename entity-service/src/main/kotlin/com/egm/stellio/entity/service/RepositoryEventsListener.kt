@@ -13,6 +13,7 @@ import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class RepositoryEventsListener(
@@ -48,7 +49,7 @@ class RepositoryEventsListener(
             logger.warn("Unable to send entity ${entityEvent.entityId}")
     }
 
-    private fun sendCreateMessage(entityId: String, entityType: String, payload: String): Boolean {
+    private fun sendCreateMessage(entityId: URI, entityType: String, payload: String): Boolean {
         val data = mapOf(
             "operationType" to EventType.CREATE.name,
             "entityId" to entityId,
@@ -65,7 +66,7 @@ class RepositoryEventsListener(
             )
     }
 
-    private fun sendUpdateMessage(entityId: String, payload: String): Boolean {
+    private fun sendUpdateMessage(entityId: URI, payload: String): Boolean {
         val jsonLdEntity = entityService.getFullEntityById(entityId, true)
         jsonLdEntity?.let {
             val entityType = jsonLdEntity.type.extractShortTypeFromExpanded()

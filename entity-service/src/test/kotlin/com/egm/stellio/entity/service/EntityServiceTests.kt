@@ -22,6 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
 import com.egm.stellio.shared.util.parseSampleDataToNgsiLd
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
@@ -87,7 +88,7 @@ class EntityServiceTests {
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { mockedBreedingService.properties } returns mutableListOf()
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z"
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
@@ -103,7 +104,7 @@ class EntityServiceTests {
             repositoryEventsListener.handleRepositoryEvent(
                 match { entityEvent ->
                     entityEvent.entityType == "MortalityRemovalService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:MortalityRemovalService:014YFA9Z" &&
+                        entityEvent.entityId == "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri() &&
                         entityEvent.operationType == EventType.CREATE &&
                         entityEvent.payload == expectedPayloadInEvent &&
                         entityEvent.updatedEntity == null
@@ -122,13 +123,13 @@ class EntityServiceTests {
             parseSampleDataToNgsiLd("aquac/BreedingService_propWithProp.json")
 
         val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp"
+        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp".toUri()
 
         every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithProp")) } returns false
         every { entitiesGraphBuilder.build(any()) } returns
             Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
@@ -155,7 +156,7 @@ class EntityServiceTests {
                 DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java),
                 listOf(
                     BatchEntityError(
-                        "urn:ngsi-ld:FeedingService:018z59",
+                        "urn:ngsi-ld:FeedingService:018z59".toUri(),
                         arrayListOf(
                             "Target entity urn:ngsi-ld:Feeder:018z5 does not exist",
                             "Target entity urn:ngsi-ld:FishContainment:0012 does not exist"
@@ -183,7 +184,13 @@ class EntityServiceTests {
 
         entityService.updateEntityLastMeasure(observation)
 
-        verify { neo4jRepository.getObservingSensorEntity("urn:ngsi-ld:Sensor:01XYZ", EGM_VENDOR_ID, "incoming") }
+        verify {
+            neo4jRepository.getObservingSensorEntity(
+                "urn:ngsi-ld:Sensor:01XYZ".toUri(),
+                EGM_VENDOR_ID,
+                "incoming"
+            )
+        }
 
         confirmVerified(neo4jRepository)
     }
@@ -191,11 +198,11 @@ class EntityServiceTests {
     @Test
     fun `it should do nothing if temporal property is not found`() {
         val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
+        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
 
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedObservation = mockkClass(Property::class)
-        val mockkedObservationId = "urn:ngsi-ld:Property:${UUID.randomUUID()}"
+        val mockkedObservationId = "urn:ngsi-ld:Property:${UUID.randomUUID()}".toUri()
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation.id } returns mockkedObservationId
@@ -205,7 +212,7 @@ class EntityServiceTests {
         entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
 
         confirmVerified()
@@ -214,7 +221,7 @@ class EntityServiceTests {
     @Test
     fun `it should update an existing measure`() {
         val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ"
+        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
         val expectedPropertyUpdate = Property(
             name = "fishNumber",
             value = 400.0
@@ -228,10 +235,10 @@ class EntityServiceTests {
         every { mockkedObservation.name } returns observation.attributeName
         every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
-        every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234"
+        every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
         every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
         every { mockkedEntity.contexts } returns listOf(aquacContext!!)
-        every { mockkedObservation.id } returns "property-9999"
+        every { mockkedObservation.id } returns "property-9999".toUri()
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
@@ -246,7 +253,7 @@ class EntityServiceTests {
         entityService.updateEntityLastMeasure(observation)
 
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "OBSERVED_BY") }
+        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
@@ -254,7 +261,7 @@ class EntityServiceTests {
             repositoryEventsListener.handleRepositoryEvent(
                 match { entityEvent ->
                     entityEvent.entityType == "BreedingService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234" &&
+                        entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
                         entityEvent.operationType == EventType.UPDATE &&
                         entityEvent.payload != null &&
                         entityEvent.payload!!.contains("fishNumber") &&
@@ -268,9 +275,9 @@ class EntityServiceTests {
 
     @Test
     fun `it should replace an existing relationship`() {
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
-        val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac"
-        val relationshipTargetId = "urn:ngsi-ld:FishContainment:8792"
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac".toUri()
+        val relationshipTargetId = "urn:ngsi-ld:FishContainment:8792".toUri()
 
         val payload =
             """
@@ -296,27 +303,33 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId"
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId".toUri()
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { neo4jRepository.hasRelationshipOfType(any(), eq("FILLED_IN")) }
+        verify { neo4jRepository.hasRelationshipOfType(any(), eq("filledIn")) }
         verify {
             neo4jRepository.deleteEntityRelationship(
                 match {
                     it.id == sensorId
                 },
-                eq("FILLED_IN"), null, true
+                eq("filledIn"), null, true
             )
         }
-        verify { neo4jRepository.createRelationshipOfSubject(any(), any(), eq("urn:ngsi-ld:FishContainment:1234")) }
+        verify {
+            neo4jRepository.createRelationshipOfSubject(
+                any(),
+                any(),
+                eq("urn:ngsi-ld:FishContainment:1234".toUri())
+            )
+        }
 
         confirmVerified()
     }
 
     @Test
     fun `it should replace an existing default property`() {
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
         val payload =
             """
             {
@@ -347,7 +360,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should replace an existing property having the given datasetId`() {
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
         val payload =
             """
             {
@@ -371,7 +384,7 @@ class EntityServiceTests {
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { neo4jRepository.hasPropertyInstance(any(), any(), URI.create("urn:ngsi-ld:Dataset:fishAge:1")) }
+        verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1".toUri()) }
         verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
 
         confirmVerified()
@@ -379,7 +392,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should replace an existing geoProperty`() {
-        val sensorId = "urn:ngsi-ld:Sensor:013YFZ"
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
         val payload =
             """
             {
@@ -415,7 +428,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should correctly parse location property for an entity`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(23.45, 67.87)
 
         every { neo4jRepository.addLocationPropertyToEntity(any(), any()) } returns 1
@@ -429,7 +442,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should create a temporal property with all provided attributes`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val ngsiLdPropertyInstance = NgsiLdPropertyInstance(
             "temperature",
             mapOf(
@@ -455,7 +468,7 @@ class EntityServiceTests {
 
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
 
         entityService.createEntityProperty(entityId, "temperature", ngsiLdPropertyInstance)
 
@@ -479,9 +492,9 @@ class EntityServiceTests {
 
     @Test
     fun `it should create a new relationship`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321"
-        val relationshipId = UUID.randomUUID().toString()
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
+        val relationshipId = UUID.randomUUID().toString().toUri()
         val newRelationship =
             """
             {
@@ -513,7 +526,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
         verify {
@@ -531,7 +544,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should not replace a relationship if overwrite is disallowed`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newRelationship =
             """
             {
@@ -555,7 +568,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
 
@@ -564,9 +577,9 @@ class EntityServiceTests {
 
     @Test
     fun `it should replace a relationship if overwrite is allowed`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
-        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321"
-        val relationshipId = UUID.randomUUID().toString()
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+        val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
+        val relationshipId = UUID.randomUUID().toString().toUri()
         val newRelationship =
             """
             {
@@ -599,7 +612,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO"
+                "connectsTo"
             )
         }
         verify {
@@ -608,7 +621,7 @@ class EntityServiceTests {
                     it.id == entityId &&
                         it.label == "Entity"
                 },
-                "CONNECTS_TO", null, false
+                "connectsTo", null, false
             )
         }
 
@@ -617,7 +630,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should create a new property`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newProperty =
             """
             {
@@ -638,7 +651,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
         every { mockkedEntity.id } returns entityId
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -670,7 +683,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should create a new multi attribute property`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newProperty =
             """
             {
@@ -700,17 +713,17 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
             neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties))
-        } returns UUID.randomUUID().toString()
+        } returns UUID.randomUUID().toString().toUri()
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
-        assertTrue(datasetSetIds.contains(URI.create("urn:ngsi-ld:Dataset:fishNumber:1")))
+        assertTrue(datasetSetIds.contains("urn:ngsi-ld:Dataset:fishNumber:1".toUri()))
 
         assertTrue(
             createdProperties.any {
                 it.value == 500 &&
                     it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
-                    it.datasetId == URI.create("urn:ngsi-ld:Dataset:fishNumber:1")
+                    it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
             }.and(
                 createdProperties.any {
                     it.value == 600 &&
@@ -747,8 +760,62 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should overwrite the property instance with given datasetId`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+
+        val newProperty =
+            """
+            {
+              "fishNumber": {
+                "type": "Property",
+                "value": 500,
+                "datasetId": "urn:ngsi-ld:Dataset:fishNumber:1"
+              }
+            }
+            """.trimIndent()
+        val expandedNewProperty = parseToNgsiLdAttributes(
+            expandJsonLdFragment(newProperty, aquacContext!!)
+        )
+
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every {
+            neo4jRepository.createPropertyOfSubject(any(), any())
+        } returns UUID.randomUUID().toString().toUri()
+
+        entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
+
+        verify {
+            neo4jRepository.deleteEntityProperty(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                "https://ontology.eglobalmark.com/aquac#fishNumber",
+                datasetId = "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+            )
+        }
+
+        verify {
+            neo4jRepository.createPropertyOfSubject(
+                match {
+                    it.id == entityId &&
+                        it.label == "Entity"
+                },
+                match {
+                    it.name == "https://ontology.eglobalmark.com/aquac#fishNumber" &&
+                        it.value == 500 &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+                }
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should not override the default instance if overwrite is disallowed`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newProperty =
             """
             {
@@ -796,7 +863,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should create a new geoproperty`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newGeoProperty =
             """
             {
@@ -835,7 +902,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should replace a geoproperty if overwrite is allowed`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val newGeoProperty =
             """
             {
@@ -869,7 +936,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should delete all entity property instances`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
         every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
@@ -879,7 +946,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.hasPropertyOfName(
                 match {
-                    it.id == "urn:ngsi-ld:Beehive:123456" &&
+                    it.id == "urn:ngsi-ld:Beehive:123456".toUri() &&
                         it.label == "Entity"
                 },
                 "https://ontology.eglobalmark.com/aquac#fishNumber"
@@ -888,7 +955,7 @@ class EntityServiceTests {
         verify {
             neo4jRepository.deleteEntityProperty(
                 match {
-                    it.id == "urn:ngsi-ld:Beehive:123456" &&
+                    it.id == "urn:ngsi-ld:Beehive:123456".toUri() &&
                         it.label == "Entity"
                 },
                 "https://ontology.eglobalmark.com/aquac#fishNumber", null, true
@@ -900,7 +967,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should delete an entity relationship instance with the provided datasetId`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
@@ -909,26 +976,26 @@ class EntityServiceTests {
         entityService.deleteEntityAttributeInstance(
             entityId,
             "https://ontology.eglobalmark.com/aquac#connectsTo",
-            URI.create("urn:ngsi-ld:Dataset:connectsTo:01")
+            "urn:ngsi-ld:Dataset:connectsTo:01".toUri()
         )
 
         verify {
             neo4jRepository.hasRelationshipInstance(
                 match {
-                    it.id == "urn:ngsi-ld:Beehive:123456" &&
+                    it.id == "urn:ngsi-ld:Beehive:123456".toUri() &&
                         it.label == "Entity"
                 },
-                any(), URI.create("urn:ngsi-ld:Dataset:connectsTo:01")
+                any(), "urn:ngsi-ld:Dataset:connectsTo:01".toUri()
             )
         }
 
         verify {
             neo4jRepository.deleteEntityRelationship(
                 match {
-                    it.id == "urn:ngsi-ld:Beehive:123456" &&
+                    it.id == "urn:ngsi-ld:Beehive:123456".toUri() &&
                         it.label == "Entity"
                 },
-                any(), URI.create("urn:ngsi-ld:Dataset:connectsTo:01"), false
+                any(), "urn:ngsi-ld:Dataset:connectsTo:01".toUri(), false
             )
         }
 
@@ -937,7 +1004,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should not delete all entity attribute instances if the attribute is not found`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
@@ -959,7 +1026,7 @@ class EntityServiceTests {
 
     @Test
     fun `it should not delete the default property instance if not found`() {
-        val entityId = "urn:ngsi-ld:Beehive:123456"
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns false
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
@@ -984,7 +1051,7 @@ class EntityServiceTests {
             attributeName = "incoming",
             latitude = 43.12,
             longitude = 65.43,
-            observedBy = "urn:ngsi-ld:Sensor:01XYZ",
+            observedBy = "urn:ngsi-ld:Sensor:01XYZ".toUri(),
             unitCode = "CEL",
             value = 12.4,
             observedAt = Instant.now().atZone(ZoneOffset.UTC)

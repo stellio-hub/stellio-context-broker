@@ -33,6 +33,9 @@ services:
       - NEO4J_dbms_allow__upgrade=${NEO4J_ALLOW_UPGRADE}
       - NEO4J_dbms_default__database=${NEO4J_DEFAULT_DATABASE}
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - "NEO4J_dbms_security_procedures_unrestricted=apoc.*"
+      - "NEO4J_dbms_security_procedures_whitelist=apoc.*"
+      - NEO4JLABS_PLUGINS=["apoc"]
     ports:
       - 7474:7474
       - 7687:7687

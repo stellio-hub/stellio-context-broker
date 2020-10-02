@@ -9,6 +9,8 @@ import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.toListOfString
+import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.neo4j.ogm.session.SessionFactory
 import org.neo4j.ogm.session.event.Event
@@ -19,9 +21,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import javax.annotation.PostConstruct
 
-sealed class SubjectNodeInfo(val id: String, val label: String)
-class EntitySubjectNode(id: String) : SubjectNodeInfo(id, "Entity")
-class AttributeSubjectNode(id: String) : SubjectNodeInfo(id, "Attribute")
+sealed class SubjectNodeInfo(val id: URI, val label: String)
+class EntitySubjectNode(id: URI) : SubjectNodeInfo(id, "Entity")
+class AttributeSubjectNode(id: URI) : SubjectNodeInfo(id, "Attribute")
 
 @Component
 class Neo4jRepository(
@@ -30,7 +32,7 @@ class Neo4jRepository(
     private val entityRepository: EntityRepository
 ) {
 
-    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): String {
+    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): URI {
         val query =
             """
             MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
@@ -42,15 +44,14 @@ class Neo4jRepository(
             "props" to property.nodeProperties(),
             "subjectId" to subjectNodeInfo.id
         )
-        return session.query(query, parameters)
-            .first()["id"] as String
+        return (session.query(query, parameters).first()["id"] as String).toUri()
     }
 
     fun createRelationshipOfSubject(
         subjectNodeInfo: SubjectNodeInfo,
         relationship: Relationship,
-        targetId: String
-    ): String {
+        targetId: URI
+    ): URI {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
         val query =
             """
@@ -64,14 +65,13 @@ class Neo4jRepository(
             "subjectId" to subjectNodeInfo.id,
             "targetId" to targetId
         )
-        return session.query(query, parameters)
-            .first()["id"] as String
+        return (session.query(query, parameters).first()["id"] as String).toUri()
     }
 
     /**
      * Add a spatial property to an entity.
      */
-    fun addLocationPropertyToEntity(subjectId: String, coordinates: Pair<Double, Double>): Int {
+    fun addLocationPropertyToEntity(subjectId: URI, coordinates: Pair<Double, Double>): Int {
         val query =
             """
             MERGE (subject:Entity { id: ${'$'}subjectId })
@@ -84,7 +84,7 @@ class Neo4jRepository(
         return session.query(query, parameters).queryStatistics().propertiesSet
     }
 
-    fun updateEntityAttribute(entityId: String, propertyName: String, propertyValue: Any): Int {
+    fun updateEntityAttribute(entityId: URI, propertyName: String, propertyValue: Any): Int {
         val query =
             """
             MERGE (entity:Entity { id: ${'$'}entityId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
@@ -150,7 +150,7 @@ class Neo4jRepository(
             )
 
         newPropertyInstance.relationships.filter {
-            entityRepository.exists(it.instances[0].objectId) ?: false
+            entityRepository.exists(it.instances[0].objectId.toString()) ?: false
         }.forEachIndexed { index, ngsiLdRelationship ->
             val relationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationship.instances[0])
             parameters["relationshipOfProperty_$index"] = relationship.nodeProperties()
@@ -169,7 +169,7 @@ class Neo4jRepository(
             .queryStatistics().nodesDeleted
     }
 
-    fun updateEntityModifiedDate(entityId: String): Int {
+    fun updateEntityModifiedDate(entityId: URI): Int {
         val query =
             """
             MERGE (entity:Entity { id: ${'$'}entityId })
@@ -266,10 +266,10 @@ class Neo4jRepository(
     }
 
     fun updateRelationshipTargetOfAttribute(
-        attributeId: String,
+        attributeId: URI,
         relationshipType: String,
-        oldRelationshipObjectId: String,
-        newRelationshipObjectId: String
+        oldRelationshipObjectId: URI,
+        newRelationshipObjectId: URI
     ): Int {
         val relationshipTypeQuery =
             """
@@ -287,7 +287,7 @@ class Neo4jRepository(
         return session.query(relationshipTypeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun updateLocationPropertyOfEntity(entityId: String, coordinates: Pair<Double, Double>): Int {
+    fun updateLocationPropertyOfEntity(entityId: URI, coordinates: Pair<Double, Double>): Int {
         val query =
             """
             MERGE (entity:Entity { id: "$entityId" })
@@ -296,7 +296,7 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }
 
-    fun deleteEntity(entityId: String): Pair<Int, Int> {
+    fun deleteEntity(entityId: URI): Pair<Int, Int> {
         /**
          * Delete :
          *
@@ -332,7 +332,7 @@ class Neo4jRepository(
         return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
     }
 
-    fun deleteEntityAttributes(entityId: String): Pair<Int, Int> {
+    fun deleteEntityAttributes(entityId: URI): Pair<Int, Int> {
         /**
          * Delete :
          *
@@ -441,7 +441,7 @@ class Neo4jRepository(
     fun getEntitiesByTypeAndQuery(
         type: String,
         query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>
-    ): List<String> {
+    ): List<URI> {
         val propertiesFilter =
             if (query.second.isNotEmpty())
                 query.second.joinToString(" AND ") {
@@ -492,10 +492,10 @@ class Neo4jRepository(
             """
 
         return session.query(finalQuery, emptyMap<String, Any>(), true)
-            .map { it["id"] as String }
+            .map { (it["id"] as String).toUri() }
     }
 
-    fun getObservingSensorEntity(observerId: String, propertyName: String, measureName: String): Entity? {
+    fun getObservingSensorEntity(observerId: URI, propertyName: String, measureName: String): Entity? {
         // definitely not bullet proof since we are looking for a property whose name ends with the property name
         // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
         // TODO : this will have to be resolved with a clean provisioning architecture
@@ -505,13 +505,14 @@ class Neo4jRepository(
             WHERE e.id = '$observerId' 
             RETURN e 
             UNION 
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
             WHERE m.name ENDS WITH '$measureName' 
             AND p.name = '$propertyName' 
             AND toLower(p.value) = toLower('$observerId') 
             RETURN e
             UNION
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:OBSERVED_BY]->(e:Entity)-[:HAS_OBJECT]-()-[:IS_CONTAINED_IN]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
+            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->
+            (e:Entity)-[:HAS_OBJECT]-()-[:isContainedIn]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
             WHERE m.name ENDS WITH '$measureName' 
             AND deviceProp.name = '$propertyName' 
             AND toLower(deviceProp.value) = toLower('$observerId') 
@@ -523,7 +524,7 @@ class Neo4jRepository(
             .firstOrNull()
     }
 
-    fun getObservedProperty(observerId: String, relationshipType: String): Property? {
+    fun getObservedProperty(observerId: URI, relationshipType: String): Property? {
         val query =
             """
             MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
@@ -547,17 +548,18 @@ class Neo4jRepository(
             .first()
     }
 
-    fun filterExistingEntitiesAsIds(entitiesIds: List<String>): List<String> {
+    fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
         if (entitiesIds.isEmpty()) {
             return emptyList()
         }
 
         val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
-        return session.query(query, mapOf("entitiesIds" to entitiesIds), true).map { it["id"] as String }
+        return session.query(query, mapOf("entitiesIds" to entitiesIds.toListOfString()), true)
+            .map { (it["id"] as String).toUri() }
     }
 
-    fun getPropertyOfSubject(subjectId: String, propertyName: String, datasetId: URI? = null): Property {
+    fun getPropertyOfSubject(subjectId: URI, propertyName: String, datasetId: URI? = null): Property {
         val query = if (datasetId == null)
             """
             MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
@@ -575,7 +577,7 @@ class Neo4jRepository(
             .first()
     }
 
-    fun getRelationshipOfSubject(subjectId: String, relationshipType: String): Relationship {
+    fun getRelationshipOfSubject(subjectId: URI, relationshipType: String): Relationship {
         val query =
             """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
@@ -587,7 +589,7 @@ class Neo4jRepository(
             .first()
     }
 
-    fun getRelationshipTargetOfSubject(subjectId: String, relationshipType: String): Entity? {
+    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String): Entity? {
         val query =
             """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)

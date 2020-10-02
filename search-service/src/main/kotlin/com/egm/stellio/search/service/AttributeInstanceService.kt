@@ -11,10 +11,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.toUri
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -87,8 +87,13 @@ class AttributeInstanceService(
             )
         }
 
-        if (temporalQuery.timeBucket != null)
-            selectQuery = selectQuery.plus(" GROUP BY time_bucket")
+        selectQuery = if (temporalQuery.timeBucket != null)
+            selectQuery.plus(" GROUP BY time_bucket ORDER BY time_bucket DESC")
+        else
+            selectQuery.plus(" ORDER BY observed_at DESC")
+
+        if (temporalQuery.lastN != null)
+            selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
         return databaseClient.execute(selectQuery)
             .fetch()
@@ -105,7 +110,7 @@ class AttributeInstanceService(
     ): AttributeInstanceResult {
         return AttributeInstanceResult(
             attributeName = temporalEntityAttribute.attributeName,
-            instanceId = row["instance_id"]?.let { URI.create(it as String) },
+            instanceId = row["instance_id"]?.let { (it as String).toUri() },
             datasetId = temporalEntityAttribute.datasetId,
             value = row["value"]!!,
             observedAt =

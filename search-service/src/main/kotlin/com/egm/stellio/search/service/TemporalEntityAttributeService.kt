@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
+import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -56,7 +57,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    internal fun createEntityPayload(entityId: String, entityPayload: String?): Mono<Int> =
+    internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
         databaseClient.execute(
             """
             INSERT INTO entity_payload (entity_id, payload)
@@ -68,7 +69,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    fun updateEntityPayload(entityId: String, payload: String): Mono<Int> =
+    fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
         databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
             .bind("payload", Json.of(payload))
             .bind("entity_id", entityId)
@@ -133,7 +134,7 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
-    fun getForEntity(id: String, attrs: List<String>, contextLink: String): Flux<TemporalEntityAttribute> {
+    fun getForEntity(id: URI, attrs: Set<String>, contextLink: String): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
             SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
@@ -162,7 +163,7 @@ class TemporalEntityAttributeService(
             .all()
     }
 
-    fun getFirstForEntity(id: String): Mono<UUID> {
+    fun getFirstForEntity(id: URI): Mono<UUID> {
         val selectQuery =
             """
             SELECT id
@@ -177,7 +178,7 @@ class TemporalEntityAttributeService(
             .first()
     }
 
-    fun getForEntityAndAttribute(id: String, attributeName: String, datasetId: String? = null): Mono<UUID> {
+    fun getForEntityAndAttribute(id: URI, attributeName: String, datasetId: String? = null): Mono<UUID> {
         val selectQuery =
             """
             SELECT id
@@ -202,7 +203,7 @@ class TemporalEntityAttributeService(
     private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->
         TemporalEntityAttribute(
             id = row.get("id", UUID::class.java)!!,
-            entityId = row.get("entity_id", String::class.java)!!,
+            entityId = row.get("entity_id", String::class.java)!!.toUri(),
             type = row.get("type", String::class.java)!!,
             attributeName = row.get("attribute_name", String::class.java)!!,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
@@ -211,7 +212,7 @@ class TemporalEntityAttributeService(
                     String::class.java
                 )!!
             ),
-            datasetId = row.get("dataset_id", String::class.java)?.let { URI.create(it) },
+            datasetId = row.get("dataset_id", String::class.java)?.toUri(),
             entityPayload = row.get("payload", String::class.java)
         )
     }

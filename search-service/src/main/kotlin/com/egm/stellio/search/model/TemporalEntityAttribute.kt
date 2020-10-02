@@ -5,7 +5,7 @@ import java.util.UUID
 
 data class TemporalEntityAttribute(
     val id: UUID = UUID.randomUUID(),
-    val entityId: String,
+    val entityId: URI,
     val type: String,
     val attributeName: String,
     val attributeValueType: AttributeValueType,

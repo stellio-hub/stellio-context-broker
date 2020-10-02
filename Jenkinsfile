@@ -7,9 +7,14 @@ pipeline {
         EGM_CI_DH = credentials('egm-ci-dh')
     }
     stages {
-        stage('Pre Build') {
+        stage('Notify build in Slack') {
             steps {
                 slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
+            }
+        }
+        stage('Clean previous build') {
+            steps {
+                sh './gradlew clean'
             }
         }
         stage('Build Shared Lib') {
@@ -158,6 +163,7 @@ pipeline {
         always {
             archiveArtifacts artifacts: '**/build/reports/**', allowEmptyArchive: true
 
+            junit allowEmptyResults: true, keepLongStdio: true, testResults: '**/build/test-results/test/*.xml'
             recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/reports/ktlint/ktlint*.xml')
             recordIssues enabledForFailure: true, tool: detekt(pattern: '**/build/reports/detekt/detekt.xml')
         }

@@ -1,26 +1,30 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.NotificationParams
+import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.model.Subscription
-import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
 
 fun gimmeRawSubscription(
-    withQuery: Boolean = true,
-    withGeoQuery: Boolean = true,
+    withQueryAndGeoQuery: Pair<Boolean, Boolean> = Pair(true, true),
     withEndpointInfo: Boolean = true,
+    withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
+    withModifiedAt: Boolean = false,
     georel: String = "within"
 ): Subscription {
     val q =
-        if (withQuery)
+        if (withQueryAndGeoQuery.first)
             "speed>50;foodName==dietary fibres"
         else
             null
 
     val geoQuery =
-        if (withGeoQuery)
+        if (withQueryAndGeoQuery.second)
             GeoQuery(
                 georel = georel,
                 geometry = GeoQuery.GeometryType.Polygon,
@@ -35,17 +39,19 @@ fun gimmeRawSubscription(
         else
             null
 
+    val modifiedAtValue = if (withModifiedAt) Instant.now().atZone(ZoneOffset.UTC) else null
     return Subscription(
         name = "My Subscription",
+        modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",
         q = q,
         entities = emptySet(),
         geoQ = geoQuery,
         notification = NotificationParams(
-            attributes = listOf("incoming"),
-            format = NotificationParams.FormatType.KEY_VALUES,
+            attributes = withNotifParams.second,
+            format = withNotifParams.first,
             endpoint = Endpoint(
-                uri = URI.create("http://localhost:8089/notification"),
+                uri = "http://localhost:8089/notification".toUri(),
                 accept = Endpoint.AcceptType.JSONLD,
                 info = endpointInfo
             ),

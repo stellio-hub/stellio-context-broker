@@ -70,7 +70,7 @@ spec:
               configMapKeyRef:
                 name: stellio-conf
                 key: KAFKA_URL
-          image: 'stellio/stellio-subscription-service:dev'
+          image: 'stellio/stellio-subscription-service:latest'
           name: stellio-subscription-service
           ports:
             - containerPort: 8084

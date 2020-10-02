@@ -10,11 +10,13 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.parseSampleDataToJsonLd
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -86,7 +88,7 @@ class TemporalEntityHandlerTests {
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq("urn:ngsi-ld:BeeHive:TESTC"),
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 eq("incoming")
             )
         }
@@ -312,7 +314,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId",
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -343,12 +345,12 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
 
-        verify { entityService.getEntityById(eq("entityId"), any()) }
+        verify { entityService.getEntityById(eq("entityId".toUri()), any()) }
         confirmVerified(entityService)
 
         verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
@@ -369,13 +371,13 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a single entity if the entity has two temporal properties`() {
         val entityTemporalProperty1 = TemporalEntityAttribute(
-            entityId = "entityId",
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val entityTemporalProperty2 = TemporalEntityAttribute(
-            entityId = "entityId",
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -404,7 +406,7 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
@@ -413,7 +415,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should correctly dispatch queries on entities having properties with a raw value`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId",
+            entityId = "entityId".toUri(),
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
@@ -442,7 +444,50 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId" }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+            )
+        }
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should only return attributes asked as request parameters`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+        )
+        val rawEntity = parseSampleDataToJsonLd()
+
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
+        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&attrs=incoming"
+            )
+            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.name").doesNotExist()
+            .jsonPath("$.connectsTo").doesNotExist()
+            .jsonPath("$.incoming").isMap
+
+        verify {
+            attributeInstanceService.search(
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
+                        temporalQuery.attrs == setOf("incoming")
+                },
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
@@ -466,7 +511,7 @@ class TemporalEntityHandlerTests {
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
-        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs[0] == "outgoing")
+        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs.contains("outgoing"))
     }
 
     @Test
@@ -474,11 +519,57 @@ class TemporalEntityHandlerTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("attrs", "outgoing")
-        queryParams.add("attrs", "incoming")
+        queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
         assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+    }
+
+    @Test
+    fun `it should parse a query containing no attrs parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.attrs.isEmpty())
+    }
+
+    @Test
+    fun `it should parse lastN parameter if it is a positive integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "2")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertTrue(temporalQuery.lastN == 2)
+    }
+
+    @Test
+    fun `it should ignore lastN parameter if it is not an integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "A")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertNull(temporalQuery.lastN)
+    }
+
+    @Test
+    fun `it should ignore lastN parameter if it is not a positive integer`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "after")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("lastN", "-2")
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertNull(temporalQuery.lastN)
     }
 }

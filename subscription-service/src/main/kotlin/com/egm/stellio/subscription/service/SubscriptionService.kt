@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -29,14 +30,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
-import org.springframework.data.r2dbc.query.Criteria
-import org.springframework.data.r2dbc.query.Update
+import org.springframework.data.relational.core.query.Criteria
+import org.springframework.data.relational.core.query.Update
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.net.URI
+import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
@@ -52,14 +54,17 @@ class SubscriptionService(
     fun create(subscription: Subscription, sub: String): Mono<Int> {
         val insertStatement =
             """
-            INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) 
-            VALUES(:id, :type, :name, :description, :watched_attributes, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
+        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
+            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
+        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
+            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
             """.trimIndent()
 
         return databaseClient.execute(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
             .bind("name", subscription.name)
+            .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
             .bind("q", subscription.q)
@@ -97,11 +102,11 @@ class SubscriptionService(
             }
     }
 
-    fun exists(subscriptionId: String): Mono<Boolean> {
-        return subscriptionRepository.existsById(subscriptionId)
+    fun exists(subscriptionId: URI): Mono<Boolean> {
+        return subscriptionRepository.existsById(subscriptionId.toString())
     }
 
-    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: String): Mono<Int> =
+    private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Mono<Int> =
         databaseClient.execute(
             """
             INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
@@ -115,7 +120,7 @@ class SubscriptionService(
             .fetch()
             .rowsUpdated()
 
-    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: String): Mono<Int> =
+    private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Mono<Int> =
         if (geoQuery != null)
             databaseClient.execute(
                 """
@@ -132,11 +137,11 @@ class SubscriptionService(
         else
             Mono.just(0)
 
-    fun getById(id: String): Mono<Subscription> {
+    fun getById(id: URI): Mono<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
+                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
@@ -155,7 +160,7 @@ class SubscriptionService(
             }
     }
 
-    fun isCreatorOf(subscriptionId: String, sub: String): Mono<Boolean> {
+    fun isCreatorOf(subscriptionId: URI, sub: String): Mono<Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -171,12 +176,15 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: String, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
+    fun update(subscriptionId: URI, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
         val contexts = parsedInput.second
         val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
 
-        subscriptionUpdateInput.filterKeys { it != "id" && it != "type" && it != "@context" }.forEach {
+        val subscriptionInputWithModifiedAt = parsedInput.first
+            .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+
+        subscriptionInputWithModifiedAt.filterKeys { it !in JsonLdUtils.JSONLD_ENTITY_CORE_PROPERTIES }.forEach {
             when (it.key) {
                 "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>
@@ -193,21 +201,7 @@ class SubscriptionService(
                 else -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
-
-                    val updateStatement = Update.update(columnName, value)
-                    updates.add(
-                        databaseClient.update()
-                            .table("subscription")
-                            .using(updateStatement)
-                            .matching(Criteria.where("id").`is`(subscriptionId))
-                            .fetch()
-                            .rowsUpdated()
-                            .doOnError { e ->
-                                throw BadRequestDataException(
-                                    e.message ?: "Could not update attribute ${it.key}"
-                                )
-                            }
-                    )
+                    updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
             }
         }
@@ -233,7 +227,26 @@ class SubscriptionService(
             .map { it.t1.size }
     }
 
-    fun updateGeometryQuery(subscriptionId: String, geoQuery: Map<String, Any>): Mono<Int> {
+    private fun updateSubscriptionAttribute(
+        subscriptionId: URI,
+        attributeName: String,
+        columnName: String,
+        value: Any?
+    ): Mono<Int> {
+        val updateStatement = Update.update(columnName, value)
+        return databaseClient.update()
+            .table("subscription")
+            .using(updateStatement)
+            .matching(Criteria.where("id").`is`(subscriptionId))
+            .fetch()
+            .rowsUpdated()
+            .doOnError { e ->
+                throw BadRequestDataException(
+                    e.message ?: "Could not update attribute $attributeName"
+                )
+            }
+    }
+    fun updateGeometryQuery(subscriptionId: URI, geoQuery: Map<String, Any>): Mono<Int> {
         try {
             val firstValue = geoQuery.entries.iterator().next()
             var updateStatement = Update.update(firstValue.key, firstValue.value.toString())
@@ -255,7 +268,7 @@ class SubscriptionService(
         }
     }
 
-    fun updateNotification(subscriptionId: String, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
+    fun updateNotification(subscriptionId: URI, notification: Map<String, Any>, contexts: List<String>?): Mono<Int> {
         try {
             val firstValue = notification.entries.iterator().next()
             val updateParams = extractParamsFromNotificationAttribute(firstValue, contexts)
@@ -327,7 +340,7 @@ class SubscriptionService(
         }
     }
 
-    fun updateEntities(subscriptionId: String, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
+    fun updateEntities(subscriptionId: URI, entities: List<Map<String, Any>>, contexts: List<String>?): Mono<Int> {
         return deleteEntityInfo(subscriptionId).doOnNext {
             entities.forEach {
                 createEntityInfo(parseEntityInfo(it, contexts), subscriptionId).subscribe {}
@@ -335,7 +348,7 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: String): Mono<Int> {
+    fun delete(subscriptionId: URI): Mono<Int> {
         val deleteStatement =
             """
             DELETE FROM subscription 
@@ -358,7 +371,7 @@ class SubscriptionService(
             }
     }
 
-    fun deleteEntityInfo(subscriptionId: String): Mono<Int> =
+    fun deleteEntityInfo(subscriptionId: URI): Mono<Int> =
         databaseClient.delete()
             .from("entity_info")
             .matching(Criteria.where("subscription_id").`is`(subscriptionId))
@@ -368,8 +381,8 @@ class SubscriptionService(
     fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, watched_attributes, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
+                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty
@@ -413,7 +426,7 @@ class SubscriptionService(
             .first()
     }
 
-    fun getMatchingSubscriptions(id: String, type: String, updatedAttributes: String): Flux<Subscription> {
+    fun getMatchingSubscriptions(id: URI, type: String, updatedAttributes: String): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
@@ -457,7 +470,7 @@ class SubscriptionService(
         return res.isNotEmpty()
     }
 
-    fun isMatchingGeoQuery(subscriptionId: String, location: NgsiLdGeoProperty?): Mono<Boolean> {
+    fun isMatchingGeoQuery(subscriptionId: URI, location: NgsiLdGeoProperty?): Mono<Boolean> {
         return if (location == null)
             Mono.just(true)
         else {
@@ -471,7 +484,7 @@ class SubscriptionService(
         }
     }
 
-    fun getMatchingGeoQuery(subscriptionId: String): Mono<GeoQuery?> {
+    fun getMatchingGeoQuery(subscriptionId: URI): Mono<GeoQuery?> {
         val selectStatement =
             """
             SELECT *
@@ -513,15 +526,17 @@ class SubscriptionService(
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!,
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
+            createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
+            modifiedAt = row.get("modified_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             description = row.get("description", String::class.java),
             watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java),
+                    id = row.get("entity_id", String::class.java)?.toUri(),
                     idPattern = row.get("id_pattern", String::class.java),
                     type = row.get("entity_type", String::class.java)!!
                 )
@@ -548,7 +563,7 @@ class SubscriptionService(
 
     private var rowToRawSubscription: ((Row) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!,
+            id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
             name = row.get("name", String::class.java),
             description = row.get("description", String::class.java),

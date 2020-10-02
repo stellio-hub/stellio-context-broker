@@ -7,11 +7,12 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.toJson
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
 import java.net.URI
+import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
@@ -70,8 +72,10 @@ class SubscriptionHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     fun getSubscriptions(
         @RequestParam(required = false, defaultValue = "1") page: Int,
-        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int
+        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int,
+        @RequestParam options: Optional<String>
     ): Mono<ResponseEntity<*>> {
+        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         return if (limit <= 0 || page <= 0)
             ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
@@ -91,7 +95,7 @@ class SubscriptionHandler(
             .map {
                 val prevLink = getSubscriptionsPagingLinks(it.first, page, limit).first
                 val nextLink = getSubscriptionsPagingLinks(it.first, page, limit).second
-                Triple(serializeObject(it.second), prevLink, nextLink)
+                Triple(it.second.toJson(includeSysAttrs), prevLink, nextLink)
             }
             .map {
                 if (it.second != null && it.third != null)
@@ -110,19 +114,24 @@ class SubscriptionHandler(
      * Implements 6.11.3.1 - Retrieve Subscription
      */
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getByURI(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
-        return checkSubscriptionExists(subscriptionId)
+    fun getByURI(
+        @PathVariable subscriptionId: String,
+        @RequestParam options: Optional<String>
+    ): Mono<ResponseEntity<*>> {
+        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
+        val subscriptionIdUri = subscriptionId.toUri()
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
-                subscriptionService.getById(subscriptionId)
+                subscriptionService.getById(subscriptionIdUri)
             }
             .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
+                ResponseEntity.status(HttpStatus.OK).body(it.toJson(includeSysAttrs))
             }
     }
 
@@ -134,19 +143,20 @@ class SubscriptionHandler(
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
     fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return checkSubscriptionExists(subscriptionId)
+        val subscriptionIdUri = subscriptionId.toUri()
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
                 body
             }
             .flatMap {
                 val parsedInput = parseSubscriptionUpdate(it)
-                subscriptionService.update(subscriptionId, parsedInput)
+                subscriptionService.update(subscriptionIdUri, parsedInput)
             }
             .map {
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -158,22 +168,23 @@ class SubscriptionHandler(
      */
     @DeleteMapping("/{subscriptionId}")
     fun delete(@PathVariable subscriptionId: String): Mono<ResponseEntity<*>> {
-        return checkSubscriptionExists(subscriptionId)
+        val subscriptionIdUri = subscriptionId.toUri()
+        return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
                 extractSubjectOrEmpty()
             }
             .flatMap {
-                checkIsAllowed(subscriptionId, it)
+                checkIsAllowed(subscriptionIdUri, it)
             }
             .flatMap {
-                subscriptionService.delete(subscriptionId)
+                subscriptionService.delete(subscriptionIdUri)
             }
             .map {
                 ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
             }
     }
 
-    private fun checkSubscriptionExists(subscriptionId: String): Mono<String> =
+    private fun checkSubscriptionExists(subscriptionId: URI): Mono<URI> =
         subscriptionService.exists(subscriptionId)
             .flatMap {
                 if (!it)
@@ -191,7 +202,7 @@ class SubscriptionHandler(
                     Mono.just(subscription)
             }
 
-    private fun checkIsAllowed(subscriptionId: String, userSub: String): Mono<String> =
+    private fun checkIsAllowed(subscriptionId: URI, userSub: String): Mono<URI> =
         subscriptionService.isCreatorOf(subscriptionId, userSub)
             .flatMap {
                 if (!it)

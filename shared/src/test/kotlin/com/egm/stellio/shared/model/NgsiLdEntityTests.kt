@@ -3,13 +3,14 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.net.URI
 import java.time.ZonedDateTime
 
 class NgsiLdEntityTests {
@@ -116,7 +117,7 @@ class NgsiLdEntityTests {
         val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
         assertEquals("MTR", ngsiLdPropertyInstance.unitCode)
-        assertEquals(URI.create("urn:ngsi-ld:Dataset:01234"), ngsiLdPropertyInstance.datasetId)
+        assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdPropertyInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdPropertyInstance.observedAt)
     }
 
@@ -146,7 +147,7 @@ class NgsiLdEntityTests {
         val ngsiLdProperty = ngsiLdEntity.properties[0]
         assertEquals(2, ngsiLdProperty.instances.size)
         assertArrayEquals(
-            arrayOf(URI.create("urn:ngsi-ld:Dataset:01234"), URI.create("urn:ngsi-ld:Dataset:45678")),
+            arrayOf("urn:ngsi-ld:Dataset:01234".toUri(), "urn:ngsi-ld:Dataset:45678".toUri()),
             ngsiLdProperty.instances.map { it.datasetId }.toTypedArray()
         )
     }
@@ -275,7 +276,7 @@ class NgsiLdEntityTests {
         val ngsiLdAttribute = ngsiLdAttributes[0]
         assertTrue(ngsiLdAttribute is NgsiLdProperty)
         val ngsiLdPropertyInstance = (ngsiLdAttribute as NgsiLdProperty).instances[0]
-        assertEquals(URI.create("urn:ngsi-ld:Dataset:fishName:1"), ngsiLdPropertyInstance.datasetId)
+        assertEquals("urn:ngsi-ld:Dataset:fishName:1".toUri(), ngsiLdPropertyInstance.datasetId)
         assertEquals(35, ngsiLdPropertyInstance.value)
     }
 
@@ -300,7 +301,7 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.fiware.org/ns/data-models#refDeviceModel", ngsiLdRelationship.name)
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876", ngsiLdRelationshipInstance.objectId)
+        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
     }
 
     @Test
@@ -322,8 +323,8 @@ class NgsiLdEntityTests {
         val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
 
         val ngsiLdRelationshipInstance = ngsiLdEntity.relationships[0].instances[0]
-        assertEquals("urn:ngsi-ld:DeviceModel:09876", ngsiLdRelationshipInstance.objectId)
-        assertEquals(URI.create("urn:ngsi-ld:Dataset:01234"), ngsiLdRelationshipInstance.datasetId)
+        assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdRelationshipInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdRelationshipInstance.observedAt)
     }
 
@@ -541,7 +542,7 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(arrayListOf("relation1"), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(arrayListOf("relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -568,7 +569,7 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(listOf("Radar", "relation1"), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(listOf("Radar", "relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -591,6 +592,8 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertTrue(listOf("relation1", "relation2").containsAll(expandedEntity.getLinkedEntitiesIds()))
+        assertTrue(
+            listOf("relation1", "relation2").toListOfUri().containsAll(expandedEntity.getLinkedEntitiesIds())
+        )
     }
 }

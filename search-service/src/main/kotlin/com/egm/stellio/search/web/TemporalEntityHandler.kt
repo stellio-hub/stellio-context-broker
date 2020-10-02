@@ -60,7 +60,10 @@ class TemporalEntityHandler(
                 Flux.fromIterable(expandJsonLdFragment(it.first, it.second).asIterable())
             }
             .flatMap {
-                temporalEntityAttributeService.getForEntityAndAttribute(entityId, it.key.extractShortTypeFromExpanded())
+                temporalEntityAttributeService.getForEntityAndAttribute(
+                    entityId.toUri(),
+                    it.key.extractShortTypeFromExpanded()
+                )
                     .map { temporalEntityAttributeUuid ->
                         Pair(temporalEntityAttributeUuid, it)
                     }
@@ -104,7 +107,7 @@ class TemporalEntityHandler(
         }
 
         // FIXME this is way too complex, refactor it later
-        return temporalEntityAttributeService.getForEntity(entityId, temporalQuery.attrs, contextLink)
+        return temporalEntityAttributeService.getForEntity(entityId.toUri(), temporalQuery.attrs, contextLink)
             .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
             .flatMap { temporalEntityAttribute ->
                 attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
@@ -123,7 +126,7 @@ class TemporalEntityHandler(
                 temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
             }
             .map {
-                it.compact()
+                JsonLdUtils.filterCompactedEntityOnAttributes(it.compact(), temporalQuery.attrs)
             }
             .map {
                 ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
@@ -190,5 +193,17 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         else
             null
 
-    return TemporalQuery(params["attrs"].orEmpty(), timerel, time, endTime, params.getFirst("timeBucket"), aggregate)
+    val lastN = params.getFirst("lastN")?.toIntOrNull()?.let {
+        if (it >= 1) it else null
+    }
+
+    return TemporalQuery(
+        attrs = params.getFirst("attrs")?.split(",")?.toSet().orEmpty(),
+        timerel = timerel,
+        time = time,
+        endTime = endTime,
+        timeBucket = params.getFirst("timeBucket"),
+        aggregate = aggregate,
+        lastN = lastN
+    )
 }

@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.utils
 
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -10,7 +11,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
-import java.net.URI
 
 @Component
 @Profile("dev")
@@ -27,7 +27,7 @@ class SubscriptionBootstrapper(
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "https://ontology.eglobalmark.com/aquac#FeedingService"),
                 EntityInfo(
-                    id = "urn:ngsi-ld:FeedingService:018z59",
+                    id = "urn:ngsi-ld:FeedingService:018z59".toUri(),
                     idPattern = null,
                     type = "https://ontology.eglobalmark.com/aquac#FeedingService"
                 ),
@@ -46,7 +46,7 @@ class SubscriptionBootstrapper(
                 attributes = listOf("incoming"),
                 format = NotificationParams.FormatType.NORMALIZED,
                 endpoint = Endpoint(
-                    uri = URI.create("http://localhost:8084"),
+                    uri = "http://localhost:8084".toUri(),
                     accept = Endpoint.AcceptType.JSON
                 ),
                 status = null,

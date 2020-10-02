@@ -16,7 +16,9 @@ import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
+import org.neo4j.ogm.annotation.typeconversion.Convert
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -26,7 +28,8 @@ import java.time.ZonedDateTime
 class Entity(
     @Id
     @JsonProperty("@id")
-    val id: String,
+    @Convert(UriConverter::class)
+    val id: URI,
 
     @Labels
     @JsonProperty("@type")
@@ -53,7 +56,7 @@ class Entity(
 
     fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
-        resultEntity[JSONLD_ID] = id
+        resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = type
 
         if (includeSysAttrs) {

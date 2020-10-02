@@ -78,7 +78,8 @@ class EntityHandlerTests {
     private lateinit var entityService: EntityService
 
     /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * As Spring's ApplicationEventPublisher is not easily mockable
+     * (cf https://github.com/spring-projects/spring-framework/issues/18907),
      * we are directly mocking the event listener to check it receives what is expected
      */
     @MockkBean
@@ -105,7 +106,6 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
 
         webClient.post()
@@ -115,7 +115,16 @@ class EntityHandlerTests {
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
 
+        verify { authorizationService.userCanCreateEntities("mock-user") }
         verify { authorizationService.createAdminLink(breedingServiceId, "mock-user") }
+        verify {
+            entityService.createEntity(
+                match {
+                    it.id == breedingServiceId
+                }
+            )
+        }
+        confirmVerified(entityService, authorizationService)
     }
 
     @Test
@@ -142,7 +151,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -214,7 +222,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         every {
             entityService.createEntity(any())

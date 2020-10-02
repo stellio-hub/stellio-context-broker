@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -31,113 +32,102 @@ class EntityOperationHandler(
      * Implements 6.14.3.1 - Create Batch of Entities
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return extractSubjectOrEmpty().flatMap { userId ->
-            if (!authorizationService.userCanCreateEntities(userId))
-                throw AccessDeniedException("User forbidden to create entities")
-            body.map {
-                extractAndParseBatchOfEntities(it)
-            }.map {
-                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(it)
-                val batchOperationResult = entityOperationService.create(newEntities)
+    suspend fun create(@RequestBody requestBody: Mono<String>): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        if (!authorizationService.userCanCreateEntities(userId))
+            throw AccessDeniedException("User forbidden to create entities")
 
-                batchOperationResult.errors.addAll(
-                    existingEntities.map { entity ->
-                        BatchEntityError(entity.id, arrayListOf("Entity already exists"))
-                    }
-                )
+        val body = requestBody.awaitFirst()
+        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+        val batchOperationResult = entityOperationService.create(newEntities)
 
-                authorizationService.createAdminLinks(batchOperationResult.success, userId)
-
-                batchOperationResult
-            }.map {
-                ResponseEntity.status(HttpStatus.OK).body(it)
+        batchOperationResult.errors.addAll(
+            existingEntities.map { entity ->
+                BatchEntityError(entity.id, arrayListOf("Entity already exists"))
             }
-        }
+        )
+
+        authorizationService.createAdminLinks(batchOperationResult.success, userId)
+
+        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
     /**
      * Implements 6.15.3.1 - Upsert Batch of Entities
      */
     @PostMapping("/upsert", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun upsert(
-        @RequestBody body: Mono<String>,
+    suspend fun upsert(
+        @RequestBody requestBody: Mono<String>,
         @RequestParam(required = false) options: String?
-    ): Mono<ResponseEntity<*>> {
-        return body
-            .map {
-                extractAndParseBatchOfEntities(it)
-            }
-            .zipWith(extractSubjectOrEmpty())
-            .map { expandedEntitiesAndUserId ->
-                val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(
-                    expandedEntitiesAndUserId.t1
-                )
+    ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val body = requestBody.awaitFirst()
+        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-                val createBatchOperationResult =
-                    if (authorizationService.userCanCreateEntities(expandedEntitiesAndUserId.t2))
-                        entityOperationService.create(newEntities)
-                    else
-                        BatchOperationResult(
-                            errors = ArrayList(
-                                newEntities.map {
-                                    BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
-                                }
-                            )
-                        )
-
-                authorizationService.createAdminLinks(createBatchOperationResult.success, expandedEntitiesAndUserId.t2)
-
-                val existingEntitiesIdsAuthorized =
-                    authorizationService.filterEntitiesUserCanUpdate(
-                        existingEntities.map { it.id },
-                        expandedEntitiesAndUserId.t2
-                    )
-
-                val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
-                    existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
-
-                val updateBatchOperationResult = when (options) {
-                    "update" -> entityOperationService.update(existingEntitiesAuthorized, createBatchOperationResult)
-                    else -> entityOperationService.replace(existingEntitiesAuthorized, createBatchOperationResult)
-                }
-
-                updateBatchOperationResult.errors.addAll(
-                    existingEntitiesUnauthorized.map {
-                        BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
-                    }
-                )
-
+        val createBatchOperationResult =
+            if (authorizationService.userCanCreateEntities(userId))
+                entityOperationService.create(newEntities)
+            else
                 BatchOperationResult(
-                    ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
-                    ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
+                    errors = ArrayList(
+                        newEntities.map {
+                            BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
+                        }
+                    )
                 )
+
+        authorizationService.createAdminLinks(createBatchOperationResult.success, userId)
+
+        val existingEntitiesIdsAuthorized =
+            authorizationService.filterEntitiesUserCanUpdate(
+                existingEntities.map { it.id },
+                userId
+            )
+
+        val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
+            existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
+
+        val updateBatchOperationResult = when (options) {
+            "update" -> entityOperationService.update(existingEntitiesAuthorized, createBatchOperationResult)
+            else -> entityOperationService.replace(existingEntitiesAuthorized, createBatchOperationResult)
+        }
+
+        updateBatchOperationResult.errors.addAll(
+            existingEntitiesUnauthorized.map {
+                BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
             }
-            .map {
-                ResponseEntity.status(HttpStatus.OK).body(it)
-            }
+        )
+
+        val batchOperationResult = BatchOperationResult(
+            ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
+            ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
+        )
+
+        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun delete(@RequestBody body: Mono<List<String>>): Mono<ResponseEntity<BatchOperationResult>> {
-        return body
-            .zipWith(extractSubjectOrEmpty())
-            .map { entitiesIdUserId ->
-                val (existingEntities, unknownEntities) = entityOperationService
-                    .splitEntitiesIdsByExistence(entitiesIdUserId.t1.toListOfUri())
+    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<BatchOperationResult> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val body = requestBody.awaitFirst()
 
-                val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
-                    .splitEntitiesByUserCanAdmin(existingEntities, entitiesIdUserId.t2)
+        val (existingEntities, unknownEntities) = entityOperationService
+            .splitEntitiesIdsByExistence(body.toListOfUri())
 
-                val batchOperationResult = entityOperationService.delete(entitiesUserCanAdmin.toSet())
-                batchOperationResult.errors.addAll(
-                    unknownEntities.map { BatchEntityError(it, arrayListOf("Entity does not exist")) }
-                )
-                batchOperationResult.errors.addAll(
-                    entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
-                )
-                ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
-            }
+        val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
+            .splitEntitiesByUserCanAdmin(existingEntities, userId)
+
+        val batchOperationResult = entityOperationService.delete(entitiesUserCanAdmin.toSet())
+        batchOperationResult.errors.addAll(
+            unknownEntities.map { BatchEntityError(it, arrayListOf("Entity does not exist")) }
+        )
+        batchOperationResult.errors.addAll(
+            entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
+        )
+
+        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
     private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {

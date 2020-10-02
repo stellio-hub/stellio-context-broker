@@ -70,6 +70,10 @@ fun getContextFromLinkHeaderOrDefault(linkHeader: List<String>): String {
     return getContextFromLinkHeader(linkHeader) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
 }
 
+fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): String {
+    return getContextFromLinkHeader(httpHeaders.getOrEmpty("Link")) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
+}
+
 fun getContextFromLinkHeader(linkHeader: List<String>): String? {
     return if (linkHeader.isNotEmpty())
         linkHeader[0].split(";")[0].removePrefix("<").removeSuffix(">")

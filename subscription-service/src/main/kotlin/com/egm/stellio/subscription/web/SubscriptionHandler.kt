@@ -4,11 +4,11 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.ApiUtils.getContextOrThrowError
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
+import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
@@ -17,6 +17,7 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -46,11 +48,10 @@ class SubscriptionHandler(
      * Implements 6.10.3.1 - Create Subscription
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+    fun create(@RequestHeader httpHeaders: HttpHeaders, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
         return body
             .map {
-                val context = getContextOrThrowError(it)
-                parseSubscription(it, context)
+                parseSubscription(it, checkAndGetContext(httpHeaders, it))
             }
             .flatMap {
                 checkSubscriptionNotExists(it)
@@ -142,7 +143,11 @@ class SubscriptionHandler(
         "/{subscriptionId}",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
-    fun update(@PathVariable subscriptionId: String, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
+    fun update(
+        @PathVariable subscriptionId: String,
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody body: Mono<String>
+    ): Mono<ResponseEntity<*>> {
         val subscriptionIdUri = subscriptionId.toUri()
         return checkSubscriptionExists(subscriptionIdUri)
             .flatMap {
@@ -155,7 +160,7 @@ class SubscriptionHandler(
                 body
             }
             .flatMap {
-                val parsedInput = parseSubscriptionUpdate(it)
+                val parsedInput = parseSubscriptionUpdate(it, checkAndGetContext(httpHeaders, it))
                 subscriptionService.update(subscriptionIdUri, parsedInput)
             }
             .map {

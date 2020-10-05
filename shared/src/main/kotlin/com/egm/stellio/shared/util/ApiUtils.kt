@@ -2,11 +2,6 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import java.time.ZonedDateTime
@@ -15,35 +10,8 @@ import java.util.*
 
 object ApiUtils {
 
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-
     fun addContextToParsedObject(parsedObject: Map<String, Any>, contexts: List<String>): Map<String, Any> {
         return parsedObject.plus(Pair("@context", contexts))
-    }
-
-    /**
-     * As per 6.3.5, extract @context from request payload. In the absence of such context, then BadRequestDataException
-     * shall be raised
-     *
-     * TODO still used in subscription service but it should be removed in favor of #extractContextFromInput
-     */
-    fun getContextOrThrowError(input: String): List<String> {
-        val rawParsedData = mapper.readTree(input) as ObjectNode
-        val context = rawParsedData.get("@context")
-            ?: throw BadRequestDataException("JSON-LD @context not found in request payload body")
-
-        return try {
-            mapper.readValue(
-                context.toString(),
-                mapper.typeFactory.constructCollectionType(List::class.java, String::class.java)
-            )
-        } catch (e: Exception) {
-            throw BadRequestDataException(e.message ?: "Unable to parse the provided context")
-        }
     }
 }
 

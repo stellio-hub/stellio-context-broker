@@ -29,7 +29,7 @@ data class Subscription(
         this.entities.forEach {
             it.type = JsonLdUtils.expandJsonLdKey(it.type, context)!!
         }
-        this.notification.attributes = this.notification.attributes.map {
+        this.notification.attributes = this.notification.attributes?.map {
             JsonLdUtils.expandJsonLdKey(it, context)!!
         }
     }

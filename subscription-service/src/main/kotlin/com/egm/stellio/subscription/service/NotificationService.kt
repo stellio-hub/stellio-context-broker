@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.time.format.DateTimeFormatter
 
 @Service
 class NotificationService(
@@ -118,7 +119,7 @@ class NotificationService(
             mapOf(
                 "id_alert" to notification.id.toString(),
                 "id_subscription" to subscription.id.toString(),
-                "timestamp" to notification.notifiedAt.toString(),
+                "timestamp" to notification.notifiedAt.format(DateTimeFormatter.ISO_DATE_TIME),
                 "id_beehive" to entityId.toString()
             ),
             fcmDeviceToken

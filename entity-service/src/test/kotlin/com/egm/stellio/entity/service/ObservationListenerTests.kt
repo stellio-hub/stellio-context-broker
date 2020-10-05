@@ -37,7 +37,7 @@ class ObservationListenerTests {
         assertEquals(20.7, observation.value)
         assertEquals("CEL", observation.unitCode)
         assertEquals("urn:sosa:Sensor:10e2073a01080065".toUri(), observation.observedBy)
-        assertEquals("2019-10-18T07:31:39.770Z", observation.observedAt.toString())
+        assertEquals("2019-10-18T07:31:39.77Z", observation.observedAt.format(DateTimeFormatter.ISO_DATE_TIME))
         assertEquals(24.30623, observation.longitude)
         assertEquals(60.07966, observation.latitude)
     }

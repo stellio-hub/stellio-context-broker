@@ -40,6 +40,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Optional
 import java.util.UUID
 
@@ -482,7 +483,7 @@ class EntityServiceTests {
                     it.name == "temperature" &&
                         it.value == 250 &&
                         it.unitCode == "kg" &&
-                        it.observedAt.toString() == "2019-12-18T10:45:44.248755Z"
+                        it.observedAt?.format(DateTimeFormatter.ISO_DATE_TIME) == "2019-12-18T10:45:44.248755Z"
                 }
             )
         }

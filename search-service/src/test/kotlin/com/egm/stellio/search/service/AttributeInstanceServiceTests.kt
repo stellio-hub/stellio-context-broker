@@ -21,6 +21,7 @@ import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.random.Random
 
@@ -83,7 +84,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                 it.size == 1 &&
                     it[0].attributeName == "incoming" &&
                     it[0].value == 12.4 &&
-                    ZonedDateTime.parse(it[0].observedAt.toString()).toInstant()
+                    ZonedDateTime.parse(it[0].observedAt.format(DateTimeFormatter.ISO_DATE_TIME)).toInstant()
                     .atZone(ZoneOffset.UTC) == observationDateTime &&
                     (it[0].instanceId.toString()).startsWith("urn:ngsi-ld:Instance:")
             }

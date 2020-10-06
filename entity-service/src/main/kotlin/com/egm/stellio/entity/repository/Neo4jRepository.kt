@@ -28,9 +28,26 @@ class AttributeSubjectNode(id: URI) : SubjectNodeInfo(id, "Attribute")
 @Component
 class Neo4jRepository(
     private val session: Session,
-    private val sessionFactory: SessionFactory,
-    private val entityRepository: EntityRepository
+    private val sessionFactory: SessionFactory
 ) {
+
+    fun mergePartialWithNormalEntity(id: URI): Int {
+        val query =
+            """
+            MATCH (e:Entity { id: ${'$'}id }), (pe:PartialEntity { id: ${'$'}id })
+            WITH head(collect([e,pe])) as nodes
+            CALL apoc.refactor.mergeNodes(nodes, { properties:"discard" })
+            YIELD node
+            REMOVE node:PartialEntity
+            RETURN node
+        """
+
+        val parameters = mapOf(
+            "id" to id
+        )
+
+        return session.query(query, parameters).queryStatistics().nodesDeleted
+    }
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): URI {
         val query =
@@ -55,8 +72,11 @@ class Neo4jRepository(
         val relationshipType = relationship.type[0].toRelationshipTypeName()
         val query =
             """
-            MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId }), (target:Entity { id: ${'$'}targetId })
-            CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:$relationshipType]->(target)
+            MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
+            MERGE (target { id: ${'$'}targetId })
+            ON CREATE SET target:PartialEntity
+            CREATE (subject)-[:HAS_OBJECT]->
+                (r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:$relationshipType]->(target)
             RETURN r.id as id
         """
 
@@ -149,15 +169,14 @@ class Neo4jRepository(
                 """
             )
 
-        newPropertyInstance.relationships.filter {
-            entityRepository.exists(it.instances[0].objectId.toString()) ?: false
-        }.forEachIndexed { index, ngsiLdRelationship ->
+        newPropertyInstance.relationships.forEachIndexed { index, ngsiLdRelationship ->
             val relationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationship.instances[0])
             parameters["relationshipOfProperty_$index"] = relationship.nodeProperties()
             createAttributeQuery = createAttributeQuery.plus(
                 """
                     WITH DISTINCT newAttribute
-                    MATCH (target:Entity { id: "${ngsiLdRelationship.instances[0].objectId}" })
+                    MERGE (target { id: "${ngsiLdRelationship.instances[0].objectId}" })
+                    ON CREATE SET target:PartialEntity 
                     CREATE (newAttribute)-[:HAS_OBJECT]
                     ->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}relationshipOfProperty_$index)
                     -[:${relationship.type[0].toRelationshipTypeName()}]->(target)
@@ -273,8 +292,10 @@ class Neo4jRepository(
     ): Int {
         val relationshipTypeQuery =
             """
-            MATCH (a:Attribute { id: ${'$'}attributeId })-[v:$relationshipType]->(e:Entity { id: ${'$'}oldRelationshipObjectId }),
-                  (target:Entity { id: ${'$'}newRelationshipObjectId })
+            MATCH (a:Attribute { id: ${'$'}attributeId })-[v:$relationshipType]
+                ->(e { id: ${'$'}oldRelationshipObjectId })
+            MERGE (target { id: ${'$'}newRelationshipObjectId })
+            ON CREATE SET target:PartialEntity
             DETACH DELETE v
             MERGE (a)-[:$relationshipType]->(target)
             """.trimIndent()

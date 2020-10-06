@@ -10,8 +10,8 @@ import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
+import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.util.EntitiesGraphBuilder
 import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -51,34 +51,27 @@ import java.net.URI
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val entitiesGraphBuilder: EntitiesGraphBuilder,
+    private val partialEntityRepository: PartialEntityRepository,
     private val propertyRepository: PropertyRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun createEntity(ngsiLdEntity: NgsiLdEntity): Entity {
-        if (exists(ngsiLdEntity.id)) {
+    fun createEntity(ngsiLdEntity: NgsiLdEntity): URI {
+        if (exists(ngsiLdEntity.id))
             throw AlreadyExistsException("Already Exists")
-        }
-
-        val (_, invalidRelationsErrors) = entitiesGraphBuilder.build(listOf(ngsiLdEntity))
-        if (invalidRelationsErrors.isNotEmpty()) {
-            // we have just one entity in validation, so can't have more than one relations error
-            // in its current version, it will only contain one error but it will be fixed with validation v2
-            val inErrorRelationships = invalidRelationsErrors[0].error.joinToString(",")
-            throw BadRequestDataException("Entity ${ngsiLdEntity.id} targets unknown entities: $inErrorRelationships")
-        }
 
         val rawEntity =
             Entity(id = ngsiLdEntity.id, type = listOf(ngsiLdEntity.type), contexts = ngsiLdEntity.contexts)
-        val entity = entityRepository.save(rawEntity)
+        entityRepository.save(rawEntity)
+        if (existsAsPartial(ngsiLdEntity.id))
+            neo4jRepository.mergePartialWithNormalEntity(ngsiLdEntity.id)
 
         ngsiLdEntity.relationships.forEach { ngsiLdRelationship ->
             ngsiLdRelationship.instances.forEach { ngsiLdRelationshipInstance ->
                 createEntityRelationship(
-                    entity.id,
+                    ngsiLdEntity.id,
                     ngsiLdRelationship.name,
                     ngsiLdRelationshipInstance,
                     ngsiLdRelationshipInstance.objectId
@@ -88,18 +81,18 @@ class EntityService(
 
         ngsiLdEntity.properties.forEach { ngsiLdProperty ->
             ngsiLdProperty.instances.forEach { ngsiLdPropertyInstance ->
-                createEntityProperty(entity.id, ngsiLdProperty.name, ngsiLdPropertyInstance)
+                createEntityProperty(ngsiLdEntity.id, ngsiLdProperty.name, ngsiLdPropertyInstance)
             }
         }
 
         ngsiLdEntity.geoProperties.forEach { ngsiLdGeoProperty ->
             // TODO we currently don't support multi-attributes for geoproperties
-            createLocationProperty(entity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            createLocationProperty(ngsiLdEntity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
         }
 
         publishCreationEvent(ngsiLdEntity)
 
-        return entity
+        return ngsiLdEntity.id
     }
 
     fun publishCreationEvent(ngsiLdEntity: NgsiLdEntity) {
@@ -193,20 +186,13 @@ class EntityService(
             // attribute relationships cannot be multi-attributes, directly get the first and unique entry
             val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
             val objectId = ngsiLdRelationshipInstance.objectId
-            if (exists(objectId)) {
-                val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
+            val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
 
-                neo4jRepository.createRelationshipOfSubject(
-                    AttributeSubjectNode(subjectId),
-                    rawRelationship,
-                    objectId
-                )
-            } else {
-                // TODO early validation
-                throw BadRequestDataException(
-                    "Target entity $objectId in property $subjectId does not exist, create it first"
-                )
-            }
+            neo4jRepository.createRelationshipOfSubject(
+                AttributeSubjectNode(subjectId),
+                rawRelationship,
+                objectId
+            )
         }
     }
 
@@ -231,7 +217,9 @@ class EntityService(
         }
     }
 
-    fun exists(entityId: URI): Boolean = entityRepository.exists(entityId.toString()) ?: false
+    fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
+
+    fun existsAsPartial(entityId: URI): Boolean = partialEntityRepository.existsById(entityId)
 
     /**
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts

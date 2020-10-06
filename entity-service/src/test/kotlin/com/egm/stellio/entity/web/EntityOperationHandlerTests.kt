@@ -248,7 +248,7 @@ class EntityOperationHandlerTests {
         )
 
         every { entityOperationService.create(nonExistingEntities) } returns createdBatchResult
-        every { entityOperationService.update(existingEntities, createdBatchResult) } returns BatchOperationResult(
+        every { entityOperationService.update(existingEntities) } returns BatchOperationResult(
             entitiesIds,
             arrayListOf()
         )
@@ -302,7 +302,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
+        every { entityOperationService.update(any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
         )
@@ -361,7 +361,7 @@ class EntityOperationHandlerTests {
             arrayListOf(),
             arrayListOf()
         )
-        every { entityOperationService.replace(existingEntities, any()) } returns BatchOperationResult(
+        every { entityOperationService.replace(existingEntities) } returns BatchOperationResult(
             entitiesIds,
             arrayListOf()
         )
@@ -407,7 +407,7 @@ class EntityOperationHandlerTests {
             emptyList(),
             nonExistingEntities
         )
-        every { entityOperationService.replace(emptyList(), any()) } returns BatchOperationResult(
+        every { entityOperationService.replace(emptyList()) } returns BatchOperationResult(
             arrayListOf(),
             arrayListOf()
         )
@@ -470,7 +470,7 @@ class EntityOperationHandlerTests {
             )
         } returns entitiesIdToUpdate
 
-        every { entityOperationService.replace(listOf(expandedEntity), any()) } returns BatchOperationResult(
+        every { entityOperationService.replace(listOf(expandedEntity)) } returns BatchOperationResult(
             ArrayList(entitiesIdToUpdate),
             arrayListOf()
         )

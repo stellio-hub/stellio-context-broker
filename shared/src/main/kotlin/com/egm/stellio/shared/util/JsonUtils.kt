@@ -32,6 +32,12 @@ object JsonUtils {
     fun parseJsonContent(content: String): JsonNode =
         mapper.readTree(content)
 
+    fun parseListOfEntities(content: String): List<Map<String, Any>> =
+        mapper.readValue(
+            content,
+            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+        )
+
     fun serializeObject(input: Any): String =
         mapper.writeValueAsString(input)
 

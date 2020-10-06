@@ -62,12 +62,12 @@ class EntityHandler(
 
         val body = requestBody.awaitFirst()
         val ngsiLdEntity = expandJsonLdEntity(body, checkAndGetContext(httpHeaders, body)).toNgsiLdEntity()
-        val newEntity = entityService.createEntity(ngsiLdEntity)
-        authorizationService.createAdminLink(newEntity.id, userId)
+        val newEntityUri = entityService.createEntity(ngsiLdEntity)
+        authorizationService.createAdminLink(newEntityUri, userId)
 
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .location(URI("/ngsi-ld/v1/entities/${newEntity.id}"))
+            .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
             .build<String>()
     }
 

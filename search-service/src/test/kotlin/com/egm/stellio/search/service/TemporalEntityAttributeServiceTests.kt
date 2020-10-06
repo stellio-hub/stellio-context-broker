@@ -148,7 +148,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 AttributeInstanceResult(
                     attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                     value = 650.0,
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:00Z")
                 )
             )
         )

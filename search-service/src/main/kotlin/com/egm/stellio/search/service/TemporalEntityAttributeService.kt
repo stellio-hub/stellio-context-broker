@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Service
@@ -265,13 +266,13 @@ class TemporalEntityAttributeService(
                         attributeInstanceResults.map {
                             if (it.value is Double)
                                 TemporalValue(
-                                    it.value as Double,
-                                    it.observedAt.toString()
+                                    it.value,
+                                    it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
                                 )
                             else
                                 RawValue(
                                     it.value,
-                                    it.observedAt.toString()
+                                    it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
                                 )
                         }
                     instanceToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
@@ -289,7 +290,7 @@ class TemporalEntityAttributeService(
                                 NGSILD_PROPERTY_VALUE to it.value,
                                 NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                                    JSONLD_VALUE_KW to it.observedAt.toString()
+                                    JSONLD_VALUE_KW to it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
                                 )
                             )
                             // a null datasetId should not be added to the valuesMap

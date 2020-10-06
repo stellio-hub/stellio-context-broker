@@ -68,7 +68,7 @@ class SubscriptionService(
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
             .bind("q", subscription.q)
-            .bind("notif_attributes", subscription.notification.attributes.joinToString(separator = ","))
+            .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
             .bind("endpoint_uri", subscription.notification.endpoint.uri)
             .bind("endpoint_accept", subscription.notification.endpoint.accept.name)

@@ -19,7 +19,6 @@ plugins {
     id("com.google.cloud.tools.jib") version "2.5.0" apply false
     kotlin("kapt") version "1.3.61" apply false
     id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
-    id("org.sonarqube") version "3.0"
 }
 
 subprojects {
@@ -121,14 +120,6 @@ subprojects {
             xml.enabled = true
             txt.enabled = false
             html.enabled = true
-        }
-    }
-
-    sonarqube {
-        properties {
-            property("sonar.projectKey", "stellio-hub_stellio-context-broker")
-            property("sonar.organization", "stellio-hub")
-            property("sonar.host.url", "https://sonarcloud.io")
         }
     }
 

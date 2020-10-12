@@ -2,8 +2,10 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -102,6 +104,8 @@ object JsonLdUtils {
                 throw BadRequestDataException("Unable to parse input payload")
             expandedList[0]
         } catch (e: Exception) {
+            if (e is JsonParseException)
+                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
             throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
         }
 
@@ -116,6 +120,8 @@ object JsonLdUtils {
                 throw BadRequestDataException("Unable to parse input payload")
             expandedList[0]
         } catch (e: Exception) {
+            if (e is JsonParseException)
+                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
             throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
         }
 
@@ -254,6 +260,8 @@ object JsonLdUtils {
         val expandedFragment = try {
             JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
         } catch (e: Exception) {
+            if (e is JsonParseException)
+                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
             throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
         }
 

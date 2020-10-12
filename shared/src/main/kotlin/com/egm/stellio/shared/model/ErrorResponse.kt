@@ -62,7 +62,7 @@ data class JsonLdErrorResponse(override val title: String, override val detail: 
     )
 
 data class JsonParseErrorResponse(override val detail: String) : ErrorResponse(
-    ErrorType.BAD_REQUEST_DATA.type,
+    ErrorType.INVALID_REQUEST.type,
     "The request includes invalid input data, an error occurred during JSON parsing",
     detail
 )

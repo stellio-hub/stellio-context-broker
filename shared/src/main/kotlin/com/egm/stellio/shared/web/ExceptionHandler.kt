@@ -1,16 +1,6 @@
 package com.egm.stellio.shared.web
 
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.AccessDeniedResponse
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.AlreadyExistsResponse
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.InternalErrorResponse
-import com.egm.stellio.shared.model.JsonLdErrorResponse
-import com.egm.stellio.shared.model.JsonParseErrorResponse
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.ResourceNotFoundResponse
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
@@ -33,6 +23,10 @@ class ExceptionHandler {
             is ResourceNotFoundException -> generateErrorResponse(
                 HttpStatus.NOT_FOUND,
                 ResourceNotFoundResponse(cause.message)
+            )
+            is InvalidRequestException -> generateErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                InvalidRequestResponse(cause.message)
             )
             is BadRequestDataException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,

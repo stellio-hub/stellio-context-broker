@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
@@ -97,38 +98,12 @@ object JsonLdUtils {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
 
-        val expandedEntity = try {
-            val expandedList = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)
-            // when list is empty, it has failed to parse the input but we don't know why ...
-            if (expandedList.isEmpty())
-                throw BadRequestDataException("Unable to parse input payload")
-            expandedList[0]
-        } catch (e: Exception) {
-            if (e is JsonParseException)
-                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
-        return JsonLdEntity(expandedEntity as Map<String, Any>, contexts)
+        return JsonLdEntity(parseAndExpandJsonLdFragment(input, jsonLdOptions), contexts)
     }
 
     fun expandJsonLdEntity(input: String): JsonLdEntity {
-        val expandedEntity = try {
-            val expandedList = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
-            // when list is empty, it has failed to parse the input but we don't know why ...
-            if (expandedList.isEmpty())
-                throw BadRequestDataException("Unable to parse input payload")
-            expandedList[0]
-        } catch (e: Exception) {
-            if (e is JsonParseException)
-                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
         // TODO find a way to avoid this extra parsing
-        val contexts = extractContextFromInput(input)
-
-        return JsonLdEntity(expandedEntity as Map<String, Any>, contexts)
+        return JsonLdEntity(parseAndExpandJsonLdFragment(input), extractContextFromInput(input))
     }
 
     fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> {
@@ -257,18 +232,7 @@ object JsonLdUtils {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
-        val expandedFragment = try {
-            JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
-        } catch (e: Exception) {
-            if (e is JsonParseException)
-                throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
-        logger.debug("Expanded fragment $fragment to $expandedFragment")
-        if (expandedFragment.isEmpty())
-            throw BadRequestDataException("Unable to expand JSON-LD fragment : $fragment")
-        return expandedFragment[0] as Map<String, Any>
+        return parseAndExpandJsonLdFragment(fragment, jsonLdOptions)
     }
 
     fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
@@ -328,4 +292,24 @@ private fun simplifyValue(value: Map<*, *>): Any {
         "Relationship" -> value.getOrDefault("object", value)!!
         else -> value
     }
+}
+
+private fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
+    val parsedFragment = try {
+        JsonUtils.fromInputStream(fragment.byteInputStream())
+    } catch (e: JsonParseException) {
+        throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
+    }
+    val expandedFragment = try {
+        if (jsonLdOptions != null)
+            JsonLdProcessor.expand(parsedFragment, jsonLdOptions)
+        else
+            JsonLdProcessor.expand(parsedFragment)
+    } catch (e: JsonLdError) {
+        throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
+    }
+    if (expandedFragment.isEmpty())
+        throw BadRequestDataException("Unable to parse input payload")
+
+    return expandedFragment[0] as Map<String, Any>
 }

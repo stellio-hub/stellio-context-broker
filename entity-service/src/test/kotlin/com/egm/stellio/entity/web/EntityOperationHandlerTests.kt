@@ -527,7 +527,7 @@ class EntityOperationHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                 "title":"The request includes input data which does not meet the requirements of the operation",
-                "detail":"Unexpected error while parsing payload : Unable to parse input payload"}
+                "detail":"Unable to parse input payload"}
                 """.trimIndent()
             )
     }

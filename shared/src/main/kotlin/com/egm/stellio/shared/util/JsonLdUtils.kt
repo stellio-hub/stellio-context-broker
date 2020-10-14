@@ -294,7 +294,7 @@ private fun simplifyValue(value: Map<*, *>): Any {
     }
 }
 
-private fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
+fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
     val parsedFragment = try {
         JsonUtils.fromInputStream(fragment.byteInputStream())
     } catch (e: JsonParseException) {

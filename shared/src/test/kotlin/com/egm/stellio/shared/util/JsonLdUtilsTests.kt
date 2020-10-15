@@ -112,7 +112,11 @@ class JsonLdUtilsTests {
         val exception = assertThrows<InvalidRequestException> {
             parseAndExpandJsonLdFragment(rawEntity)
         }
-        Assertions.assertNotNull(exception.message)
+        Assertions.assertEquals(
+            "Unexpected error while parsing payload : Unexpected character (',' (code 44)): was expecting" +
+                " double-quote to start field name\n at [Source: (BufferedReader); line: 2, column: 39]",
+            exception.message
+        )
     }
 
     @Test
@@ -133,6 +137,26 @@ class JsonLdUtilsTests {
         }
         Assertions.assertEquals(
             "Unexpected error while parsing payload : loading remote context failed: unknownContext",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception if the expanded JSON-LD fragment is empty`() {
+        val rawEntity =
+            """
+            {
+                "@context": [
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<BadRequestDataException> {
+            parseAndExpandJsonLdFragment(rawEntity)
+        }
+        Assertions.assertEquals(
+            "Unable to parse input payload",
             exception.message
         )
     }

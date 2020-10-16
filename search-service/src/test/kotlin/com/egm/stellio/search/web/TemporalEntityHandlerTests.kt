@@ -119,7 +119,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Unable to expand JSON-LD fragment : { \"id\": \"bad\" }"
+                    "detail":"Unable to parse input payload"
                 }
                 """
             )

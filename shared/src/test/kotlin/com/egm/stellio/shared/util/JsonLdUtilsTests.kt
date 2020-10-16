@@ -1,9 +1,12 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class JsonLdUtilsTests {
 
@@ -94,5 +97,67 @@ class JsonLdUtilsTests {
         Assertions.assertTrue(resultMap.containsKey("brandName"))
         Assertions.assertTrue(resultMap.containsKey("location"))
         Assertions.assertFalse(resultMap.containsKey("isParked"))
+    }
+
+    @Test
+    fun `it should throw an InvalidRequest exception if the JSON-LD fragment is not a valid JSON document`() {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",,
+                "type": "Device"
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<InvalidRequestException> {
+            parseAndExpandJsonLdFragment(rawEntity)
+        }
+        Assertions.assertEquals(
+            "Unexpected error while parsing payload : Unexpected character (',' (code 44)): was expecting" +
+                " double-quote to start field name\n at [Source: (BufferedReader); line: 2, column: 39]",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception if the JSON-LD fragment is not a valid JSON-LD document`() {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "@context": [
+                    "unknownContext"
+                ]
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<BadRequestDataException> {
+            parseAndExpandJsonLdFragment(rawEntity)
+        }
+        Assertions.assertEquals(
+            "Unexpected error while parsing payload : loading remote context failed: unknownContext",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception if the expanded JSON-LD fragment is empty`() {
+        val rawEntity =
+            """
+            {
+                "@context": [
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<BadRequestDataException> {
+            parseAndExpandJsonLdFragment(rawEntity)
+        }
+        Assertions.assertEquals(
+            "Unable to parse input payload",
+            exception.message
+        )
     }
 }

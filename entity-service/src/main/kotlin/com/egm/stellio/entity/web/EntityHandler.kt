@@ -129,12 +129,12 @@ class EntityHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
-            throw ResourceNotFoundException("Entity Not Found")
+            throw ResourceNotFoundException(ENTITY_NOT_FOUND_MESSAGE)
         if (!authorizationService.userCanReadEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
         val entity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
-            ?: throw ResourceNotFoundException("Entity Not Found")
+            ?: throw ResourceNotFoundException(ENTITY_NOT_FOUND_MESSAGE)
 
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(entity.compact()))
     }
@@ -147,7 +147,7 @@ class EntityHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
-            throw ResourceNotFoundException("Entity Not Found")
+            throw ResourceNotFoundException(ENTITY_NOT_FOUND_MESSAGE)
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 

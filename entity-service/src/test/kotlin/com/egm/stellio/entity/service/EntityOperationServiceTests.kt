@@ -173,21 +173,18 @@ class EntityOperationServiceTests {
     @Test
     fun `it should count as error not updated attributes in entities`() {
         val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        every { firstEntity.getLinkedEntitiesIds() } returns emptyList()
+        every { firstEntity.id } returns firstEntityURI
         val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-        every { secondEntity.getLinkedEntitiesIds() } returns emptyList()
+        every { secondEntity.id } returns secondEntityURI
 
-        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns emptyList()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             emptyList()
         )
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(
@@ -196,14 +193,13 @@ class EntityOperationServiceTests {
             )
         )
 
-        val batchOperationResult =
-            entityOperationService.update(listOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1").toListOfUri(), batchOperationResult.success)
+        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
         assertEquals(
             listOf(
                 BatchEntityError(
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri(),
+                    secondEntityURI,
                     arrayListOf("attribute#1 : reason", "attribute#2 : reason")
                 )
             ),
@@ -212,92 +208,89 @@ class EntityOperationServiceTests {
     }
 
     @Test
-    fun `it should replace entities`() {
+    fun `it should ask to replace entities`() {
         val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
+        every { firstEntity.id } returns firstEntityURI
         val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-        every { secondEntity.getLinkedEntitiesIds() } returns listOf()
+        every { secondEntity.id } returns secondEntityURI
 
-        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             emptyList()
         )
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(secondEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             emptyList()
         )
 
-        val batchOperationResult =
-            entityOperationService.replace(listOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
         assertEquals(
-            listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1", "urn:ngsi-ld:Device:HCMR-AQUABOX2").toListOfUri(),
+            listOf(firstEntityURI, secondEntityURI),
             batchOperationResult.success
         )
         assertTrue(batchOperationResult.errors.isEmpty())
+
+        verify { neo4jRepository.deleteEntityAttributes(firstEntityURI) }
+        verify { neo4jRepository.deleteEntityAttributes(secondEntityURI) }
+        confirmVerified(neo4jRepository)
+
+        verify { entityService.appendEntityAttributes(eq(firstEntityURI), any(), false) }
+        verify { entityService.appendEntityAttributes(eq(secondEntityURI), any(), false) }
+        confirmVerified(entityService)
     }
 
     @Test
-    fun `it should count as error entities that couldn't be replaced`() {
+    fun `it should count as error an replace which raises a BadRequestDataException`() {
         val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
+        every { firstEntity.id } returns firstEntityURI
         val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-        every { secondEntity.getLinkedEntitiesIds() } returns listOf()
+        every { secondEntity.id } returns secondEntityURI
 
-        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             emptyList()
         )
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(secondEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
         } throws BadRequestDataException("error")
 
-        val batchOperationResult =
-            entityOperationService.replace(listOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1").toListOfUri(), batchOperationResult.success)
+        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
         assertEquals(
-            listOf(BatchEntityError("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri(), arrayListOf("error"))),
+            listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
             batchOperationResult.errors
         )
     }
 
     @Test
-    fun `it should count as error entities that couldn't be replaced totally`() {
+    fun `it should count as error not replaced entities in entities`() {
         val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        every { firstEntity.getLinkedEntitiesIds() } returns listOf()
+        every { firstEntity.id } returns firstEntityURI
         val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-        every { secondEntity.getLinkedEntitiesIds() } returns listOf()
+        every { secondEntity.id } returns secondEntityURI
 
-        every { neo4jRepository.filterExistingEntitiesAsIds(listOf()) } returns listOf()
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             emptyList()
         )
-        every { neo4jRepository.deleteEntityAttributes("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()) } returns mockk()
+        every { neo4jRepository.deleteEntityAttributes(secondEntityURI) } returns mockk()
         every {
-            entityService.appendEntityAttributes(eq("urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()), any(), any())
+            entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
         } returns UpdateResult(
             emptyList(),
             listOf(
@@ -308,11 +301,11 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1").toListOfUri(), batchOperationResult.success)
+        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
         assertEquals(
             listOf(
                 BatchEntityError(
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri(),
+                    secondEntityURI,
                     arrayListOf("attribute#1 : reason, attribute#2 : reason")
                 )
             ),
@@ -321,56 +314,48 @@ class EntityOperationServiceTests {
     }
 
     @Test
-    fun `it should return entity ids in BatchOperationResult when their deletion in DB is successful`() {
-        val firstEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        val secondEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-
+    fun `it should return the list of deleted entity ids when deletion is successful`() {
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
 
-        val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
         assertEquals(
-            listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1", "urn:ngsi-ld:Device:HCMR-AQUABOX2").toListOfUri(),
+            listOf(firstEntityURI, secondEntityURI),
             batchOperationResult.success
         )
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
+
+        verify { entityService.deleteEntity(firstEntityURI) }
+        verify { entityService.deleteEntity(secondEntityURI) }
+        confirmVerified(entityService)
     }
 
     @Test
-    fun `it should return entity ids in success and in errors when their deletion in DB is partially successful`() {
-        val firstEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        val secondEntity = "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
-
-        every { entityService.deleteEntity(firstEntity) } returns Pair(1, 1)
+    fun `it should return the list of deleted entity ids and in errors when deletion is partially successful`() {
+        every { entityService.deleteEntity(firstEntityURI) } returns Pair(1, 1)
         every {
-            entityService.deleteEntity(secondEntity)
+            entityService.deleteEntity(secondEntityURI)
         } throws RuntimeException("Something went wrong during deletion")
 
-        val batchOperationResult = entityOperationService.delete(setOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
         assertEquals(
-            listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1").toListOfUri(),
+            listOf(firstEntityURI),
             batchOperationResult.success
         )
         assertEquals(
             listOf(
                 BatchEntityError(
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri(),
+                    secondEntityURI,
                     mutableListOf("Something went wrong during deletion")
                 )
             ),
             batchOperationResult.errors
         )
-
-        verify { entityService.deleteEntity(firstEntity) }
-        verify { entityService.deleteEntity(secondEntity) }
-        confirmVerified(entityService)
     }
 
     @Test
     fun `it should return error messages when deletion in DB has failed`() {
-        val firstEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        val secondEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
         val deleteEntityErrorMessage = "Something went wrong with deletion request"
 
         every {

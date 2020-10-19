@@ -76,10 +76,10 @@ class TemporalEntityHandler(
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getForEntity(
-            @RequestHeader httpHeaders: HttpHeaders,
-            @PathVariable entityId: String,
-            @RequestParam params: MultiValueMap<String, String>
-        ): ResponseEntity<*> {
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
@@ -113,7 +113,7 @@ class TemporalEntityHandler(
             jsonLdEntityWithTemporalValues.compact(),
             temporalQuery.attrs
         )
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedJsonLdEntity));
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedJsonLdEntity))
     }
 
     /**

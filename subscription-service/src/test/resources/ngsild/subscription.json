@@ -1,5 +1,5 @@
 {
-  "id":"urn:ngsi-ld:Subscription:04",
+  "id":"urn:ngsi-ld:Subscription:1",
   "type":"Subscription",
   "entities": [
     {

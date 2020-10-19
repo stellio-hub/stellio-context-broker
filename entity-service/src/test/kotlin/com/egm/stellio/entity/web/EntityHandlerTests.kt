@@ -15,7 +15,7 @@ import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -27,9 +27,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Runs
 import io.mockk.confirmVerified
@@ -78,7 +75,8 @@ class EntityHandlerTests {
     private lateinit var entityService: EntityService
 
     /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * As Spring's ApplicationEventPublisher is not easily mockable
+     * (cf https://github.com/spring-projects/spring-framework/issues/18907),
      * we are directly mocking the event listener to check it receives what is expected
      */
     @MockkBean
@@ -105,7 +103,6 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
 
         webClient.post()
@@ -115,7 +112,16 @@ class EntityHandlerTests {
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
 
+        verify { authorizationService.userCanCreateEntities("mock-user") }
         verify { authorizationService.createAdminLink(breedingServiceId, "mock-user") }
+        verify {
+            entityService.createEntity(
+                match {
+                    it.id == breedingServiceId
+                }
+            )
+        }
+        confirmVerified(entityService, authorizationService)
     }
 
     @Test
@@ -142,7 +148,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -214,7 +219,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         every {
             entityService.createEntity(any())
@@ -797,7 +801,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity Not Found\"}"
+                    "\"detail\":\"$ENTITY_NOT_FOUND_MESSAGE\"}"
             )
     }
 
@@ -1325,7 +1329,7 @@ class EntityHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"Entity Not Found"}
+                    "detail":"$ENTITY_NOT_FOUND_MESSAGE"}
                 """.trimIndent()
             )
     }

@@ -16,5 +16,4 @@ data class BatchOperationResult(
 data class BatchEntityError(
     val entityId: URI,
     val error: MutableList<String>
-
 )

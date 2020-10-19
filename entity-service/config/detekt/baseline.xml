@@ -31,7 +31,7 @@
     <ID>MaxLineLength:RepositoryEventsListener.kt$RepositoryEventsListener$// TODO: For deserialization in other modules Jackson can be used with the entityEvent model that gives a payload and an updatedEntity in a proper json format @Async @EventListener fun handleRepositoryEvent(entityEvent: EntityEvent)</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
     <ID>NestedBlockDepth:EntityService.kt$EntityService$@Transactional fun updateEntityAttributes(id: URI, attributes: List&lt;NgsiLdAttribute&gt;): UpdateResult</ID>
-    <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): Mono&lt;ResponseEntity&lt;*&gt;&gt;</ID>
+    <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>TooGenericExceptionCaught:ObservationListener.kt$ObservationListener$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$e: Exception</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService$EntityService</ID>

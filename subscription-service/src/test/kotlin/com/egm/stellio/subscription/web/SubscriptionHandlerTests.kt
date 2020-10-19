@@ -107,7 +107,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}"
+                    "\"detail\": \"${subscriptionNotFoundMessage("urn:ngsi-ld:Subscription:1".toUri())}\"}"
             )
 
         verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
@@ -125,7 +125,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "detail":"${subscriptionUnauthorizedMessage("urn:ngsi-ld:Subscription:1".toUri())}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
@@ -165,7 +165,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
                     "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"A subscription with id urn:ngsi-ld:Subscription:04 already exists\"}"
+                    "\"detail\":\"${subscriptionAlreadyExistsMessage("urn:ngsi-ld:Subscription:04".toUri())}\"}"
             )
     }
 
@@ -431,7 +431,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}"
+                    "\"detail\":\"${subscriptionNotFoundMessage("urn:ngsi-ld:Subscription:04".toUri())}\"}"
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
@@ -481,7 +481,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:04",
+                    "detail":"${subscriptionUnauthorizedMessage("urn:ngsi-ld:Subscription:04".toUri())}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
@@ -525,7 +525,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "detail":"Could not find a subscription with id urn:ngsi-ld:Subscription:1",
+                        "detail":"${subscriptionNotFoundMessage("urn:ngsi-ld:Subscription:1".toUri())}",
                         "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                         "title":"The referred resource has not been found"
                     }
@@ -570,7 +570,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "detail":"${subscriptionUnauthorizedMessage("urn:ngsi-ld:Subscription:1".toUri())}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }

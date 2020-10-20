@@ -801,7 +801,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"$ENTITY_NOT_FOUND_MESSAGE\"}"
+                    "\"detail\":\"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}\"}"
             )
     }
 
@@ -1329,7 +1329,7 @@ class EntityHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"$ENTITY_NOT_FOUND_MESSAGE"}
+                    "detail":"${entityNotFoundMessage("urn:ngsi-ld:Sensor:0022CCC")}"}
                 """.trimIndent()
             )
     }

@@ -14,6 +14,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -27,9 +29,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 import java.util.Optional
 
 @RestController
@@ -46,50 +46,40 @@ class TemporalEntityHandler(
      * Implements 6.20.3.1
      */
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun addAttrs(
+    suspend fun addAttrs(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
-        @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<*>> {
-        return body
-            .map {
-                val contexts = checkAndGetContext(httpHeaders, it)
-                Pair(it, contexts)
-            }
-            .flatMapMany {
-                Flux.fromIterable(expandJsonLdFragment(it.first, it.second).asIterable())
-            }
-            .flatMap {
-                temporalEntityAttributeService.getForEntityAndAttribute(
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val body = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+
+        jsonLdAttributes
+            .forEach {
+                val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId.toUri(),
                     it.key.extractShortTypeFromExpanded()
-                )
-                    .map { temporalEntityAttributeUuid ->
-                        Pair(temporalEntityAttributeUuid, it)
-                    }
-            }
-            .map {
+                ).awaitFirst()
+
                 attributeInstanceService.addAttributeInstances(
-                    it.first,
-                    it.second.key.extractShortTypeFromExpanded(),
-                    expandValueAsMap(it.second.value)
-                )
+                    temporalEntityAttributeUuid,
+                    it.key.extractShortTypeFromExpanded(),
+                    expandValueAsMap(it.value)
+                ).awaitFirst()
             }
-            .collectList()
-            .map {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getForEntity(
+    suspend fun getForEntity(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
-    ): Mono<ResponseEntity<*>> {
+    ): ResponseEntity<*> {
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
@@ -103,34 +93,27 @@ class TemporalEntityHandler(
         } catch (e: BadRequestDataException) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse(e.message))
-                .toMono()
         }
 
-        // FIXME this is way too complex, refactor it later
-        return temporalEntityAttributeService.getForEntity(entityId.toUri(), temporalQuery.attrs, contextLink)
-            .switchIfEmpty(Flux.error(ResourceNotFoundException("Entity $entityId was not found")))
-            .flatMap { temporalEntityAttribute ->
-                attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
-                    .map { results ->
-                        Pair(temporalEntityAttribute, results)
-                    }
-            }
-            .collectList()
-            .zipWhen {
-                loadEntityPayload(it[0].first, bearerToken)
-            }
-            .map {
-                val listOfResults = it.t1.map {
-                    it.second
-                }
-                temporalEntityAttributeService.injectTemporalValues(it.t2, listOfResults, withTemporalValues)
-            }
-            .map {
-                JsonLdUtils.filterCompactedEntityOnAttributes(it.compact(), temporalQuery.attrs)
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
-            }
+        val temporalEntityAttribute = temporalEntityAttributeService.getForEntity(
+            entityId.toUri(),
+            temporalQuery.attrs,
+            contextLink
+        ).awaitFirstOrNull() ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+
+        val results = attributeInstanceService.search(temporalQuery, temporalEntityAttribute).awaitFirst()
+
+        val jsonLdEntity = loadEntityPayload(temporalEntityAttribute, bearerToken).awaitFirst()
+        val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
+            jsonLdEntity,
+            listOf(results),
+            withTemporalValues
+        )
+        val compactedJsonLdEntity = JsonLdUtils.filterCompactedEntityOnAttributes(
+            jsonLdEntityWithTemporalValues.compact(),
+            temporalQuery.attrs
+        )
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedJsonLdEntity))
     }
 
     /**

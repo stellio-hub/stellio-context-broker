@@ -801,7 +801,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"$ENTITY_NOT_FOUND_MESSAGE\"}"
+                    "\"detail\":\"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}\"}"
             )
     }
 
@@ -1318,7 +1318,7 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity should return a 404 if entity to be deleted has not been found`() {
-        val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
+        val entityId = "urn:ngsi-ld:Sensor:0022CCD".toUri()
         every { entityService.exists(entityId) } returns false
 
         webClient.delete()
@@ -1329,7 +1329,7 @@ class EntityHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"$ENTITY_NOT_FOUND_MESSAGE"}
+                    "detail":"${entityNotFoundMessage("urn:ngsi-ld:Sensor:0022CCD")}"}
                 """.trimIndent()
             )
     }

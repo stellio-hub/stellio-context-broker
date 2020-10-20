@@ -6,7 +6,6 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -16,6 +15,7 @@ import io.mockk.mockkClass
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -36,17 +36,22 @@ class EntityOperationServiceTests {
 
     val firstEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
     val secondEntityURI = "urn:ngsi-ld:Device:HCMR-AQUABOX2".toUri()
+    private lateinit var firstEntity: NgsiLdEntity
+    private lateinit var secondEntity: NgsiLdEntity
+
+    @BeforeEach
+    fun initNgsiLdEntitiesMocks() {
+        firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
+        every { firstEntity.id } returns firstEntityURI
+        secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
+        every { secondEntity.id } returns secondEntityURI
+    }
 
     @Test
     fun `it should split entities per existence`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class)
-        every { firstEntity.id } returns "1".toUri()
-        val secondEntity = mockkClass(NgsiLdEntity::class)
-        every { secondEntity.id } returns "2".toUri()
-
         every {
-            neo4jRepository.filterExistingEntitiesAsIds(listOf("1", "2").toListOfUri())
-        } returns listOf("1").toListOfUri()
+            neo4jRepository.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
+        } returns listOf(firstEntityURI)
 
         val (exist, doNotExist) = entityOperationService.splitEntitiesByExistence(listOf(firstEntity, secondEntity))
 
@@ -69,11 +74,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to create all provided entities`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class)
-        every { secondEntity.id } returns secondEntityURI
-
         every { entityService.createEntity(firstEntity) } returns firstEntity.id
         every { entityService.createEntity(secondEntity) } returns secondEntity.id
 
@@ -92,11 +92,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to create entities and transmit back any error`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class)
-        every { secondEntity.id } returns secondEntityURI
-
         every { entityService.createEntity(firstEntity) } returns firstEntity.id
         every { entityService.createEntity(secondEntity) } throws BadRequestDataException("Invalid entity")
 
@@ -113,11 +108,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to update attributes of entities`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -145,11 +135,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error an update which raises a BadRequestDataException`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -172,11 +157,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error not updated attributes in entities`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
         } returns UpdateResult(
@@ -209,11 +189,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should ask to replace entities`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
@@ -248,11 +223,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error an replace which raises a BadRequestDataException`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
@@ -276,11 +246,6 @@ class EntityOperationServiceTests {
 
     @Test
     fun `it should count as error not replaced entities in entities`() {
-        val firstEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { firstEntity.id } returns firstEntityURI
-        val secondEntity = mockkClass(NgsiLdEntity::class, relaxed = true)
-        every { secondEntity.id } returns secondEntityURI
-
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())

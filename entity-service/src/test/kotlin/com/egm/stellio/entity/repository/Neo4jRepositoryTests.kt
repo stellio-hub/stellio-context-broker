@@ -53,7 +53,7 @@ class Neo4jRepositoryTests {
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
 
     @Test
-    fun `it should convert a partial entity to a normal entity`() {
+    fun `it should merge a partial entity to a normal entity`() {
         val partialEntity = PartialEntity(beekeeperUri)
         partialEntityRepository.save(partialEntity)
         createEntity(beekeeperUri, listOf("Beekeeper"))
@@ -69,7 +69,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should keep the relation to a partial entity when converting to a normal entity`() {
+    fun `it should keep a relationship to a partial entity when merging with a normal entity`() {
         val partialEntity = PartialEntity(beekeeperUri)
         partialEntityRepository.save(partialEntity)
         val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
@@ -436,7 +436,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should create a relationship to an unknown entity and create a partial one`() {
+    fun `it should create a relationship to an unknown entity as a partial entity`() {
         val entity = createEntity(
             "urn:ngsi-ld:Sensor:1233".toUri(),
             listOf("Sensor")

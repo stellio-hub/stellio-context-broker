@@ -39,6 +39,18 @@ class EntityOperationHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
+    private val batchFullSuccessResponse =
+        """
+        {
+            "errors": [],
+            "success": [
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+            ]
+        }
+        """.trimIndent()
+
     @Test
     fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
@@ -66,18 +78,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
+            .expectBody().json(batchFullSuccessResponse)
 
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
@@ -200,18 +201,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
+            .expectBody().json(batchFullSuccessResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
         confirmVerified()
@@ -313,18 +303,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    success: [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
+            .expectBody().json(batchFullSuccessResponse)
 
         verify { entityOperationService.replace(existingEntities) }
         verify { entityOperationService.update(any()) wasNot Called }
@@ -491,18 +470,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
+            .expectBody().json(batchFullSuccessResponse)
     }
 
     @Test

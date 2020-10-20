@@ -58,7 +58,7 @@ class EntityOperationServiceTests {
     fun `it should split entities per existence with ids`() {
         every {
             neo4jRepository.filterExistingEntitiesAsIds(listOf(firstEntityURI, secondEntityURI))
-        } returns listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1").toListOfUri()
+        } returns listOf(firstEntityURI)
 
         val (exist, doNotExist) =
             entityOperationService.splitEntitiesIdsByExistence(listOf(firstEntityURI, secondEntityURI))
@@ -134,7 +134,7 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
 
         assertEquals(
-            listOf("urn:ngsi-ld:Device:HCMR-AQUABOX1", "urn:ngsi-ld:Device:HCMR-AQUABOX2").toListOfUri(),
+            listOf(firstEntityURI, secondEntityURI),
             batchOperationResult.success
         )
 

@@ -66,17 +66,17 @@ class EntityOperationHandler(
         val ngsiLdEntities = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-        val createBatchOperationResult =
-            if (authorizationService.userCanCreateEntities(userId))
-                entityOperationService.create(newEntities)
-            else
-                BatchOperationResult(
-                    errors = ArrayList(
-                        newEntities.map {
-                            BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
-                        }
-                    )
+        val createBatchOperationResult = when {
+            newEntities.isEmpty() -> BatchOperationResult()
+            authorizationService.userCanCreateEntities(userId) -> entityOperationService.create(newEntities)
+            else -> BatchOperationResult(
+                errors = ArrayList(
+                    newEntities.map {
+                        BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
+                    }
                 )
+            )
+        }
 
         authorizationService.createAdminLinks(createBatchOperationResult.success, userId)
 

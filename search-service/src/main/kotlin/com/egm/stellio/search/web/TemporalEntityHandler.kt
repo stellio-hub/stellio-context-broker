@@ -99,7 +99,7 @@ class TemporalEntityHandler(
             entityId.toUri(),
             temporalQuery.attrs,
             contextLink
-        ).awaitFirstOrNull() ?: throw ResourceNotFoundException("Entity $entityId was not found")
+        ).awaitFirstOrNull() ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
         val results = attributeInstanceService.search(temporalQuery, temporalEntityAttribute).awaitFirst()
 

@@ -54,6 +54,8 @@ class SubscriptionHandlerTests {
             .build()
     }
 
+    private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
+
     @Test
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
@@ -107,10 +109,10 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:1\"}"
+                    "\"detail\": \"${subscriptionNotFoundMessage(subscriptionId)}\"}"
             )
 
-        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
+        verify { subscriptionService.exists(subscriptionId) }
     }
 
     @Test
@@ -125,15 +127,15 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
+        verify { subscriptionService.exists(subscriptionId) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
     }
 
     @Test
@@ -148,7 +150,7 @@ class SubscriptionHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isCreated
-            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:04"))
+            .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1"))
     }
 
     @Test
@@ -165,7 +167,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
                     "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"A subscription with id urn:ngsi-ld:Subscription:04 already exists\"}"
+                    "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
             )
     }
 
@@ -364,7 +366,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
             listOf(apicContext!!)
@@ -389,7 +391,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 500 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
             listOf(apicContext!!)
@@ -419,7 +421,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 404 if subscription to be updated has not been found`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val subscriptionId = subscriptionId
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
 
@@ -431,7 +433,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Could not find a subscription with id urn:ngsi-ld:Subscription:04\"}"
+                    "\"detail\":\"${subscriptionNotFoundMessage(subscriptionId)}\"}"
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
@@ -440,7 +442,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 400 if JSON-LD context is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update_incorrect_payload.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val subscriptionId = subscriptionId
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
@@ -468,7 +470,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 403 if subscription does not belong to the user`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
-        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val subscriptionId = subscriptionId
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(false)
@@ -481,7 +483,7 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:04",
+                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
@@ -525,14 +527,14 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "detail":"Could not find a subscription with id urn:ngsi-ld:Subscription:1",
+                        "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
                         "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                         "title":"The referred resource has not been found"
                     }
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
+        verify { subscriptionService.exists(subscriptionId) }
 
         confirmVerified(subscriptionService)
     }
@@ -553,9 +555,9 @@ class SubscriptionHandlerTests {
                     "\"detail\":\"Unexpected server error\"}"
             )
 
-        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
-        verify { subscriptionService.delete(eq("urn:ngsi-ld:Subscription:1".toUri())) }
+        verify { subscriptionService.exists(subscriptionId) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.delete(eq(subscriptionId)) }
     }
 
     @Test
@@ -570,15 +572,15 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"User is not authorized to access subscription urn:ngsi-ld:Subscription:1",
+                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
                     "title":"The request tried to access an unauthorized resource"
                 }
                 """.trimIndent()
             )
 
-        verify { subscriptionService.exists("urn:ngsi-ld:Subscription:1".toUri()) }
-        verify { subscriptionService.isCreatorOf("urn:ngsi-ld:Subscription:1".toUri(), "mock-user") }
+        verify { subscriptionService.exists(subscriptionId) }
+        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
     }
 
     @Test

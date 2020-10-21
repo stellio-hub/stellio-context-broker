@@ -7,13 +7,8 @@ import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.service.RepositoryEventsListener
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.service.EntitiesEventService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -27,12 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Runs
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -84,6 +74,9 @@ class EntityHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
+    @MockkBean
+    private lateinit var entitiesEventService: EntitiesEventService
+
     @BeforeAll
     fun configureWebClientDefaults() {
         aquacHeaderLink = "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
@@ -103,6 +96,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
+        every { entitiesEventService.publishEntityServiceEvent(any(), any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -120,6 +114,21 @@ class EntityHandlerTests {
                 }
             )
         }
+        verify {
+            entitiesEventService.publishEntityServiceEvent(
+                match {
+                    it.operationType == EventsType.ENTITY_CREATE &&
+                        it.entityId == breedingServiceId &&
+                        it.attributeName == null &&
+                        it.datasetId == null &&
+                        it.operationPayload != null &&
+                        it.updatedEntity == null &&
+                        it.contexts == null
+                },
+                "BreedingService"
+            )
+        }
+
         confirmVerified(entityService, authorizationService)
     }
 

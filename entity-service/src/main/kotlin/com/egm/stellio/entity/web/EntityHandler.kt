@@ -3,14 +3,8 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.InternalErrorResponse
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.service.EntitiesEventService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -45,7 +39,8 @@ import java.util.Optional
 class EntityHandler(
     private val entityService: EntityService,
     private val applicationEventPublisher: ApplicationEventPublisher,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val entitiesEventService: EntitiesEventService
 ) {
 
     /**
@@ -64,6 +59,11 @@ class EntityHandler(
         val ngsiLdEntity = expandJsonLdEntity(body, checkAndGetContext(httpHeaders, body)).toNgsiLdEntity()
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
+
+        entitiesEventService.publishEntityServiceEvent(
+            EntityCreateEvent(newEntityUri, body),
+            ngsiLdEntity.type.extractShortTypeFromExpanded()
+        )
 
         return ResponseEntity
             .status(HttpStatus.CREATED)

@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>LongParameterList:EntitiesEvent.kt$EntitiesEvent$( val operationType: EventsType, open val entityId: URI, open val attributeName: String? = null, open val datasetId: String? = null, open val operationPayload: String? = null, open val updatedEntity: String? = null, open val contexts: List&lt;String&gt;? = null )</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$ fun getPropertyValueFromMap(value: Map&lt;String, List&lt;Any&gt;&gt;, propertyKey: String): Any?</ID>
     <ID>TooGenericExceptionCaught:HttpUtils.kt$HttpUtils$e: Exception</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils$JsonLdUtils</ID>

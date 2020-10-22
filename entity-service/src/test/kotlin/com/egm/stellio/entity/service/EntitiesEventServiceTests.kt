@@ -55,6 +55,8 @@ class EntitiesEventServiceTests {
 
         verify { resolver.resolveDestination("cim.entity.Vehicle") }
 
-        Assertions.assertTrue(message.captured.payload.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
+        Assertions.assertTrue(message.captured.payload.matchContent(
+            loadSampleData("events/entityCreateEvent.jsonld")
+        ))
     }
 }

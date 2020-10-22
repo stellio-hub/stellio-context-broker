@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.service
+package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EntitiesEvent
 import com.fasterxml.jackson.annotation.JsonInclude
@@ -22,7 +22,7 @@ class EntitiesEventService(
 
     @Async
     // only keep the event in the method constructor, re-add entityType to EntitiesEvent model ?
-    fun publishEntityServiceEvent(event: EntitiesEvent, entityType: String) =
+    fun publishEntityEvent(event: EntitiesEvent, entityType: String) =
         resolver.resolveDestination(entityChannelName(entityType))
             .send(
                 MessageBuilder.createMessage(

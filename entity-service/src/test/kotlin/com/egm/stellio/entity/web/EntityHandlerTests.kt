@@ -4,11 +4,11 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.service.EntitiesEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.service.RepositoryEventsListener
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.service.EntitiesEventService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -96,7 +96,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entitiesEventService.publishEntityServiceEvent(any(), any()) } returns true
+        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -115,15 +115,11 @@ class EntityHandlerTests {
             )
         }
         verify {
-            entitiesEventService.publishEntityServiceEvent(
+            entitiesEventService.publishEntityEvent(
                 match {
+                    it as EntityCreateEvent
                     it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == breedingServiceId &&
-                        it.attributeName == null &&
-                        it.datasetId == null &&
-                        it.operationPayload != null &&
-                        it.updatedEntity == null &&
-                        it.contexts == null
+                        it.entityId == breedingServiceId
                 },
                 "BreedingService"
             )

@@ -1,10 +1,10 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntitiesEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.service.EntitiesEventService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -60,11 +60,10 @@ class EntityHandler(
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
-        entitiesEventService.publishEntityServiceEvent(
+        entitiesEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, body),
             ngsiLdEntity.type.extractShortTypeFromExpanded()
         )
-
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))

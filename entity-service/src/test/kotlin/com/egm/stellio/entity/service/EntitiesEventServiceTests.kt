@@ -1,4 +1,4 @@
-package com.egm.stellio.shared.service
+package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.util.loadSampleData
@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.slot
+import io.mockk.verify
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,7 +16,7 @@ import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.Message
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesEventService::class])
+@SpringBootTest(classes = [EntitiesEventService::class])
 @ActiveProfiles("test")
 class EntitiesEventServiceTests {
 
@@ -50,8 +51,10 @@ class EntitiesEventServiceTests {
             resolver.resolveDestination(any()).send(capture(message))
         } returns true
 
-        entitiesEventService.publishEntityServiceEvent(event, "Vehicle")
+        entitiesEventService.publishEntityEvent(event, "Vehicle")
 
-        Assertions.assertTrue(message.captured.payload.matchContent(loadSampleData("entityCreateEvent.jsonld")))
+        verify { resolver.resolveDestination("cim.entity.Vehicle") }
+
+        Assertions.assertTrue(message.captured.payload.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
     }
 }

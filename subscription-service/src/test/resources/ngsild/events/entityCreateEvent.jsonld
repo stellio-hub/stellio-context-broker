@@ -1,14 +1,5 @@
-[
-   "com.egm.stellio.shared.model.EntityCreateEvent",
-   {
-      "entityId":[
-         "java.net.URI",
-         "urn:ngsi-ld:Vehicle:A4567"
-      ],
-      "operationPayload":"{\n \"id\": \"urn:ngsi-ld:Vehicle:A4567\",\n \"type\": \"Vehicle\",\n \"brandName\": {\n \"type\": \"Property\",\n \"value\": \"Mercedes\"\n},\n \"@context\": [\n \"http://example.org/ngsi-ld/latest/vehicle.jsonld\",\n \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"\n ]\n}",
-      "operationType":[
-         "com.egm.stellio.shared.model.EventsType",
-         "ENTITY_CREATE"
-      ]
-   }
-]
+{
+    "entityId":"urn:ngsi-ld:Vehicle:A4567",
+    "operationPayload":"{\n \"id\": \"urn:ngsi-ld:Vehicle:A4567\",\n\"type\": \"Vehicle\",\n\"brandName\": {\n\"type\": \"Property\",\n\"value\": \"Mercedes\"\n},\n\"@context\": [\n\"http://example.org/ngsi-ld/latest/vehicle.jsonld\",\n\"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"\n]\n}",
+    "operationType":"ENTITY_CREATE"
+}

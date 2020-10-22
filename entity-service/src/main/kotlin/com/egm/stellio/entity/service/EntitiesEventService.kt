@@ -20,7 +20,6 @@ class EntitiesEventService(
             .setSerializationInclusion(JsonInclude.Include.NON_NULL)
 
     @Async
-    // only keep the event in the method constructor, re-add entityType to EntitiesEvent model ?
     fun publishEntityEvent(event: EntitiesEvent, channelSuffix: String) =
         resolver.resolveDestination(entityChannelName(channelSuffix))
             .send(
@@ -30,6 +29,6 @@ class EntitiesEventService(
                 )
             )
 
-    private fun entityChannelName(entityType: String) =
-        "cim.entity.$entityType"
+    private fun entityChannelName(channelSuffix: String) =
+        "cim.entity.$channelSuffix"
 }

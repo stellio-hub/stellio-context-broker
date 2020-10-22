@@ -1,8 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.model.Subscription
+import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper

@@ -6,7 +6,6 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntitiesEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.entity.service.RepositoryEventsListener
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -24,7 +23,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -62,14 +60,6 @@ class EntityHandlerTests {
 
     @MockkBean
     private lateinit var entityService: EntityService
-
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable
-     * (cf https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
-    @MockkBean
-    private lateinit var repositoryEventsListener: RepositoryEventsListener
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
@@ -1035,6 +1025,7 @@ class EntityHandlerTests {
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
@@ -1047,7 +1038,9 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf()
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1059,6 +1052,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
         confirmVerified(entityService)
     }
 
@@ -1066,6 +1060,7 @@ class EntityHandlerTests {
     fun `entity attributes update should notify for an updated attribute`() {
         val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every {
@@ -1077,8 +1072,10 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf()
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1089,19 +1086,21 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify(timeout = 1000, exactly = 1) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityId == entityId &&
-                        entityEvent.operationType == EventType.UPDATE &&
-                        jsonPayload.matchContent(entityEvent.payload) &&
-                        entityEvent.updatedEntity == null
-                }
+            entitiesEventService.publishEntityEvent(
+                match {
+                    it as AttributeReplaceEvent
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(jsonPayload) &&
+                        it.contexts.size == 1
+                },
+                "entityType"
             )
         }
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
+
+        confirmVerified(entitiesEventService)
     }
 
     @Test
@@ -1129,6 +1128,7 @@ class EntityHandlerTests {
             }
             """.trimIndent()
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every {
@@ -1143,10 +1143,12 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf()
         )
+        val events = mutableListOf<EntitiesEvent>()
 
-        val events = mutableListOf<EntityEvent>()
-        every { repositoryEventsListener.handleRepositoryEvent(capture(events)) } just Runs
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entitiesEventService.publishEntityEvent(capture(events), any()) } returns true
+        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1156,26 +1158,18 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 2) {
-            repositoryEventsListener.handleRepositoryEvent(any())
-        }
-        assertEquals(2, events.size)
-        events.forEach { entityEvent ->
+        verify(timeout = 1000, exactly = 2) { entitiesEventService.publishEntityEvent(any(), "entityType") }
+        events.forEach {
+            it as AttributeReplaceEvent
             assertTrue(
-                entityEvent.entityId == entityId &&
-                    entityEvent.operationType == EventType.UPDATE &&
+                it.entityId == entityId &&
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
                     (
-                        "{$fishNumberPayload}".matchContent(entityEvent.payload) ||
-                            "{$fishNamePayload}".matchContent(entityEvent.payload)
-                        ) &&
-                    entityEvent.updatedEntity == null
+                        "{$fishNumberPayload}".matchContent(it.operationPayload) ||
+                            "{$fishNamePayload}".matchContent(it.operationPayload)
+                        )
             )
         }
-
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
     }
 
     @Test
@@ -1188,6 +1182,8 @@ class EntityHandlerTests {
             "removedFrom",
             "Target entity unknownObject in property does not exist, create it first"
         )
+        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
+
         every { entityService.exists(any()) } returns true
         every {
             entityService.updateEntityAttributes(
@@ -1198,8 +1194,10 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1211,6 +1209,8 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+
         confirmVerified(entityService)
     }
 
@@ -1308,6 +1308,7 @@ class EntityHandlerTests {
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
+        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
@@ -1317,6 +1318,16 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
+        verify {
+            entitiesEventService.publishEntityEvent(
+                match {
+                    it as EntityDeleteEvent
+                    it.operationType == EventsType.ENTITY_DELETE &&
+                        it.entityId == entityId
+                },
+                "entityType"
+            )
+        }
         confirmVerified(entityService)
     }
 

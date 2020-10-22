@@ -1,6 +1,9 @@
 package com.egm.stellio.entity.service
 
+import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityDeleteEvent
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -58,6 +61,54 @@ class EntitiesEventServiceTests {
         Assertions.assertTrue(
             message.captured.payload.matchContent(
                 loadSampleData("events/entityCreateEvent.jsonld")
+            )
+        )
+    }
+
+    @Test
+    fun `it should publish an event of type DELETE_ENTITY`() {
+        val event = EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri())
+        val message = slot<Message<String>>()
+
+        every {
+            resolver.resolveDestination(any()).send(capture(message))
+        } returns true
+
+        entitiesEventService.publishEntityEvent(event, "Bus")
+
+        verify { resolver.resolveDestination("cim.entity.Bus") }
+
+        Assertions.assertTrue(
+            message.captured.payload.matchContent(
+                loadSampleData("events/entityDeleteEvent.jsonld")
+            )
+        )
+    }
+
+    @Test
+    fun `it should publish an event of type REPLACE_ATTRIBUTE`() {
+        val event = AttributeReplaceEvent(
+            "urn:ngsi-ld:Bus:A4567".toUri(),
+            "color",
+            "urn:ngsi-ld:Dataset:color:1".toUri(),
+            "{ \"type\": \"Property\", \"value\": \"red\" }",
+            "updatedEntity",
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val message = slot<Message<String>>()
+
+        every {
+            resolver.resolveDestination(any()).send(capture(message))
+        } returns true
+
+        entitiesEventService.publishEntityEvent(event, "Bus")
+
+        verify { resolver.resolveDestination("cim.entity.Bus") }
+
+        Assertions.assertTrue(
+            message.captured.payload.matchContent(
+                loadSampleData("events/attributeReplaceEvent.jsonld")
             )
         )
     }

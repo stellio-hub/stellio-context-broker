@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -38,7 +37,6 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val entityService: EntityService,
-    private val applicationEventPublisher: ApplicationEventPublisher,
     private val authorizationService: AuthorizationService,
     private val entitiesEventService: EntitiesEventService
 ) {
@@ -152,6 +150,8 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
+        // From where to get entity type ? extract it from id ? Retrieve entity before deletion ?
+        entitiesEventService.publishEntityEvent(EntityDeleteEvent(entityId.toUri()), "entityType")
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
@@ -216,17 +216,25 @@ class EntityHandler(
         val updateResult =
             entityService.updateEntityAttributes(entityId.toUri(), parseToNgsiLdAttributes(jsonLdAttributes))
 
+        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+
+        // Get the correct datasetId ? get entity Type ?
         updateResult.updated.forEach { expandedAttributeName ->
-            val entityEvent = EntityEvent(
-                operationType = EventType.UPDATE,
-                entityId = entityId.toUri(),
-                payload = compactAndStringifyFragment(
-                    expandedAttributeName,
-                    jsonLdAttributes[expandedAttributeName]!!,
+            entitiesEventService.publishEntityEvent(
+                AttributeReplaceEvent(
+                    entityId.toUri(),
+                    expandedAttributeName.extractShortTypeFromExpanded(),
+                    null,
+                    compactAndStringifyFragment(
+                        expandedAttributeName,
+                        jsonLdAttributes[expandedAttributeName]!!,
+                        contexts
+                    ),
+                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
                     contexts
-                )
+                ),
+                "entityType"
             )
-            applicationEventPublisher.publishEvent(entityEvent)
         }
 
         return if (updateResult.notUpdated.isEmpty())

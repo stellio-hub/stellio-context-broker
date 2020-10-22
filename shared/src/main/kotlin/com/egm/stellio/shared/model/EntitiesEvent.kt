@@ -34,7 +34,7 @@ data class EntityDeleteEvent(override val entityId: URI) : EntitiesEvent(EventsT
 data class AttributeAppendEvent(
     override val entityId: URI,
     val attributeName: String,
-    val datasetId: String,
+    val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
@@ -44,7 +44,7 @@ data class AttributeAppendEvent(
 data class AttributeReplaceEvent(
     override val entityId: URI,
     val attributeName: String,
-    val datasetId: String,
+    val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
@@ -54,7 +54,7 @@ data class AttributeReplaceEvent(
 data class AttributeUpdateEvent(
     override val entityId: URI,
     val attributeName: String,
-    val datasetId: String,
+    val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
@@ -64,7 +64,7 @@ data class AttributeUpdateEvent(
 data class AttributeDeleteEvent(
     override val entityId: URI,
     val attributeName: String,
-    val datasetId: String,
+    val datasetId: URI?,
     val updatedEntity: String,
     val contexts: List<String>
 ) : EntitiesEvent(EventsType.ATTRIBUTE_DELETE, entityId)

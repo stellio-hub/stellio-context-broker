@@ -2,7 +2,6 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityService
@@ -103,7 +102,7 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
+        every { entityService.createEntity(any()) } returns breedingServiceId
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")

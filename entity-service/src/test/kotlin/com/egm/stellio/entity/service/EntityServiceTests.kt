@@ -4,11 +4,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.util.EntitiesGraphBuilder
-import com.egm.stellio.entity.web.BatchEntityError
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.Observation
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -26,8 +22,6 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
-import org.jgrapht.graph.DefaultEdge
-import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -55,9 +49,6 @@ class EntityServiceTests {
     private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
-    private lateinit var entitiesGraphBuilder: EntitiesGraphBuilder
-
-    @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
 
     @MockkBean(relaxed = true)
@@ -66,12 +57,18 @@ class EntityServiceTests {
     @MockkBean
     private lateinit var propertyRepository: PropertyRepository
 
+    @MockkBean
+    private lateinit var partialEntityRepository: PartialEntityRepository
+
     /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
+     * As Spring's ApplicationEventPublisher is not easily mockable
+     * (https://github.com/spring-projects/spring-framework/issues/18907),
      * we are directly mocking the event listener to check it receives what is expected
      */
     @MockkBean
     private lateinit var repositoryEventsListener: RepositoryEventsListener
+
+    private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
 
     @Test
     fun `it should notify of a new entity`() {
@@ -83,16 +80,17 @@ class EntityServiceTests {
             parseSampleDataToNgsiLd("aquac/MortalityRemovalService_standalone.json")
         val mockedBreedingService = mockkClass(Entity::class)
 
-        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityRemovalService:014YFA9Z")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+        every { entityRepository.existsById(eq(mortalityRemovalServiceUri)) } returns false
+        every {
+            partialEntityRepository.existsById(mortalityRemovalServiceUri)
+        } returns false
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { mockedBreedingService.properties } returns mutableListOf()
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
+        every { mockedBreedingService.id } returns mortalityRemovalServiceUri
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
+            "@id" to mortalityRemovalServiceUri.toString(),
             "@type" to listOf("MortalityRemovalService")
         )
         every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
@@ -105,7 +103,7 @@ class EntityServiceTests {
             repositoryEventsListener.handleRepositoryEvent(
                 match { entityEvent ->
                     entityEvent.entityType == "MortalityRemovalService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri() &&
+                        entityEvent.entityId == mortalityRemovalServiceUri &&
                         entityEvent.operationType == EventType.CREATE &&
                         entityEvent.payload == expectedPayloadInEvent &&
                         entityEvent.updatedEntity == null
@@ -122,19 +120,19 @@ class EntityServiceTests {
     fun `it should create an entity with a property having a property`() {
         val sampleDataWithContext =
             parseSampleDataToNgsiLd("aquac/BreedingService_propWithProp.json")
+        val breedingServiceUri = "urn:ngsi-ld:BreedingService:PropWithProp".toUri()
 
         val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp".toUri()
+        every { mockedBreedingService.id } returns breedingServiceUri
 
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithProp")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+        every { entityRepository.existsById(eq(breedingServiceUri)) } returns false
+        every { partialEntityRepository.existsById(breedingServiceUri) } returns false
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
         every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
+            "@id" to mortalityRemovalServiceUri.toString(),
             "@type" to listOf("MortalityRemovalService")
         )
         every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
@@ -144,37 +142,6 @@ class EntityServiceTests {
         entityService.createEntity(sampleDataWithContext)
 
         confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity referencing an unknown entity`() {
-        val sampleDataWithContext =
-            parseSampleDataToNgsiLd("aquac/FeedingService.json")
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:FeedingService:018z59")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(
-                DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java),
-                listOf(
-                    BatchEntityError(
-                        "urn:ngsi-ld:FeedingService:018z59".toUri(),
-                        arrayListOf(
-                            "Target entity urn:ngsi-ld:Feeder:018z5 does not exist",
-                            "Target entity urn:ngsi-ld:FishContainment:0012 does not exist"
-                        )
-                    )
-                )
-            )
-
-        val exception = assertThrows<BadRequestDataException>("Creation should have failed") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-        assertEquals(
-            "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
-                "Target entity urn:ngsi-ld:Feeder:018z5 does not exist," +
-                "Target entity urn:ngsi-ld:FishContainment:0012 does not exist",
-            exception.message
-        )
     }
 
     @Test

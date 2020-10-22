@@ -7,9 +7,9 @@ import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -66,17 +66,17 @@ class EntityOperationHandler(
         val ngsiLdEntities = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-        val createBatchOperationResult =
-            if (authorizationService.userCanCreateEntities(userId))
-                entityOperationService.create(newEntities)
-            else
-                BatchOperationResult(
-                    errors = ArrayList(
-                        newEntities.map {
-                            BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
-                        }
-                    )
+        val createBatchOperationResult = when {
+            newEntities.isEmpty() -> BatchOperationResult()
+            authorizationService.userCanCreateEntities(userId) -> entityOperationService.create(newEntities)
+            else -> BatchOperationResult(
+                errors = ArrayList(
+                    newEntities.map {
+                        BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
+                    }
                 )
+            )
+        }
 
         authorizationService.createAdminLinks(createBatchOperationResult.success, userId)
 
@@ -90,8 +90,8 @@ class EntityOperationHandler(
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
 
         val updateBatchOperationResult = when (options) {
-            "update" -> entityOperationService.update(existingEntitiesAuthorized, createBatchOperationResult)
-            else -> entityOperationService.replace(existingEntitiesAuthorized, createBatchOperationResult)
+            "update" -> entityOperationService.update(existingEntitiesAuthorized)
+            else -> entityOperationService.replace(existingEntitiesAuthorized)
         }
 
         updateBatchOperationResult.errors.addAll(
@@ -131,18 +131,10 @@ class EntityOperationHandler(
     }
 
     private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {
-        val extractedEntities = extractEntitiesFromJsonPayload(payload)
+        val extractedEntities = JsonUtils.parseListOfEntities(payload)
         return JsonLdUtils.expandJsonLdEntities(extractedEntities)
             .map {
                 it.toNgsiLdEntity()
             }
-    }
-
-    private fun extractEntitiesFromJsonPayload(payload: String): List<Map<String, Any>> {
-        val mapper = jacksonObjectMapper()
-        return mapper.readValue(
-            payload,
-            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
-        )
     }
 }

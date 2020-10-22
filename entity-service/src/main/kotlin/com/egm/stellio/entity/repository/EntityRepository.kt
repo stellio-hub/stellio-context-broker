@@ -38,7 +38,4 @@ interface EntityRepository : Neo4jRepository<Entity, URI> {
             "RETURN rel, type(r) as relType, relObject, relOfRel, type(or) as relOfRelType, relOfRelObject"
     )
     fun getEntityRelationships(id: String): List<Map<String, Any>>
-
-    @Query("MATCH (e:Entity { id: \$id }) RETURN exists(e.id)")
-    fun exists(id: String): Boolean?
 }

@@ -54,4 +54,7 @@ object JsonUtils {
         )
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
+
+    fun parseEntitiesEvent(input: String): EntitiesEvent =
+        mapper.readValue(input, EntitiesEvent::class.java)
 }

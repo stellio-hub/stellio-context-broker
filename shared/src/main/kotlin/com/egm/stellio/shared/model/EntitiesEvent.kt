@@ -19,13 +19,19 @@ import java.net.URI
 open class EntitiesEvent(
     val operationType: EventsType,
     open val entityId: URI
-)
+) {
+    open fun getEntity(): String? = null
+    open fun getEventPayload(): String? = null
+}
 
 @JsonTypeName("ENTITY_CREATE")
 data class EntityCreateEvent(
     override val entityId: URI,
     val operationPayload: String
-) : EntitiesEvent(EventsType.ENTITY_CREATE, entityId)
+) : EntitiesEvent(EventsType.ENTITY_CREATE, entityId) {
+    override fun getEntity() = this.operationPayload
+    override fun getEventPayload() = this.operationPayload
+}
 
 @JsonTypeName("ENTITY_DELETE")
 data class EntityDeleteEvent(override val entityId: URI) : EntitiesEvent(EventsType.ENTITY_DELETE, entityId)
@@ -38,7 +44,10 @@ data class AttributeAppendEvent(
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
-) : EntitiesEvent(EventsType.ATTRIBUTE_APPEND, entityId)
+) : EntitiesEvent(EventsType.ATTRIBUTE_APPEND, entityId) {
+    override fun getEntity() = this.updatedEntity
+    override fun getEventPayload() = this.operationPayload
+}
 
 @JsonTypeName("ATTRIBUTE_REPLACE")
 data class AttributeReplaceEvent(
@@ -48,7 +57,10 @@ data class AttributeReplaceEvent(
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
-) : EntitiesEvent(EventsType.ATTRIBUTE_REPLACE, entityId)
+) : EntitiesEvent(EventsType.ATTRIBUTE_REPLACE, entityId) {
+    override fun getEntity() = this.updatedEntity
+    override fun getEventPayload() = this.operationPayload
+}
 
 @JsonTypeName("ATTRIBUTE_UPDATE")
 data class AttributeUpdateEvent(
@@ -58,7 +70,10 @@ data class AttributeUpdateEvent(
     val operationPayload: String,
     val updatedEntity: String,
     val contexts: List<String>
-) : EntitiesEvent(EventsType.ATTRIBUTE_UPDATE, entityId)
+) : EntitiesEvent(EventsType.ATTRIBUTE_UPDATE, entityId) {
+    override fun getEntity() = this.updatedEntity
+    override fun getEventPayload() = this.operationPayload
+}
 
 @JsonTypeName("ATTRIBUTE_DELETE")
 data class AttributeDeleteEvent(

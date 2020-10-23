@@ -691,7 +691,6 @@ class EntityService(
                 propertyFragment.second, entity.contexts
             )
 
-            // use the right context
             val jsonLdEntity = getFullEntityById(entity.id, true)
             jsonLdEntity?.let {
                 entitiesEventService.publishEntityEvent(
@@ -701,7 +700,7 @@ class EntityService(
                         observedProperty.datasetId,
                         propertyPayload,
                         JsonLdUtils.compactAndSerialize(it),
-                        listOf()
+                        entity.contexts
                     ),
                     entity.type[0].extractShortTypeFromExpanded()
                 )

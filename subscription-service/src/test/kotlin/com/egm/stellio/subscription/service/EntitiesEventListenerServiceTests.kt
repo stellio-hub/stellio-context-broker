@@ -14,12 +14,12 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
+@SpringBootTest(classes = [EntitiesEventListenerService::class])
 @ActiveProfiles("test")
-class EntitiesListenerTests {
+class EntitiesEventListenerServiceTests {
 
     @Autowired
-    private lateinit var entitiesListener: EntitiesListener
+    private lateinit var entitiesEventListenerService: EntitiesEventListenerService
 
     @MockkBean
     private lateinit var notificationService: NotificationService
@@ -40,7 +40,7 @@ class EntitiesListenerTests {
             )
         }
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entitiesEventListenerService.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
         confirmVerified(notificationService)

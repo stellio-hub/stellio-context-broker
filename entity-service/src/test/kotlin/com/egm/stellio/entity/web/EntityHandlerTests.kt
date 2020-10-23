@@ -1025,7 +1025,6 @@ class EntityHandlerTests {
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
@@ -1038,9 +1037,8 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf()
         )
-        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
         every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
-        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1053,6 +1051,8 @@ class EntityHandlerTests {
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify { entitiesEventService.publishEntityEvent(any(), any()) }
+
         confirmVerified(entityService)
     }
 
@@ -1196,7 +1196,6 @@ class EntityHandlerTests {
             "removedFrom",
             "Target entity unknownObject in property does not exist, create it first"
         )
-        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every {
@@ -1209,9 +1208,8 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
         every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
-        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

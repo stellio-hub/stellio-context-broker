@@ -1,9 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.EntitiesEvent
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.egm.stellio.shared.util.JsonLdUtils.mapper
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder
@@ -14,10 +12,6 @@ import org.springframework.stereotype.Component
 class EntitiesEventService(
     private val resolver: BinderAwareChannelResolver
 ) {
-
-    private val mapper =
-        jacksonObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
 
     @Async
     fun publishEntityEvent(event: EntitiesEvent, channelSuffix: String) =

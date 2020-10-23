@@ -103,6 +103,7 @@ class EntityServiceTests {
                 "incoming"
             )
         }
+        verify { entitiesEventService wasNot called }
 
         confirmVerified(neo4jRepository)
     }
@@ -126,6 +127,7 @@ class EntityServiceTests {
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
+        verify { entitiesEventService wasNot called }
 
         confirmVerified()
     }
@@ -178,7 +180,8 @@ class EntityServiceTests {
                         it.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
                         it.attributeName == "incoming" &&
                         it.datasetId == null &&
-                        it.operationPayload.contains("fishNumber")
+                        it.operationPayload.contains("fishNumber") &&
+                        it.contexts == listOf(aquacContext)
                 },
                 "BreedingService"
             )

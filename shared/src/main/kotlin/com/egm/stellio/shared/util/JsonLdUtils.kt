@@ -68,7 +68,7 @@ object JsonLdUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val mapper: ObjectMapper =
+    val mapper: ObjectMapper =
         jacksonObjectMapper()
             .setSerializationInclusion(JsonInclude.Include.NON_NULL)
             .findAndRegisterModules()

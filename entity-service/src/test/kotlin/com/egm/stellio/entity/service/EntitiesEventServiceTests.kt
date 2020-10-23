@@ -46,7 +46,7 @@ class EntitiesEventServiceTests {
         """.trimIndent()
 
     @Test
-    fun `it should publish an event of type CREATE_ENTITY`() {
+    fun `it should publish an event of type ENTITY_CREATE`() {
         val event = EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload)
         val message = slot<Message<String>>()
 
@@ -66,7 +66,7 @@ class EntitiesEventServiceTests {
     }
 
     @Test
-    fun `it should publish an event of type DELETE_ENTITY`() {
+    fun `it should publish an event of type ENTITY_DELETE`() {
         val event = EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri())
         val message = slot<Message<String>>()
 
@@ -86,7 +86,7 @@ class EntitiesEventServiceTests {
     }
 
     @Test
-    fun `it should publish an event of type REPLACE_ATTRIBUTE`() {
+    fun `it should publish an event of type ATTRIBUTE_REPLACE`() {
         val event = AttributeReplaceEvent(
             "urn:ngsi-ld:Bus:A4567".toUri(),
             "color",

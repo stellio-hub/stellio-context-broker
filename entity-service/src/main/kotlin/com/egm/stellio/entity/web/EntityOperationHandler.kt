@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntitiesEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpStatus
@@ -20,12 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
 class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val entitiesEventService: EntitiesEventService
 ) {
 
     /**
@@ -48,9 +50,24 @@ class EntityOperationHandler(
             }
         )
 
+        val extractedEntities = JsonUtils.parseListOfEntities(body)
         authorizationService.createAdminLinks(batchOperationResult.success, userId)
+        ngsiLdEntities.filter { it.id in batchOperationResult.success }
+            .map { Pair(it, extractEntityPayloadById(extractedEntities, it.id)) }
+            .map {
+                entitiesEventService.publishEntityEvent(
+                    EntityCreateEvent(it.first.id, serializeObject(it.second)),
+                    it.first.type.extractShortTypeFromExpanded()
+                )
+            }
 
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+    }
+
+    private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {
+        return entitiesPayload.first {
+            it["id"] == entityId.toString()
+        }
     }
 
     /**

@@ -16,6 +16,7 @@ import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -313,3 +314,9 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
 
     return expandedFragment[0] as Map<String, Any>
 }
+
+fun URI.extractEntityTypeFromEntityId(): String =
+    /*
+     * TODO does the id always respect this pattern urn:ngsi-ld:ENTITY_TYPE:someId
+     */
+    this.toString().split(":")[2]

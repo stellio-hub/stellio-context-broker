@@ -1060,7 +1060,6 @@ class EntityHandlerTests {
     fun `entity attributes update should notify for an updated attribute`() {
         val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every {
@@ -1073,9 +1072,14 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
         every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
-        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1094,9 +1098,10 @@ class EntityHandlerTests {
                         it.attributeName == "fishNumber" &&
                         it.datasetId == null &&
                         it.operationPayload.matchContent(jsonPayload) &&
-                        it.contexts.size == 1
+                        it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
+                        it.contexts == listOf(aquacContext)
                 },
-                "entityType"
+                "DeadFishes"
             )
         }
 
@@ -1116,6 +1121,7 @@ class EntityHandlerTests {
             """
             "fishName":{
                 "type":"Property",
+                "datasetId": "urn:ngsi-ld:Dataset:fishName:1",
                 "value":"Salmon",
                 "unitCode": "C1"
             }
@@ -1128,7 +1134,6 @@ class EntityHandlerTests {
             }
             """.trimIndent()
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val mockkedJsonLdEntity = mockkClass(JsonLdEntity::class)
 
         every { entityService.exists(any()) } returns true
         every {
@@ -1146,9 +1151,14 @@ class EntityHandlerTests {
         val events = mutableListOf<EntitiesEvent>()
 
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkedJsonLdEntity
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
         every { entitiesEventService.publishEntityEvent(capture(events), any()) } returns true
-        every { mockkedJsonLdEntity.compact() } returns emptyMap()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1158,16 +1168,20 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 2) { entitiesEventService.publishEntityEvent(any(), "entityType") }
+        verify(timeout = 1000, exactly = 2) { entitiesEventService.publishEntityEvent(any(), "DeadFishes") }
         events.forEach {
             it as AttributeReplaceEvent
             assertTrue(
-                it.entityId == entityId &&
-                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                    it.entityId == entityId &&
+                    (it.attributeName == "fishName" || it.attributeName == "fishNumber") &&
+                    (it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:fishName:1".toUri()) &&
                     (
                         "{$fishNumberPayload}".matchContent(it.operationPayload) ||
                             "{$fishNamePayload}".matchContent(it.operationPayload)
-                        )
+                        ) &&
+                    it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
+                    it.contexts == listOf(aquacContext)
             )
         }
     }
@@ -1325,7 +1339,7 @@ class EntityHandlerTests {
                     it.operationType == EventsType.ENTITY_DELETE &&
                         it.entityId == entityId
                 },
-                "entityType"
+                "Sensor"
             )
         }
         confirmVerified(entityService)

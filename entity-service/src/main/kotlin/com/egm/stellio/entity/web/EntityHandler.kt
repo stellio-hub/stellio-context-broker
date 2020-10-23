@@ -150,8 +150,9 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
-        // From where to get entity type ? extract it from id ? Retrieve entity before deletion ?
-        entitiesEventService.publishEntityEvent(EntityDeleteEvent(entityId.toUri()), "entityType")
+        entitiesEventService.publishEntityEvent(
+            EntityDeleteEvent(entityId.toUri()), entityId.toUri().extractEntityTypeFromEntityId()
+        )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
@@ -213,18 +214,18 @@ class EntityHandler(
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
         val updateResult =
-            entityService.updateEntityAttributes(entityId.toUri(), parseToNgsiLdAttributes(jsonLdAttributes))
+            entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
 
         val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
 
-        // Get the correct datasetId ? get entity Type ?
         updateResult.updated.forEach { expandedAttributeName ->
             entitiesEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
                     expandedAttributeName.extractShortTypeFromExpanded(),
-                    null,
+                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName),
                     compactAndStringifyFragment(
                         expandedAttributeName,
                         jsonLdAttributes[expandedAttributeName]!!,
@@ -233,7 +234,7 @@ class EntityHandler(
                     JsonLdUtils.compactAndSerialize(updatedEntity!!),
                     contexts
                 ),
-                "entityType"
+                entityId.toUri().extractEntityTypeFromEntityId()
             )
         }
 
@@ -241,6 +242,22 @@ class EntityHandler(
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+    }
+
+    // TODO add support for multi attribute
+    private fun extractDatasetIdFromNgsiLdAttributes(
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        attributeName: String
+    ): URI? {
+        val ngsiLdAttribute = ngsiLdAttributes.first {
+            it.name == attributeName
+        }
+        return when (ngsiLdAttribute) {
+            is NgsiLdRelationship -> ngsiLdAttribute.instances[0].datasetId
+            is NgsiLdProperty -> ngsiLdAttribute.instances[0].datasetId
+            is NgsiLdGeoProperty -> ngsiLdAttribute.instances[0].datasetId
+            else -> null
+        }
     }
 
     /**

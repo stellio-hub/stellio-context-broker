@@ -1,5 +1,6 @@
 package com.egm.stellio.shared.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.fasterxml.jackson.annotation.JsonTypeName
@@ -20,7 +21,9 @@ open class EntitiesEvent(
     val operationType: EventsType,
     open val entityId: URI
 ) {
+    @JsonIgnore
     open fun getEntity(): String? = null
+    @JsonIgnore
     open fun getEventPayload(): String? = null
 }
 

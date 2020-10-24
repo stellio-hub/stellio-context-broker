@@ -10,6 +10,7 @@ import java.net.URI
 @JsonSubTypes(
     *[
         JsonSubTypes.Type(value = EntityCreateEvent::class),
+        JsonSubTypes.Type(value = EntityUpdateEvent::class),
         JsonSubTypes.Type(value = EntityDeleteEvent::class),
         JsonSubTypes.Type(value = AttributeAppendEvent::class),
         JsonSubTypes.Type(value = AttributeReplaceEvent::class),
@@ -33,6 +34,17 @@ data class EntityCreateEvent(
     val operationPayload: String
 ) : EntitiesEvent(EventsType.ENTITY_CREATE, entityId) {
     override fun getEntity() = this.operationPayload
+    override fun getEventPayload() = this.operationPayload
+}
+
+@JsonTypeName("ENTITY_UPDATE")
+data class EntityUpdateEvent(
+    override val entityId: URI,
+    val operationPayload: String,
+    val updatedEntity: String,
+    val contexts: List<String>
+) : EntitiesEvent(EventsType.ENTITY_UPDATE, entityId) {
+    override fun getEntity() = this.updatedEntity
     override fun getEventPayload() = this.operationPayload
 }
 
@@ -89,6 +101,7 @@ data class AttributeDeleteEvent(
 
 enum class EventsType {
     ENTITY_CREATE,
+    ENTITY_UPDATE,
     ENTITY_DELETE,
     ATTRIBUTE_APPEND,
     ATTRIBUTE_REPLACE,

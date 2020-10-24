@@ -1,17 +1,17 @@
 package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.InternalErrorException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionService
+import com.egm.stellio.subscription.service.SubscriptionsEventService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.verify
+import io.mockk.*
 import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -43,6 +43,9 @@ class SubscriptionHandlerTests {
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
+
+    @MockkBean
+    private lateinit var subscriptionsEventService: SubscriptionsEventService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -144,6 +147,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
+        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -151,6 +155,17 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1"))
+
+        verify {
+            subscriptionsEventService.publishSubscriptionEvent(
+                match {
+                    it is SubscriptionCreateEvent &&
+                        it.operationType == SubscriptionEventType.SUBSCRIPTION_CREATE &&
+                        it.subscriptionId == "urn:ngsi-ld:Subscription:1".toUri() &&
+                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+                }
+            )
+        }
     }
 
     @Test
@@ -169,6 +184,8 @@ class SubscriptionHandlerTests {
                     "\"title\":\"The referred element already exists\"," +
                     "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
             )
+
+        verify { subscriptionsEventService wasNot called }
     }
 
     @Test
@@ -371,10 +388,12 @@ class SubscriptionHandlerTests {
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
             listOf(apicContext!!)
         )
-
+        val updatedSubscription = gimmeRawSubscription()
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
+        every { subscriptionService.getById(any()) } returns Mono.just(updatedSubscription)
+        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -385,6 +404,18 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(eq((subscriptionId))) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionService.getById(eq(subscriptionId)) }
+        verify {
+            subscriptionsEventService.publishSubscriptionEvent(
+                match {
+                    it is SubscriptionUpdateEvent &&
+                        it.operationType == SubscriptionEventType.SUBSCRIPTION_UPDATE &&
+                        it.subscriptionId == subscriptionId &&
+                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8) &&
+                        it.updatedSubscription == serializeObject(updatedSubscription)
+                }
+            )
+        }
         confirmVerified(subscriptionService)
     }
 
@@ -415,6 +446,8 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionsEventService wasNot called }
+
         confirmVerified(subscriptionService)
     }
 
@@ -465,6 +498,7 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionsEventService wasNot called }
     }
 
     @Test
@@ -502,6 +536,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
+        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -512,6 +547,15 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.delete(eq(subscription.id)) }
+        verify {
+            subscriptionsEventService.publishSubscriptionEvent(
+                match {
+                    it is SubscriptionDeleteEvent &&
+                        it.operationType == SubscriptionEventType.SUBSCRIPTION_DELETE &&
+                        it.subscriptionId == subscription.id
+                }
+            )
+        }
 
         confirmVerified(subscriptionService)
     }

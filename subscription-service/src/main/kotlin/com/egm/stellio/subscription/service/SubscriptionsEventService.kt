@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.EntitiesEvent
+import com.egm.stellio.shared.model.NotificationEvent
+import com.egm.stellio.shared.model.SubscriptionEvent
 import com.egm.stellio.shared.util.JsonLdUtils.mapper
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.MessageHeaders
@@ -16,12 +17,22 @@ class SubscriptionsEventService(
     private val subscriptionChannelName = "cim.subscription"
 
     @Async
-    fun publishSubscriptionEvent(event: EntitiesEvent) =
+    fun publishSubscriptionEvent(event: SubscriptionEvent) =
         resolver.resolveDestination(subscriptionChannelName)
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
+                    MessageHeaders(mapOf(MessageHeaders.ID to event.subscriptionId))
+                )
+            )
+
+    @Async
+    fun publishNotificationEvent(event: NotificationEvent) =
+        resolver.resolveDestination(subscriptionChannelName)
+            .send(
+                MessageBuilder.createMessage(
+                    mapper.writeValueAsString(event),
+                    MessageHeaders(mapOf(MessageHeaders.ID to event.notificationId))
                 )
             )
 }

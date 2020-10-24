@@ -57,4 +57,10 @@ object JsonUtils {
 
     fun parseEntitiesEvent(input: String): EntitiesEvent =
         mapper.readValue(input, EntitiesEvent::class.java)
+
+    fun parseSubscriptionEvent(input: String): SubscriptionEvent =
+        mapper.readValue(input, SubscriptionEvent::class.java)
+
+    fun parseNotificationEvent(input: String): NotificationEvent =
+        mapper.readValue(input, NotificationEvent::class.java)
 }

@@ -1,4 +1,4 @@
 {
-    "subscriptionId":"urn:ngsi-ld:Subscription:01",
-    "operationType":"SUBSCRIPTION_DELETE"
+   "subscriptionId":"urn:ngsi-ld:Subscription:1",
+   "operationType":"SUBSCRIPTION_DELETE"
 }

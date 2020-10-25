@@ -20,10 +20,7 @@ class EntityEventListenerService(
         val entity = entityEvent.getEntity()
         entity?.let {
             try {
-                val updatedFragment = JsonLdUtils.parseJsonLdFragment(
-                    entityEvent.getEventPayload()
-                        ?: throw UnsupportedEventTypeException("Received unsupported event type")
-                )
+                val updatedFragment = JsonLdUtils.parseJsonLdFragment(entityEvent.getEventPayload()!!)
                 val parsedEntity = JsonLdUtils.expandJsonLdEntity(it)
                 notificationService.notifyMatchingSubscribers(it, parsedEntity.toNgsiLdEntity(), updatedFragment.keys)
                     .subscribe {

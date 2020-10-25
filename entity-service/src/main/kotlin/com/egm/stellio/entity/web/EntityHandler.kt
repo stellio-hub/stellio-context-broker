@@ -306,21 +306,4 @@ class EntityHandler(
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
     }
-
-    // TODO add support for multi attribute
-    private fun extractDatasetIdFromNgsiLdAttributes(
-        ngsiLdAttributes: List<NgsiLdAttribute>,
-        attributeName: String
-    ): URI? {
-        val ngsiLdAttribute = ngsiLdAttributes.first {
-            it.name == attributeName
-        }
-        return when (ngsiLdAttribute) {
-            is NgsiLdRelationship -> ngsiLdAttribute.instances[0].datasetId
-            is NgsiLdProperty -> ngsiLdAttribute.instances[0].datasetId
-            is NgsiLdGeoProperty 
-                -> ngsiLdAttribute.instances[0].datasetId
-            else -> null
-        }
-    }
 }

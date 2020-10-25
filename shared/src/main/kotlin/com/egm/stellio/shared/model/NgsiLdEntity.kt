@@ -80,6 +80,7 @@ interface NgsiLdAttribute {
         get() = name.extractShortTypeFromExpanded()
 
     fun getLinkedEntitiesIds(): List<URI>
+    fun getAttributeInstances(): List<NgsiLdAttributeInstance>
 }
 
 class NgsiLdProperty private constructor(
@@ -103,6 +104,8 @@ class NgsiLdProperty private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
 }
 
 class NgsiLdRelationship private constructor(
@@ -126,6 +129,8 @@ class NgsiLdRelationship private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
 }
 
 class NgsiLdGeoProperty private constructor(
@@ -149,6 +154,8 @@ class NgsiLdGeoProperty private constructor(
 
     override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
+
+    override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
 }
 
 sealed class NgsiLdAttributeInstance(
@@ -354,6 +361,10 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
             else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
         }
     }
+
+// TODO add support for multi attribute
+fun extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes: List<NgsiLdAttribute>, attributeName: String) =
+    ngsiLdAttributes.first { it.name == attributeName }.getAttributeInstances()[0].datasetId
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)

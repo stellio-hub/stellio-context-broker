@@ -40,7 +40,7 @@ class EntityOperationHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (extractedEntities, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val batchOperationResult = entityOperationService.create(newEntities)
 
@@ -50,14 +50,12 @@ class EntityOperationHandler(
             }
         )
 
-        val extractedEntities = JsonUtils.parseListOfEntities(body)
         authorizationService.createAdminLinks(batchOperationResult.success, userId)
         ngsiLdEntities.filter { it.id in batchOperationResult.success }
-            .map { Pair(it, extractEntityPayloadById(extractedEntities, it.id)) }
-            .map {
+            .forEach {
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.first.id, serializeObject(it.second)),
-                    it.first.type.extractShortTypeFromExpanded()
+                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    it.type.extractShortTypeFromExpanded()
                 )
             }
 
@@ -80,7 +78,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
-        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (_, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val createBatchOperationResult = when {
@@ -147,11 +145,11 @@ class EntityOperationHandler(
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {
+    private fun extractAndParseBatchOfEntities(payload: String): Pair<List<Map<String, Any>>, List<NgsiLdEntity>> {
         val extractedEntities = JsonUtils.parseListOfEntities(payload)
-        return JsonLdUtils.expandJsonLdEntities(extractedEntities)
-            .map {
-                it.toNgsiLdEntity()
-            }
+        return Pair(
+            extractedEntities,
+            JsonLdUtils.expandJsonLdEntities(extractedEntities).map { it.toNgsiLdEntity() }
+        )
     }
 }

@@ -1,0 +1,5 @@
+{
+   "subscriptionId":"urn:ngsi-ld:Subscription:1",
+   "operationPayload":"{\n  \"id\":\"urn:ngsi-ld:Subscription:1\",\n  \"type\":\"Subscription\",\n  \"entities\": [\n    {\n      \"type\": \"Beehive\"\n    },\n  ],\n  \"q\": \"foodQuantity<150;foodName=='dietary fibres'\", \n  \"notification\": {\n    \"attributes\": [\"incoming\"],\n    \"format\": \"normalized\",\n    \"endpoint\": {\n      \"uri\": \"http://localhost:8084\",\n      \"accept\": \"application/json\"\n    }\n  },\n  \"@context\":[\n    \"https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"\n  ]\n}",
+   "operationType":"SUBSCRIPTION_CREATE"
+}

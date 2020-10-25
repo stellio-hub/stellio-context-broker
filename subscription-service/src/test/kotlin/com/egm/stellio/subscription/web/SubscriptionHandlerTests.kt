@@ -6,8 +6,8 @@ import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
+import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.service.SubscriptionsEventService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
@@ -45,7 +45,7 @@ class SubscriptionHandlerTests {
     private lateinit var subscriptionService: SubscriptionService
 
     @MockkBean
-    private lateinit var subscriptionsEventService: SubscriptionsEventService
+    private lateinit var subscriptionEventService: SubscriptionEventService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -147,7 +147,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -157,7 +157,7 @@ class SubscriptionHandlerTests {
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1"))
 
         verify {
-            subscriptionsEventService.publishSubscriptionEvent(
+            subscriptionEventService.publishSubscriptionEvent(
                 match {
                     it is SubscriptionCreateEvent &&
                         it.operationType == SubscriptionEventType.SUBSCRIPTION_CREATE &&
@@ -185,7 +185,7 @@ class SubscriptionHandlerTests {
                     "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
             )
 
-        verify { subscriptionsEventService wasNot called }
+        verify { subscriptionEventService wasNot called }
     }
 
     @Test
@@ -393,7 +393,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
         every { subscriptionService.getById(any()) } returns Mono.just(updatedSubscription)
-        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -406,7 +406,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         verify { subscriptionService.getById(eq(subscriptionId)) }
         verify {
-            subscriptionsEventService.publishSubscriptionEvent(
+            subscriptionEventService.publishSubscriptionEvent(
                 match {
                     it is SubscriptionUpdateEvent &&
                         it.operationType == SubscriptionEventType.SUBSCRIPTION_UPDATE &&
@@ -446,7 +446,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
-        verify { subscriptionsEventService wasNot called }
+        verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)
     }
@@ -498,7 +498,6 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
-        verify { subscriptionsEventService wasNot called }
     }
 
     @Test
@@ -536,7 +535,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
-        every { subscriptionsEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -548,7 +547,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.delete(eq(subscription.id)) }
         verify {
-            subscriptionsEventService.publishSubscriptionEvent(
+            subscriptionEventService.publishSubscriptionEvent(
                 match {
                     it is SubscriptionDeleteEvent &&
                         it.operationType == SubscriptionEventType.SUBSCRIPTION_DELETE &&
@@ -579,6 +578,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(subscriptionId) }
+        verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)
     }

@@ -19,7 +19,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class NotificationService(
     private val subscriptionService: SubscriptionService,
-    private val subscriptionsEventService: SubscriptionsEventService,
+    private val subscriptionEventService: SubscriptionEventService,
     private val fcmService: FCMService
 ) {
 
@@ -74,7 +74,7 @@ class NotificationService(
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
                 }
                 .doOnNext {
-                    subscriptionsEventService.publishNotificationEvent(
+                    subscriptionEventService.publishNotificationEvent(
                         NotificationCreateEvent(
                             it.second.id, serializeObject(it.second)
                         )
@@ -121,7 +121,7 @@ class NotificationService(
         val success = response != null
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
-                subscriptionsEventService.publishNotificationEvent(
+                subscriptionEventService.publishNotificationEvent(
                     NotificationCreateEvent(notification.id, serializeObject(notification))
                 )
             }

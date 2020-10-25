@@ -25,7 +25,6 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.just
 import io.mockk.verify
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -46,7 +45,7 @@ class NotificationServiceTests {
     private lateinit var subscriptionService: SubscriptionService
 
     @MockkBean
-    private lateinit var subscriptionsEventService: SubscriptionsEventService
+    private lateinit var subscriptionEventService: SubscriptionEventService
 
     @MockkBean
     private lateinit var fcmService: FCMService
@@ -115,7 +114,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -135,7 +134,7 @@ class NotificationServiceTests {
             .verify()
 
         verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventService.publishNotificationEvent(
+            subscriptionEventService.publishNotificationEvent(
                 match {
                     it is NotificationCreateEvent &&
                         it.operationType == NotificationEventType.NOTIFICATION_CREATE &&
@@ -167,7 +166,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -187,7 +186,7 @@ class NotificationServiceTests {
             .verify()
 
         verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventService.publishNotificationEvent(
+            subscriptionEventService.publishNotificationEvent(
                 match {
                     it is NotificationCreateEvent &&
                         it.operationType == NotificationEventType.NOTIFICATION_CREATE &&
@@ -224,7 +223,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -268,7 +267,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -306,7 +305,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -353,7 +352,7 @@ class NotificationServiceTests {
 
         every { fcmService.sendMessage(any(), any(), any()) } returns "Notification sent successfully"
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionsEventService.publishNotificationEvent(any()) } returns true
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         StepVerifier.create(
             notificationService.callSubscriber(

@@ -1,0 +1,5 @@
+{
+   "notificationId":"urn:ngsi-ld:Notification:1",
+   "operationPayload":"{\n   \"id\":\"urn:ngsi-ld:Notification:1234\",\n   \"type\":\"Notification\",\n   \"notifiedAt\":\"2020-03-10T00:00:00Z\",\n   \"subscriptionId\":\"urn:ngsi-ld:Subscription:1234\"\n}",
+   "operationType":"NOTIFICATION_CREATE"
+}

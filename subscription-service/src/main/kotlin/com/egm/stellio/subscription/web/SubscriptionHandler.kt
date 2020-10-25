@@ -8,8 +8,8 @@ import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
+import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.service.SubscriptionsEventService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import kotlinx.coroutines.reactive.awaitFirst
@@ -35,7 +35,7 @@ import java.util.*
 @RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
     private val subscriptionService: SubscriptionService,
-    private val subscriptionsEventService: SubscriptionsEventService
+    private val subscriptionEventService: SubscriptionEventService
 ) {
 
     /**
@@ -53,7 +53,7 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
 
-        subscriptionsEventService.publishSubscriptionEvent(SubscriptionCreateEvent(parsedSubscription.id, body))
+        subscriptionEventService.publishSubscriptionEvent(SubscriptionCreateEvent(parsedSubscription.id, body))
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()
@@ -135,7 +135,7 @@ class SubscriptionHandler(
         val parsedInput = parseSubscriptionUpdate(body, context)
         subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
 
-        subscriptionsEventService.publishSubscriptionEvent(
+        subscriptionEventService.publishSubscriptionEvent(
             SubscriptionUpdateEvent(
                 subscriptionIdUri,
                 body,
@@ -158,7 +158,7 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
-        subscriptionsEventService.publishSubscriptionEvent(SubscriptionDeleteEvent(subscriptionIdUri))
+        subscriptionEventService.publishSubscriptionEvent(SubscriptionDeleteEvent(subscriptionIdUri))
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

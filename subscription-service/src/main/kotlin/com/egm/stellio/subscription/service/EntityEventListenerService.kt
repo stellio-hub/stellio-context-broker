@@ -8,7 +8,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-class EntitiesEventListenerService(
+class EntityEventListenerService(
     private val notificationService: NotificationService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)

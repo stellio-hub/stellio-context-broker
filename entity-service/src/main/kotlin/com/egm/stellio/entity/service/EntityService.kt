@@ -39,7 +39,7 @@ class EntityService(
     private val entityRepository: EntityRepository,
     private val partialEntityRepository: PartialEntityRepository,
     private val propertyRepository: PropertyRepository,
-    private val entitiesEventService: EntitiesEventService
+    private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -693,7 +693,7 @@ class EntityService(
 
             val jsonLdEntity = getFullEntityById(entity.id, true)
             jsonLdEntity?.let {
-                entitiesEventService.publishEntityEvent(
+                entityEventService.publishEntityEvent(
                     AttributeReplaceEvent(
                         entity.id,
                         observedProperty.name.extractShortTypeFromExpanded(),

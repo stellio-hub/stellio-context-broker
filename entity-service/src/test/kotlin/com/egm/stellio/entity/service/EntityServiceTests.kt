@@ -57,7 +57,7 @@ class EntityServiceTests {
     private lateinit var partialEntityRepository: PartialEntityRepository
 
     @MockkBean
-    private lateinit var entitiesEventService: EntitiesEventService
+    private lateinit var entityEventService: EntityEventService
 
     private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
 
@@ -103,7 +103,7 @@ class EntityServiceTests {
                 "incoming"
             )
         }
-        verify { entitiesEventService wasNot called }
+        verify { entityEventService wasNot called }
 
         confirmVerified(neo4jRepository)
     }
@@ -127,7 +127,7 @@ class EntityServiceTests {
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
-        verify { entitiesEventService wasNot called }
+        verify { entityEventService wasNot called }
 
         confirmVerified()
     }
@@ -163,7 +163,7 @@ class EntityServiceTests {
         every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
             mapOf("property" to expectedPropertyUpdate)
         )
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         entityService.updateEntityLastMeasure(observation)
 
@@ -173,7 +173,7 @@ class EntityServiceTests {
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify(timeout = 2000) {
-            entitiesEventService.publishEntityEvent(
+            entityEventService.publishEntityEvent(
                 match {
                     it as AttributeReplaceEvent
                     it.operationType == EventsType.ATTRIBUTE_REPLACE &&

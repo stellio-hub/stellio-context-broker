@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.service.EntitiesEventService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.EntityCreateEvent
@@ -27,7 +27,7 @@ import java.net.URI
 class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
     private val authorizationService: AuthorizationService,
-    private val entitiesEventService: EntitiesEventService
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -55,7 +55,7 @@ class EntityOperationHandler(
         ngsiLdEntities.filter { it.id in batchOperationResult.success }
             .map { Pair(it, extractEntityPayloadById(extractedEntities, it.id)) }
             .map {
-                entitiesEventService.publishEntityEvent(
+                entityEventService.publishEntityEvent(
                     EntityCreateEvent(it.first.id, serializeObject(it.second)),
                     it.first.type.extractShortTypeFromExpanded()
                 )

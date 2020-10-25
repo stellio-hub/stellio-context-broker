@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.service.EntitiesEventService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
@@ -38,7 +38,7 @@ import java.util.Optional
 class EntityHandler(
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,
-    private val entitiesEventService: EntitiesEventService
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -58,7 +58,7 @@ class EntityHandler(
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
-        entitiesEventService.publishEntityEvent(
+        entityEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, body),
             ngsiLdEntity.type.extractShortTypeFromExpanded()
         )
@@ -150,7 +150,7 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
-        entitiesEventService.publishEntityEvent(
+        entityEventService.publishEntityEvent(
             EntityDeleteEvent(entityId.toUri()), entityId.toUri().extractEntityTypeFromEntityId()
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -221,7 +221,7 @@ class EntityHandler(
         val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
 
         updateResult.updated.forEach { expandedAttributeName ->
-            entitiesEventService.publishEntityEvent(
+            entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
                     expandedAttributeName.extractShortTypeFromExpanded(),
@@ -242,22 +242,6 @@ class EntityHandler(
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
-    }
-
-    // TODO add support for multi attribute
-    private fun extractDatasetIdFromNgsiLdAttributes(
-        ngsiLdAttributes: List<NgsiLdAttribute>,
-        attributeName: String
-    ): URI? {
-        val ngsiLdAttribute = ngsiLdAttributes.first {
-            it.name == attributeName
-        }
-        return when (ngsiLdAttribute) {
-            is NgsiLdRelationship -> ngsiLdAttribute.instances[0].datasetId
-            is NgsiLdProperty -> ngsiLdAttribute.instances[0].datasetId
-            is NgsiLdGeoProperty -> ngsiLdAttribute.instances[0].datasetId
-            else -> null
-        }
     }
 
     /**
@@ -321,5 +305,22 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+    }
+
+    // TODO add support for multi attribute
+    private fun extractDatasetIdFromNgsiLdAttributes(
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        attributeName: String
+    ): URI? {
+        val ngsiLdAttribute = ngsiLdAttributes.first {
+            it.name == attributeName
+        }
+        return when (ngsiLdAttribute) {
+            is NgsiLdRelationship -> ngsiLdAttribute.instances[0].datasetId
+            is NgsiLdProperty -> ngsiLdAttribute.instances[0].datasetId
+            is NgsiLdGeoProperty 
+                -> ngsiLdAttribute.instances[0].datasetId
+            else -> null
+        }
     }
 }

@@ -2,7 +2,7 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.service.EntitiesEventService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
@@ -44,7 +44,7 @@ class EntityOperationHandlerTests {
     private lateinit var authorizationService: AuthorizationService
 
     @MockkBean
-    private lateinit var entitiesEventService: EntitiesEventService
+    private lateinit var entityEventService: EntityEventService
 
     private val batchFullSuccessResponse =
         """
@@ -102,7 +102,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
-        every { entitiesEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
+        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -115,7 +115,7 @@ class EntityOperationHandlerTests {
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
         verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
-        verify(timeout = 1000, exactly = 3) { entitiesEventService.publishEntityEvent(any(), any()) }
+        verify(timeout = 1000, exactly = 3) { entityEventService.publishEntityEvent(any(), any()) }
         events.forEach {
             it as EntityCreateEvent
             assertTrue(
@@ -154,7 +154,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
-        every { entitiesEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
+        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -165,7 +165,7 @@ class EntityOperationHandlerTests {
             .expectBody().json(batchSomeEntitiesExistsResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
-        verify(timeout = 1000, exactly = 2) { entitiesEventService.publishEntityEvent(any(), any()) }
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), any()) }
         events.forEach {
             it as EntityCreateEvent
             assertTrue(
@@ -200,7 +200,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
 
-        verify { entitiesEventService wasNot called }
+        verify { entityEventService wasNot called }
         confirmVerified()
     }
 

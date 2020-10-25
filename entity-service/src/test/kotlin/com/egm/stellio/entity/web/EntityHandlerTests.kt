@@ -4,7 +4,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.service.EntitiesEventService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
@@ -65,7 +65,7 @@ class EntityHandlerTests {
     private lateinit var authorizationService: AuthorizationService
 
     @MockkBean
-    private lateinit var entitiesEventService: EntitiesEventService
+    private lateinit var entityEventService: EntityEventService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -86,7 +86,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -105,7 +105,7 @@ class EntityHandlerTests {
             )
         }
         verify {
-            entitiesEventService.publishEntityEvent(
+            entityEventService.publishEntityEvent(
                 match {
                     it as EntityCreateEvent
                     it.operationType == EventsType.ENTITY_CREATE &&
@@ -1038,7 +1038,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1051,7 +1051,7 @@ class EntityHandlerTests {
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entitiesEventService.publishEntityEvent(any(), any()) }
+        verify { entityEventService.publishEntityEvent(any(), any()) }
 
         confirmVerified(entityService)
     }
@@ -1079,7 +1079,7 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1090,7 +1090,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify(timeout = 1000, exactly = 1) {
-            entitiesEventService.publishEntityEvent(
+            entityEventService.publishEntityEvent(
                 match {
                     it as AttributeReplaceEvent
                     it.operationType == EventsType.ATTRIBUTE_REPLACE &&
@@ -1105,7 +1105,7 @@ class EntityHandlerTests {
             )
         }
 
-        confirmVerified(entitiesEventService)
+        confirmVerified(entityEventService)
     }
 
     @Test
@@ -1158,7 +1158,7 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        every { entitiesEventService.publishEntityEvent(capture(events), any()) } returns true
+        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1168,7 +1168,7 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 2) { entitiesEventService.publishEntityEvent(any(), "DeadFishes") }
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), "DeadFishes") }
         events.forEach {
             it as AttributeReplaceEvent
             assertTrue(
@@ -1209,7 +1209,7 @@ class EntityHandlerTests {
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1320,7 +1320,7 @@ class EntityHandlerTests {
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
-        every { entitiesEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
@@ -1331,7 +1331,7 @@ class EntityHandlerTests {
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
         verify {
-            entitiesEventService.publishEntityEvent(
+            entityEventService.publishEntityEvent(
                 match {
                     it as EntityDeleteEvent
                     it.operationType == EventsType.ENTITY_DELETE &&

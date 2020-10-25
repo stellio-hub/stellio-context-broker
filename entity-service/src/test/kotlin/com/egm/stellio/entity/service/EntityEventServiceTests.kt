@@ -19,12 +19,12 @@ import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.messaging.Message
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(classes = [EntitiesEventService::class])
+@SpringBootTest(classes = [EntityEventService::class])
 @ActiveProfiles("test")
-class EntitiesEventServiceTests {
+class EntityEventServiceTests {
 
     @Autowired
-    private lateinit var entitiesEventService: EntitiesEventService
+    private lateinit var entityEventService: EntityEventService
 
     @MockkBean(relaxed = true)
     private lateinit var resolver: BinderAwareChannelResolver
@@ -54,7 +54,7 @@ class EntitiesEventServiceTests {
             resolver.resolveDestination(any()).send(capture(message))
         } returns true
 
-        entitiesEventService.publishEntityEvent(event, "Vehicle")
+        entityEventService.publishEntityEvent(event, "Vehicle")
 
         verify { resolver.resolveDestination("cim.entity.Vehicle") }
 
@@ -74,7 +74,7 @@ class EntitiesEventServiceTests {
             resolver.resolveDestination(any()).send(capture(message))
         } returns true
 
-        entitiesEventService.publishEntityEvent(event, "Bus")
+        entityEventService.publishEntityEvent(event, "Bus")
 
         verify { resolver.resolveDestination("cim.entity.Bus") }
 
@@ -102,7 +102,7 @@ class EntitiesEventServiceTests {
             resolver.resolveDestination(any()).send(capture(message))
         } returns true
 
-        entitiesEventService.publishEntityEvent(event, "Bus")
+        entityEventService.publishEntityEvent(event, "Bus")
 
         verify { resolver.resolveDestination("cim.entity.Bus") }
 

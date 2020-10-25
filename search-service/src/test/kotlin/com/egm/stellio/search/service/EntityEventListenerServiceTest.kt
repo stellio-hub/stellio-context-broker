@@ -1,7 +1,6 @@
-package com.egm.stellio.search.listener
+package com.egm.stellio.search.service
 
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -16,12 +15,12 @@ import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityListener::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
-class EntityListenerTest {
+class EntityEventListenerServiceTest {
 
     @Autowired
-    private lateinit var entityListener: EntityListener
+    private lateinit var entityEventListenerService: EntityEventListenerService
 
     @MockkBean(relaxed = true)
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
@@ -43,16 +42,15 @@ class EntityListenerTest {
         val content =
             """
             {
-                "operationType": "CREATE",
+                "operationType": "ENTITY_CREATE",
                 "entityId": "urn:ngsi-ld:FishContainment:1234",
-                "entityType": "FishContainment",
-                "payload": "$entity"
+                "operationPayload": "$entity"
             }
             """.trimIndent().replace("\n", "")
 
         every { temporalEntityAttributeService.createEntityTemporalReferences(any()) } returns Mono.just(1)
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.createEntityTemporalReferences(
@@ -83,7 +81,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
@@ -131,7 +129,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             attributeInstanceService.create(
@@ -166,7 +164,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             attributeInstanceService.create(
@@ -202,7 +200,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), "urn:ngsi-ld:Dataset:01234")
@@ -233,7 +231,7 @@ class EntityListenerTest {
             """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
@@ -243,11 +241,12 @@ class EntityListenerTest {
     private fun prepareUpdateEventPayload(payload: String): String =
         """
             {
-                "operationType": "UPDATE",
+                "operationType": "ATTRIBUTE_REPLACE",
                 "entityId": "urn:ngsi-ld:FishContainment:1234",
-                "entityType": "FishContainment",
-                "payload": "$payload",
-                "updatedEntity": "$entity"
+                "attributeName": "totalDissolvedSolids",
+                "operationPayload": "$payload",
+                "updatedEntity": "$entity",
+                "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
         """.trimIndent().replace("\n", "")
 }

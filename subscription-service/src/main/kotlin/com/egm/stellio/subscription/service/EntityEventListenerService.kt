@@ -16,25 +16,33 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_subscription")
     fun processMessage(content: String) {
-        val entityEvent = parseEntitiesEvent(content)
-        val entity = entityEvent.getEntity()
-        entity?.let {
-            try {
-                val updatedFragment = JsonLdUtils.parseJsonLdFragment(entityEvent.getEventPayload()!!)
-                val parsedEntity = JsonLdUtils.expandJsonLdEntity(it)
-                notificationService.notifyMatchingSubscribers(it, parsedEntity.toNgsiLdEntity(), updatedFragment.keys)
-                    .subscribe {
-                        val succeeded = it.filter { it.third }.size
-                        val failed = it.filter { !it.third }.size
-                        logger.debug("Notified ${it.size} subscribers (success : $succeeded / failure : $failed)")
-                    }
-            } catch (e: UnsupportedEventTypeException) {
-                logger.error(e.message)
-            } catch (e: BadRequestDataException) {
-                logger.error("Received a non-parseable entity : $content", e)
-            } catch (e: InvalidRequestException) {
-                logger.error("Received a non-parseable entity : $content", e)
+        when (val entityEvent = parseEntitiesEvent(content)) {
+            is EntityCreateEvent -> handleEntityEvent(entityEvent.operationPayload, entityEvent.getEntity())
+            is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
+            is AttributeAppendEvent -> logger.warn("Attribute append operation is not yet implemented")
+            is AttributeReplaceEvent -> handleEntityEvent(entityEvent.operationPayload, entityEvent.getEntity())
+            is AttributeUpdateEvent -> logger.warn("Attribute update operation is not yet implemented")
+            is AttributeDeleteEvent -> logger.warn("Attribute delete operation is not yet implemented")
+        }
+    }
+
+    private fun handleEntityEvent(eventPayload: String, entityPayload: String) {
+        try {
+            val updatedFragment = JsonLdUtils.parseJsonLdFragment(eventPayload)
+            val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload)
+            notificationService.notifyMatchingSubscribers(
+                entityPayload,
+                parsedEntity.toNgsiLdEntity(),
+                updatedFragment.keys
+            ).subscribe {
+                val succeeded = it.filter { it.third }.size
+                val failed = it.filter { !it.third }.size
+                logger.debug("Notified ${it.size} subscribers (success : $succeeded / failure : $failed)")
             }
+        } catch (e: BadRequestDataException) {
+            logger.error("Received a non-parseable entity", e)
+        } catch (e: InvalidRequestException) {
+            logger.error("Received a non-parseable entity", e)
         }
     }
 }

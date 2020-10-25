@@ -28,8 +28,10 @@ class SubscriptionEventListenerService(
                     subscriptionEvent.subscriptionId, "Subscription", parsedSubscription
                 )
             }
-            is SubscriptionUpdateEvent -> logger.warn("Update operation is not yet implemented for subscriptions")
-            is SubscriptionDeleteEvent -> logger.warn("Delete operation is not yet implemented for subscriptions")
+            is SubscriptionUpdateEvent ->
+                logger.warn("Subscription update operation is not yet implemented for subscriptions")
+            is SubscriptionDeleteEvent ->
+                logger.warn("Subscription delete operation is not yet implemented for subscriptions")
         }
     }
 

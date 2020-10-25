@@ -23,8 +23,6 @@ open class EntityEvent(
 ) {
     @JsonIgnore
     open fun getEntity(): String? = null
-    @JsonIgnore
-    open fun getEventPayload(): String? = null
 }
 
 @JsonTypeName("ENTITY_CREATE")
@@ -33,7 +31,6 @@ data class EntityCreateEvent(
     val operationPayload: String
 ) : EntityEvent(EventsType.ENTITY_CREATE, entityId) {
     override fun getEntity() = this.operationPayload
-    override fun getEventPayload() = this.operationPayload
 }
 
 @JsonTypeName("ENTITY_DELETE")
@@ -49,7 +46,6 @@ data class AttributeAppendEvent(
     val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_APPEND, entityId) {
     override fun getEntity() = this.updatedEntity
-    override fun getEventPayload() = this.operationPayload
 }
 
 @JsonTypeName("ATTRIBUTE_REPLACE")
@@ -62,7 +58,6 @@ data class AttributeReplaceEvent(
     val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, entityId) {
     override fun getEntity() = this.updatedEntity
-    override fun getEventPayload() = this.operationPayload
 }
 
 @JsonTypeName("ATTRIBUTE_UPDATE")
@@ -75,7 +70,6 @@ data class AttributeUpdateEvent(
     val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, entityId) {
     override fun getEntity() = this.updatedEntity
-    override fun getEventPayload() = this.operationPayload
 }
 
 @JsonTypeName("ATTRIBUTE_DELETE")

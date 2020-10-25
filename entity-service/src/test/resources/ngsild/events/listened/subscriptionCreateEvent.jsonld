@@ -1,0 +1,5 @@
+{
+   "subscriptionId":"urn:ngsi-ld:Subscription:04",
+   "operationPayload":"{\"id\": \"urn:ngsi-ld:Subscription:04\",\"type\": \"Subscription\",\"q\": \"foodQuantity<150;foodName=='dietary fibres'\"}",
+   "operationType":"SUBSCRIPTION_CREATE"
+}

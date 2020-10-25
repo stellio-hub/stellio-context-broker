@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.EntitiesEvent
+import com.egm.stellio.shared.model.EntityEvent
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -22,7 +22,7 @@ class EntityEventService(
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     @Async
-    fun publishEntityEvent(event: EntitiesEvent, channelSuffix: String) =
+    fun publishEntityEvent(event: EntityEvent, channelSuffix: String) =
         resolver.resolveDestination(entityChannelName(channelSuffix))
             .send(
                 MessageBuilder.createMessage(

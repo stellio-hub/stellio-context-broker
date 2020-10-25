@@ -29,9 +29,9 @@ class SubscriptionEventListenerService(
                 )
             }
             is SubscriptionUpdateEvent ->
-                logger.warn("Subscription update operation is not yet implemented for subscriptions")
+                logger.warn("Subscription update operation is not yet implemented")
             is SubscriptionDeleteEvent ->
-                logger.warn("Subscription delete operation is not yet implemented for subscriptions")
+                logger.warn("Subscription delete operation is not yet implemented")
         }
     }
 

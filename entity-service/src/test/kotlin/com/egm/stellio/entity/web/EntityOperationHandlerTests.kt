@@ -89,7 +89,7 @@ class EntityOperationHandlerTests {
             entitiesIds
         )
         val expandedEntities = slot<List<NgsiLdEntity>>()
-        val events = mutableListOf<EntitiesEvent>()
+        val events = mutableListOf<EntityEvent>()
         val channelName = slot<String>()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
@@ -140,7 +140,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds
         )
         val existingEntity = mockk<NgsiLdEntity>()
-        val events = mutableListOf<EntitiesEvent>()
+        val events = mutableListOf<EntityEvent>()
         val channelName = slot<String>()
 
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()

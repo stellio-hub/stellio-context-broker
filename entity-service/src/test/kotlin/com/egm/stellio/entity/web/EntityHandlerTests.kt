@@ -135,6 +135,8 @@ class EntityHandlerTests {
                     "\"title\":\"The referred element already exists\"," +
                     "\"detail\":\"Already Exists\"}"
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -1148,7 +1150,7 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf()
         )
-        val events = mutableListOf<EntitiesEvent>()
+        val events = mutableListOf<EntityEvent>()
 
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
@@ -1196,7 +1198,6 @@ class EntityHandlerTests {
             "removedFrom",
             "Target entity unknownObject in property does not exist, create it first"
         )
-
         every { entityService.exists(any()) } returns true
         every {
             entityService.updateEntityAttributes(
@@ -1259,6 +1260,8 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -1359,6 +1362,8 @@ class EntityHandlerTests {
                     "detail":"${entityNotFoundMessage("urn:ngsi-ld:Sensor:0022CCD")}"}
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test

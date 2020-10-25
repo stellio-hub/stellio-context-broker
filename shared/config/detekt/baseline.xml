@@ -3,7 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$ fun getPropertyValueFromMap(value: Map&lt;String, List&lt;Any&gt;&gt;, propertyKey: String): Any?</ID>
-    <ID>SpreadOperator:EntitiesEvent.kt$EntitiesEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class) ] )</ID>
+    <ID>SpreadOperator:EntityEvent.kt$EntityEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class) ] )</ID>
     <ID>SpreadOperator:NotificationEvent.kt$NotificationEvent$(*[JsonSubTypes.Type(value = NotificationCreateEvent::class)])</ID>
     <ID>SpreadOperator:SubscriptionEvent.kt$SubscriptionEvent$( *[ JsonSubTypes.Type(value = SubscriptionCreateEvent::class), JsonSubTypes.Type(value = SubscriptionUpdateEvent::class), JsonSubTypes.Type(value = SubscriptionDeleteEvent::class) ] )</ID>
     <ID>TooGenericExceptionCaught:HttpUtils.kt$HttpUtils$e: Exception</ID>

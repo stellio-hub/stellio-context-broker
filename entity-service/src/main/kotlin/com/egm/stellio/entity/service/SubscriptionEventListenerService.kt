@@ -20,40 +20,41 @@ class SubscriptionEventListenerService(
     @StreamListener("cim.subscription")
     fun processSubscription(content: String) {
         when (val subscriptionEvent = parseEntityEvent(content)) {
-            is EntityCreateEvent -> {
-                val parsedSubscription = parseJsonLdFragment(subscriptionEvent.operationPayload)
-                    .minus("id").minus("type")
-                subscriptionHandlerService.createSubscriptionEntity(
-                    subscriptionEvent.entityId, "Subscription", parsedSubscription
-                )
-            }
-            is EntityUpdateEvent ->
-                logger.warn("Subscription update operation is not yet implemented")
-            is EntityDeleteEvent ->
-                logger.warn("Subscription delete operation is not yet implemented")
+            is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
+            is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
+            is EntityDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
         }
     }
 
     @StreamListener("cim.notification")
     fun processNotification(content: String) {
         when (val notificationEvent = parseEntityEvent(content)) {
-            is EntityCreateEvent -> {
-                var parsedNotification = parseJsonLdFragment(notificationEvent.operationPayload)
-                val subscriptionId = (parsedNotification["subscriptionId"] as String).toUri()
-                parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
-
-                subscriptionHandlerService.createNotificationEntity(
-                    notificationEvent.entityId,
-                    "Notification",
-                    subscriptionId,
-                    parsedNotification
-                )
-            }
-            else ->
-                logger.warn(
-                    "Received unexpected event type ${notificationEvent.operationType} " +
-                        "for notification ${notificationEvent.entityId}"
-                )
+            is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)
+            else -> logger.warn(
+                "Received unexpected event type ${notificationEvent.operationType} " +
+                    "for notification ${notificationEvent.entityId}"
+            )
         }
+    }
+
+    private fun handleSubscriptionCreateEvent(subscriptionCreateEvent: EntityCreateEvent) {
+        val parsedSubscription = parseJsonLdFragment(subscriptionCreateEvent.operationPayload)
+            .minus("id").minus("type")
+        subscriptionHandlerService.createSubscriptionEntity(
+            subscriptionCreateEvent.entityId, "Subscription", parsedSubscription
+        )
+    }
+
+    private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
+        var parsedNotification = parseJsonLdFragment(notificationCreateEvent.operationPayload)
+        val subscriptionId = (parsedNotification["subscriptionId"] as String).toUri()
+        parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
+
+        subscriptionHandlerService.createNotificationEntity(
+            notificationCreateEvent.entityId,
+            "Notification",
+            subscriptionId,
+            parsedNotification
+        )
     }
 }

@@ -3,13 +3,11 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>ComplexCondition:TemporalEntityHandler.kt$(params.containsKey("timeBucket") &amp;&amp; !params.containsKey("aggregate")) || (!params.containsKey("timeBucket") &amp;&amp; params.containsKey("aggregate"))</ID>
-    <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$// using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search") fun processMessage(content: String)</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$fun injectTemporalValues( jsonLdEntity: JsonLdEntity, rawResults: List&lt;List&lt;AttributeInstanceResult&gt;&gt;, withTemporalValues: Boolean ): JsonLdEntity</ID>
-    <ID>MaxLineLength:EntityEventListenerServiceTest.kt$EntityEventListenerServiceTest$ </ID>
     <ID>MaxLineLength:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$ INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, dataset_id)</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
-    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$// using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search") fun processMessage(content: String)</ID>
+    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent)</ID>
     <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;): TemporalQuery</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
   </CurrentIssues>

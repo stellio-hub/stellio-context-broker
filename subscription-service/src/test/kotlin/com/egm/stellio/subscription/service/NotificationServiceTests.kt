@@ -55,10 +55,12 @@ class NotificationServiceTests {
 
     private lateinit var wireMockServer: WireMockServer
 
+    private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
+
     private final val rawEntity =
         """
             {
-               "id":"urn:ngsi-ld:Apiary:XYZ01",
+               "id":"$apiaryId",
                "type":"Apiary",
                "name":{
                   "type":"Property",
@@ -139,14 +141,14 @@ class NotificationServiceTests {
                     it is EntityCreateEvent &&
                         it.operationType == EventsType.ENTITY_CREATE &&
                         read(it.operationPayload, "$.subscriptionId") as String == subscription.id.toString() &&
-                        read(it.operationPayload, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01"
+                        read(it.operationPayload, "$.data[0].id") as String == apiaryId
                 }
             )
         }
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -199,7 +201,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -241,7 +243,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -285,7 +287,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -314,7 +316,7 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, "urn:ngsi-ld:Apiary:XYZ01".toUri(), expandJsonLdEntity(rawEntity)
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {
@@ -357,7 +359,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )
@@ -397,7 +399,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )

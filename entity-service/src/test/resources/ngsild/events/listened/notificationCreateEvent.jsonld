@@ -1,5 +1,5 @@
 {
-   "notificationId":"urn:ngsi-ld:Notification:1234",
+   "entityId":"urn:ngsi-ld:Notification:1234",
    "operationPayload": "{\"id\": \"urn:ngsi-ld:Notification:1234\",\"type\": \"Notification\",\"notifiedAt\": \"2020-03-10T00:00:00Z\",\"subscriptionId\": \"urn:ngsi-ld:Subscription:1234\"}",
-   "operationType":"NOTIFICATION_CREATE"
+   "operationType":"ENTITY_CREATE"
 }

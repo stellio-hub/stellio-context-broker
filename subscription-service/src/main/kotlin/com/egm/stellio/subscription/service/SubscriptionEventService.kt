@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.NotificationEvent
-import com.egm.stellio.shared.model.SubscriptionEvent
+import com.egm.stellio.shared.model.EntityEvent
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -26,22 +25,22 @@ class SubscriptionEventService(
     private val notificationChannelName = "cim.notification"
 
     @Async
-    fun publishSubscriptionEvent(event: SubscriptionEvent) =
+    fun publishSubscriptionEvent(event: EntityEvent) =
         resolver.resolveDestination(subscriptionChannelName)
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.subscriptionId))
+                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
                 )
             )
 
     @Async
-    fun publishNotificationEvent(event: NotificationEvent) =
+    fun publishNotificationEvent(event: EntityEvent) =
         resolver.resolveDestination(notificationChannelName)
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.notificationId))
+                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
                 )
             )
 }

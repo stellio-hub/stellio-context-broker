@@ -55,12 +55,6 @@ object JsonUtils {
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
 
-    fun parseEntitiesEvent(input: String): EntityEvent =
+    fun parseEntityEvent(input: String): EntityEvent =
         mapper.readValue(input, EntityEvent::class.java)
-
-    fun parseSubscriptionEvent(input: String): SubscriptionEvent =
-        mapper.readValue(input, SubscriptionEvent::class.java)
-
-    fun parseNotificationEvent(input: String): NotificationEvent =
-        mapper.readValue(input, NotificationEvent::class.java)
 }

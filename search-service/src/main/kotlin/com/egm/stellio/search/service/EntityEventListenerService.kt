@@ -6,7 +6,7 @@ import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils.parseEntitiesEvent
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -24,7 +24,7 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
-        when (val entityEvent = parseEntitiesEvent(content)) {
+        when (val entityEvent = parseEntityEvent(content)) {
             is EntityCreateEvent -> {
                 try {
                     temporalEntityAttributeService.createEntityTemporalReferences(entityEvent.operationPayload)

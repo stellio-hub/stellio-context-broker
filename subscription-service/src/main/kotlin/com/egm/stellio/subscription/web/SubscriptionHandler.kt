@@ -53,7 +53,7 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(SubscriptionCreateEvent(parsedSubscription.id, body))
+        subscriptionEventService.publishSubscriptionEvent(EntityCreateEvent(parsedSubscription.id, body))
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()
@@ -136,7 +136,7 @@ class SubscriptionHandler(
         subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
 
         subscriptionEventService.publishSubscriptionEvent(
-            SubscriptionUpdateEvent(
+            EntityUpdateEvent(
                 subscriptionIdUri,
                 body,
                 serializeObject(subscriptionService.getById(subscriptionIdUri).awaitFirst()),
@@ -158,7 +158,7 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(SubscriptionDeleteEvent(subscriptionIdUri))
+        subscriptionEventService.publishSubscriptionEvent(EntityDeleteEvent(subscriptionIdUri))
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

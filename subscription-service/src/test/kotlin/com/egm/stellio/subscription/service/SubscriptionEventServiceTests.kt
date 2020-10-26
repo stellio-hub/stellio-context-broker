@@ -23,7 +23,7 @@ class SubscriptionEventServiceTests {
 
     @Test
     fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
-        val event = SubscriptionCreateEvent("urn:ngsi-ld:Subscription:1".toUri(), "operationPayload")
+        val event = EntityCreateEvent("urn:ngsi-ld:Subscription:1".toUri(), "operationPayload")
         every {
             resolver.resolveDestination(any()).send(any())
         } returns true
@@ -35,7 +35,7 @@ class SubscriptionEventServiceTests {
 
     @Test
     fun `it should publish an event of type NOTIFICATION_CREATE`() {
-        val event = NotificationCreateEvent("urn:ngsi-ld:Notification:1".toUri(), "operationPayload")
+        val event = EntityCreateEvent("urn:ngsi-ld:Notification:1".toUri(), "operationPayload")
         every {
             resolver.resolveDestination(any()).send(any())
         } returns true

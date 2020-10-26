@@ -159,9 +159,9 @@ class SubscriptionHandlerTests {
         verify {
             subscriptionEventService.publishSubscriptionEvent(
                 match {
-                    it is SubscriptionCreateEvent &&
-                        it.operationType == SubscriptionEventType.SUBSCRIPTION_CREATE &&
-                        it.subscriptionId == "urn:ngsi-ld:Subscription:1".toUri() &&
+                    it is EntityCreateEvent &&
+                        it.operationType == EventsType.ENTITY_CREATE &&
+                        it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
                         it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
                 }
             )
@@ -408,11 +408,11 @@ class SubscriptionHandlerTests {
         verify {
             subscriptionEventService.publishSubscriptionEvent(
                 match {
-                    it is SubscriptionUpdateEvent &&
-                        it.operationType == SubscriptionEventType.SUBSCRIPTION_UPDATE &&
-                        it.subscriptionId == subscriptionId &&
+                    it is EntityUpdateEvent &&
+                        it.operationType == EventsType.ENTITY_UPDATE &&
+                        it.entityId == subscriptionId &&
                         it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8) &&
-                        it.updatedSubscription == serializeObject(updatedSubscription)
+                        it.updatedEntity == serializeObject(updatedSubscription)
                 }
             )
         }
@@ -549,9 +549,9 @@ class SubscriptionHandlerTests {
         verify {
             subscriptionEventService.publishSubscriptionEvent(
                 match {
-                    it is SubscriptionDeleteEvent &&
-                        it.operationType == SubscriptionEventType.SUBSCRIPTION_DELETE &&
-                        it.subscriptionId == subscription.id
+                    it is EntityDeleteEvent &&
+                        it.operationType == EventsType.ENTITY_DELETE &&
+                        it.entityId == subscription.id
                 }
             )
         }

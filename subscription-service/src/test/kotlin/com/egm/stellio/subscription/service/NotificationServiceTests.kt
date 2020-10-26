@@ -136,8 +136,8 @@ class NotificationServiceTests {
         verify(timeout = 1000, exactly = 1) {
             subscriptionEventService.publishNotificationEvent(
                 match {
-                    it is NotificationCreateEvent &&
-                        it.operationType == NotificationEventType.NOTIFICATION_CREATE &&
+                    it is EntityCreateEvent &&
+                        it.operationType == EventsType.ENTITY_CREATE &&
                         read(it.operationPayload, "$.subscriptionId") as String == subscription.id.toString() &&
                         read(it.operationPayload, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01"
                 }
@@ -188,8 +188,8 @@ class NotificationServiceTests {
         verify(timeout = 1000, exactly = 1) {
             subscriptionEventService.publishNotificationEvent(
                 match {
-                    it is NotificationCreateEvent &&
-                        it.operationType == NotificationEventType.NOTIFICATION_CREATE &&
+                    it is EntityCreateEvent &&
+                        it.operationType == EventsType.ENTITY_CREATE &&
                         (read(it.operationPayload, "$.data[*]..value") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*]..object") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty()

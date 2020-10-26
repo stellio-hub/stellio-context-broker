@@ -75,7 +75,7 @@ class NotificationService(
                 }
                 .doOnNext {
                     subscriptionEventService.publishNotificationEvent(
-                        NotificationCreateEvent(
+                        EntityCreateEvent(
                             it.second.id, serializeObject(it.second)
                         )
                     )
@@ -122,7 +122,7 @@ class NotificationService(
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
                 subscriptionEventService.publishNotificationEvent(
-                    NotificationCreateEvent(notification.id, serializeObject(notification))
+                    EntityCreateEvent(notification.id, serializeObject(notification))
                 )
             }
             .map {

@@ -1,9 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonUtils.parseEntitiesEvent
-import com.egm.stellio.shared.util.JsonUtils.parseNotificationEvent
-import com.egm.stellio.shared.util.JsonUtils.parseSubscriptionEvent
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -73,7 +71,7 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ENTITY_CREATE`() {
-        val parsedEvent = parseEntitiesEvent(
+        val parsedEvent = parseEntityEvent(
             ClassPathResource("/ngsild/events/entityCreateEvent.jsonld")
                 .inputStream.readBytes().toString(Charsets.UTF_8)
         )
@@ -82,7 +80,7 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
-        val parsedEvent = parseEntitiesEvent(
+        val parsedEvent = parseEntityEvent(
             ClassPathResource("/ngsild/events/entityDeleteEvent.jsonld")
                 .inputStream.readBytes().toString(Charsets.UTF_8)
         )
@@ -91,7 +89,7 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
-        val parsedEvent = parseEntitiesEvent(
+        val parsedEvent = parseEntityEvent(
             ClassPathResource("/ngsild/events/attributeReplaceEvent.jsonld")
                 .inputStream.readBytes().toString(Charsets.UTF_8)
         )
@@ -99,39 +97,12 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should parse an event of type SUBSCRIPTION_CREATE`() {
-        val parsedEvent = parseSubscriptionEvent(
-            ClassPathResource("/ngsild/events/subscriptionCreateEvent.jsonld")
+    fun `it should parse an event of type ENTITY_UPDATE`() {
+        val parsedEvent = parseEntityEvent(
+            ClassPathResource("/ngsild/events/entityUpdateEvent.jsonld")
                 .inputStream.readBytes().toString(Charsets.UTF_8)
         )
-        Assertions.assertTrue(parsedEvent is SubscriptionCreateEvent)
-    }
-
-    @Test
-    fun `it should parse an event of type SUBSCRIPTION_UPDATE`() {
-        val parsedEvent = parseSubscriptionEvent(
-            ClassPathResource("/ngsild/events/subscriptionUpdateEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
-        Assertions.assertTrue(parsedEvent is SubscriptionUpdateEvent)
-    }
-
-    @Test
-    fun `it should parse an event of type SUBSCRIPTION_DELETE`() {
-        val parsedEvent = parseSubscriptionEvent(
-            ClassPathResource("/ngsild/events/subscriptionDeleteEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
-        Assertions.assertTrue(parsedEvent is SubscriptionDeleteEvent)
-    }
-
-    @Test
-    fun `it should parse an event of type NOTIFICATION_CREATE`() {
-        val parsedEvent = parseNotificationEvent(
-            ClassPathResource("/ngsild/events/notificationCreateEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
-        Assertions.assertTrue(parsedEvent is NotificationCreateEvent)
+        Assertions.assertTrue(parsedEvent is EntityUpdateEvent)
     }
 
     @Test
@@ -181,22 +152,9 @@ class JsonUtilsTests {
     }
 
     @Test
-    fun `it should serialize an event of type SUBSCRIPTION_CREATE`() {
+    fun `it should serialize an event of type ENTITY_UPDATE`() {
         val event = mapper.writeValueAsString(
-            SubscriptionCreateEvent("urn:ngsi-ld:Subscription:1".toUri(), subscriptionPayload)
-        )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/subscriptionCreateEvent.jsonld")
-            )
-        )
-    }
-
-    @Test
-    fun `it should serialize an event of type SUBSCRIPTION_UPDATE`() {
-        val event = mapper.writeValueAsString(
-            SubscriptionUpdateEvent(
+            EntityUpdateEvent(
                 "urn:ngsi-ld:Subscription:1".toUri(),
                 "{\"q\": \"foodQuantity>=90\"}",
                 subscriptionPayload,
@@ -206,31 +164,7 @@ class JsonUtilsTests {
 
         Assertions.assertTrue(
             event.matchContent(
-                loadSampleData("events/subscriptionUpdateEvent.jsonld")
-            )
-        )
-    }
-
-    @Test
-    fun `it should serialize an event of type SUBSCRIPTION_DELETE`() {
-        val event = mapper.writeValueAsString(SubscriptionDeleteEvent("urn:ngsi-ld:Subscription:1".toUri()))
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/subscriptionDeleteEvent.jsonld")
-            )
-        )
-    }
-
-    @Test
-    fun `it should serialize an event of type NOTIFICATION_CREATE`() {
-        val event = mapper.writeValueAsString(
-            NotificationCreateEvent("urn:ngsi-ld:Notification:1".toUri(), notificationPayload)
-        )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/notificationCreateEvent.jsonld")
+                loadSampleData("events/entityUpdateEvent.jsonld")
             )
         )
     }

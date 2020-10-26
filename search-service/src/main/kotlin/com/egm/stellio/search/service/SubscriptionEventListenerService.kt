@@ -3,10 +3,9 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.egm.stellio.shared.util.JsonUtils.parseNotification
-import com.egm.stellio.shared.util.JsonUtils.parseNotificationEvent
 import com.egm.stellio.shared.util.JsonUtils.parseSubscription
-import com.egm.stellio.shared.util.JsonUtils.parseSubscriptionEvent
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -23,8 +22,8 @@ class SubscriptionEventListenerService(
 
     @StreamListener("cim.subscription")
     fun processSubscription(content: String) {
-        when (val subscriptionEvent = parseSubscriptionEvent(content)) {
-            is SubscriptionCreateEvent -> {
+        when (val subscriptionEvent = parseEntityEvent(content)) {
+            is EntityCreateEvent -> {
                 val subscription = parseSubscription(subscriptionEvent.operationPayload)
                 val entityTemporalProperty = TemporalEntityAttribute(
                     entityId = subscription.id,
@@ -38,15 +37,15 @@ class SubscriptionEventListenerService(
                         logger.debug("Created reference for subscription ${subscription.id}")
                     }
             }
-            is SubscriptionUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
-            is SubscriptionDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
+            is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
+            is EntityDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
         }
     }
 
     @StreamListener("cim.notification")
     fun processNotification(content: String) {
-        when (val notificationEvent = parseNotificationEvent(content)) {
-            is NotificationCreateEvent -> {
+        when (val notificationEvent = parseEntityEvent(content)) {
+            is EntityCreateEvent -> {
                 logger.debug("Received notification event payload: ${notificationEvent.operationPayload}")
                 val notification = parseNotification(notificationEvent.operationPayload)
                 val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
@@ -66,7 +65,7 @@ class SubscriptionEventListenerService(
             }
             else -> logger.warn(
                 "Received unexpected event type ${notificationEvent.operationType}" +
-                    "for notification ${notificationEvent.notificationId}"
+                    "for notification ${notificationEvent.entityId}"
             )
         }
     }

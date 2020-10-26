@@ -2,8 +2,7 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.parseJsonLdFragment
-import com.egm.stellio.shared.util.JsonUtils.parseNotificationEvent
-import com.egm.stellio.shared.util.JsonUtils.parseSubscriptionEvent
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -20,31 +19,31 @@ class SubscriptionEventListenerService(
 
     @StreamListener("cim.subscription")
     fun processSubscription(content: String) {
-        when (val subscriptionEvent = parseSubscriptionEvent(content)) {
-            is SubscriptionCreateEvent -> {
+        when (val subscriptionEvent = parseEntityEvent(content)) {
+            is EntityCreateEvent -> {
                 val parsedSubscription = parseJsonLdFragment(subscriptionEvent.operationPayload)
                     .minus("id").minus("type")
                 subscriptionHandlerService.createSubscriptionEntity(
-                    subscriptionEvent.subscriptionId, "Subscription", parsedSubscription
+                    subscriptionEvent.entityId, "Subscription", parsedSubscription
                 )
             }
-            is SubscriptionUpdateEvent ->
+            is EntityUpdateEvent ->
                 logger.warn("Subscription update operation is not yet implemented")
-            is SubscriptionDeleteEvent ->
+            is EntityDeleteEvent ->
                 logger.warn("Subscription delete operation is not yet implemented")
         }
     }
 
     @StreamListener("cim.notification")
     fun processNotification(content: String) {
-        when (val notificationEvent = parseNotificationEvent(content)) {
-            is NotificationCreateEvent -> {
+        when (val notificationEvent = parseEntityEvent(content)) {
+            is EntityCreateEvent -> {
                 var parsedNotification = parseJsonLdFragment(notificationEvent.operationPayload)
                 val subscriptionId = (parsedNotification["subscriptionId"] as String).toUri()
                 parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 
                 subscriptionHandlerService.createNotificationEntity(
-                    notificationEvent.notificationId,
+                    notificationEvent.entityId,
                     "Notification",
                     subscriptionId,
                     parsedNotification
@@ -53,7 +52,7 @@ class SubscriptionEventListenerService(
             else ->
                 logger.warn(
                     "Received unexpected event type ${notificationEvent.operationType} " +
-                        "for notification ${notificationEvent.notificationId}"
+                        "for notification ${notificationEvent.entityId}"
                 )
         }
     }

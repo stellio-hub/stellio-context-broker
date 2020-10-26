@@ -1,14 +1,11 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.AuthorizationEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils.parseAuthorizationEvent
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -23,29 +20,28 @@ class IAMListener(
 
     @StreamListener("cim.iam")
     fun processMessage(content: String) {
-        val authorizationEvent: AuthorizationEvent = parseAuthorizationEvent(content)
-
-        when (authorizationEvent.operationType) {
-            EventType.CREATE -> create(authorizationEvent)
-            EventType.APPEND -> append(authorizationEvent)
-            EventType.UPDATE -> update(authorizationEvent)
-            EventType.DELETE -> delete(authorizationEvent)
+        when (val authorizationEvent = parseEntityEvent(content)) {
+            is EntityCreateEvent -> create(authorizationEvent)
+            is EntityDeleteEvent -> delete(authorizationEvent)
+            is AttributeAppendEvent -> append(authorizationEvent)
+            is AttributeReplaceEvent -> update(authorizationEvent)
+            is AttributeDeleteEvent -> deleteAttribute(authorizationEvent)
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
     }
 
-    private fun create(authorizationEvent: AuthorizationEvent) {
+    private fun create(authorizationEvent: EntityCreateEvent) {
         val ngsiLdEntity = expandJsonLdEntity(
-            authorizationEvent.payload!!,
-            authorizationEvent.context!!
+            authorizationEvent.operationPayload,
+            extractContextFromInput(authorizationEvent.operationPayload)
         ).toNgsiLdEntity()
 
         entityService.createEntity(ngsiLdEntity)
     }
 
-    private fun append(authorizationEvent: AuthorizationEvent) {
+    private fun append(authorizationEvent: AttributeAppendEvent) {
         val expandedJsonLdFragment =
-            expandJsonLdFragment(authorizationEvent.payload!!, authorizationEvent.context!!)
+            expandJsonLdFragment(authorizationEvent.operationPayload, authorizationEvent.contexts)
 
         entityService.appendEntityAttributes(
             authorizationEvent.entityId,
@@ -54,9 +50,9 @@ class IAMListener(
         )
     }
 
-    private fun update(authorizationEvent: AuthorizationEvent) {
+    private fun update(authorizationEvent: AttributeReplaceEvent) {
         val expandedJsonLdFragment =
-            expandJsonLdFragment(authorizationEvent.payload!!, authorizationEvent.context!!)
+            expandJsonLdFragment(authorizationEvent.operationPayload, authorizationEvent.contexts)
 
         entityService.updateEntityAttributes(
             authorizationEvent.entityId,
@@ -64,15 +60,15 @@ class IAMListener(
         )
     }
 
-    private fun delete(authorizationEvent: AuthorizationEvent) {
-        if (authorizationEvent.attributeName != null) {
-            entityService.deleteEntityAttributeInstance(
-                authorizationEvent.entityId,
-                expandJsonLdKey(authorizationEvent.attributeName!!, authorizationEvent.context!!)!!,
-                authorizationEvent.datasetId!!.toUri()
-            )
-        } else {
-            entityService.deleteEntity(authorizationEvent.entityId)
-        }
-    }
+    private fun delete(authorizationEvent: EntityDeleteEvent) = entityService.deleteEntity(authorizationEvent.entityId)
+
+    private fun deleteAttribute(authorizationEvent: AttributeDeleteEvent) =
+        entityService.deleteEntityAttributeInstance(
+            authorizationEvent.entityId,
+            expandJsonLdKey(
+                authorizationEvent.attributeName,
+                authorizationEvent.contexts
+            )!!,
+            authorizationEvent.datasetId
+        )
 }

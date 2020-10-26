@@ -1323,6 +1323,7 @@ class EntityHandlerTests {
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
+        every { entityService.getEntityType(any()) } returns "Sensor"
         every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         webClient.delete()
@@ -1333,6 +1334,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
+        verify { entityService.getEntityType(eq(entityId)) }
         verify {
             entityEventService.publishEntityEvent(
                 match {
@@ -1343,6 +1345,7 @@ class EntityHandlerTests {
                 "Sensor"
             )
         }
+
         confirmVerified(entityService)
     }
 
@@ -1370,6 +1373,7 @@ class EntityHandlerTests {
     fun `delete entity should return a 500 if entity could not be deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
         every { entityService.exists(entityId) } returns true
+        every { entityService.getEntityType(any()) } returns "Sensor"
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 

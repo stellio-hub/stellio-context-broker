@@ -148,11 +148,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
+        val entityType = entityService.getEntityType(entityId.toUri())
         entityService.deleteEntity(entityId.toUri())
 
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri()), entityId.toUri().extractEntityTypeFromEntityId()
+            EntityDeleteEvent(entityId.toUri()), entityType.extractShortTypeFromExpanded()
         )
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
@@ -234,7 +236,7 @@ class EntityHandler(
                     JsonLdUtils.compactAndSerialize(updatedEntity!!),
                     contexts
                 ),
-                entityId.toUri().extractEntityTypeFromEntityId()
+                updatedEntity.type.extractShortTypeFromExpanded()
             )
         }
 

@@ -229,6 +229,8 @@ class EntityService(
         return JsonLdEntity(resultEntity, entity.contexts)
     }
 
+    fun getEntityType(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!.type[0]
+
     private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
         contexts: List<String>,

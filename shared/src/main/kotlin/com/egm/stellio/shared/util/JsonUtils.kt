@@ -18,9 +18,6 @@ object JsonUtils {
             .findAndRegisterModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    fun parseAuthorizationEvent(input: String): AuthorizationEvent =
-        mapper.readValue(input, AuthorizationEvent::class.java)
-
     fun parseSubscription(content: String): Subscription =
         mapper.readValue(content, Subscription::class.java)
 

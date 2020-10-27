@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import org.springframework.core.io.ClassPathResource
 
 class JsonUtilsTests {
 
@@ -59,76 +58,40 @@ class JsonUtilsTests {
         }
         """.trimIndent()
 
-    private val notificationPayload =
-        """
-        {
-           "id":"urn:ngsi-ld:Notification:1234",
-           "type":"Notification",
-           "notifiedAt":"2020-03-10T00:00:00Z",
-           "subscriptionId":"urn:ngsi-ld:Subscription:1234"
-        }
-        """.trimIndent()
-
     @Test
     fun `it should parse an event of type ENTITY_CREATE`() {
-        val parsedEvent = parseEntityEvent(
-            ClassPathResource("/ngsild/events/entityCreateEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
+        val parsedEvent = parseEntityEvent(loadSampleData("events/entityCreateEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
-        val parsedEvent = parseEntityEvent(
-            ClassPathResource("/ngsild/events/entityDeleteEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
+        val parsedEvent = parseEntityEvent(loadSampleData("events/entityDeleteEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
-        val parsedEvent = parseEntityEvent(
-            ClassPathResource("/ngsild/events/attributeReplaceEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
+        val parsedEvent = parseEntityEvent(loadSampleData("events/attributeReplaceEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is AttributeReplaceEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_UPDATE`() {
-        val parsedEvent = parseEntityEvent(
-            ClassPathResource("/ngsild/events/entityUpdateEvent.jsonld")
-                .inputStream.readBytes().toString(Charsets.UTF_8)
-        )
+        val parsedEvent = parseEntityEvent(loadSampleData("events/entityUpdateEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityUpdateEvent)
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_CREATE`() {
-        val event = mapper.writeValueAsString(
-            EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload)
-        )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/entityCreateEvent.jsonld")
-            )
-        )
+        val event = mapper.writeValueAsString(EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_DELETE`() {
-        val event = mapper.writeValueAsString(
-            EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri())
-        )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/entityDeleteEvent.jsonld")
-            )
-        )
+        val event = mapper.writeValueAsString(EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri()))
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityDeleteEvent.jsonld")))
     }
 
     @Test
@@ -143,12 +106,7 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/attributeReplaceEvent.jsonld")
-            )
-        )
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeReplaceEvent.jsonld")))
     }
 
     @Test
@@ -161,11 +119,6 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-
-        Assertions.assertTrue(
-            event.matchContent(
-                loadSampleData("events/entityUpdateEvent.jsonld")
-            )
-        )
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityUpdateEvent.jsonld")))
     }
 }

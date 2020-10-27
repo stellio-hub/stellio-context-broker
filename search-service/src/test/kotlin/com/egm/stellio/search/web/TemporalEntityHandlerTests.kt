@@ -1,6 +1,7 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
@@ -371,26 +372,45 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a single entity if the entity has two temporal properties`() {
-        val entityTemporalProperty1 = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
-            type = "BeeHive",
-            attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-        )
-        val entityTemporalProperty2 = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
-            type = "BeeHive",
-            attributeName = "outgoing",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-        )
+        val entityTemporalProperties = listOf("incoming", "outgoing").map {
+            TemporalEntityAttribute(
+                entityId = "entityId".toUri(),
+                type = "BeeHive",
+                attributeName = it,
+                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            )
+        }
         val rawEntity = parseSampleDataToJsonLd()
+        val entityWith2temporalEvolutions =
+            parseSampleDataToJsonLd("beehive_with_two_temporal_attributes_evolution.jsonld")
+
         every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
-            entityTemporalProperty1,
-            entityTemporalProperty2
+            entityTemporalProperties[0],
+            entityTemporalProperties[1]
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+
+        val attributes = listOf("incoming", "outgoing")
+        val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
+        val attInstanceResults = attributes.flatMap { attributeName ->
+            values.map {
+                AttributeInstanceResult(
+                    attributeName = attributeName,
+                    value = it.first,
+                    observedAt = ZonedDateTime.parse(it.second)
+                )
+            }
+        }
+
+        listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
+            every {
+                attributeInstanceService.search(any(), it.second)
+            } returns Mono.just(listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]))
+        }
+
         every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+        every {
+            temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
+        } returns entityWith2temporalEvolutions
 
         webClient.get()
             .uri(
@@ -400,6 +420,8 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
+            .jsonPath("$.incoming.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.length()").isEqualTo(2)
 
         verify {
             attributeInstanceService.search(

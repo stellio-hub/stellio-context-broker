@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -95,20 +94,27 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
-        val temporalEntityAttribute = temporalEntityAttributeService.getForEntity(
+        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
             temporalQuery.attrs,
             contextLink
-        ).awaitFirstOrNull() ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+        ).collectList().awaitFirst()
 
-        val results = attributeInstanceService.search(temporalQuery, temporalEntityAttribute).awaitFirst()
+        if (temporalEntityAttributes.isEmpty()) throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
-        val jsonLdEntity = loadEntityPayload(temporalEntityAttribute, bearerToken).awaitFirst()
+        val attributeAndResultsMap = temporalEntityAttributes.map { attribute ->
+            val results = attributeInstanceService.search(temporalQuery, attribute).awaitFirst()
+            attribute to results
+        }.toMap()
+
+        val jsonLdEntity = loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken).awaitFirst()
+        val listOfResults = attributeAndResultsMap.values.toList()
         val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
             jsonLdEntity,
-            listOf(results),
+            listOfResults,
             withTemporalValues
         )
+
         val compactedJsonLdEntity = JsonLdUtils.filterCompactedEntityOnAttributes(
             jsonLdEntityWithTemporalValues.compact(),
             temporalQuery.attrs

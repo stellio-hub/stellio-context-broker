@@ -372,6 +372,50 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a single entity if the entity has two temporal properties`() {
+        val entityTemporalProperty1 = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+        val entityTemporalProperty2 = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "outgoing",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+        val rawEntity = parseSampleDataToJsonLd()
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty1,
+            entityTemporalProperty2
+        )
+        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+
+        verify {
+            attributeInstanceService.search(
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                },
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+            )
+        }
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should return an entity with two temporal properties evolution`() {
         val entityTemporalProperties = listOf("incoming", "outgoing").map {
             TemporalEntityAttribute(
                 entityId = "entityId".toUri(),
@@ -422,17 +466,6 @@ class TemporalEntityHandlerTests {
             .expectBody().jsonPath("$").isMap
             .jsonPath("$.incoming.length()").isEqualTo(2)
             .jsonPath("$.outgoing.length()").isEqualTo(2)
-
-        verify {
-            attributeInstanceService.search(
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-                },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
-            )
-        }
-        confirmVerified(attributeInstanceService)
     }
 
     @Test

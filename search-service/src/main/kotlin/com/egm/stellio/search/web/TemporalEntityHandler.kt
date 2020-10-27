@@ -98,20 +98,16 @@ class TemporalEntityHandler(
             entityId.toUri(),
             temporalQuery.attrs,
             contextLink
-        ).collectList().awaitFirst()
+        ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
 
-        if (temporalEntityAttributes.isEmpty()) throw ResourceNotFoundException(entityNotFoundMessage(entityId))
-
-        val attributeAndResultsMap = temporalEntityAttributes.map { attribute ->
-            val results = attributeInstanceService.search(temporalQuery, attribute).awaitFirst()
-            attribute to results
+        val attributeAndResultsMap = temporalEntityAttributes.map {
+            it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
         }.toMap()
 
         val jsonLdEntity = loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken).awaitFirst()
-        val listOfResults = attributeAndResultsMap.values.toList()
         val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
             jsonLdEntity,
-            listOfResults,
+            attributeAndResultsMap.values.toList(),
             withTemporalValues
         )
 

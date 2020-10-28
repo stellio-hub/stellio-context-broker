@@ -86,7 +86,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -1040,7 +1040,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1081,7 +1081,7 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1160,7 +1160,7 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true
+        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1210,7 +1210,7 @@ class EntityHandlerTests {
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1324,7 +1324,7 @@ class EntityHandlerTests {
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
         every { entityService.getEntityType(any()) } returns "Sensor"
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")

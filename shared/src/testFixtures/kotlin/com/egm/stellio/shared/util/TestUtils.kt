@@ -8,10 +8,7 @@ import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import org.springframework.core.io.ClassPathResource
 
-val DEFAULT_CONTEXTS = listOf(
-    "https://fiware.github.io/data-models/context.jsonld",
-    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-)
+val DEFAULT_CONTEXTS = listOf("https://fiware.github.io/data-models/context.jsonld")
 
 fun parseSampleDataToNgsiLd(filename: String = "beehive.jsonld"): NgsiLdEntity =
     parseSampleDataToJsonLd(filename).toNgsiLdEntity()

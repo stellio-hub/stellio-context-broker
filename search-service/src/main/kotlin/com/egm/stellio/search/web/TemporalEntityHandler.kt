@@ -15,7 +15,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -95,20 +94,24 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
-        val temporalEntityAttribute = temporalEntityAttributeService.getForEntity(
+        // TODO : REFACTOR getForEntity retrieves entity payload for each temporalEntityAttribute,it should be done once
+        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
             temporalQuery.attrs,
             contextLink
-        ).awaitFirstOrNull() ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+        ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
 
-        val results = attributeInstanceService.search(temporalQuery, temporalEntityAttribute).awaitFirst()
+        val attributeAndResultsMap = temporalEntityAttributes.map {
+            it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
+        }.toMap()
 
-        val jsonLdEntity = loadEntityPayload(temporalEntityAttribute, bearerToken).awaitFirst()
+        val jsonLdEntity = loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken).awaitFirst()
         val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
             jsonLdEntity,
-            listOf(results),
+            attributeAndResultsMap.values.toList(),
             withTemporalValues
         )
+
         val compactedJsonLdEntity = JsonLdUtils.filterCompactedEntityOnAttributes(
             jsonLdEntityWithTemporalValues.compact(),
             temporalQuery.attrs

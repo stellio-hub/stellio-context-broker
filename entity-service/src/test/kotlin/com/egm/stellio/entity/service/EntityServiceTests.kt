@@ -163,7 +163,7 @@ class EntityServiceTests {
         every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
             mapOf("property" to expectedPropertyUpdate)
         )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         entityService.updateEntityLastMeasure(observation)
 

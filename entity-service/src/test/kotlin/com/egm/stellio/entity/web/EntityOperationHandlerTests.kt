@@ -102,7 +102,9 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
-        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
+        every {
+            entityEventService.publishEntityEvent(capture(events), capture(channelName))
+        } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -154,7 +156,9 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
-        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
+        every {
+            entityEventService.publishEntityEvent(capture(events), capture(channelName))
+        } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")

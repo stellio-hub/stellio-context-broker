@@ -147,7 +147,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -393,7 +393,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
         every { subscriptionService.getById(any()) } returns Mono.just(updatedSubscription)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -535,7 +535,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")

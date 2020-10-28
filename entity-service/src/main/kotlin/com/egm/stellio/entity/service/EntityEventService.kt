@@ -22,14 +22,15 @@ class EntityEventService(
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     @Async
-    fun publishEntityEvent(event: EntityEvent, channelSuffix: String) =
-        resolver.resolveDestination(entityChannelName(channelSuffix))
+    fun publishEntityEvent(event: EntityEvent, channelSuffix: String): java.lang.Boolean {
+        return resolver.resolveDestination(entityChannelName(channelSuffix))
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
                     MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
                 )
-            )
+            ) as java.lang.Boolean
+    }
 
     private fun entityChannelName(channelSuffix: String) =
         "cim.entity.$channelSuffix"

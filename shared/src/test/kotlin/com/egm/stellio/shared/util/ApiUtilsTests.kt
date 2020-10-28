@@ -75,13 +75,13 @@ class ApiUtilsTests {
                 {
                     "id": "urn:ngsi-ld:Building:farm001",
                     "type": "Building",
-                    "@context": "https://schema.lab.fiware.org/ld/context.jsonld"
+                    "@context": "https://fiware.github.io/data-models/context.jsonld"
                 }
             """
 
         val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
         assertEquals(1, contexts.size)
-        assertEquals("https://schema.lab.fiware.org/ld/context.jsonld", contexts[0])
+        assertEquals("https://fiware.github.io/data-models/context.jsonld", contexts[0])
     }
 
     @Test

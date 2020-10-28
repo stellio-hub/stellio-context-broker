@@ -94,6 +94,7 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
+        //TODO : REFACTOR getForEntity retrieves entity payload for each temporalEntityAttribute, it should be done once
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
             temporalQuery.attrs,

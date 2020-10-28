@@ -25,22 +25,24 @@ class SubscriptionEventService(
     private val notificationChannelName = "cim.notification"
 
     @Async
-    fun publishSubscriptionEvent(event: EntityEvent) =
-        resolver.resolveDestination(subscriptionChannelName)
+    fun publishSubscriptionEvent(event: EntityEvent): java.lang.Boolean {
+        return resolver.resolveDestination(subscriptionChannelName)
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
                     MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
                 )
-            )
+            ) as java.lang.Boolean
+    }
 
     @Async
-    fun publishNotificationEvent(event: EntityEvent) =
-        resolver.resolveDestination(notificationChannelName)
+    fun publishNotificationEvent(event: EntityEvent): java.lang.Boolean {
+        return resolver.resolveDestination(notificationChannelName)
             .send(
                 MessageBuilder.createMessage(
                     mapper.writeValueAsString(event),
                     MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
                 )
-            )
+            ) as java.lang.Boolean
+    }
 }

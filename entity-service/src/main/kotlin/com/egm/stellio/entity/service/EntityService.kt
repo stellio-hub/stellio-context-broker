@@ -13,21 +13,8 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.NgsiLdGeoProperty
-import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdProperty
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdRelationship
-import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -42,7 +29,6 @@ import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -53,7 +39,7 @@ class EntityService(
     private val entityRepository: EntityRepository,
     private val partialEntityRepository: PartialEntityRepository,
     private val propertyRepository: PropertyRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -90,31 +76,7 @@ class EntityService(
             createLocationProperty(ngsiLdEntity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
         }
 
-        publishCreationEvent(ngsiLdEntity)
-
         return ngsiLdEntity.id
-    }
-
-    fun publishCreationEvent(ngsiLdEntity: NgsiLdEntity) {
-        getSerializedEntityById(ngsiLdEntity.id)?.also {
-            val entityEvent = EntityEvent(
-                operationType = EventType.CREATE,
-                entityId = ngsiLdEntity.id,
-                entityType = ngsiLdEntity.type.extractShortTypeFromExpanded(),
-                payload = it
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
-        }
-    }
-
-    fun publishDeletionEvent(entityId: URI) {
-        getSerializedEntityById(entityId)?.also {
-            val entityEvent = EntityEvent(
-                operationType = EventType.DELETE,
-                entityId = entityId
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
-        }
     }
 
     /**
@@ -266,6 +228,8 @@ class EntityService(
 
         return JsonLdEntity(resultEntity, entity.contexts)
     }
+
+    fun getEntityType(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!.type[0]
 
     private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
@@ -631,11 +595,7 @@ class EntityService(
     }
 
     @Transactional
-    fun deleteEntity(entityId: URI): Pair<Int, Int> {
-        val nodesAndRelationshipsDeleted = neo4jRepository.deleteEntity(entityId)
-        publishDeletionEvent(entityId)
-        return nodesAndRelationshipsDeleted
-    }
+    fun deleteEntity(entityId: URI) = neo4jRepository.deleteEntity(entityId)
 
     @Transactional
     fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): Boolean {
@@ -732,13 +692,21 @@ class EntityService(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts
             )
-            val entityEvent = EntityEvent(
-                operationType = EventType.UPDATE,
-                entityId = entity.id,
-                entityType = entity.type[0].extractShortTypeFromExpanded(),
-                payload = propertyPayload
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
+
+            val jsonLdEntity = getFullEntityById(entity.id, true)
+            jsonLdEntity?.let {
+                entityEventService.publishEntityEvent(
+                    AttributeReplaceEvent(
+                        entity.id,
+                        observedProperty.name.extractShortTypeFromExpanded(),
+                        observedProperty.datasetId,
+                        propertyPayload,
+                        JsonLdUtils.compactAndSerialize(it),
+                        entity.contexts
+                    ),
+                    entity.type[0].extractShortTypeFromExpanded()
+                )
+            }
         }
     }
 }

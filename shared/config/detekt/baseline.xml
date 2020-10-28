@@ -3,10 +3,8 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$ fun getPropertyValueFromMap(value: Map&lt;String, List&lt;Any&gt;&gt;, propertyKey: String): Any?</ID>
-    <ID>ThrowsCount:NgsiLdEntity.kt$NgsiLdRelationshipInstance.Companion$operator fun invoke(name: String, values: Map&lt;String, List&lt;Any&gt;&gt;): NgsiLdRelationshipInstance</ID>
-    <ID>TooGenericExceptionCaught:ApiUtils.kt$ApiUtils$e: Exception</ID>
+    <ID>SpreadOperator:EntityEvent.kt$EntityEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityUpdateEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class) ] )</ID>
     <ID>TooGenericExceptionCaught:HttpUtils.kt$HttpUtils$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:JsonLdUtils.kt$JsonLdUtils$e: Exception</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils$JsonLdUtils</ID>
   </CurrentIssues>
 </SmellBaseline>

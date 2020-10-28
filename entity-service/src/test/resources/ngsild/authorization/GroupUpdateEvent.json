@@ -1,9 +1,10 @@
 {
-  "operationType": "UPDATE",
+  "operationType": "ATTRIBUTE_REPLACE",
   "entityId": "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
-  "entityType": "Group",
-  "payload": "{\"name\":{\"type\":\"Property\",\"value\":\"EGM Team\"},\"@context\":[\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld\",\"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"]}",
-  "context": [
+  "attributeName": "name",
+  "operationPayload": "{\"name\":{\"type\":\"Property\",\"value\":\"EGM Team\"},\"@context\":[\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld\",\"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"]}",
+  "updatedEntity": "",
+  "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
   ]

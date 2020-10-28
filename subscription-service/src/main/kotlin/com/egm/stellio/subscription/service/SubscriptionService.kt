@@ -1,13 +1,9 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.ApiUtils.addContextToParsedObject
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
@@ -26,8 +22,6 @@ import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
-import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.relational.core.query.Criteria
@@ -45,10 +39,8 @@ import java.time.ZonedDateTime
 @Component
 class SubscriptionService(
     private val databaseClient: DatabaseClient,
-    private val subscriptionRepository: SubscriptionRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val subscriptionRepository: SubscriptionRepository
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
@@ -88,15 +80,6 @@ class SubscriptionService(
                 createEntityInfo(it, subscription.id)
             }
             .collectList()
-            .doOnSuccess {
-                val subscriptionEvent = EntityEvent(
-                    operationType = EventType.CREATE,
-                    entityId = subscription.id,
-                    entityType = subscription.type,
-                    payload = serializeObject(subscription)
-                )
-                applicationEventPublisher.publishEvent(subscriptionEvent)
-            }
             .map {
                 it.size
             }
@@ -178,7 +161,6 @@ class SubscriptionService(
     @Transactional
     fun update(subscriptionId: URI, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
         val contexts = parsedInput.second
-        val subscriptionUpdateInput = parsedInput.first
         val updates = mutableListOf<Mono<Int>>()
 
         val subscriptionInputWithModifiedAt = parsedInput.first
@@ -211,20 +193,7 @@ class SubscriptionService(
                 updateOperation.map { it }
             }
             .collectList()
-            .zipWhen {
-                getById(subscriptionId)
-            }
-            .doOnSuccess {
-                val subscriptionEvent = EntityEvent(
-                    operationType = EventType.UPDATE,
-                    entityId = subscriptionId,
-                    entityType = it.t2.type,
-                    payload = serializeObject(addContextToParsedObject(subscriptionUpdateInput, contexts)),
-                    updatedEntity = serializeObject(it.t2)
-                )
-                applicationEventPublisher.publishEvent(subscriptionEvent)
-            }
-            .map { it.t1.size }
+            .map { it.size }
     }
 
     private fun updateSubscriptionAttribute(
@@ -359,16 +328,6 @@ class SubscriptionService(
             .bind("id", subscriptionId)
             .fetch()
             .rowsUpdated()
-            .doOnSuccess {
-                if (it >= 1) {
-                    val subscriptionEvent = EntityEvent(
-                        operationType = EventType.DELETE,
-                        entityId = subscriptionId,
-                        entityType = "Subscription"
-                    )
-                    applicationEventPublisher.publishEvent(subscriptionEvent)
-                }
-            }
     }
 
     fun deleteEntityInfo(subscriptionId: URI): Mono<Int> =

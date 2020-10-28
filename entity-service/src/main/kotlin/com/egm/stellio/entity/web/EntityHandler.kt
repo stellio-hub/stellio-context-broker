@@ -1,16 +1,10 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.InternalErrorResponse
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
@@ -20,7 +14,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -44,8 +37,8 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val entityService: EntityService,
-    private val applicationEventPublisher: ApplicationEventPublisher,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -65,6 +58,10 @@ class EntityHandler(
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(newEntityUri, body),
+            ngsiLdEntity.type.extractShortTypeFromExpanded()
+        )
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
@@ -151,7 +148,12 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
+        val entityType = entityService.getEntityType(entityId.toUri())
         entityService.deleteEntity(entityId.toUri())
+
+        entityEventService.publishEntityEvent(
+            EntityDeleteEvent(entityId.toUri()), entityType.extractShortTypeFromExpanded()
+        )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -214,20 +216,28 @@ class EntityHandler(
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
         val updateResult =
-            entityService.updateEntityAttributes(entityId.toUri(), parseToNgsiLdAttributes(jsonLdAttributes))
+            entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
+
+        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
 
         updateResult.updated.forEach { expandedAttributeName ->
-            val entityEvent = EntityEvent(
-                operationType = EventType.UPDATE,
-                entityId = entityId.toUri(),
-                payload = compactAndStringifyFragment(
-                    expandedAttributeName,
-                    jsonLdAttributes[expandedAttributeName]!!,
+            entityEventService.publishEntityEvent(
+                AttributeReplaceEvent(
+                    entityId.toUri(),
+                    expandedAttributeName.extractShortTypeFromExpanded(),
+                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName),
+                    compactAndStringifyFragment(
+                        expandedAttributeName,
+                        jsonLdAttributes[expandedAttributeName]!!,
+                        contexts
+                    ),
+                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
                     contexts
-                )
+                ),
+                updatedEntity.type.extractShortTypeFromExpanded()
             )
-            applicationEventPublisher.publishEvent(entityEvent)
         }
 
         return if (updateResult.notUpdated.isEmpty())

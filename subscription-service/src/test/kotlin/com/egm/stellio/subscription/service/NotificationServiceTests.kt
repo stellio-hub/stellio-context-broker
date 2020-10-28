@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.firebase.FCMService
@@ -24,10 +23,8 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.jayway.jsonpath.JsonPath.read
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
-import io.mockk.Runs
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.just
 import io.mockk.verify
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
@@ -47,13 +44,8 @@ class NotificationServiceTests {
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
 
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable
-     *    (https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
     @MockkBean
-    private lateinit var notificationsEventsListener: NotificationsEventsListener
+    private lateinit var subscriptionEventService: SubscriptionEventService
 
     @MockkBean
     private lateinit var fcmService: FCMService
@@ -63,10 +55,12 @@ class NotificationServiceTests {
 
     private lateinit var wireMockServer: WireMockServer
 
+    private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
+
     private final val rawEntity =
         """
             {
-               "id":"urn:ngsi-ld:Apiary:XYZ01",
+               "id":"$apiaryId",
                "type":"Apiary",
                "name":{
                   "type":"Property",
@@ -122,7 +116,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -142,23 +136,19 @@ class NotificationServiceTests {
             .verify()
 
         verify(timeout = 1000, exactly = 1) {
-            notificationsEventsListener.handleNotificationEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "Notification" &&
-                        entityEvent.operationType == EventType.CREATE &&
-                        read(
-                        entityEvent.payload!!,
-                        "$.subscriptionId"
-                    ) as String == subscription.id.toString() &&
-                        read(entityEvent.payload!!, "$.data[0].id") as String == "urn:ngsi-ld:Apiary:XYZ01" &&
-                        entityEvent.updatedEntity == null
+            subscriptionEventService.publishNotificationEvent(
+                match {
+                    it is EntityCreateEvent &&
+                        it.operationType == EventsType.ENTITY_CREATE &&
+                        read(it.operationPayload, "$.subscriptionId") as String == subscription.id.toString() &&
+                        read(it.operationPayload, "$.data[0].id") as String == apiaryId
                 }
             )
         }
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -178,7 +168,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -198,21 +188,20 @@ class NotificationServiceTests {
             .verify()
 
         verify(timeout = 1000, exactly = 1) {
-            notificationsEventsListener.handleNotificationEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "Notification" &&
-                        entityEvent.operationType == EventType.CREATE &&
-                        (read(entityEvent.payload!!, "$.data[*]..value") as List<String>).isEmpty() &&
-                        (read(entityEvent.payload!!, "$.data[*]..object") as List<String>).isEmpty() &&
-                        (read(entityEvent.payload!!, "$.data[*].excludedProp") as List<String>).isEmpty() &&
-                        entityEvent.updatedEntity == null
+            subscriptionEventService.publishNotificationEvent(
+                match {
+                    it is EntityCreateEvent &&
+                        it.operationType == EventsType.ENTITY_CREATE &&
+                        (read(it.operationPayload, "$.data[*]..value") as List<String>).isEmpty() &&
+                        (read(it.operationPayload, "$.data[*]..object") as List<String>).isEmpty() &&
+                        (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty()
                 }
             )
         }
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -236,7 +225,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -254,7 +243,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -280,7 +269,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -298,7 +287,7 @@ class NotificationServiceTests {
 
         verify {
             subscriptionService.getMatchingSubscriptions(
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 "https://ontology.eglobalmark.com/apic#Apiary",
                 "name"
             )
@@ -318,7 +307,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         stubFor(
             post(urlMatching("/notification"))
@@ -327,7 +316,7 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, "urn:ngsi-ld:Apiary:XYZ01".toUri(), expandJsonLdEntity(rawEntity)
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity)
             )
         )
             .expectNextMatches {
@@ -365,12 +354,12 @@ class NotificationServiceTests {
 
         every { fcmService.sendMessage(any(), any(), any()) } returns "Notification sent successfully"
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { notificationsEventsListener.handleNotificationEvent(any()) } just Runs
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true
 
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )
@@ -410,7 +399,7 @@ class NotificationServiceTests {
         StepVerifier.create(
             notificationService.callSubscriber(
                 subscription,
-                "urn:ngsi-ld:Apiary:XYZ01".toUri(),
+                apiaryId.toUri(),
                 expandJsonLdEntity(rawEntity)
             )
         )

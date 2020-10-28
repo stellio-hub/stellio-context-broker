@@ -1,18 +1,14 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
-import com.egm.stellio.shared.util.checkAndGetContext
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
+import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
@@ -38,7 +34,8 @@ import java.util.*
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
-    private val subscriptionService: SubscriptionService
+    private val subscriptionService: SubscriptionService,
+    private val subscriptionEventService: SubscriptionEventService
 ) {
 
     /**
@@ -56,6 +53,7 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
 
+        subscriptionEventService.publishSubscriptionEvent(EntityCreateEvent(parsedSubscription.id, body))
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()
@@ -133,9 +131,18 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         val body = requestBody.awaitFirst()
-        val parsedInput = parseSubscriptionUpdate(body, checkAndGetContext(httpHeaders, body))
+        val context = checkAndGetContext(httpHeaders, body)
+        val parsedInput = parseSubscriptionUpdate(body, context)
         subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
 
+        subscriptionEventService.publishSubscriptionEvent(
+            EntityUpdateEvent(
+                subscriptionIdUri,
+                body,
+                serializeObject(subscriptionService.getById(subscriptionIdUri).awaitFirst()),
+                context
+            )
+        )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
@@ -151,6 +158,7 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
+        subscriptionEventService.publishSubscriptionEvent(EntityDeleteEvent(subscriptionIdUri))
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

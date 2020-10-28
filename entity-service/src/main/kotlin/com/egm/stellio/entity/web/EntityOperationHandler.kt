@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.toListOfUri
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpStatus
@@ -20,12 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
 class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
-    private val authorizationService: AuthorizationService
+    private val authorizationService: AuthorizationService,
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -38,7 +40,7 @@ class EntityOperationHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (extractedEntities, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val batchOperationResult = entityOperationService.create(newEntities)
 
@@ -49,8 +51,21 @@ class EntityOperationHandler(
         )
 
         authorizationService.createAdminLinks(batchOperationResult.success, userId)
+        ngsiLdEntities.filter { it.id in batchOperationResult.success }
+            .forEach {
+                entityEventService.publishEntityEvent(
+                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    it.type.extractShortTypeFromExpanded()
+                )
+            }
 
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+    }
+
+    private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {
+        return entitiesPayload.first {
+            it["id"] == entityId.toString()
+        }
     }
 
     /**
@@ -63,7 +78,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
-        val ngsiLdEntities = extractAndParseBatchOfEntities(body)
+        val (_, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val createBatchOperationResult = when {
@@ -130,11 +145,11 @@ class EntityOperationHandler(
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String): List<NgsiLdEntity> {
+    private fun extractAndParseBatchOfEntities(payload: String): Pair<List<Map<String, Any>>, List<NgsiLdEntity>> {
         val extractedEntities = JsonUtils.parseListOfEntities(payload)
-        return JsonLdUtils.expandJsonLdEntities(extractedEntities)
-            .map {
-                it.toNgsiLdEntity()
-            }
+        return Pair(
+            extractedEntities,
+            JsonLdUtils.expandJsonLdEntities(extractedEntities).map { it.toNgsiLdEntity() }
+        )
     }
 }

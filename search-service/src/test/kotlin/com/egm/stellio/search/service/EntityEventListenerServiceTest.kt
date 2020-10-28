@@ -1,7 +1,7 @@
-package com.egm.stellio.search.listener
+package com.egm.stellio.search.service
 
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -16,12 +16,12 @@ import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityListener::class])
+@SpringBootTest(classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
-class EntityListenerTest {
+class EntityEventListenerServiceTest {
 
     @Autowired
-    private lateinit var entityListener: EntityListener
+    private lateinit var entityEventListenerService: EntityEventListenerService
 
     @MockkBean(relaxed = true)
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
@@ -29,12 +29,15 @@ class EntityListenerTest {
     @MockkBean(relaxed = true)
     private lateinit var attributeInstanceService: AttributeInstanceService
 
+    private val fishContainmentId = "urn:ngsi-ld:FishContainment:1234"
+    private val observedAt = "2020-03-12T08:33:38.000Z"
+
     private val entity =
         """
         {
-            \"id\": \"urn:ngsi-ld:FishContainment:1234\",
+            \"id\": \"$fishContainmentId\",
             \"type\": \"FishContainment\",
-            \"@context\": \"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac-compound.jsonld\"
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
         }
         """.trimIndent()
 
@@ -43,21 +46,20 @@ class EntityListenerTest {
         val content =
             """
             {
-                "operationType": "CREATE",
-                "entityId": "urn:ngsi-ld:FishContainment:1234",
-                "entityType": "FishContainment",
-                "payload": "$entity"
+                "operationType": "ENTITY_CREATE",
+                "entityId": "$fishContainmentId",
+                "operationPayload": "$entity"
             }
             """.trimIndent().replace("\n", "")
 
         every { temporalEntityAttributeService.createEntityTemporalReferences(any()) } returns Mono.just(1)
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.createEntityTemporalReferences(
                 match {
-                    it.contains("urn:ngsi-ld:FishContainment:1234")
+                    it.contains(fishContainmentId)
                 }
             )
         }
@@ -72,7 +74,7 @@ class EntityListenerTest {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
                     \"value\":33869,
-                    \"observedAt\":\"2020-03-12T08:33:38.000Z\"
+                    \"observedAt\":\"$observedAt\"
                 }
             }
             """.trimIndent()
@@ -83,11 +85,11 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq("urn:ngsi-ld:FishContainment:1234".toUri()),
+                eq(fishContainmentId.toUri()),
                 eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
                 isNull()
             )
@@ -102,9 +104,9 @@ class EntityListenerTest {
 
         verify {
             temporalEntityAttributeService.updateEntityPayload(
-                "urn:ngsi-ld:FishContainment:1234".toUri(),
+                fishContainmentId.toUri(),
                 match {
-                    it.contains("urn:ngsi-ld:FishContainment:1234")
+                    it.contains(fishContainmentId)
                 }
             )
         }
@@ -120,7 +122,7 @@ class EntityListenerTest {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
                     \"value\":33869,
-                    \"observedAt\":\"2020-03-12T08:33:38.000Z\"
+                    \"observedAt\":\"$observedAt\"
                 }
             }
             """.trimIndent()
@@ -131,14 +133,14 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             attributeInstanceService.create(
                 match {
                     it.value == null &&
                         it.measuredValue == 33869.0 &&
-                        it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid
                 }
             )
@@ -155,7 +157,7 @@ class EntityListenerTest {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
                     \"value\":\"some textual value\",
-                    \"observedAt\":\"2020-03-12T08:33:38.000Z\"
+                    \"observedAt\":\"$observedAt\"
                 }
             }
             """.trimIndent()
@@ -166,14 +168,14 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             attributeInstanceService.create(
                 match {
                     it.value == "some textual value" &&
                         it.measuredValue == null &&
-                        it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid
                 }
             )
@@ -190,7 +192,7 @@ class EntityListenerTest {
                 \"totalDissolvedSolids\":{
                     \"type\":\"Property\",
                     \"value\":\"some textual value\",
-                    \"observedAt\":\"2020-03-12T08:33:38.000Z\",
+                    \"observedAt\":\"$observedAt\",
                     \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
                 }
             }
@@ -202,7 +204,7 @@ class EntityListenerTest {
             temporalEntityAttributeUuid
         )
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), "urn:ngsi-ld:Dataset:01234")
@@ -213,7 +215,7 @@ class EntityListenerTest {
                 match {
                     it.value == "some textual value" &&
                         it.measuredValue == null &&
-                        it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38.000Z") &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid
                 }
             )
@@ -233,7 +235,7 @@ class EntityListenerTest {
             """.trimIndent()
         val content = prepareUpdateEventPayload(eventPayload)
 
-        entityListener.processMessage(content)
+        entityEventListenerService.processMessage(content)
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
@@ -243,11 +245,12 @@ class EntityListenerTest {
     private fun prepareUpdateEventPayload(payload: String): String =
         """
             {
-                "operationType": "UPDATE",
-                "entityId": "urn:ngsi-ld:FishContainment:1234",
-                "entityType": "FishContainment",
-                "payload": "$payload",
-                "updatedEntity": "$entity"
+                "operationType": "ATTRIBUTE_REPLACE",
+                "entityId": "$fishContainmentId",
+                "attributeName": "totalDissolvedSolids",
+                "operationPayload": "$payload",
+                "updatedEntity": "$entity",
+                "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
         """.trimIndent().replace("\n", "")
 }

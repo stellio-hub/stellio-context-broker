@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
+@SpringBootTest(classes = [SubscriptionEventListenerService::class])
 @ActiveProfiles("test")
-class SubscriptionListenerTests {
+class SubscriptionEventListenerServiceTests {
 
     @Autowired
-    private lateinit var subscriptionListener: SubscriptionListener
+    private lateinit var subscriptionEventListenerService: SubscriptionEventListenerService
 
     @MockkBean
     private lateinit var subscriptionHandlerService: SubscriptionHandlerService
@@ -26,11 +26,11 @@ class SubscriptionListenerTests {
     @Test
     fun `it should parse and create subscription entity`() {
         val subscription =
-            loadSampleData("subscriptionEvents/subscription_event.jsonld")
+            loadSampleData("events/listened/subscriptionCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
-        subscriptionListener.processSubscription(subscription)
+        subscriptionEventListenerService.processSubscription(subscription)
 
         verify {
             subscriptionHandlerService.createSubscriptionEntity(
@@ -45,11 +45,11 @@ class SubscriptionListenerTests {
     @Test
     fun `it should parse and create notification entity`() {
         val notification =
-            loadSampleData("subscriptionEvents/notification_event.jsonld")
+            loadSampleData("events/listened/notificationCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 
-        subscriptionListener.processNotification(notification)
+        subscriptionEventListenerService.processNotification(notification)
 
         verify {
             subscriptionHandlerService.createNotificationEntity(

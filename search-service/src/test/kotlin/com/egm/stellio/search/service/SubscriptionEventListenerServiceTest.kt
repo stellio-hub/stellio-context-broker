@@ -1,8 +1,6 @@
-package com.egm.stellio.search.listener
+package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -16,12 +14,12 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import java.util.UUID
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionListener::class])
+@SpringBootTest(classes = [SubscriptionEventListenerService::class])
 @ActiveProfiles("test")
-class SubscriptionListenerTest {
+class SubscriptionEventListenerServiceTest {
 
     @Autowired
-    private lateinit var subscriptionListener: SubscriptionListener
+    private lateinit var subscriptionEventListenerService: SubscriptionEventListenerService
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -31,11 +29,11 @@ class SubscriptionListenerTest {
 
     @Test
     fun `it should parse a subscription and create a temporal entity reference`() {
-        val subscription = loadSampleData("subscription_event.jsonld")
+        val subscriptionEvent = loadSampleData("events/listened/subscriptionCreateEvent.jsonld")
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
 
-        subscriptionListener.processSubscription(subscription)
+        subscriptionEventListenerService.processSubscription(subscriptionEvent)
 
         verify {
             temporalEntityAttributeService.create(
@@ -53,12 +51,12 @@ class SubscriptionListenerTest {
     @Test
     fun `it should parse a notification and create one related observation`() {
         val temporalEntityAttributeUuid = UUID.randomUUID()
-        val notification = loadSampleData("notification_event.jsonld")
+        val notificationEvent = loadSampleData("events/listened/notificationCreateEvent.jsonld")
 
         every { temporalEntityAttributeService.getFirstForEntity(any()) } returns Mono.just(temporalEntityAttributeUuid)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        subscriptionListener.processNotification(notification)
+        subscriptionEventListenerService.processNotification(notificationEvent)
 
         verify { temporalEntityAttributeService.getFirstForEntity(eq("urn:ngsi-ld:Subscription:1234".toUri())) }
         verify {

@@ -1,7 +1,8 @@
 {
-  "operationType":"APPEND",
+  "operationType":"ATTRIBUTE_APPEND",
   "entityId":"urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb",
-  "entityType":"Client",
-  "payload":"{\"serviceAccountId\":{\"type\":\"Property\",\"value\":\"a1eec755-c455-4f28-abe4-06558176fcc5\"},\"roles\":{\"type\":\"Property\",\"value\":[\"stellio-admin\"]},\"@context\":[\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld\",\"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"]}",
-  "context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]
+  "attributeName": "roles",
+  "operationPayload":"{\"serviceAccountId\":{\"type\":\"Property\",\"value\":\"a1eec755-c455-4f28-abe4-06558176fcc5\"},\"roles\":{\"type\":\"Property\",\"value\":[\"stellio-admin\"]},\"@context\":[\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld\",\"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"]}",
+  "updatedEntity": "",
+  "contexts":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]
 }

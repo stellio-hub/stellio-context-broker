@@ -1,10 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -13,7 +9,6 @@ import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -24,7 +19,7 @@ import java.time.format.DateTimeFormatter
 @Service
 class NotificationService(
     private val subscriptionService: SubscriptionService,
-    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val subscriptionEventService: SubscriptionEventService,
     private val fcmService: FCMService
 ) {
 
@@ -79,13 +74,11 @@ class NotificationService(
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
                 }
                 .doOnNext {
-                    val notificationEvent = EntityEvent(
-                        operationType = EventType.CREATE,
-                        entityId = it.second.id,
-                        entityType = it.second.type,
-                        payload = serializeObject(it.second)
+                    subscriptionEventService.publishNotificationEvent(
+                        EntityCreateEvent(
+                            it.second.id, serializeObject(it.second)
+                        )
                     )
-                    applicationEventPublisher.publishEvent(notificationEvent)
                 }
         }
     }
@@ -128,13 +121,9 @@ class NotificationService(
         val success = response != null
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
-                val notificationEvent = EntityEvent(
-                    operationType = EventType.CREATE,
-                    entityId = notification.id,
-                    entityType = notification.type,
-                    payload = serializeObject(notification)
+                subscriptionEventService.publishNotificationEvent(
+                    EntityCreateEvent(notification.id, serializeObject(notification))
                 )
-                applicationEventPublisher.publishEvent(notificationEvent)
             }
             .map {
                 Triple(subscription, notification, success)

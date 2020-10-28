@@ -14,19 +14,19 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntitiesListener::class])
+@SpringBootTest(classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
-class EntitiesListenerTests {
+class EntityEventListenerServiceTests {
 
     @Autowired
-    private lateinit var entitiesListener: EntitiesListener
+    private lateinit var entityEventListenerService: EntityEventListenerService
 
     @MockkBean
     private lateinit var notificationService: NotificationService
 
     @Test
     fun `it should parse and transmit observations`() {
-        val observation = ClassPathResource("/ngsild/apic/BeekeeperUpdateEvent.json")
+        val observation = ClassPathResource("/ngsild/events/listened/AttributeReplaceEvent.json")
 
         val mockedSubscription = mockkClass(Subscription::class)
         val mockedNotification = mockkClass(Notification::class)
@@ -40,7 +40,7 @@ class EntitiesListenerTests {
             )
         }
 
-        entitiesListener.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entityEventListenerService.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
         confirmVerified(notificationService)

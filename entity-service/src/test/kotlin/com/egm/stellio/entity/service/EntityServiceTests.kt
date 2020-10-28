@@ -4,11 +4,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -60,61 +56,10 @@ class EntityServiceTests {
     @MockkBean
     private lateinit var partialEntityRepository: PartialEntityRepository
 
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable
-     * (https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
     @MockkBean
-    private lateinit var repositoryEventsListener: RepositoryEventsListener
+    private lateinit var entityEventService: EntityEventService
 
     private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
-
-    @Test
-    fun `it should notify of a new entity`() {
-        val expectedPayloadInEvent =
-            """
-        {"id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","type":"MortalityRemovalService","@context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld","https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]}
-            """.trimIndent()
-        val sampleDataWithContext =
-            parseSampleDataToNgsiLd("aquac/MortalityRemovalService_standalone.json")
-        val mockedBreedingService = mockkClass(Entity::class)
-
-        every { entityRepository.existsById(eq(mortalityRemovalServiceUri)) } returns false
-        every {
-            partialEntityRepository.existsById(mortalityRemovalServiceUri)
-        } returns false
-        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-        every { mockedBreedingService.properties } returns mutableListOf()
-        every { mockedBreedingService.id } returns mortalityRemovalServiceUri
-        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
-            "@id" to mortalityRemovalServiceUri.toString(),
-            "@type" to listOf("MortalityRemovalService")
-        )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
-
-        entityService.createEntity(sampleDataWithContext)
-
-        verify(timeout = 1000, exactly = 1) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "MortalityRemovalService" &&
-                        entityEvent.entityId == mortalityRemovalServiceUri &&
-                        entityEvent.operationType == EventType.CREATE &&
-                        entityEvent.payload == expectedPayloadInEvent &&
-                        entityEvent.updatedEntity == null
-                }
-            )
-        }
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
-    }
 
     @Test
     fun `it should create an entity with a property having a property`() {
@@ -129,7 +74,6 @@ class EntityServiceTests {
         every { partialEntityRepository.existsById(breedingServiceUri) } returns false
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
         every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
             "@id" to mortalityRemovalServiceUri.toString(),
@@ -159,6 +103,7 @@ class EntityServiceTests {
                 "incoming"
             )
         }
+        verify { entityEventService wasNot called }
 
         confirmVerified(neo4jRepository)
     }
@@ -182,6 +127,7 @@ class EntityServiceTests {
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
+        verify { entityEventService wasNot called }
 
         confirmVerified()
     }
@@ -207,6 +153,7 @@ class EntityServiceTests {
         every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
         every { mockkedEntity.contexts } returns listOf(aquacContext!!)
         every { mockkedObservation.id } returns "property-9999".toUri()
+        every { mockkedObservation.datasetId } returns null
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
@@ -216,7 +163,7 @@ class EntityServiceTests {
         every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
             mapOf("property" to expectedPropertyUpdate)
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true
 
         entityService.updateEntityLastMeasure(observation)
 
@@ -226,15 +173,17 @@ class EntityServiceTests {
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify(timeout = 2000) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "BreedingService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
-                        entityEvent.operationType == EventType.UPDATE &&
-                        entityEvent.payload != null &&
-                        entityEvent.payload!!.contains("fishNumber") &&
-                        entityEvent.updatedEntity == null
-                }
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeReplaceEvent
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
+                        it.attributeName == "incoming" &&
+                        it.datasetId == null &&
+                        it.operationPayload.contains("fishNumber") &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "BreedingService"
             )
         }
 

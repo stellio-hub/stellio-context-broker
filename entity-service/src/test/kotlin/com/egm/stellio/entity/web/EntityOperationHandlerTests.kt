@@ -2,13 +2,17 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -39,6 +43,9 @@ class EntityOperationHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
+    @MockkBean
+    private lateinit var entityEventService: EntityEventService
+
     private val batchFullSuccessResponse =
         """
         {
@@ -46,6 +53,24 @@ class EntityOperationHandlerTests {
             "success": [
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+            ]
+        }
+        """.trimIndent()
+
+    private val batchSomeEntitiesExistsResponse =
+        """
+        {
+            "errors": [
+                {
+                    "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                    "error": [
+                        "Entity already exists"
+                    ]
+                }
+            ],
+            "success": [
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                 "urn:ngsi-ld:Device:HCMR-AQUABOX1"
             ]
         }
@@ -59,7 +84,13 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
+        val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
+            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
+            entitiesIds
+        )
         val expandedEntities = slot<List<NgsiLdEntity>>()
+        val events = mutableListOf<EntityEvent>()
+        val channelName = slot<String>()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
@@ -71,6 +102,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
+        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -83,6 +115,16 @@ class EntityOperationHandlerTests {
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
         verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
+        verify(timeout = 1000, exactly = 3) { entityEventService.publishEntityEvent(any(), any()) }
+        events.forEach {
+            it as EntityCreateEvent
+            assertTrue(
+                it.operationType == EventsType.ENTITY_CREATE &&
+                    it.entityId in entitiesIds &&
+                    it.operationPayload in expectedEntitiesPayload
+            )
+        }
+        assertTrue(channelName.captured in listOf("Sensor", "Device"))
         confirmVerified()
     }
 
@@ -93,7 +135,14 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
+        val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
+            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
+            createdEntitiesIds
+        )
         val existingEntity = mockk<NgsiLdEntity>()
+        val events = mutableListOf<EntityEvent>()
+        val channelName = slot<String>()
+
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
@@ -105,6 +154,7 @@ class EntityOperationHandlerTests {
             createdEntitiesIds,
             arrayListOf()
         )
+        every { entityEventService.publishEntityEvent(capture(events), capture(channelName)) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -112,26 +162,19 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(
-                """
-                {
-                    "errors": [
-                        {
-                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                            "error": [
-                                "Entity already exists"
-                            ]
-                        }
-                    ],
-                    "success": [
-                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-                    ]
-                }
-                """.trimIndent()
-            )
+            .expectBody().json(batchSomeEntitiesExistsResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), any()) }
+        events.forEach {
+            it as EntityCreateEvent
+            assertTrue(
+                it.operationType == EventsType.ENTITY_CREATE &&
+                    it.entityId in createdEntitiesIds &&
+                    it.operationPayload in expectedEntitiesPayload
+            )
+        }
+        assertTrue(channelName.captured in listOf("Sensor", "Device"))
         confirmVerified()
     }
 
@@ -156,6 +199,9 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
+        confirmVerified()
     }
 
     @Test
@@ -567,4 +613,10 @@ class EntityOperationHandlerTests {
             )
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
     }
+
+    private fun getExpectedEntitiesEventsOperationPayload(
+        entitiesPayload: String,
+        createdEntitiesIds: List<URI> = emptyList()
+    ) = JsonUtils.parseListOfEntities(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
+        .map { serializeObject(it) }
 }

@@ -1,4 +1,4 @@
-package com.egm.stellio.search.listener
+package com.egm.stellio.search.service
 
 import org.springframework.cloud.stream.annotation.Input
 import org.springframework.messaging.SubscribableChannel

@@ -149,46 +149,60 @@ class TemporalEntityHandler(
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
-    if (!params.containsKey("timerel") || !params.containsKey("time"))
-        throw BadRequestDataException("'timerel and 'time' request parameters are mandatory")
+    val timerelParam = params.getFirst("timerel")
+    val timeParam = params.getFirst("time")
+    val endTimeParam = params.getFirst("endTime")
+    val timeBucketParam = params.getFirst("timeBucket")
+    val aggregateParam = params.getFirst("aggregate")
+    val lastNParam = params.getFirst("lastN")
+    val attrsParam = params.getFirst("attrs")
 
-    if (params.getFirst("timerel") == "between" && !params.containsKey("endTime"))
+    if (timerelParam == "between" && endTimeParam == null)
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
-    val timerel = try {
-        TemporalQuery.Timerel.valueOf(params.getFirst("timerel")!!.toUpperCase())
-    } catch (e: IllegalArgumentException) {
-        throw BadRequestDataException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
+    val (timerel, time) = if (timerelParam == null && timeParam == null) {
+        Pair(
+            TemporalQuery.Timerel.AFTER,
+            ("1970-01-01T00:00:00Z").parseTimeParameter("")
+        )
+    } else if (timerelParam != null && timeParam != null) {
+        val timeRelTemp: TemporalQuery.Timerel
+        try {
+            timeRelTemp = TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase())
+        } catch (e: IllegalArgumentException) {
+            throw BadRequestDataException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
+        }
+        Pair(timeRelTemp, timeParam.parseTimeParameter("'time' parameter is not a valid date"))
+    } else {
+        throw BadRequestDataException("'timerel' and 'time' must be both present")
     }
-    val time = params.getFirst("time")!!.parseTimeParameter("'time' parameter is not a valid date")
-    val endTime = params.getFirst("endTime")?.parseTimeParameter("'endTime' parameter is not a valid date")
 
-    if ((params.containsKey("timeBucket") && !params.containsKey("aggregate")) ||
-        (!params.containsKey("timeBucket") && params.containsKey("aggregate"))
-    )
+    val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
+
+    if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
         throw BadRequestDataException("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
 
     val aggregate =
-        if (params.containsKey("aggregate"))
-            if (TemporalQuery.Aggregate.isSupportedAggregate(params.getFirst("aggregate")!!))
-                TemporalQuery.Aggregate.valueOf(params.getFirst("aggregate")!!)
+        if (aggregateParam != null)
+            if (TemporalQuery.Aggregate.isSupportedAggregate(aggregateParam!!))
+                TemporalQuery.Aggregate.valueOf(aggregateParam!!)
             else
                 throw BadRequestDataException(
-                    "Value '${params.getFirst("aggregate")!!}' is not supported for 'aggregate' parameter"
+                    "Value '$aggregateParam' is not supported for 'aggregate' parameter"
                 )
         else
             null
 
-    val lastN = params.getFirst("lastN")?.toIntOrNull()?.let {
+    val lastN = lastNParam?.toIntOrNull()?.let {
         if (it >= 1) it else null
     }
 
     return TemporalQuery(
-        attrs = params.getFirst("attrs")?.split(",")?.toSet().orEmpty(),
+        attrs = attrsParam?.split(",")?.toSet().orEmpty(),
         timerel = timerel,
         time = time,
         endTime = endTime,
-        timeBucket = params.getFirst("timeBucket"),
+        timeBucket = timeBucketParam,
         aggregate = aggregate,
         lastN = lastN
     )

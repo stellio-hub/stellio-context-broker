@@ -136,7 +136,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' and 'time' must be both present"
+                    "detail":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )

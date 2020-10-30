@@ -163,9 +163,8 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     val (timerel, time) = if (timerelParam == null && timeParam == null) {
         Pair(null, null)
     } else if (timerelParam != null && timeParam != null) {
-        val timeRelTemp: TemporalQuery.Timerel
-        try {
-            timeRelTemp = TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase())
+        val timeRelTemp = try {
+            TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase())
         } catch (e: IllegalArgumentException) {
             throw BadRequestDataException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
         }

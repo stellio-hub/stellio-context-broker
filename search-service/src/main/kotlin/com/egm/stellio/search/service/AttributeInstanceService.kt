@@ -82,9 +82,10 @@ class AttributeInstanceService(
         selectQuery = when (temporalQuery.timerel) {
             TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND observed_at < '${temporalQuery.time}'")
             TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND observed_at > '${temporalQuery.time}'")
-            else -> selectQuery.plus(
+            TemporalQuery.Timerel.BETWEEN -> selectQuery.plus(
                 " AND observed_at > '${temporalQuery.time}' AND observed_at < '${temporalQuery.endTime}'"
             )
+            else -> selectQuery
         }
 
         selectQuery = if (temporalQuery.timeBucket != null)

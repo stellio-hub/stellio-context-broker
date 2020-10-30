@@ -7,7 +7,6 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.entityNotFoundMessage
@@ -18,8 +17,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -128,49 +126,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a 400 if a service throws a BadRequestDataException`() {
-        every {
-            temporalEntityAttributeService.getForEntity(
-                any(),
-                any(),
-                any()
-            )
-        } throws BadRequestDataException("Bad request")
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
-                }
-                """
-            )
-    }
-
-    @Test
-    fun `it should raise a 400 if no timerel query param`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId?time=before")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
-                }
-                """
-            )
-    }
-
-    @Test
-    fun `it should raise a 400 if no time query param`() {
+    fun `it should raise a 400 if timerel is present without time query param`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before")
             .exchange()
@@ -180,10 +136,51 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
+                    "detail":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
+    }
+
+    @Test
+    fun `it should raise a 400 if time is present without timerel query param`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?time=2020-10-29T18:00:00Z")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'timerel' and 'time' must be used in conjunction"
+                }
+                """
+            )
+    }
+
+    @Test
+    fun `it should give a 200 if no timerel and no time query params are in the request`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
+        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(parseSampleDataToJsonLd())
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
+            JsonLdEntity::class,
+            relaxed = true
+        )
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+            .exchange()
+            .expectStatus().isOk
     }
 
     @Test
@@ -265,7 +262,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must both be provided for aggregated queries"
+                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
                 } 
                 """
             )
@@ -345,7 +342,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -406,7 +403,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -498,7 +495,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -540,7 +537,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
                         temporalQuery.attrs == setOf("incoming")
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
@@ -627,5 +624,15 @@ class TemporalEntityHandlerTests {
         val temporalQuery = buildTemporalQuery(queryParams)
 
         assertNull(temporalQuery.lastN)
+    }
+
+    @Test
+    fun `it should treat time and timerel properties as optional`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+
+        val temporalQuery = buildTemporalQuery(queryParams)
+
+        assertEquals(null, temporalQuery.time)
+        assertEquals(null, temporalQuery.timerel)
     }
 }

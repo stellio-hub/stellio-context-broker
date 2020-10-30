@@ -1,6 +1,9 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.model.UpdateAttributesResponse
+import com.egm.stellio.entity.model.UpdateAttributesResult
+import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
@@ -181,16 +184,23 @@ class EntityHandler(
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val updateResult = entityService.appendEntityAttributes(
+        val updateAttributesResult = entityService.appendEntityAttributes(
             entityId.toUri(),
             parseToNgsiLdAttributes(jsonLdAttributes),
             disallowOverwrite
         )
 
-        return if (updateResult.notUpdated.isEmpty())
+        publishAppendAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
+
+        return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(
+                UpdateAttributesResponse(
+                    updateAttributesResult.updated.map { it.attributeName.extractShortTypeFromExpanded() },
+                    updateAttributesResult.notUpdated
+                )
+            )
     }
 
     /**
@@ -217,33 +227,20 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        val updateResult =
+        val updateAttributesResult =
             entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
 
-        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+        publishUpdateAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
 
-        updateResult.updated.forEach { expandedAttributeName ->
-            entityEventService.publishEntityEvent(
-                AttributeReplaceEvent(
-                    entityId.toUri(),
-                    expandedAttributeName.extractShortTypeFromExpanded(),
-                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName),
-                    compactAndStringifyFragment(
-                        expandedAttributeName,
-                        jsonLdAttributes[expandedAttributeName]!!,
-                        contexts
-                    ),
-                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
-                    contexts
-                ),
-                updatedEntity.type.extractShortTypeFromExpanded()
-            )
-        }
-
-        return if (updateResult.notUpdated.isEmpty())
+        return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(
+                UpdateAttributesResponse(
+                    updateAttributesResult.updated.map { it.attributeName.extractShortTypeFromExpanded() },
+                    updateAttributesResult.notUpdated
+                )
+            )
     }
 
     /**
@@ -307,5 +304,76 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+    }
+
+    private fun publishAppendAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        updateAttributesResult: UpdateAttributesResult,
+        contexts: List<String>
+    ) {
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
+
+        updateAttributesResult.updated.forEach { updatedAttributeDetails ->
+            if (updatedAttributeDetails.updateOperationResult == UpdateOperationResult.APPENDED)
+                entityEventService.publishEntityEvent(
+                    AttributeAppendEvent(
+                        entityId,
+                        updatedAttributeDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedAttributeDetails.datasetId,
+                        compactAndStringifyFragment(
+                            updatedAttributeDetails.attributeName,
+                            jsonLdAttributes[updatedAttributeDetails.attributeName]!!,
+                            contexts
+                        ),
+                        JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+            else
+                entityEventService.publishEntityEvent(
+                    AttributeReplaceEvent(
+                        entityId,
+                        updatedAttributeDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedAttributeDetails.datasetId,
+                        compactAndStringifyFragment(
+                            updatedAttributeDetails.attributeName,
+                            jsonLdAttributes[updatedAttributeDetails.attributeName]!!,
+                            contexts
+                        ),
+                        JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+        }
+    }
+
+    private fun publishUpdateAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        updateAttributesResult: UpdateAttributesResult,
+        contexts: List<String>
+    ) {
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
+
+        updateAttributesResult.updated.forEach { updatedAttributeDetails ->
+            entityEventService.publishEntityEvent(
+                AttributeReplaceEvent(
+                    entityId,
+                    updatedAttributeDetails.attributeName.extractShortTypeFromExpanded(),
+                    updatedAttributeDetails.datasetId,
+                    compactAndStringifyFragment(
+                        updatedAttributeDetails.attributeName,
+                        jsonLdAttributes[updatedAttributeDetails.attributeName]!!,
+                        contexts
+                    ),
+                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                    contexts
+                ),
+                updatedEntity.type.extractShortTypeFromExpanded()
+            )
+        }
     }
 }

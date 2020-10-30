@@ -1,11 +1,6 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.Entity
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.Property
-import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
@@ -365,7 +360,7 @@ class EntityService(
         entityId: URI,
         attributes: List<NgsiLdAttribute>,
         disallowOverwrite: Boolean
-    ): UpdateResult {
+    ): UpdateAttributesResult {
         val updateStatuses = attributes
             .flatMap { ngsiLdAttribute ->
                 logger.debug("Fragment is of type $ngsiLdAttribute")
@@ -376,7 +371,15 @@ class EntityService(
                     }
                     is NgsiLdGeoProperty -> appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite)
                     // TODO we should avoid this fake else
-                    else -> listOf(Triple("", false, "Unknown attribute type $ngsiLdAttribute"))
+                    else ->
+                        listOf(
+                            UpdateAttributeResult(
+                                "",
+                                null,
+                                UpdateOperationResult.IGNORED,
+                                "Unknown attribute type $ngsiLdAttribute"
+                            )
+                        )
                 }
             }
             .toList()
@@ -385,17 +388,21 @@ class EntityService(
         if (updateStatuses.isNotEmpty())
             neo4jRepository.updateEntityModifiedDate(entityId)
 
-        val updated = updateStatuses.filter { it.second }.map { it.first }
-        val notUpdated = updateStatuses.filter { !it.second }.map { NotUpdatedDetails(it.first, it.third!!) }
+        val updated = updateStatuses
+            .filter { it.isSuccessfullyUpdated() }
+            .map { UpdatedAttributeDetails(it.attributeName, it.datasetId, it.updateOperationResult) }
 
-        return UpdateResult(updated, notUpdated)
+        val notUpdated = updateStatuses.filter { !it.isSuccessfullyUpdated() }
+            .map { NotUpdatedAttributeDetails(it.attributeName, it.errorMessage!!) }
+
+        return UpdateAttributesResult(updated, notUpdated)
     }
 
     fun appendEntityRelationship(
         entityId: URI,
         ngsiLdRelationship: NgsiLdRelationship,
         disallowOverwrite: Boolean
-    ): List<Triple<String, Boolean, String?>> {
+    ): List<UpdateAttributeResult> {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
         return if (!neo4jRepository.hasRelationshipOfType(
             EntitySubjectNode(entityId),
@@ -408,16 +415,24 @@ class EntityService(
                 ngsiLdRelationship.instances[0],
                 ngsiLdRelationship.instances[0].objectId
             )
-            listOf(Triple(ngsiLdRelationship.name, true, null))
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdRelationship.name,
+                    ngsiLdRelationship.instances[0].datasetId,
+                    UpdateOperationResult.APPENDED,
+                    null
+                )
+            )
         } else if (disallowOverwrite) {
             logger.info(
                 "Relationship $relationshipTypeName already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
             )
             listOf(
-                Triple(
+                UpdateAttributeResult(
                     ngsiLdRelationship.name,
-                    false,
+                    ngsiLdRelationship.instances[0].datasetId,
+                    UpdateOperationResult.IGNORED,
                     "Relationship $relationshipTypeName already exists on $entityId " +
                         "and overwrite is not allowed, ignoring"
                 )
@@ -433,7 +448,14 @@ class EntityService(
                 ngsiLdRelationship.instances[0],
                 ngsiLdRelationship.instances[0].objectId
             )
-            listOf(Triple(ngsiLdRelationship.name, true, null))
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdRelationship.name,
+                    ngsiLdRelationship.instances[0].datasetId,
+                    UpdateOperationResult.REPLACED,
+                    null
+                )
+            )
         }
     }
 
@@ -442,7 +464,7 @@ class EntityService(
         ngsiLdProperty: NgsiLdProperty,
         ngsiLdPropertyInstance: NgsiLdPropertyInstance,
         disallowOverwrite: Boolean
-    ): Triple<String, Boolean, String?> {
+    ): UpdateAttributeResult {
         return if (!neo4jRepository.hasPropertyInstance(
             EntitySubjectNode(entityId),
             ngsiLdProperty.name,
@@ -450,15 +472,21 @@ class EntityService(
         )
         ) {
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
-            Triple(ngsiLdProperty.name, true, null)
+            UpdateAttributeResult(
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId,
+                UpdateOperationResult.APPENDED,
+                null
+            )
         } else if (disallowOverwrite) {
             logger.info(
                 "Property ${ngsiLdProperty.name} already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
             )
-            Triple(
+            UpdateAttributeResult(
                 ngsiLdProperty.name,
-                false,
+                ngsiLdPropertyInstance.datasetId,
+                UpdateOperationResult.IGNORED,
                 "Property ${ngsiLdProperty.name} already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
             )
@@ -469,7 +497,12 @@ class EntityService(
                 ngsiLdPropertyInstance.datasetId
             )
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
-            Triple(ngsiLdProperty.name, true, null)
+            UpdateAttributeResult(
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId,
+                UpdateOperationResult.REPLACED,
+                null
+            )
         }
     }
 
@@ -477,7 +510,7 @@ class EntityService(
         entityId: URI,
         ngsiLdGeoProperty: NgsiLdGeoProperty,
         disallowOverwrite: Boolean
-    ): List<Triple<String, Boolean, String?>> {
+    ): List<UpdateAttributeResult> {
         return if (!neo4jRepository.hasGeoPropertyOfName(
             EntitySubjectNode(entityId),
             ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
@@ -488,16 +521,24 @@ class EntityService(
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0]
             )
-            listOf(Triple(ngsiLdGeoProperty.name, true, null))
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdGeoProperty.name,
+                    ngsiLdGeoProperty.instances[0].datasetId,
+                    UpdateOperationResult.APPENDED,
+                    null
+                )
+            )
         } else if (disallowOverwrite) {
             logger.info(
                 "GeoProperty ${ngsiLdGeoProperty.name} already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
             )
             listOf(
-                Triple(
+                UpdateAttributeResult(
                     ngsiLdGeoProperty.name,
-                    false,
+                    ngsiLdGeoProperty.instances[0].datasetId,
+                    UpdateOperationResult.IGNORED,
                     "GeoProperty ${ngsiLdGeoProperty.name} already exists on $entityId " +
                         "and overwrite is not allowed, ignoring"
                 )
@@ -508,7 +549,14 @@ class EntityService(
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0]
             )
-            listOf(Triple(ngsiLdGeoProperty.name, true, null))
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdGeoProperty.name,
+                    ngsiLdGeoProperty.instances[0].datasetId,
+                    UpdateOperationResult.REPLACED,
+                    null
+                )
+            )
         }
     }
 
@@ -520,9 +568,9 @@ class EntityService(
     }
 
     @Transactional
-    fun updateEntityAttributes(id: URI, attributes: List<NgsiLdAttribute>): UpdateResult {
-        val updatedAttributes = mutableListOf<String>()
-        val notUpdatedAttributes = mutableListOf<NotUpdatedDetails>()
+    fun updateEntityAttributes(id: URI, attributes: List<NgsiLdAttribute>): UpdateAttributesResult {
+        val updatedAttributes = mutableListOf<UpdatedAttributeDetails>()
+        val notUpdatedAttributes = mutableListOf<NotUpdatedAttributeDetails>()
 
         attributes.forEach { ngsiLdAttribute ->
             val shortAttributeName = ngsiLdAttribute.compactName
@@ -542,36 +590,64 @@ class EntityService(
                             ngsiLdAttribute.instances[0],
                             ngsiLdAttribute.instances[0].objectId
                         )
-                        updatedAttributes.add(ngsiLdAttribute.name)
+                        updatedAttributes.add(
+                            UpdatedAttributeDetails(
+                                ngsiLdAttribute.name,
+                                ngsiLdAttribute.instances[0].datasetId,
+                                UpdateOperationResult.REPLACED
+                            )
+                        )
                     } else
-                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, "Relationship does not exist"))
+                        notUpdatedAttributes.add(
+                            NotUpdatedAttributeDetails(
+                                ngsiLdAttribute.name,
+                                "Relationship does not exist"
+                            )
+                        )
                 } else if (ngsiLdAttribute is NgsiLdProperty) {
                     val datasetId = ngsiLdAttribute.instances[0].datasetId
                     if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), ngsiLdAttribute.name, datasetId)) {
                         updateEntityAttributeInstance(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(ngsiLdAttribute.name)
+                        updatedAttributes.add(
+                            UpdatedAttributeDetails(
+                                ngsiLdAttribute.name,
+                                datasetId,
+                                UpdateOperationResult.REPLACED
+                            )
+                        )
                     } else {
                         val message = if (datasetId != null)
                             "Property (datasetId: $datasetId) does not exist"
                         else
                             "Property (default instance) does not exist"
-                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, message))
+                        notUpdatedAttributes.add(NotUpdatedAttributeDetails(ngsiLdAttribute.name, message))
                     }
                 } else if (ngsiLdAttribute is NgsiLdGeoProperty) {
                     if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
                         updateLocationPropertyOfEntity(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(ngsiLdAttribute.name)
+                        updatedAttributes.add(
+                            UpdatedAttributeDetails(
+                                ngsiLdAttribute.name,
+                                ngsiLdAttribute.instances[0].datasetId,
+                                UpdateOperationResult.REPLACED
+                            )
+                        )
                     } else
-                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, "GeoProperty does not exist"))
+                        notUpdatedAttributes.add(
+                            NotUpdatedAttributeDetails(
+                                ngsiLdAttribute.name,
+                                "GeoProperty does not exist"
+                            )
+                        )
                 }
             } catch (e: BadRequestDataException) {
                 notUpdatedAttributes.add(
-                    NotUpdatedDetails(ngsiLdAttribute.name, e.message)
+                    NotUpdatedAttributeDetails(ngsiLdAttribute.name, e.message)
                 )
             }
         }
 
-        return UpdateResult(updatedAttributes, notUpdatedAttributes)
+        return UpdateAttributesResult(updatedAttributes, notUpdatedAttributes)
     }
 
     internal fun updateLocationPropertyOfEntity(

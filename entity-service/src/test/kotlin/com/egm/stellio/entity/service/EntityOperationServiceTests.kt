@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.model.NotUpdatedAttributeDetails
+import com.egm.stellio.entity.model.UpdateAttributesResult
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -110,13 +110,13 @@ class EntityOperationServiceTests {
     fun `it should ask to update attributes of entities`() {
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
         every {
             entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
@@ -137,7 +137,7 @@ class EntityOperationServiceTests {
     fun `it should count as error an update which raises a BadRequestDataException`() {
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
@@ -159,17 +159,17 @@ class EntityOperationServiceTests {
     fun `it should count as error not updated attributes in entities`() {
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
         every {
             entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             listOf(
-                NotUpdatedDetails("attribute#1", "reason"),
-                NotUpdatedDetails("attribute#2", "reason")
+                NotUpdatedAttributeDetails("attribute#1", "reason"),
+                NotUpdatedAttributeDetails("attribute#2", "reason")
             )
         )
 
@@ -192,14 +192,14 @@ class EntityOperationServiceTests {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
         every { neo4jRepository.deleteEntityAttributes(secondEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
@@ -226,7 +226,7 @@ class EntityOperationServiceTests {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
@@ -249,18 +249,18 @@ class EntityOperationServiceTests {
         every { neo4jRepository.deleteEntityAttributes(firstEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             emptyList()
         )
         every { neo4jRepository.deleteEntityAttributes(secondEntityURI) } returns mockk()
         every {
             entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
-        } returns UpdateResult(
+        } returns UpdateAttributesResult(
             emptyList(),
             listOf(
-                NotUpdatedDetails("attribute#1", "reason"),
-                NotUpdatedDetails("attribute#2", "reason")
+                NotUpdatedAttributeDetails("attribute#1", "reason"),
+                NotUpdatedAttributeDetails("attribute#2", "reason")
             )
         )
 

@@ -201,7 +201,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if time is not parseable`() {
+    fun `it should raise a 400 if time is not parseable`() { 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before&time=badTime")
             .exchange()

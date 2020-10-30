@@ -342,7 +342,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -403,7 +403,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -495,7 +495,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -537,7 +537,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
                         temporalQuery.attrs == setOf("incoming")
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
@@ -627,12 +627,12 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should treat time and timerel properties as optional and give them default values`() {
+    fun `it should treat time and timerel properties as optional`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
         val temporalQuery = buildTemporalQuery(queryParams)
 
-        assertEquals(ZonedDateTime.parse("1970-01-01T00:00:00Z"), temporalQuery.time)
-        assertEquals(TemporalQuery.Timerel.AFTER, temporalQuery.timerel)
+        assertEquals(null, temporalQuery.time)
+        assertEquals(null, temporalQuery.timerel)
     }
 }

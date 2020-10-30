@@ -112,6 +112,20 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should retrieve all known observations and return the filled entity without timerel and time parameters`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 10
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should aggregate all observations for a day and return the filled entity`() {
         (1..10).forEach { _ ->
             val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)

@@ -161,10 +161,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
     val (timerel, time) = if (timerelParam == null && timeParam == null) {
-        Pair(
-            TemporalQuery.Timerel.AFTER,
-            ("1970-01-01T00:00:00Z").parseTimeParameter("")
-        )
+        Pair(null, null)
     } else if (timerelParam != null && timeParam != null) {
         val timeRelTemp: TemporalQuery.Timerel
         try {
@@ -174,7 +171,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         }
         Pair(timeRelTemp, timeParam.parseTimeParameter("'time' parameter is not a valid date"))
     } else {
-        throw BadRequestDataException("'timerel' and 'time' must be both present")
+        throw BadRequestDataException("'timerel' and 'time' must be used in conjunction")
     }
 
     val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
@@ -184,8 +181,8 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
 
     val aggregate =
         if (aggregateParam != null)
-            if (TemporalQuery.Aggregate.isSupportedAggregate(aggregateParam!!))
-                TemporalQuery.Aggregate.valueOf(aggregateParam!!)
+            if (TemporalQuery.Aggregate.isSupportedAggregate(aggregateParam))
+                TemporalQuery.Aggregate.valueOf(aggregateParam)
             else
                 throw BadRequestDataException(
                     "Value '$aggregateParam' is not supported for 'aggregate' parameter"

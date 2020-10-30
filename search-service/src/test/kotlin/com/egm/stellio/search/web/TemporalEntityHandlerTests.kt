@@ -262,7 +262,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must both be provided for aggregated queries"
+                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
                 } 
                 """
             )

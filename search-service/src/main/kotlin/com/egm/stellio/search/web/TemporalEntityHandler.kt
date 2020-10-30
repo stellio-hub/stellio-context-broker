@@ -177,18 +177,16 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
 
     if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
-        throw BadRequestDataException("'timeBucket' and 'aggregate' must both be provided for aggregated queries")
+        throw BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction")
 
-    val aggregate =
-        if (aggregateParam != null)
-            if (TemporalQuery.Aggregate.isSupportedAggregate(aggregateParam))
-                TemporalQuery.Aggregate.valueOf(aggregateParam)
-            else
-                throw BadRequestDataException(
-                    "Value '$aggregateParam' is not supported for 'aggregate' parameter"
-                )
+    val aggregate = aggregateParam?.let {
+        if (TemporalQuery.Aggregate.isSupportedAggregate(it))
+            TemporalQuery.Aggregate.valueOf(it)
         else
-            null
+            throw BadRequestDataException(
+                "Value '$it' is not supported for 'aggregate' parameter"
+            )
+    }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
         if (it >= 1) it else null

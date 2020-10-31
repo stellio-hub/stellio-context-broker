@@ -219,7 +219,7 @@ class EntityServiceTests {
         every { mockkedRelationship setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns emptyList()
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId".toUri()
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
@@ -518,7 +518,7 @@ class EntityServiceTests {
         every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns emptyList()
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
@@ -695,7 +695,7 @@ class EntityServiceTests {
         )
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns listOf()
         every {
             neo4jRepository.createPropertyOfSubject(any(), any())
         } returns UUID.randomUUID().toString().toUri()
@@ -856,7 +856,7 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns listOf()
 
         entityService.deleteEntityAttribute(entityId, "https://ontology.eglobalmark.com/aquac#fishNumber")
 
@@ -888,7 +888,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns false
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.deleteEntityRelationship(any(), any(), any(), any()) } returns 1
+        every { neo4jRepository.deleteEntityRelationship(any(), any(), any(), any()) } returns emptyList()
 
         entityService.deleteEntityAttributeInstance(
             entityId,

@@ -190,7 +190,8 @@ class EntityHandler(
             disallowOverwrite
         )
 
-        publishAppendAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
+        if (updateAttributesResult.updated.isNotEmpty())
+            publishAppendAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
 
         return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -230,7 +231,8 @@ class EntityHandler(
         val updateAttributesResult =
             entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
 
-        publishUpdateAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
+        if (updateAttributesResult.updated.isNotEmpty())
+            publishUpdateAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
 
         return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -266,8 +268,22 @@ class EntityHandler(
 
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
+        val updatedAttributes = entityService.updateEntityAttribute(entityId.toUri(), attrId, body, contexts)
 
-        entityService.updateEntityAttribute(entityId.toUri(), attrId, body, contexts)
+        if (updatedAttributes > 0) {
+            val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+            entityEventService.publishEntityEvent(
+                AttributeUpdateEvent(
+                    entityId.toUri(),
+                    attrId,
+                    null,
+                    body,
+                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                    contexts
+                ),
+                updatedEntity.type.extractShortTypeFromExpanded()
+            )
+        }
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -292,14 +308,30 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-        val result = if (deleteAll)
+        val deletedInstances = if (deleteAll)
             entityService.deleteEntityAttribute(entityId.toUri(), expandJsonLdKey(attrId, contexts)!!)
         else
             entityService.deleteEntityAttributeInstance(
                 entityId.toUri(), expandJsonLdKey(attrId, contexts)!!, datasetId
             )
 
-        return if (result)
+        if (deletedInstances.isNotEmpty()) {
+            val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+            deletedInstances.forEach {
+                entityEventService.publishEntityEvent(
+                    AttributeDeleteEvent(
+                        entityId.toUri(),
+                        attrId,
+                        it,
+                        JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+            }
+        }
+
+        return if (deletedInstances.isNotEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
@@ -309,12 +341,12 @@ class EntityHandler(
     private fun publishAppendAttributesEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
-        updateAttributesResult: UpdateAttributesResult,
+        appendAttributesResult: UpdateAttributesResult,
         contexts: List<String>
     ) {
         val updatedEntity = entityService.getFullEntityById(entityId, true)
 
-        updateAttributesResult.updated.forEach { updatedAttributeDetails ->
+        appendAttributesResult.updated.forEach { updatedAttributeDetails ->
             if (updatedAttributeDetails.updateOperationResult == UpdateOperationResult.APPENDED)
                 entityEventService.publishEntityEvent(
                     AttributeAppendEvent(

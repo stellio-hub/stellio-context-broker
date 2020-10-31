@@ -727,7 +727,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete all property instances`() {
+    fun `it should delete all property instances and return the deleted dataset ids`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
@@ -741,9 +741,12 @@ class Neo4jRepositoryTests {
                 Property(name = "lastName", value = "Charity")
             )
         )
-        neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName", null, true)
+        val deletedDatasetIds = neo4jRepository.deleteEntityProperty(
+            EntitySubjectNode(entity.id), "firstName", null, true
+        )
 
         assertEquals(entityRepository.findById(entity.id).get().properties.size, 1)
+        assertTrue(deletedDatasetIds.containsAll(listOf("urn:ngsi-ld:Dataset:firstName:2".toUri(), null)))
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -763,7 +766,9 @@ class Neo4jRepositoryTests {
             )
         )
 
-        neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName")
+        val deletedDatasetIds = neo4jRepository.deleteEntityProperty(
+            EntitySubjectNode(entity.id), "firstName"
+        )
 
         val properties = entityRepository.findById(entity.id).get().properties
         assertNull(
@@ -780,6 +785,7 @@ class Neo4jRepositoryTests {
                     it.datasetId == "urn:ngsi-ld:Dataset:firstName:2".toUri()
             }
         )
+        assertEquals(deletedDatasetIds, listOf(null))
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -799,7 +805,7 @@ class Neo4jRepositoryTests {
             )
         )
 
-        neo4jRepository.deleteEntityProperty(
+        val deletedDatasetIds = neo4jRepository.deleteEntityProperty(
             EntitySubjectNode(entity.id),
             "firstName",
             "urn:ngsi-ld:Dataset:firstName:2".toUri()
@@ -820,6 +826,7 @@ class Neo4jRepositoryTests {
                     it.datasetId == null
             }
         )
+        assertEquals(deletedDatasetIds, listOf("urn:ngsi-ld:Dataset:firstName:2".toUri()))
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -832,7 +839,7 @@ class Neo4jRepositoryTests {
             EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, "urn:ngsi-ld:Dataset:observedBy:01".toUri()
         )
 
-        neo4jRepository.deleteEntityRelationship(
+        val deletedDatasetIds = neo4jRepository.deleteEntityRelationship(
             EntitySubjectNode(sensor.id),
             EGM_OBSERVED_BY.toRelationshipTypeName(),
             null,
@@ -840,6 +847,7 @@ class Neo4jRepositoryTests {
         )
 
         assertEquals(entityRepository.findById(sensor.id).get().relationships.size, 0)
+        assertTrue(deletedDatasetIds.containsAll(listOf("urn:ngsi-ld:Dataset:observedBy:01".toUri(), null)))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -856,7 +864,9 @@ class Neo4jRepositoryTests {
             "urn:ngsi-ld:Dataset:observedBy:01".toUri()
         )
 
-        neo4jRepository.deleteEntityRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName())
+        val deletedDatasetIds = neo4jRepository.deleteEntityRelationship(
+            EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName()
+        )
 
         val relationships = entityRepository.findById(sensor.id).get().relationships
         assertNull(
@@ -871,7 +881,7 @@ class Neo4jRepositoryTests {
                     it.datasetId == "urn:ngsi-ld:Dataset:observedBy:01".toUri()
             }
         )
-
+        assertEquals(deletedDatasetIds, listOf(null))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }
@@ -888,7 +898,7 @@ class Neo4jRepositoryTests {
             "urn:ngsi-ld:Dataset:observedBy:01".toUri()
         )
 
-        neo4jRepository.deleteEntityRelationship(
+        val deletedDatasetIds = neo4jRepository.deleteEntityRelationship(
             EntitySubjectNode(sensor.id),
             EGM_OBSERVED_BY.toRelationshipTypeName(),
             "urn:ngsi-ld:Dataset:observedBy:01".toUri()
@@ -907,6 +917,7 @@ class Neo4jRepositoryTests {
                     it.datasetId == null
             }
         )
+        assertEquals(deletedDatasetIds, listOf("urn:ngsi-ld:Dataset:observedBy:01".toUri()))
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
     }

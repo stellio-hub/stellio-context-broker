@@ -674,11 +674,11 @@ class EntityService(
     fun deleteEntity(entityId: URI) = neo4jRepository.deleteEntity(entityId)
 
     @Transactional
-    fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): Boolean {
+    fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): List<URI?> {
         if (neo4jRepository.hasPropertyOfName(EntitySubjectNode(entityId), expandedAttributeName))
             return neo4jRepository.deleteEntityProperty(
                 subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true
-            ) >= 1
+            )
         else if (neo4jRepository.hasRelationshipOfType(
             EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
         )
@@ -686,18 +686,18 @@ class EntityService(
             return neo4jRepository.deleteEntityRelationship(
                 subjectNodeInfo = EntitySubjectNode(entityId),
                 relationshipType = expandedAttributeName.toRelationshipTypeName(), deleteAll = true
-            ) >= 1
+            )
 
         throw ResourceNotFoundException("Attribute $expandedAttributeName not found in entity $entityId")
     }
 
     @Transactional
-    fun deleteEntityAttributeInstance(entityId: URI, expandedAttributeName: String, datasetId: URI?): Boolean {
+    fun deleteEntityAttributeInstance(entityId: URI, expandedAttributeName: String, datasetId: URI?): List<URI?> {
         if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(entityId), expandedAttributeName, datasetId))
             return neo4jRepository.deleteEntityProperty(
                 EntitySubjectNode(entityId),
                 expandedAttributeName, datasetId
-            ) >= 1
+            )
         else if (neo4jRepository.hasRelationshipInstance(
             EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
         )
@@ -706,7 +706,7 @@ class EntityService(
                 EntitySubjectNode(entityId),
                 expandedAttributeName.toRelationshipTypeName(),
                 datasetId
-            ) >= 1
+            )
 
         if (datasetId != null)
             throw ResourceNotFoundException(

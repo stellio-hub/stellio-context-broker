@@ -393,7 +393,7 @@ class Neo4jRepository(
         propertyName: String,
         datasetId: URI? = null,
         deleteAll: Boolean = false
-    ): Int {
+    ): List<URI?> {
         /**
          * Delete :
          *
@@ -421,7 +421,8 @@ class Neo4jRepository(
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
+        return session.query(matchQuery + deleteAttributeAndReturnDatasetIdQuery, parameters).toList()
+            .map { it["datasetId"]?.toString()?.toUri() }
     }
 
     fun deleteEntityRelationship(
@@ -429,7 +430,7 @@ class Neo4jRepository(
         relationshipType: String,
         datasetId: URI? = null,
         deleteAll: Boolean = false
-    ): Int {
+    ): List<URI?> {
         /**
          * Delete :
          *
@@ -456,7 +457,8 @@ class Neo4jRepository(
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
+        return session.query(matchQuery + deleteAttributeAndReturnDatasetIdQuery, parameters).toList()
+            .map { it["datasetId"]?.toString()?.toUri() }
     }
 
     fun getEntitiesByTypeAndQuery(
@@ -634,6 +636,15 @@ class Neo4jRepository(
         WITH entity, attribute, propOfAttribute
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
+        """.trimIndent()
+
+    private val deleteAttributeAndReturnDatasetIdQuery =
+        """
+        OPTIONAL MATCH (attribute)-[:HAS_VALUE]->(propOfAttribute:Property)
+        WITH entity, attribute, propOfAttribute, attribute.datasetId as datasetId
+        OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
+        DETACH DELETE attribute, propOfAttribute, relOfAttribute
+        RETURN datasetId
         """.trimIndent()
 
     @PostConstruct

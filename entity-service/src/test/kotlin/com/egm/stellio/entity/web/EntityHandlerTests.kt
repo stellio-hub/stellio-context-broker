@@ -1115,24 +1115,50 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val attrId = "fishNumber"
 
         every { entityService.exists(any()) } returns true
         every { entityService.updateEntityAttribute(any(), any(), any(), any()) } returns 1
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to entityId.toString(),
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonLdFile)
+            .bodyValue(jsonPayload)
             .exchange()
             .expectStatus().isNoContent
 
         verify { entityService.exists(entityId) }
         verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(listOf(aquacContext!!))) }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeUpdateEvent
+                    it.operationType == EventsType.ATTRIBUTE_UPDATE &&
+                        it.entityId == entityId &&
+                        it.attributeName == attrId &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(jsonPayload) &&
+                        it.updatedEntity.contains(entityId.toString()) &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "DeadFishes"
+            )
+        }
+
         confirmVerified(entityService)
     }
 
@@ -1576,11 +1602,19 @@ class EntityHandlerTests {
 
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
-        every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
-
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+
+        every { entityService.exists(any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns listOf(null)
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to entityId.toString(),
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
@@ -1598,15 +1632,35 @@ class EntityHandlerTests {
                 null
             )
         }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeDeleteEvent
+                    it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.updatedEntity.contains(entityId.toString()) &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "DeadFishes"
+            )
+        }
         confirmVerified(entityService)
     }
 
     @Test
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val events = mutableListOf<EntityEvent>()
+
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttribute(any(), any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any()) } returns
+            listOf(null, "urn:ngsi-ld:Dataset:fishNumber:1".toUri())
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
@@ -1623,6 +1677,18 @@ class EntityHandlerTests {
                 eq("https://ontology.eglobalmark.com/aquac#fishNumber")
             )
         }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), any()) }
+        events.forEach {
+            it as AttributeDeleteEvent
+            assertTrue(
+                it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                    it.entityId == entityId &&
+                    it.attributeName == "fishNumber" &&
+                    (it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri()) &&
+                    it.contexts == listOf(aquacContext)
+            )
+        }
         confirmVerified(entityService)
     }
 
@@ -1630,8 +1696,11 @@ class EntityHandlerTests {
     fun `delete entity attribute should delete instance with the provided datasetId`() {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns
+            listOf("urn:ngsi-ld:Dataset:fishNumber:1".toUri())
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
@@ -1647,6 +1716,20 @@ class EntityHandlerTests {
                 eq(entityId),
                 eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
                 "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+            )
+        }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeDeleteEvent
+                    it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri() &&
+                        it.contexts == listOf(aquacContext)
+                },
+                any()
             )
         }
         confirmVerified(entityService)
@@ -1667,6 +1750,8 @@ class EntityHandlerTests {
                     "\"title\":\"The referred resource has not been found\"," +
                     "\"detail\":\"Entity urn:ngsi-ld:DeadFishes:019BN does not exist\"}"
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -1706,7 +1791,7 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 500 if the attribute could not be deleted`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns false
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns emptyList()
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
 

@@ -695,7 +695,7 @@ class EntityServiceTests {
         )
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns listOf()
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns emptyList()
         every {
             neo4jRepository.createPropertyOfSubject(any(), any())
         } returns UUID.randomUUID().toString().toUri()
@@ -856,7 +856,7 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 
         every { neo4jRepository.hasPropertyOfName(any(), any()) } returns true
-        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns listOf()
+        every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns emptyList()
 
         entityService.deleteEntityAttribute(entityId, "https://ontology.eglobalmark.com/aquac#fishNumber")
 

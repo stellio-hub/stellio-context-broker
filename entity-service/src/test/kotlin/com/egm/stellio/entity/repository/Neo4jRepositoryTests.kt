@@ -751,7 +751,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete the property default instance`() {
+    fun `it should delete the property default instance and return the deleted dataset ids`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
@@ -790,7 +790,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete the property instance with the given datasetId`() {
+    fun `it should delete the property instance with the given datasetId and return the deleted dataset ids`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
@@ -831,7 +831,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete all relationship instances`() {
+    fun `it should delete all relationship instances and return the deleted dataset ids`() {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
@@ -853,7 +853,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete the relationship default instance`() {
+    fun `it should delete the relationship default instance and return the deleted dataset ids`() {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
@@ -887,7 +887,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should delete the relationship instance with the given datasetId`() {
+    fun `it should delete the relationship instance with the given datasetId and return the deleted dataset ids`() {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)

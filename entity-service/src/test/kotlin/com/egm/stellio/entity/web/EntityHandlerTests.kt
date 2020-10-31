@@ -982,7 +982,7 @@ class EntityHandlerTests {
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify(timeout = 1000, exactly = 1) {
+        verify {
             entityEventService.publishEntityEvent(
                 match {
                     it as AttributeAppendEvent
@@ -1076,6 +1076,7 @@ class EntityHandlerTests {
             )
 
         verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214".toUri())) }
+        verify { entityEventService wasNot called }
 
         confirmVerified()
     }
@@ -1185,6 +1186,8 @@ class EntityHandlerTests {
                 } 
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test

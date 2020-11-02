@@ -1,8 +1,6 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
@@ -164,14 +162,13 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
     val endTimeResult = endTimeParam?.parseTimeParameterwithEither("'endTime' parameter is not a valid date")
-    val endTime = when (endTimeResult) {
-        is Either.Right -> endTimeResult.b
-        is Either.Left -> throw BadRequestDataException(endTimeResult.a)
-        else -> null
+
+    val endTime = endTimeResult?.getOrHandle {
+        throw BadRequestDataException(it)
     }
-    val (timerel, time) = when (val result = buildTimerelAndTime(timerelParam, timeParam)) {
-        is Either.Right -> result.b
-        is Either.Left -> throw BadRequestDataException(result.a)
+
+    val (timerel, time) = buildTimerelAndTime(timerelParam, timeParam).getOrHandle {
+        throw BadRequestDataException(it)
     }
 
     if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
@@ -212,15 +209,9 @@ internal fun buildTimerelAndTime(
             "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
         }
 
-        val timeResult = timeParam.parseTimeParameterwithEither("'time' parameter is not a valid date")
-
-        when (timeRelResult) {
-            is Either.Right -> when (timeResult) {
-                is Either.Right -> Pair(timeRelResult.b, timeResult.b).right()
-                is Either.Left -> timeResult.a.left()
-            }
-            is Either.Left ->
-                timeRelResult.a.left()
+        timeRelResult.flatMap { timerel ->
+            timeParam.parseTimeParameterwithEither("'time' parameter is not a valid date")
+            .map { Pair(timerel, it) }
         }
     } else {
         "'timerel' and 'time' must be used in conjunction".left()

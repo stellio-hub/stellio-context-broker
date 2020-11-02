@@ -463,6 +463,7 @@ class TemporalEntityHandlerTests {
             .expectBody().jsonPath("$").isMap
             .jsonPath("$.incoming.length()").isEqualTo(2)
             .jsonPath("$.outgoing.length()").isEqualTo(2)
+            .jsonPath("$.connectsTo").doesNotExist()
     }
 
     @Test

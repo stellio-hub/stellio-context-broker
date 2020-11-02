@@ -109,9 +109,15 @@ class TemporalEntityHandler(
             withTemporalValues
         )
 
+        // filter on temporal attributes by default
+        val attributesToFilter = if (temporalQuery.attrs.isNotEmpty())
+            temporalQuery.attrs
+        else
+            attributeAndResultsMap.keys.map { it.attributeName }.toSet()
+
         val compactedJsonLdEntity = JsonLdUtils.filterCompactedEntityOnAttributes(
             jsonLdEntityWithTemporalValues.compact(),
-            temporalQuery.attrs
+            attributesToFilter
         )
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedJsonLdEntity))
     }

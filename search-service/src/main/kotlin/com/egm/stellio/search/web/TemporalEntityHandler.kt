@@ -211,7 +211,9 @@ internal fun buildTimerelAndTime(
 
         timeRelResult.flatMap { timerel ->
             timeParam.parseTimeParameterwithEither("'time' parameter is not a valid date")
-            .map { Pair(timerel, it) }
+                .map {
+                    Pair(timerel, it)
+                }
         }
     } else {
         "'timerel' and 'time' must be used in conjunction".left()

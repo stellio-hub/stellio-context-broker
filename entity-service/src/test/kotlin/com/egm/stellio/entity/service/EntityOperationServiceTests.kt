@@ -3,7 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.NotUpdatedAttributeDetails
 import com.egm.stellio.entity.model.UpdateAttributesResult
 import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.web.BatchEntityError
+import com.egm.stellio.entity.web.*
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.toUri
@@ -80,7 +80,7 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.create(listOf(firstEntity, secondEntity))
 
         assertEquals(
-            arrayListOf(firstEntityURI, secondEntityURI),
+            arrayListOf(firstEntityURI, secondEntityURI).map { BatchEntityCreateSuccess(it) },
             batchOperationResult.success
         )
         assertTrue(batchOperationResult.errors.isEmpty())
@@ -97,7 +97,7 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.create(listOf(firstEntity, secondEntity))
 
-        assertEquals(arrayListOf(firstEntityURI), batchOperationResult.success)
+        assertEquals(mutableListOf(BatchEntityCreateSuccess(firstEntityURI)), batchOperationResult.success)
         assertEquals(
             arrayListOf(
                 BatchEntityError(secondEntityURI, arrayListOf("Invalid entity"))
@@ -124,7 +124,8 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
 
         assertEquals(
-            listOf(firstEntityURI, secondEntityURI),
+            listOf(firstEntityURI, secondEntityURI)
+                .map { BatchEntityUpdateSuccess(it, UpdateAttributesResult(emptyList(), emptyList())) },
             batchOperationResult.success
         )
 
@@ -148,41 +149,12 @@ class EntityOperationServiceTests {
         val batchOperationResult =
             entityOperationService.update(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
+        assertEquals(
+            mutableListOf(BatchEntityUpdateSuccess(firstEntityURI, UpdateAttributesResult(emptyList(), emptyList()))),
+            batchOperationResult.success
+        )
         assertEquals(
             listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
-            batchOperationResult.errors
-        )
-    }
-
-    @Test
-    fun `it should count as error not updated attributes in entities`() {
-        every {
-            entityService.appendEntityAttributes(eq(firstEntityURI), any(), any())
-        } returns UpdateAttributesResult(
-            emptyList(),
-            emptyList()
-        )
-        every {
-            entityService.appendEntityAttributes(eq(secondEntityURI), any(), any())
-        } returns UpdateAttributesResult(
-            emptyList(),
-            listOf(
-                NotUpdatedAttributeDetails("attribute#1", "reason"),
-                NotUpdatedAttributeDetails("attribute#2", "reason")
-            )
-        )
-
-        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
-
-        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
-        assertEquals(
-            listOf(
-                BatchEntityError(
-                    secondEntityURI,
-                    arrayListOf("attribute#1 : reason", "attribute#2 : reason")
-                )
-            ),
             batchOperationResult.errors
         )
     }
@@ -207,7 +179,7 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
         assertEquals(
-            listOf(firstEntityURI, secondEntityURI),
+            listOf(firstEntityURI, secondEntityURI).map { BatchEntityReplaceSuccess(it, emptyList()) },
             batchOperationResult.success
         )
         assertTrue(batchOperationResult.errors.isEmpty())
@@ -237,7 +209,10 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
+        assertEquals(
+            mutableListOf(BatchEntityReplaceSuccess(firstEntityURI, emptyList())),
+            batchOperationResult.success
+        )
         assertEquals(
             listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
             batchOperationResult.errors
@@ -266,7 +241,10 @@ class EntityOperationServiceTests {
 
         val batchOperationResult = entityOperationService.replace(listOf(firstEntity, secondEntity))
 
-        assertEquals(listOf(firstEntityURI), batchOperationResult.success)
+        assertEquals(
+            mutableListOf(BatchEntityReplaceSuccess(firstEntityURI, emptyList())),
+            batchOperationResult.success
+        )
         assertEquals(
             listOf(
                 BatchEntityError(
@@ -285,7 +263,7 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
         assertEquals(
-            listOf(firstEntityURI, secondEntityURI),
+            listOf(firstEntityURI, secondEntityURI).map { BatchEntityDeleteSuccess(it) },
             batchOperationResult.success
         )
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
@@ -305,7 +283,7 @@ class EntityOperationServiceTests {
         val batchOperationResult = entityOperationService.delete(setOf(firstEntityURI, secondEntityURI))
 
         assertEquals(
-            listOf(firstEntityURI),
+            mutableListOf(BatchEntityDeleteSuccess(firstEntityURI)),
             batchOperationResult.success
         )
         assertEquals(

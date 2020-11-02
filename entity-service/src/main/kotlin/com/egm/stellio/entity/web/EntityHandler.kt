@@ -191,7 +191,7 @@ class EntityHandler(
         )
 
         if (updateAttributesResult.updated.isNotEmpty())
-            publishAppendAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
+            publishAppendEntityAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
 
         return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -232,7 +232,7 @@ class EntityHandler(
             entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
 
         if (updateAttributesResult.updated.isNotEmpty())
-            publishUpdateAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
+            publishUpdateEntityAttributesEvents(entityId.toUri(), jsonLdAttributes, updateAttributesResult, contexts)
 
         return if (updateAttributesResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -338,7 +338,7 @@ class EntityHandler(
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
     }
 
-    private fun publishAppendAttributesEvents(
+    fun publishAppendEntityAttributesEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         appendAttributesResult: UpdateAttributesResult,
@@ -382,7 +382,7 @@ class EntityHandler(
         }
     }
 
-    private fun publishUpdateAttributesEvents(
+    private fun publishUpdateEntityAttributesEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updateAttributesResult: UpdateAttributesResult,

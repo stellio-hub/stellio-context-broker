@@ -418,6 +418,7 @@ class EntityOperationHandlerTests {
             )
 
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify { entityEventService wasNot called }
         confirmVerified()
     }
 
@@ -513,6 +514,8 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { entityHandler wasNot called }
     }
 
     @Test
@@ -585,6 +588,7 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 400 if JSON-LD payload is not correct`() {
         shouldReturn400WithBadPayload("upsert")
+        verify { entityHandler wasNot called }
     }
 
     private fun shouldReturn400WithBadPayload(method: String) {
@@ -609,7 +613,13 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `delete batch for correct entities should return a 200 with explicit success message`() {
+        val deletedEntitiesIds = listOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        )
         val entitiesIds = slot<List<URI>>()
+        val channelName = slot<String>()
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
             Pair(
                 entitiesIds.captured,
@@ -627,13 +637,13 @@ class EntityOperationHandlerTests {
         val computedEntitiesIdsToDelete = slot<Set<URI>>()
         every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
             BatchOperationResult(
-                listOf(
-                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-                ).map { BatchEntityDeleteSuccess(it) }.toMutableList(),
+                deletedEntitiesIds.map { BatchEntityDeleteSuccess(it) }.toMutableList(),
                 mutableListOf()
             )
+        every { entityOperationService.getEntityType(deletedEntitiesIds[0]) } returns "Sensor"
+        every { entityOperationService.getEntityType(deletedEntitiesIds[1]) } returns "Sensor"
+        every { entityOperationService.getEntityType(deletedEntitiesIds[2]) } returns "Device"
+        every { entityEventService.publishEntityEvent(any(), capture(channelName)) } returns true as java.lang.Boolean
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
@@ -643,6 +653,16 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json(batchFullSuccessResponse)
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityDeleteEvent
+                    it.entityId in deletedEntitiesIds
+                },
+                any()
+            )
+        }
+        assertTrue(channelName.captured in listOf("Sensor", "Device"))
     }
 
     @Test
@@ -691,6 +711,7 @@ class EntityOperationHandlerTests {
             )
         assertEquals(emptyList<String>(), existingEntitiesIds.captured)
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -738,6 +759,7 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+        verify { entityEventService wasNot called }
     }
 
     private fun getExpectedEntitiesEventsOperationPayload(

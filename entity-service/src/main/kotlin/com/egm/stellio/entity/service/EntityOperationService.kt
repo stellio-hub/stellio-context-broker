@@ -173,4 +173,6 @@ class EntityOperationService(
             entity.id,
             entityService.appendEntityAttributes(entity.id, entity.attributes, false)
         )
+
+    fun getEntityType(entityId: URI) = entityService.getEntityType(entityId)
 }

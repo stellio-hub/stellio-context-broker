@@ -157,6 +157,10 @@ class EntityOperationHandler(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
 
+        batchOperationResult.success.map { it.entityId }.forEach {
+            entityEventService.publishEntityEvent(EntityDeleteEvent(it), entityOperationService.getEntityType(it))
+        }
+
         return ResponseEntity.status(HttpStatus.OK).body(
             BatchOperationResponse(
                 batchOperationResult.success.map { it.entityId }.toMutableList(),

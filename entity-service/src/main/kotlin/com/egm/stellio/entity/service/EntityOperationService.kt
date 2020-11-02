@@ -7,6 +7,7 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.*
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -159,14 +160,17 @@ class EntityOperationService(
             )
         } else {
             throw BadRequestDataException(
-                ArrayList(notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
+                ArrayList(
+                    notUpdated
+                        .map { it.attributeName.extractShortTypeFromExpanded() + " : " + it.reason }
+                ).joinToString()
             )
         }
     }
 
     private fun updateEntity(entity: NgsiLdEntity): BatchEntityUpdateSuccess =
         BatchEntityUpdateSuccess(
-         entity.id,
+            entity.id,
             entityService.appendEntityAttributes(entity.id, entity.attributes, false)
         )
 }

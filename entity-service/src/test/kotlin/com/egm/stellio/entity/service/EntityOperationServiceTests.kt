@@ -249,7 +249,7 @@ class EntityOperationServiceTests {
             listOf(
                 BatchEntityError(
                     secondEntityURI,
-                    arrayListOf("attribute#1 : reason, attribute#2 : reason")
+                    arrayListOf("1 : reason, 2 : reason")
                 )
             ),
             batchOperationResult.errors

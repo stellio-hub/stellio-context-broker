@@ -58,10 +58,12 @@ class EntityOperationHandler(
                 )
             }
 
-        return ResponseEntity.status(HttpStatus.OK).body(BatchOperationResponse(
-            batchOperationResult.success.map { it.entityId }.toMutableList(),
-            batchOperationResult.errors
-        ))
+        return ResponseEntity.status(HttpStatus.OK).body(
+            BatchOperationResponse(
+                batchOperationResult.success.map { it.entityId }.toMutableList(),
+                batchOperationResult.errors
+            )
+        )
     }
 
     private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {
@@ -124,7 +126,7 @@ class EntityOperationHandler(
 
         publishUpsertEvents(batchOperationResult, extractedEntities, jsonLdEntities, ngsiLdEntities)
 
-        val batchOperationResponse = if(options == "update")
+        val batchOperationResponse = if (options == "update")
             buildBatchUpdateOperationResponse(createBatchOperationResult, updateBatchOperationResult)
         else
             BatchOperationResponse(
@@ -155,17 +157,19 @@ class EntityOperationHandler(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(BatchOperationResponse(
-            batchOperationResult.success.map { it.entityId }.toMutableList(),
-            batchOperationResult.errors
-        ))
+        return ResponseEntity.status(HttpStatus.OK).body(
+            BatchOperationResponse(
+                batchOperationResult.success.map { it.entityId }.toMutableList(),
+                batchOperationResult.errors
+            )
+        )
     }
 
     private fun extractAndParseBatchOfEntities(payload: String):
         Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
-        JsonUtils.parseListOfEntities(payload)
-            .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
-            .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() })}
+            JsonUtils.parseListOfEntities(payload)
+                .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
+                .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
 
     private fun buildBatchUpdateOperationResponse(
         createBatchOperationResult: BatchOperationResult,
@@ -173,21 +177,32 @@ class EntityOperationHandler(
     ) = updateBatchOperationResult.success
         .map { it as BatchEntityUpdateSuccess }
         .partition { it.updateAttributesResult.notUpdated.isEmpty() }
-        .let { BatchOperationResult(
-            it.first.toMutableList(),
-            it.second.map { BatchEntityError(
-                it.entityId,
-                ArrayList(it.updateAttributesResult.notUpdated.map { it.reason })
-            ) }.toMutableList()
-        )}
-        .let { BatchOperationResult(
-            ArrayList(createBatchOperationResult.success.plus(it.success)),
-            ArrayList(createBatchOperationResult.errors.plus(it.errors))
-        ) }
-        .let { BatchOperationResponse(
-            it.success.map { it.entityId }.toMutableList(),
-            it.errors
-        ) }
+        .let {
+            BatchOperationResult(
+                it.first.toMutableList(),
+                it.second.map {
+                    BatchEntityError(
+                        it.entityId,
+                        ArrayList(
+                            it.updateAttributesResult.notUpdated
+                                .map { it.attributeName.extractShortTypeFromExpanded() + " : " + it.reason }
+                        )
+                    )
+                }.toMutableList()
+            )
+        }
+        .let {
+            BatchOperationResult(
+                ArrayList(createBatchOperationResult.success.plus(it.success)),
+                ArrayList(createBatchOperationResult.errors.plus(it.errors))
+            )
+        }
+        .let {
+            BatchOperationResponse(
+                it.success.map { it.entityId }.toMutableList(),
+                it.errors
+            )
+        }
 
     private fun publishUpsertEvents(
         batchOperationResult: BatchOperationResult,
@@ -200,21 +215,25 @@ class EntityOperationHandler(
                 is BatchEntityCreateSuccess -> entityEventService.publishEntityEvent(
                     EntityCreateEvent(
                         it.entityId,
-                        serializeObject(extractEntityPayloadById(extractedEntities, it.entityId)
-                        )),
-                    ngsiLdEntities.find { ngsiLdEntity ->  ngsiLdEntity.id ==  it.entityId }!!
+                        serializeObject(
+                            extractEntityPayloadById(extractedEntities, it.entityId)
+                        )
+                    ),
+                    ngsiLdEntities.find { ngsiLdEntity -> ngsiLdEntity.id == it.entityId }!!
                         .let { it.type.extractShortTypeFromExpanded() }
                 )
                 is BatchEntityReplaceSuccess -> entityEventService.publishEntityEvent(
                     EntityReplaceEvent(
                         it.entityId,
-                        serializeObject(extractEntityPayloadById(extractedEntities, it.entityId)
-                        )),
-                    ngsiLdEntities.find { ngsiLdEntity ->  ngsiLdEntity.id ==  it.entityId }!!
+                        serializeObject(
+                            extractEntityPayloadById(extractedEntities, it.entityId)
+                        )
+                    ),
+                    ngsiLdEntities.find { ngsiLdEntity -> ngsiLdEntity.id == it.entityId }!!
                         .let { it.type.extractShortTypeFromExpanded() }
                 )
                 is BatchEntityUpdateSuccess -> {
-                    val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId  }!!
+                    val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
                     entityHandler.publishAppendEntityAttributesEvents(
                         it.entityId,
                         jsonLdEntity.properties,

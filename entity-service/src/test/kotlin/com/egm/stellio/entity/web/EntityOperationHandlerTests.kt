@@ -53,7 +53,6 @@ class EntityOperationHandlerTests {
     @MockkBean
     private lateinit var entityEventService: EntityEventService
 
-
     private val batchFullSuccessResponse =
         """
         {
@@ -62,6 +61,17 @@ class EntityOperationHandlerTests {
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
                 "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+            ]
+        }
+        """.trimIndent()
+
+    private val batchUpsertFullSuccessResponse =
+        """
+        {
+            "errors": [],
+            "success": [
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen"
             ]
         }
         """.trimIndent()
@@ -85,8 +95,10 @@ class EntityOperationHandlerTests {
         """.trimIndent()
 
     private val hcmrContext = listOf(
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld",
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/shared-jsonld-contexts/egm.jsonld",
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/aquac/jsonld-contexts/aquac.jsonld",
         "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     )
 
@@ -94,23 +106,29 @@ class EntityOperationHandlerTests {
         mutableListOf(
             BatchEntityUpdateSuccess(
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                UpdateAttributesResult(listOf(
-                    UpdatedAttributeDetails(
-                        "https://ontology.eglobalmark.com/aquac#deviceParameter",
-                        null,
-                        UpdateOperationResult.APPENDED
-                    )
-                ), emptyList())
+                UpdateAttributesResult(
+                    listOf(
+                        UpdatedAttributeDetails(
+                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            null,
+                            UpdateOperationResult.APPENDED
+                        )
+                    ),
+                    emptyList()
+                )
             ),
             BatchEntityUpdateSuccess(
                 "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri(),
-                UpdateAttributesResult(listOf(
-                    UpdatedAttributeDetails(
-                        "https://ontology.eglobalmark.com/aquac#brandName",
-                        "urn:ngsi-ld:Dataset:brandName:01".toUri(),
-                        UpdateOperationResult.REPLACED
-                    )
-                ), emptyList())
+                UpdateAttributesResult(
+                    listOf(
+                        UpdatedAttributeDetails(
+                            "https://ontology.eglobalmark.com/aquac#brandName",
+                            "urn:ngsi-ld:Dataset:brandName:01".toUri(),
+                            UpdateOperationResult.REPLACED
+                        )
+                    ),
+                    emptyList()
+                )
             )
         ),
         mutableListOf()
@@ -124,9 +142,11 @@ class EntityOperationHandlerTests {
                     emptyList(),
                     listOf(
                         NotUpdatedAttributeDetails(
-                        "https://ontology.eglobalmark.com/aquac#deviceParameter",
-                        "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
-                    )))
+                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
+                        )
+                    )
+                )
             ),
             BatchEntityUpdateSuccess(
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
@@ -134,9 +154,10 @@ class EntityOperationHandlerTests {
                     emptyList(),
                     listOf(
                         NotUpdatedAttributeDetails(
-                        "https://ontology.eglobalmark.com/aquac#deviceParameter",
-                        "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
-                    ))
+                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
+                        )
+                    )
                 )
             )
         ),
@@ -311,9 +332,11 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
         every { entityOperationService.update(existingEntities) } returns upsertUpdateBatchOperationResult
-        every { entityHandler.publishAppendEntityAttributesEvents(
-            capture(updatedEntitiesIds), any(), capture(updateAttributesResults), any()
-        ) } just Runs
+        every {
+            entityHandler.publishAppendEntityAttributesEvents(
+                capture(updatedEntitiesIds), any(), capture(updateAttributesResults), any()
+            )
+        } just Runs
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
@@ -325,12 +348,16 @@ class EntityOperationHandlerTests {
             .expectBody().json(batchFullSuccessResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
-        verify { entityEventService.publishEntityEvent(match {
-            it as EntityCreateEvent
-            it.operationType == EventsType.ENTITY_CREATE &&
-                it.entityId in createdEntitiesIds
-
-        }, "Sensor") }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityCreateEvent
+                    it.operationType == EventsType.ENTITY_CREATE &&
+                        it.entityId in createdEntitiesIds
+                },
+                "Sensor"
+            )
+        }
         verify(timeout = 1000, exactly = 2) {
             entityHandler.publishAppendEntityAttributesEvents(any(), any(), any(), hcmrContext)
         }
@@ -339,7 +366,8 @@ class EntityOperationHandlerTests {
             updateAttributesResults.captured in upsertUpdateBatchOperationResult.success.map {
                 it as BatchEntityUpdateSuccess
                 it.updateAttributesResult
-            })
+            }
+        )
         confirmVerified()
     }
 
@@ -374,13 +402,13 @@ class EntityOperationHandlerTests {
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
                             "error": [ 
-                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                                "deviceParameter : Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
                             ] 
                         }, 
                         { 
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
                             "error": [ 
-                                "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
+                                "deviceParameter : Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
                             ] 
                         }
                     ], 
@@ -398,8 +426,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
         )
         val existingEntities = emptyList<NgsiLdEntity>()
 
@@ -419,6 +446,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntityReplaceSuccess(it, emptyList()) }.toMutableList(),
             arrayListOf()
         )
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert")
@@ -426,11 +454,21 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json(batchFullSuccessResponse)
+            .expectBody().json(batchUpsertFullSuccessResponse)
 
         verify { entityOperationService.replace(existingEntities) }
         verify { entityOperationService.update(any()) wasNot Called }
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify(timeout = 1000, exactly = 2) {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityReplaceEvent
+                    it.operationType == EventsType.ENTITY_REPLACE &&
+                        it.entityId in entitiesIds
+                },
+                "Sensor"
+            )
+        }
         confirmVerified()
     }
 
@@ -506,6 +544,7 @@ class EntityOperationHandlerTests {
             ArrayList(entitiesIdToUpdate.map { BatchEntityReplaceSuccess(it, emptyList()) }.toMutableList()),
             arrayListOf()
         )
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/upsert")
@@ -530,6 +569,16 @@ class EntityOperationHandlerTests {
             )
 
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify(timeout = 1000, exactly = 1) {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityReplaceEvent
+                    it.operationType == EventsType.ENTITY_REPLACE &&
+                        it.entityId == "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+                },
+                "Sensor"
+            )
+        }
         confirmVerified()
     }
 

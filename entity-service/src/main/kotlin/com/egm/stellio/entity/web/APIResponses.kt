@@ -12,7 +12,7 @@ data class BatchOperationResponse(
 data class BatchOperationResult(
     val success: MutableList<BatchEntitySuccess> = mutableListOf(),
     val errors: MutableList<BatchEntityError> = mutableListOf()
-){
+) {
     operator fun plusAssign(other: BatchOperationResult) {
         success.addAll(other.success)
         errors.addAll(other.errors)
@@ -46,7 +46,6 @@ data class BatchEntityUpdateSuccess(
     override val entityId: URI,
     val updateAttributesResult: UpdateAttributesResult
 ) : BatchEntitySuccess(BatchEntityOperationType.ENTITY_UPDATE, entityId)
-
 
 enum class BatchEntityOperationType {
     ENTITY_CREATE,

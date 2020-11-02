@@ -1,5 +1,8 @@
 package com.egm.stellio.search.web
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
@@ -20,16 +23,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.util.Optional
+import java.time.ZonedDateTime
+import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -160,20 +157,16 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     if (timerelParam == "between" && endTimeParam == null)
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
-    val (timerel, time) = if (timerelParam == null && timeParam == null) {
-        Pair(null, null)
-    } else if (timerelParam != null && timeParam != null) {
-        val timeRelTemp = try {
-            TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase())
-        } catch (e: IllegalArgumentException) {
-            throw BadRequestDataException("'timerel' is not valid, it should be one of 'before', 'between', or 'after'")
-        }
-        Pair(timeRelTemp, timeParam.parseTimeParameter("'time' parameter is not a valid date"))
-    } else {
-        throw BadRequestDataException("'timerel' and 'time' must be used in conjunction")
+    val endTimeResult = endTimeParam?.parseTimeParameterwithEither("'endTime' parameter is not a valid date")
+    val endTime = when (endTimeResult) {
+        is Either.Right -> endTimeResult.b
+        is Either.Left -> throw BadRequestDataException(endTimeResult.a)
+        else -> null
     }
-
-    val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
+    val (timerel, time) = when (val result = buildTimerelAndTime(timerelParam, timeParam)) {
+        is Either.Right -> result.b
+        is Either.Left -> throw BadRequestDataException(result.a)
+    }
 
     if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
         throw BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction")
@@ -182,9 +175,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         if (TemporalQuery.Aggregate.isSupportedAggregate(it))
             TemporalQuery.Aggregate.valueOf(it)
         else
-            throw BadRequestDataException(
-                "Value '$it' is not supported for 'aggregate' parameter"
-            )
+            throw BadRequestDataException("Value '$it' is not supported for 'aggregate' parameter")
     }
 
     val lastN = lastNParam?.toIntOrNull()?.let {
@@ -201,3 +192,30 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         lastN = lastN
     )
 }
+
+internal fun buildTimerelAndTime(
+    timerelParam: String?,
+    timeParam: String?
+): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
+    if (timerelParam == null && timeParam == null) {
+        Pair(null, null).right()
+    } else if (timerelParam != null && timeParam != null) {
+        val timeRelResult = try {
+            TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase()).right()
+        } catch (e: IllegalArgumentException) {
+            "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
+        }
+
+        val timeResult = timeParam.parseTimeParameterwithEither("'time' parameter is not a valid date")
+
+        when (timeRelResult) {
+            is Either.Right -> when (timeResult) {
+                is Either.Right -> Pair(timeRelResult.b, timeResult.b).right()
+                is Either.Left -> timeResult.a.left()
+            }
+            is Either.Left ->
+                timeRelResult.a.left()
+        }
+    } else {
+        "'timerel' and 'time' must be used in conjunction".left()
+    }

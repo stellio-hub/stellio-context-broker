@@ -452,7 +452,7 @@ class TemporalEntityHandlerTests {
         every {
             temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
         } returns entityWith2temporalEvolutions
- 
+
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/entityId?" +

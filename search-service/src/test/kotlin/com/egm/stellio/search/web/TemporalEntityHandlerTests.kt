@@ -586,12 +586,15 @@ class TemporalEntityHandlerTests {
 
         val temporalQuery = buildTemporalQuery(queryParams, context)
 
-        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(
-            listOf(
-                "https://ontology.eglobalmark.com/apic#outgoing",
-                "https://ontology.eglobalmark.com/apic#incoming"
+        assertTrue(temporalQuery.attrs.size == 2)
+        assertTrue(
+            temporalQuery.attrs.containsAll(
+                listOf(
+                    "https://ontology.eglobalmark.com/apic#outgoing",
+                    "https://ontology.eglobalmark.com/apic#incoming"
+                )
             )
-        ))
+        )
     }
 
     @Test

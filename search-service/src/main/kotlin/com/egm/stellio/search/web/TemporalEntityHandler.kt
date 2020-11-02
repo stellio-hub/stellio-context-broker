@@ -161,11 +161,10 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
     if (timerelParam == "between" && endTimeParam == null)
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
 
-    val endTimeResult = endTimeParam?.parseTimeParameterwithEither("'endTime' parameter is not a valid date")
-
-    val endTime = endTimeResult?.getOrHandle {
-        throw BadRequestDataException(it)
-    }
+    val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
+        ?.getOrHandle {
+            throw BadRequestDataException(it)
+        }
 
     val (timerel, time) = buildTimerelAndTime(timerelParam, timeParam).getOrHandle {
         throw BadRequestDataException(it)
@@ -210,7 +209,7 @@ internal fun buildTimerelAndTime(
         }
 
         timeRelResult.flatMap { timerel ->
-            timeParam.parseTimeParameterwithEither("'time' parameter is not a valid date")
+            timeParam.parseTimeParameter("'time' parameter is not a valid date")
                 .map {
                     Pair(timerel, it)
                 }

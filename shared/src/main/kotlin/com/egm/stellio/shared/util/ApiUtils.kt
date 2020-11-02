@@ -18,7 +18,7 @@ object ApiUtils {
     }
 }
 
-fun String.parseTimeParameterwithEither(errorMsg: String): Either<String, ZonedDateTime> =
+fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     try {
         ZonedDateTime.parse(this).right()
     } catch (e: DateTimeParseException) {

@@ -83,7 +83,7 @@ class TemporalEntityHandler(
         val bearerToken = httpHeaders.getOrEmpty("Authorization").firstOrNull() ?: ""
 
         val temporalQuery = try {
-            buildTemporalQuery(params)
+            buildTemporalQuery(params, contextLink)
         } catch (e: BadRequestDataException) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse(e.message))
@@ -113,11 +113,17 @@ class TemporalEntityHandler(
         else
             attributeAndResultsMap.keys.map { it.attributeName }.toSet()
 
-        val compactedJsonLdEntity = JsonLdUtils.filterCompactedEntityOnAttributes(
-            jsonLdEntityWithTemporalValues.compact(),
-            attributesToFilter
+        jsonLdEntityWithTemporalValues.properties.toMutableMap()
+
+        val filteredJsonLdEntity = JsonLdEntity(
+            JsonLdUtils.filterJsonLdEntityOnAttributes(
+                jsonLdEntityWithTemporalValues,
+                attributesToFilter
+            ),
+            jsonLdEntityWithTemporalValues.contexts
         )
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedJsonLdEntity))
+
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
     }
 
     /**
@@ -149,7 +155,7 @@ class TemporalEntityHandler(
         }
 }
 
-internal fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
+internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeParam = params.getFirst("time")
     val endTimeParam = params.getFirst("endTime")
@@ -184,8 +190,16 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>): Temporal
         if (it >= 1) it else null
     }
 
+    val expandedAttrs = attrsParam
+        ?.split(",")
+        .orEmpty()
+        .map {
+            JsonLdUtils.expandJsonLdKey(it, contextLink)!!
+        }
+        ?.toSet()
+
     return TemporalQuery(
-        attrs = attrsParam?.split(",")?.toSet().orEmpty(),
+        attrs = expandedAttrs,
         timerel = timerel,
         time = time,
         endTime = endTime,

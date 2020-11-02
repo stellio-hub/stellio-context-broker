@@ -69,7 +69,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
                 "urn:ngsi-ld:BeeHive:TESTD".toUri(),
-                setOf("incoming", "outgoing"),
+                setOf(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                ),
                 apicContext!!
             )
 

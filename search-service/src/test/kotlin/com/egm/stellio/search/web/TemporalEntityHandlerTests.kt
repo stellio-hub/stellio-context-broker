@@ -46,6 +46,8 @@ class TemporalEntityHandlerTests {
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
 
+    val context = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+        "master/apic/jsonld-contexts/apic-compound.jsonld"
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -413,7 +415,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
-        val entityTemporalProperties = listOf("incoming", "outgoing").map {
+        val entityTemporalProperties = listOf(
+            "https://ontology.eglobalmark.com/apic#incoming",
+            "https://ontology.eglobalmark.com/apic#outgoing"
+        ).map {
             TemporalEntityAttribute(
                 entityId = "entityId".toUri(),
                 type = "BeeHive",
@@ -430,7 +435,10 @@ class TemporalEntityHandlerTests {
             entityTemporalProperties[1]
         )
 
-        val attributes = listOf("incoming", "outgoing")
+        val attributes = listOf(
+            "https://ontology.eglobalmark.com/apic#incoming",
+            "https://ontology.eglobalmark.com/apic#outgoing"
+        )
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
         val attInstanceResults = attributes.flatMap { attributeName ->
             values.map {
@@ -539,7 +547,7 @@ class TemporalEntityHandlerTests {
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
-                        temporalQuery.attrs == setOf("incoming")
+                        temporalQuery.attrs == setOf("https://ontology.eglobalmark.com/apic#incoming")
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -563,9 +571,10 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
-        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs.contains("outgoing"))
+        assertTrue(temporalQuery.attrs.size == 1)
+        assertTrue(temporalQuery.attrs.contains("https://ontology.eglobalmark.com/apic#outgoing"))
     }
 
     @Test
@@ -575,9 +584,14 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
-        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(
+            listOf(
+                "https://ontology.eglobalmark.com/apic#outgoing",
+                "https://ontology.eglobalmark.com/apic#incoming"
+            )
+        ))
     }
 
     @Test
@@ -586,7 +600,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
         assertTrue(temporalQuery.attrs.isEmpty())
     }
@@ -598,7 +612,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
         assertTrue(temporalQuery.lastN == 2)
     }
@@ -610,7 +624,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
         assertNull(temporalQuery.lastN)
     }
@@ -622,7 +636,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
         assertNull(temporalQuery.lastN)
     }
@@ -631,7 +645,7 @@ class TemporalEntityHandlerTests {
     fun `it should treat time and timerel properties as optional`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, context)
 
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)

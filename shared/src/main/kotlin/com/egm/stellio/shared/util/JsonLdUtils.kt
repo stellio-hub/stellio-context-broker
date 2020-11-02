@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.extensions.list.monoidal.identity
+import arrow.core.identity
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
@@ -257,11 +259,28 @@ object JsonLdUtils {
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>
     ): Map<String, Any> {
+        val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
+        return filterEntityOnAttributes(input, identity, includedAttributes)
+    }
+
+    fun filterJsonLdEntityOnAttributes(
+        input: JsonLdEntity,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
+        val inputToMap = { i: JsonLdEntity -> i.properties.toMap() }
+        return filterEntityOnAttributes(input, inputToMap, includedAttributes)
+    }
+
+    private fun <T> filterEntityOnAttributes(
+        input: T,
+        inputToMap: (T) -> Map<String, Any>,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
         return if (includedAttributes.isEmpty()) {
-            input
+            inputToMap(input)
         } else {
             val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
-            input.filterKeys { includedKeys.contains(it) }
+            inputToMap(input).filterKeys { includedKeys.contains(it) }
         }
     }
 }

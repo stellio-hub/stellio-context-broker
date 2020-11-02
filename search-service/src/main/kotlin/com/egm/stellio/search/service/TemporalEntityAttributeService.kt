@@ -17,7 +17,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
@@ -145,11 +144,7 @@ class TemporalEntityAttributeService(
             WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
 
-        val expandedAttrsList =
-            attrs.map {
-                expandJsonLdKey(it, contextLink)!!
-            }
-                .joinToString(",") { "'$it'" }
+        val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
 
         val finalQuery =
             if (attrs.isNotEmpty())

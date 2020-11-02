@@ -8,7 +8,7 @@
     <ID>MaxLineLength:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$ INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, dataset_id)</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
     <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent)</ID>
-    <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;): TemporalQuery</ID>
+    <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, contextLink: String): TemporalQuery</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
   </CurrentIssues>
 </SmellBaseline>

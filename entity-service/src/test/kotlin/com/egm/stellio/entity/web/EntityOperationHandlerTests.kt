@@ -53,6 +53,9 @@ class EntityOperationHandlerTests {
     @MockkBean
     private lateinit var entityEventService: EntityEventService
 
+    private val deviceAquaBox1 = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    private val deviceParameterAttribute = "https://ontology.eglobalmark.com/aquac#deviceParameter"
+
     private val batchFullSuccessResponse =
         """
         {
@@ -60,7 +63,7 @@ class EntityOperationHandlerTests {
             "success": [
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                "$deviceAquaBox1"
             ]
         }
         """.trimIndent()
@@ -89,7 +92,7 @@ class EntityOperationHandlerTests {
             ],
             "success": [
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                "$deviceAquaBox1"
             ]
         }
         """.trimIndent()
@@ -109,7 +112,7 @@ class EntityOperationHandlerTests {
                 UpdateAttributesResult(
                     listOf(
                         UpdatedAttributeDetails(
-                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            deviceParameterAttribute,
                             null,
                             UpdateOperationResult.APPENDED
                         )
@@ -118,7 +121,7 @@ class EntityOperationHandlerTests {
                 )
             ),
             BatchEntityUpdateSuccess(
-                "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri(),
+                deviceAquaBox1.toUri(),
                 UpdateAttributesResult(
                     listOf(
                         UpdatedAttributeDetails(
@@ -142,7 +145,7 @@ class EntityOperationHandlerTests {
                     emptyList(),
                     listOf(
                         NotUpdatedAttributeDetails(
-                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            deviceParameterAttribute,
                             "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
                         )
                     )
@@ -154,7 +157,7 @@ class EntityOperationHandlerTests {
                     emptyList(),
                     listOf(
                         NotUpdatedAttributeDetails(
-                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
+                            deviceParameterAttribute,
                             "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."
                         )
                     )
@@ -170,7 +173,7 @@ class EntityOperationHandlerTests {
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+            deviceAquaBox1.toUri()
         )
         val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
@@ -223,7 +226,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+            deviceAquaBox1.toUri()
         )
         val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
@@ -311,7 +314,7 @@ class EntityOperationHandlerTests {
         )
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+            deviceAquaBox1.toUri()
         )
         val createdBatchResult = BatchOperationResult(
             createdEntitiesIds.map { BatchEntityCreateSuccess(it) }.toMutableList(),
@@ -616,7 +619,7 @@ class EntityOperationHandlerTests {
         val deletedEntitiesIds = listOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+            deviceAquaBox1.toUri()
         )
         val entitiesIds = slot<List<URI>>()
         val channelName = slot<String>()
@@ -704,7 +707,7 @@ class EntityOperationHandlerTests {
                 "errors": [
                     {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["Entity does not exist"]},
                     {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["Entity does not exist"]},
-                    {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["Entity does not exist"]}
+                    {"entityId":"$deviceAquaBox1","error":["Entity does not exist"]}
                 ]
             }
                 """.trimIndent()
@@ -753,7 +756,7 @@ class EntityOperationHandlerTests {
         "errors": [
             {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature","error":["User forbidden to delete entity"]},
             {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen","error":["User forbidden to delete entity"]},
-            {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1","error":["User forbidden to delete entity"]}
+            {"entityId":"$deviceAquaBox1","error":["User forbidden to delete entity"]}
         ]
     }
                 """.trimIndent()

@@ -70,6 +70,9 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityEventService: EntityEventService
 
+    private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
+    private val fishNumberAttributeDatasetId = "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+
     @BeforeAll
     fun configureWebClientDefaults() {
         aquacHeaderLink = "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
@@ -854,7 +857,7 @@ class EntityHandlerTests {
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateAttributesResult(
             listOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.APPENDED
                 )
@@ -898,7 +901,7 @@ class EntityHandlerTests {
                 UpdateAttributesResult(
                     listOf(
                         UpdatedAttributeDetails(
-                            "https://ontology.eglobalmark.com/aquac#fishNumber",
+                            fishNumberAttribute,
                             null,
                             UpdateOperationResult.APPENDED
                         )
@@ -948,7 +951,7 @@ class EntityHandlerTests {
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateAttributesResult(
             listOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.APPENDED
                 )
@@ -1011,7 +1014,7 @@ class EntityHandlerTests {
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateAttributesResult(
             listOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.APPENDED
                 ),
@@ -1205,7 +1208,7 @@ class EntityHandlerTests {
         } returns UpdateAttributesResult(
             updated = arrayListOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.REPLACED
                 )
@@ -1245,7 +1248,7 @@ class EntityHandlerTests {
         } returns UpdateAttributesResult(
             updated = arrayListOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.REPLACED
                 )
@@ -1330,7 +1333,7 @@ class EntityHandlerTests {
                     UpdateOperationResult.REPLACED
                 ),
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.REPLACED
                 )
@@ -1394,7 +1397,7 @@ class EntityHandlerTests {
         } returns UpdateAttributesResult(
             updated = arrayListOf(
                 UpdatedAttributeDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    fishNumberAttribute,
                     null,
                     UpdateOperationResult.REPLACED
                 )
@@ -1631,7 +1634,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                eq(fishNumberAttribute),
                 null
             )
         }
@@ -1660,7 +1663,7 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttribute(any(), any()) } returns
-            listOf(null, "urn:ngsi-ld:Dataset:fishNumber:1".toUri())
+            listOf(null, fishNumberAttributeDatasetId)
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
@@ -1677,7 +1680,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttribute(
                 eq(entityId),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+                eq(fishNumberAttribute)
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
@@ -1688,7 +1691,7 @@ class EntityHandlerTests {
                 it.operationType == EventsType.ATTRIBUTE_DELETE &&
                     it.entityId == entityId &&
                     it.attributeName == "fishNumber" &&
-                    (it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri()) &&
+                    (it.datasetId == null || it.datasetId == fishNumberAttributeDatasetId) &&
                     it.contexts == listOf(aquacContext)
             )
         }
@@ -1700,7 +1703,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns
-            listOf("urn:ngsi-ld:Dataset:fishNumber:1".toUri())
+            listOf(fishNumberAttributeDatasetId)
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
@@ -1717,8 +1720,8 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq(entityId),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
-                "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
+                eq(fishNumberAttribute),
+                fishNumberAttributeDatasetId
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
@@ -1729,7 +1732,7 @@ class EntityHandlerTests {
                     it.operationType == EventsType.ATTRIBUTE_DELETE &&
                         it.entityId == entityId &&
                         it.attributeName == "fishNumber" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri() &&
+                        it.datasetId == fishNumberAttributeDatasetId &&
                         it.contexts == listOf(aquacContext)
                 },
                 any()
@@ -1785,7 +1788,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+                eq(fishNumberAttribute)
             )
         }
         confirmVerified(entityService)
@@ -1814,7 +1817,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                eq(fishNumberAttribute),
                 null
             )
         }

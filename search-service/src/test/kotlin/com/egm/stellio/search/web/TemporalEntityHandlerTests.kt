@@ -43,6 +43,9 @@ import java.util.UUID
 @WithMockUser
 class TemporalEntityHandlerTests {
 
+    val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
+
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
 
@@ -414,8 +417,8 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
         val entityTemporalProperties = listOf(
-            "https://ontology.eglobalmark.com/apic#incoming",
-            "https://ontology.eglobalmark.com/apic#outgoing"
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
         ).map {
             TemporalEntityAttribute(
                 entityId = "entityId".toUri(),
@@ -434,8 +437,8 @@ class TemporalEntityHandlerTests {
         )
 
         val attributes = listOf(
-            "https://ontology.eglobalmark.com/apic#incoming",
-            "https://ontology.eglobalmark.com/apic#outgoing"
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
         )
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
         val attInstanceResults = attributes.flatMap { attributeName ->
@@ -545,7 +548,7 @@ class TemporalEntityHandlerTests {
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
-                        temporalQuery.expandedAttrs == setOf("https://ontology.eglobalmark.com/apic#incoming")
+                        temporalQuery.expandedAttrs == setOf(incomingAttrExpandedName)
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -572,7 +575,7 @@ class TemporalEntityHandlerTests {
         val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertTrue(temporalQuery.expandedAttrs.size == 1)
-        assertTrue(temporalQuery.expandedAttrs.contains("https://ontology.eglobalmark.com/apic#outgoing"))
+        assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
     }
 
     @Test
@@ -588,8 +591,8 @@ class TemporalEntityHandlerTests {
         assertTrue(
             temporalQuery.expandedAttrs.containsAll(
                 listOf(
-                    "https://ontology.eglobalmark.com/apic#outgoing",
-                    "https://ontology.eglobalmark.com/apic#incoming"
+                    outgoingAttrExpandedName,
+                    incomingAttrExpandedName
                 )
             )
         )

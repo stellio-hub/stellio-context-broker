@@ -461,7 +461,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" + 
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .exchange()

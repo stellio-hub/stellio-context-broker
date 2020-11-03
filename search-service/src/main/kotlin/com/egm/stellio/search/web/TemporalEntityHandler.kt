@@ -92,8 +92,7 @@ class TemporalEntityHandler(
         // TODO : REFACTOR getForEntity retrieves entity payload for each temporalEntityAttribute,it should be done once
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
-            temporalQuery.attrs,
-            contextLink
+            temporalQuery.expandedAttrs
         ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
 
         val attributeAndResultsMap = temporalEntityAttributes.map {
@@ -108,12 +107,10 @@ class TemporalEntityHandler(
         )
 
         // filter on temporal attributes by default
-        val attributesToFilter = if (temporalQuery.attrs.isNotEmpty())
-            temporalQuery.attrs
+        val attributesToFilter = if (temporalQuery.expandedAttrs.isNotEmpty())
+            temporalQuery.expandedAttrs
         else
             attributeAndResultsMap.keys.map { it.attributeName }.toSet()
-
-        jsonLdEntityWithTemporalValues.properties.toMutableMap()
 
         val filteredJsonLdEntity = JsonLdEntity(
             JsonLdUtils.filterJsonLdEntityOnAttributes(
@@ -199,7 +196,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         ?.toSet()
 
     return TemporalQuery(
-        attrs = expandedAttrs,
+        expandedAttrs = expandedAttrs,
         timerel = timerel,
         time = time,
         endTime = endTime,

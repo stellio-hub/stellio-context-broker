@@ -72,8 +72,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 setOf(
                     "https://ontology.eglobalmark.com/apic#incoming",
                     "https://ontology.eglobalmark.com/apic#outgoing"
-                ),
-                apicContext!!
+                )
             )
 
         StepVerifier.create(temporalEntityAttributes)

@@ -134,7 +134,7 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
-    fun getForEntity(id: URI, attrs: Set<String>, contextLink: String): Flux<TemporalEntityAttribute> {
+    fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
             SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,

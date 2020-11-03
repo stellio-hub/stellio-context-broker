@@ -39,6 +39,9 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
 
+    val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
+
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
         databaseClient.delete()
@@ -70,8 +73,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             temporalEntityAttributeService.getForEntity(
                 "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                 setOf(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
+                    incomingAttrExpandedName,
+                    outgoingAttrExpandedName
                 )
             )
 
@@ -79,7 +82,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectNextMatches {
                 it.entityId == "urn:ngsi-ld:BeeHive:TESTD".toUri() &&
                     it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                    it.attributeName == "https://ontology.eglobalmark.com/apic#incoming" &&
+                    it.attributeName == incomingAttrExpandedName &&
                     it.entityPayload !== null
             }
             .expectNextMatches {
@@ -143,12 +146,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         val rawResults = listOf(
             listOf(
                 AttributeInstanceResult(
-                    attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                    attributeName = incomingAttrExpandedName,
                     value = 550.0,
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 AttributeInstanceResult(
-                    attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                    attributeName = incomingAttrExpandedName,
                     value = 650.0,
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:00Z")
                 )
@@ -282,7 +285,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
-            "urn:ngsi-ld:BeeHive:TESTC".toUri(), "https://ontology.eglobalmark.com/apic#incoming"
+            "urn:ngsi-ld:BeeHive:TESTC".toUri(), incomingAttrExpandedName
         )
 
         StepVerifier.create(temporalEntityAttributeId)
@@ -299,7 +302,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:01234"
+            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:01234"
         )
 
         StepVerifier.create(temporalEntityAttributeId)
@@ -316,7 +319,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            "https://ontology.eglobalmark.com/apic#incoming", "urn:ngsi-ld:Dataset:Unknown"
+            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:Unknown"
         )
 
         StepVerifier.create(temporalEntityAttributeId)

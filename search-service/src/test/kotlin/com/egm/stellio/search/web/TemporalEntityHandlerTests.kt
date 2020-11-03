@@ -43,6 +43,9 @@ import java.util.UUID
 @WithMockUser
 class TemporalEntityHandlerTests {
 
+    val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
+
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
 
@@ -167,7 +170,7 @@ class TemporalEntityHandlerTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -290,7 +293,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.empty()
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.empty()
 
         webClient.get()
             .uri(
@@ -319,7 +322,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -382,7 +385,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val rawEntity = parseSampleDataToJsonLd()
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty1,
             entityTemporalProperty2
         )
@@ -413,7 +416,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
-        val entityTemporalProperties = listOf("incoming", "outgoing").map {
+        val entityTemporalProperties = listOf(
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
+        ).map {
             TemporalEntityAttribute(
                 entityId = "entityId".toUri(),
                 type = "BeeHive",
@@ -425,12 +431,15 @@ class TemporalEntityHandlerTests {
         val entityWith2temporalEvolutions =
             parseSampleDataToJsonLd("beehive_with_two_temporal_attributes_evolution.jsonld")
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperties[0],
             entityTemporalProperties[1]
         )
 
-        val attributes = listOf("incoming", "outgoing")
+        val attributes = listOf(
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
+        )
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
         val attInstanceResults = attributes.flatMap { attributeName ->
             values.map {
@@ -476,7 +485,7 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = parseSampleDataToJsonLd()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -514,7 +523,7 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = parseSampleDataToJsonLd()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -539,7 +548,7 @@ class TemporalEntityHandlerTests {
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
-                        temporalQuery.attrs == setOf("incoming")
+                        temporalQuery.expandedAttrs == setOf(incomingAttrExpandedName)
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -563,9 +572,10 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs.contains("outgoing"))
+        assertTrue(temporalQuery.expandedAttrs.size == 1)
+        assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
     }
 
     @Test
@@ -575,9 +585,17 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+        assertTrue(temporalQuery.expandedAttrs.size == 2)
+        assertTrue(
+            temporalQuery.expandedAttrs.containsAll(
+                listOf(
+                    outgoingAttrExpandedName,
+                    incomingAttrExpandedName
+                )
+            )
+        )
     }
 
     @Test
@@ -586,9 +604,9 @@ class TemporalEntityHandlerTests {
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.isEmpty())
+        assertTrue(temporalQuery.expandedAttrs.isEmpty())
     }
 
     @Test
@@ -598,7 +616,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertTrue(temporalQuery.lastN == 2)
     }
@@ -610,7 +628,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertNull(temporalQuery.lastN)
     }
@@ -622,7 +640,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertNull(temporalQuery.lastN)
     }
@@ -631,7 +649,7 @@ class TemporalEntityHandlerTests {
     fun `it should treat time and timerel properties as optional`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)

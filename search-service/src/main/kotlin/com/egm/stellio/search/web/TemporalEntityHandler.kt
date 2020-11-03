@@ -193,7 +193,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         .map {
             JsonLdUtils.expandJsonLdKey(it, contextLink)!!
         }
-        ?.toSet()
+        .toSet()
 
     return TemporalQuery(
         expandedAttrs = expandedAttrs,

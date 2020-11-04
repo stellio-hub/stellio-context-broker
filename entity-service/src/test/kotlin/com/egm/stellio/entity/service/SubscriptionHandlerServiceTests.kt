@@ -88,7 +88,6 @@ class SubscriptionHandlerServiceTests {
     fun `it should create a new notification and add a relationship to the subscription`() {
         val subscriptionId = "urn:ngsi-ld:Subscription:1234".toUri()
         val notificationId = "urn:ngsi-ld:Notification:1234".toUri()
-        val relationshipId = "urn:ngsi-ld:Relationship:7d0ea653-c932-43cc-aa41-29ac1c77c610".toUri()
         val notificationType = "Notification"
         val properties = mapOf(
             "notifiedAt" to "2020-03-10T00:00:00Z"
@@ -102,7 +101,7 @@ class SubscriptionHandlerServiceTests {
         every { entityRepository.save<Entity>(any()) } returns mockkedNotification
         every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
         every { mockkedSubscription.id } returns subscriptionId
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         subscriptionHandlerService.createNotificationEntity(
             notificationId, notificationType, subscriptionId, properties
@@ -145,7 +144,7 @@ class SubscriptionHandlerServiceTests {
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedNotification.id } returns notificationId
         every { mockkedLastNotification.id } returns lastNotificationId
-        every { neo4jRepository.updateRelationshipTargetOfAttribute(any(), any(), any(), any()) } returns 1
+        every { neo4jRepository.updateTargetOfRelationship(any(), any(), any(), any()) } returns 1
         every { relationshipRepository.save<Relationship>(any()) } returns mockkedRelationship
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
 
@@ -169,7 +168,7 @@ class SubscriptionHandlerServiceTests {
             )
         }
         verify {
-            neo4jRepository.updateRelationshipTargetOfAttribute(
+            neo4jRepository.updateTargetOfRelationship(
                 relationshipId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName(),
                 lastNotificationId,

@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
+import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
@@ -212,17 +213,7 @@ class NgsiLdRelationshipInstance private constructor(
 ) : NgsiLdAttributeInstance(observedAt, datasetId, properties, relationships) {
     companion object {
         operator fun invoke(name: String, values: Map<String, List<Any>>): NgsiLdRelationshipInstance {
-            if (!values.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
-                throw BadRequestDataException("Relationship $name does not have an object field")
-
-            val hasObjectEntry = values[NGSILD_RELATIONSHIP_HAS_OBJECT]!![0]
-            if (hasObjectEntry !is Map<*, *>)
-                throw BadRequestDataException("Relationship $name has an invalid object type: $hasObjectEntry")
-
-            val objectId = hasObjectEntry[JSONLD_ID]
-            if (objectId !is String)
-                throw BadRequestDataException("Relationship $name has an invalid object type: $objectId")
-
+            val objectId = extractRelationshipObject(name, values).fold({ throw it }, { it })
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
@@ -230,7 +221,7 @@ class NgsiLdRelationshipInstance private constructor(
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
 
-            return NgsiLdRelationshipInstance(objectId.toUri(), observedAt, datasetId, properties, relationships)
+            return NgsiLdRelationshipInstance(objectId, observedAt, datasetId, properties, relationships)
         }
     }
 
@@ -300,7 +291,7 @@ class NgsiLdGeoPropertyInstance(
  * Given an entity's attribute, returns whether it is of the given attribute type
  * (i.e. property, geo property or relationship)
  */
-private fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
+fun isAttributeOfType(values: Map<String, List<Any>>, type: AttributeType): Boolean =
     // TODO move some of these checks to isValidAttribute()
     values.containsKey(JSONLD_TYPE) &&
         values[JSONLD_TYPE] is List<*> &&

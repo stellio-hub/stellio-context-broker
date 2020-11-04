@@ -49,7 +49,7 @@ class Neo4jRepository(
         return session.query(query, parameters).queryStatistics().nodesDeleted
     }
 
-    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): URI {
+    fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): Boolean {
         val query =
             """
             MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
@@ -61,14 +61,14 @@ class Neo4jRepository(
             "props" to property.nodeProperties(),
             "subjectId" to subjectNodeInfo.id
         )
-        return (session.query(query, parameters).first()["id"] as String).toUri()
+        return session.query(query, parameters).queryStatistics().containsUpdates()
     }
 
     fun createRelationshipOfSubject(
         subjectNodeInfo: SubjectNodeInfo,
         relationship: Relationship,
         targetId: URI
-    ): URI {
+    ): Boolean {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
         val query =
             """
@@ -85,7 +85,8 @@ class Neo4jRepository(
             "subjectId" to subjectNodeInfo.id,
             "targetId" to targetId
         )
-        return (session.query(query, parameters).first()["id"] as String).toUri()
+
+        return session.query(query, parameters).queryStatistics().containsUpdates()
     }
 
     /**
@@ -100,21 +101,6 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "subjectId" to subjectId
-        )
-        return session.query(query, parameters).queryStatistics().propertiesSet
-    }
-
-    fun updateEntityAttribute(entityId: URI, propertyName: String, propertyValue: Any): Int {
-        val query =
-            """
-            MERGE (entity:Entity { id: ${'$'}entityId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
-            ON MATCH SET property.value = ${escapePropertyValue(propertyValue)},
-                         property.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
-            """.trimIndent()
-
-        val parameters = mapOf(
-            "entityId" to entityId,
-            "propertyName" to propertyName
         )
         return session.query(query, parameters).queryStatistics().propertiesSet
     }
@@ -284,7 +270,29 @@ class Neo4jRepository(
         return session.query(query, parameters, true).toList().isNotEmpty()
     }
 
-    fun updateRelationshipTargetOfAttribute(
+    fun updateRelationshipTargetOfSubject(
+        subjectId: URI,
+        relationshipType: String,
+        newRelationshipObjectId: URI
+    ): Boolean {
+        val relationshipTypeQuery =
+            """
+            MATCH ({ id: ${'$'}subjectId })-[:HAS_OBJECT]->(r:Relationship)-[v:$relationshipType]->()
+            MERGE (target { id: ${'$'}newRelationshipObjectId })
+            ON CREATE SET target:PartialEntity
+            DETACH DELETE v
+            MERGE (r)-[:$relationshipType]->(target)
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "subjectId" to subjectId,
+            "newRelationshipObjectId" to newRelationshipObjectId
+        )
+
+        return session.query(relationshipTypeQuery, parameters).queryStatistics().containsUpdates()
+    }
+
+    fun updateTargetOfRelationship(
         attributeId: URI,
         relationshipType: String,
         oldRelationshipObjectId: URI,
@@ -619,13 +627,6 @@ class Neo4jRepository(
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .firstOrNull()
-    }
-
-    private fun escapePropertyValue(value: Any): Any {
-        return when (value) {
-            is String -> "\"$value\""
-            else -> value
-        }
     }
 
     private val deleteAttributeQuery =

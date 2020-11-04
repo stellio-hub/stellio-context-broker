@@ -1,16 +1,20 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -37,6 +41,7 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val entityService: EntityService,
+    private val entityAttributeService: EntityAttributeService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
 ) {
@@ -233,7 +238,7 @@ class EntityHandler(
                         jsonLdAttributes[expandedAttributeName]!!,
                         contexts
                     ),
-                    JsonLdUtils.compactAndSerialize(updatedEntity!!),
+                    compactAndSerialize(updatedEntity!!),
                     contexts
                 ),
                 updatedEntity.type.extractShortTypeFromExpanded()
@@ -248,7 +253,7 @@ class EntityHandler(
 
     /**
      * Implements 6.7.3.1 - Partial Attribute Update
-     * Current implementation is basic and only update the value of a property.
+     *
      */
     @PatchMapping(
         "/{entityId}/attrs/{attrId}",
@@ -261,17 +266,33 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
+        val entityUri = entityId.toUri()
 
-        if (!entityService.exists(entityId.toUri()))
+        if (!entityService.exists(entityUri))
             throw ResourceNotFoundException("Entity $entityId does not exist")
-        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+        if (!authorizationService.userCanUpdateEntity(entityUri, userId))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
 
-        entityService.updateEntityAttribute(entityId.toUri(), attrId, body, contexts)
+        val expandedBody = expandJsonLdFragment(body, contexts) as Map<String, List<Any>>
+        val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        val expandedPayload = mapOf(expandedAttrId to expandedBody)
+        entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
 
+        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+        entityEventService.publishEntityEvent(
+            AttributeUpdateEvent(
+                entityId = entityUri,
+                attributeName = attrId,
+                datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
+                operationPayload = body,
+                updatedEntity = compactAndSerialize(updatedEntity!!),
+                contexts = contexts
+            ),
+            updatedEntity.type.extractShortTypeFromExpanded()
+        )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

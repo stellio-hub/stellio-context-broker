@@ -3,8 +3,12 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -78,7 +82,7 @@ class JsonLdUtilsTests {
 
         val resultMap = (normalizedMap as CompactedJsonLdEntity).toKeyValues()
 
-        Assertions.assertEquals(simplifiedMap, resultMap)
+        assertEquals(simplifiedMap, resultMap)
     }
 
     @Test
@@ -91,12 +95,12 @@ class JsonLdUtilsTests {
             setOf("brandName", "location")
         )
 
-        Assertions.assertTrue(resultMap.containsKey("id"))
-        Assertions.assertTrue(resultMap.containsKey("type"))
-        Assertions.assertTrue(resultMap.containsKey("@context"))
-        Assertions.assertTrue(resultMap.containsKey("brandName"))
-        Assertions.assertTrue(resultMap.containsKey("location"))
-        Assertions.assertFalse(resultMap.containsKey("isParked"))
+        assertTrue(resultMap.containsKey("id"))
+        assertTrue(resultMap.containsKey("type"))
+        assertTrue(resultMap.containsKey("@context"))
+        assertTrue(resultMap.containsKey("brandName"))
+        assertTrue(resultMap.containsKey("location"))
+        assertFalse(resultMap.containsKey("isParked"))
     }
 
     @Test
@@ -112,7 +116,7 @@ class JsonLdUtilsTests {
         val exception = assertThrows<InvalidRequestException> {
             parseAndExpandJsonLdFragment(rawEntity)
         }
-        Assertions.assertEquals(
+        assertEquals(
             "Unexpected error while parsing payload : Unexpected character (',' (code 44)): was expecting" +
                 " double-quote to start field name\n at [Source: (BufferedReader); line: 2, column: 39]",
             exception.message
@@ -135,7 +139,7 @@ class JsonLdUtilsTests {
         val exception = assertThrows<BadRequestDataException> {
             parseAndExpandJsonLdFragment(rawEntity)
         }
-        Assertions.assertEquals(
+        assertEquals(
             "Unexpected error while parsing payload : loading remote context failed: unknownContext",
             exception.message
         )
@@ -155,9 +159,79 @@ class JsonLdUtilsTests {
         val exception = assertThrows<BadRequestDataException> {
             parseAndExpandJsonLdFragment(rawEntity)
         }
-        Assertions.assertEquals(
+        assertEquals(
             "Unable to parse input payload",
             exception.message
         )
+    }
+
+    @Test
+    fun `it should return an error if a relationship has no object field`() {
+        val relationshipValues = mapOf(
+            "value" to listOf("something")
+        )
+
+        val result = extractRelationshipObject("isARelationship", relationshipValues)
+        assertTrue(result.isLeft())
+        result.mapLeft {
+            assertEquals("Relationship isARelationship does not have an object field", it.message)
+        }
+    }
+
+    @Test
+    fun `it should return an error if a relationship has an empty object`() {
+        val relationshipValues = mapOf(
+            NGSILD_RELATIONSHIP_HAS_OBJECT to emptyList<Any>()
+        )
+
+        val result = extractRelationshipObject("isARelationship", relationshipValues)
+        assertTrue(result.isLeft())
+        result.mapLeft {
+            assertEquals("Relationship isARelationship is empty", it.message)
+        }
+    }
+
+    @Test
+    fun `it should return an error if a relationship has an invalid object type`() {
+        val relationshipValues = mapOf(
+            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf("invalid")
+        )
+
+        val result = extractRelationshipObject("isARelationship", relationshipValues)
+        assertTrue(result.isLeft())
+        result.mapLeft {
+            assertEquals("Relationship isARelationship has an invalid object type: class java.lang.String", it.message)
+        }
+    }
+
+    @Test
+    fun `it should return an error if a relationship has object without id`() {
+        val relationshipValues = mapOf(
+            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
+                mapOf("@value" to "urn:ngsi-ld:T:misplacedRelationshipObject")
+            )
+        )
+
+        val result = extractRelationshipObject("isARelationship", relationshipValues)
+        assertTrue(result.isLeft())
+        result.mapLeft {
+            assertEquals("Relationship isARelationship has an invalid or no object id: null", it.message)
+        }
+    }
+
+    @Test
+    fun `it should extract the target object of a relationship`() {
+        val relationshipObjectId = "urn:ngsi-ld:T:1"
+        val relationshipValues = mapOf(
+            NGSILD_RELATIONSHIP_HAS_OBJECT to listOf(
+                mapOf("@id" to relationshipObjectId)
+            )
+        )
+
+        val result = extractRelationshipObject("isARelationship", relationshipValues)
+        assertTrue(result.isRight())
+        result.map {
+            assertEquals(relationshipObjectId.toUri(), it)
+        }
     }
 }

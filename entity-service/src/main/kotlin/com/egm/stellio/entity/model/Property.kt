@@ -9,6 +9,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.fasterxml.jackson.annotation.JsonRawValue
 import org.neo4j.ogm.annotation.Index
 import org.neo4j.ogm.annotation.NodeEntity
@@ -69,7 +72,7 @@ class Property(
         return propsMap
     }
 
-    fun updateValues(unitCode: String?, value: Any?, observedAt: ZonedDateTime?) {
+    fun updateValues(unitCode: String?, value: Any?, observedAt: ZonedDateTime?): Property {
         unitCode?.let {
             this.unitCode = unitCode
         }
@@ -79,5 +82,14 @@ class Property(
         observedAt?.let {
             this.observedAt = observedAt
         }
+
+        return this
     }
+
+    fun updateValues(updateFragment: Map<String, List<Any>>): Property =
+        updateValues(
+            getPropertyValueFromMapAsString(updateFragment, NGSILD_UNIT_CODE_PROPERTY),
+            getPropertyValueFromMap(updateFragment, NGSILD_PROPERTY_VALUE),
+            getPropertyValueFromMapAsDateTime(updateFragment, JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY)
+        )
 }

@@ -499,30 +499,6 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should update a property value of a string type`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1233".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
-        )
-        neo4jRepository.updateEntityAttribute(entity.id, "name", "new name")
-        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should update a property value of a numeric type`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1233".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = 100L))
-        )
-        neo4jRepository.updateEntityAttribute(entity.id, "name", 200L)
-        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
     fun `it should add modifiedAt value when creating a new property`() {
         val property = Property(name = "name", value = "Scalpa")
         propertyRepository.save(property)
@@ -1152,6 +1128,32 @@ class Neo4jRepositoryTests {
         )
         neo4jRepository.deleteEntity(sensor.id)
         neo4jRepository.deleteEntity(device.id)
+    }
+
+    @Test
+    fun `it should update the relationship target of an entity`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val newDevice = createEntity("urn:ngsi-ld:Device:9978".toUri(), listOf("Device"), mutableListOf())
+        createRelationship(
+            EntitySubjectNode(sensor.id),
+            EGM_OBSERVED_BY,
+            device.id
+        )
+
+        neo4jRepository.updateRelationshipTargetOfSubject(
+            sensor.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            newDevice.id
+        )
+
+        assertEquals(
+            neo4jRepository.getRelationshipTargetOfSubject(sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName())!!.id,
+            newDevice.id
+        )
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
+        neo4jRepository.deleteEntity(newDevice.id)
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {

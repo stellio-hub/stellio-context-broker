@@ -5,8 +5,8 @@ import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser

@@ -88,7 +88,6 @@ class EntityHandlerTests {
     }
 
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
-    private val fishNumberAttributeDatasetId = "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {

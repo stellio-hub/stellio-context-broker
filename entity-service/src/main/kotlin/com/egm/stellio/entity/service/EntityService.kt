@@ -367,15 +367,6 @@ class EntityService(
                         appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
                     }
                     is NgsiLdGeoProperty -> appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite)
-                    // TODO we should avoid this fake else
-                    else -> listOf(
-                        UpdateAttributeResult(
-                            "",
-                            null,
-                            UpdateOperationResult.IGNORED,
-                            "Unknown attribute type $ngsiLdAttribute"
-                        )
-                    )
                 }
             }
             .toList()

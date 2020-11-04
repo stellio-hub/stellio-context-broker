@@ -27,7 +27,7 @@ data class UpdateAttributeResult(
     val attributeName: String,
     val datasetId: URI?,
     val updateOperationResult: UpdateOperationResult,
-    val errorMessage: String?
+    val errorMessage: String? = null
 ) {
     fun isSuccessfullyUpdated() =
         this.updateOperationResult in listOf(UpdateOperationResult.APPENDED, UpdateOperationResult.REPLACED)

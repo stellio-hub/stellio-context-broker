@@ -548,80 +548,108 @@ class EntityService(
 
     @Transactional
     fun updateEntityAttributes(id: URI, attributes: List<NgsiLdAttribute>): UpdateResult {
-        val updatedAttributes = mutableListOf<UpdatedDetails>()
-        val notUpdatedAttributes = mutableListOf<NotUpdatedDetails>()
-
-        attributes.forEach { ngsiLdAttribute ->
-            val shortAttributeName = ngsiLdAttribute.compactName
+        val updateStatuses = attributes.flatMap { ngsiLdAttribute ->
             try {
                 logger.debug("Trying to update attribute ${ngsiLdAttribute.name} of type $ngsiLdAttribute")
-                if (ngsiLdAttribute is NgsiLdRelationship) {
-                    if (neo4jRepository.hasRelationshipOfType(
-                        EntitySubjectNode(id),
-                        ngsiLdAttribute.name.toRelationshipTypeName()
-                    )
-                    ) {
-                        deleteEntityAttribute(id, ngsiLdAttribute.name)
-                        // TODO multi-attribute support
-                        createEntityRelationship(
-                            id,
-                            ngsiLdAttribute.name,
-                            ngsiLdAttribute.instances[0],
-                            ngsiLdAttribute.instances[0].objectId
-                        )
-                        updatedAttributes.add(
-                            UpdatedDetails(
-                                ngsiLdAttribute.name,
-                                ngsiLdAttribute.instances[0].datasetId,
-                                UpdateOperationResult.REPLACED
-                            )
-                        )
-                    } else
-                        notUpdatedAttributes.add(
-                            NotUpdatedDetails(ngsiLdAttribute.name, "Relationship does not exist")
-                        )
-                } else if (ngsiLdAttribute is NgsiLdProperty) {
-                    val datasetId = ngsiLdAttribute.instances[0].datasetId
-                    if (neo4jRepository.hasPropertyInstance(EntitySubjectNode(id), ngsiLdAttribute.name, datasetId)) {
-                        updateEntityAttributeInstance(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(
-                            UpdatedDetails(
-                                ngsiLdAttribute.name,
-                                datasetId,
-                                UpdateOperationResult.REPLACED
-                            )
-                        )
-                    } else {
-                        val message = if (datasetId != null)
-                            "Property (datasetId: $datasetId) does not exist"
-                        else
-                            "Property (default instance) does not exist"
-                        notUpdatedAttributes.add(NotUpdatedDetails(ngsiLdAttribute.name, message))
-                    }
-                } else if (ngsiLdAttribute is NgsiLdGeoProperty) {
-                    if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(id), shortAttributeName)) {
-                        updateLocationPropertyOfEntity(id, ngsiLdAttribute.name, ngsiLdAttribute.instances[0])
-                        updatedAttributes.add(
-                            UpdatedDetails(
-                                ngsiLdAttribute.name,
-                                ngsiLdAttribute.instances[0].datasetId,
-                                UpdateOperationResult.REPLACED
-                            )
-                        )
-                    } else
-                        notUpdatedAttributes.add(
-                            NotUpdatedDetails(ngsiLdAttribute.name, "GeoProperty does not exist")
-                        )
+                when (ngsiLdAttribute) {
+                    is NgsiLdRelationship -> updateEntityRelationship(id, ngsiLdAttribute)
+                    is NgsiLdProperty -> updateEntityProperty(id, ngsiLdAttribute)
+                    is NgsiLdGeoProperty -> updateEntityGeoProperty(id, ngsiLdAttribute)
                 }
             } catch (e: BadRequestDataException) {
-                notUpdatedAttributes.add(
-                    NotUpdatedDetails(ngsiLdAttribute.name, e.message)
+                listOf(
+                    UpdateAttributeResult(ngsiLdAttribute.name, null, UpdateOperationResult.IGNORED, e.message)
                 )
             }
+        }.toList()
+
+        val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }
+            .map { UpdatedDetails(it.attributeName, it.datasetId, it.updateOperationResult) }
+
+        val notUpdated = updateStatuses.filter { !it.isSuccessfullyUpdated() }
+            .map { NotUpdatedDetails(it.attributeName, it.errorMessage!!) }
+
+        return UpdateResult(updated, notUpdated)
+    }
+
+    fun updateEntityRelationship(entityId: URI, ngsiLdRelationship: NgsiLdRelationship) =
+        if (neo4jRepository.hasRelationshipOfType(
+            EntitySubjectNode(entityId),
+            ngsiLdRelationship.name.toRelationshipTypeName()
+        )
+        ) {
+            deleteEntityAttribute(entityId, ngsiLdRelationship.name)
+            // TODO multi-attribute support
+            createEntityRelationship(
+                entityId,
+                ngsiLdRelationship.name,
+                ngsiLdRelationship.instances[0],
+                ngsiLdRelationship.instances[0].objectId
+            )
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdRelationship.name,
+                    ngsiLdRelationship.instances[0].datasetId,
+                    UpdateOperationResult.REPLACED
+                )
+            )
+        } else
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdRelationship.name,
+                    ngsiLdRelationship.instances[0].datasetId,
+                    UpdateOperationResult.IGNORED,
+                    "Relationship does not exist"
+                )
+            )
+
+    fun updateEntityProperty(entityId: URI, ngsiLdProperty: NgsiLdProperty) =
+        if (neo4jRepository.hasPropertyInstance(
+            EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdProperty.instances[0].datasetId
+        )
+        ) {
+            updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdProperty.instances[0])
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdProperty.name,
+                    ngsiLdProperty.instances[0].datasetId,
+                    UpdateOperationResult.REPLACED
+                )
+            )
+        } else {
+            val message = if (ngsiLdProperty.instances[0].datasetId != null)
+                "Property (datasetId: ${ngsiLdProperty.instances[0].datasetId}) does not exist"
+            else
+                "Property (default instance) does not exist"
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdProperty.name,
+                    ngsiLdProperty.instances[0].datasetId,
+                    UpdateOperationResult.IGNORED,
+                    message
+                )
+            )
         }
 
-        return UpdateResult(updatedAttributes, notUpdatedAttributes)
-    }
+    fun updateEntityGeoProperty(entityId: URI, ngsiLdGeoProperty: NgsiLdGeoProperty) =
+        if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(entityId), ngsiLdGeoProperty.compactName)) {
+            updateLocationPropertyOfEntity(entityId, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdGeoProperty.name,
+                    ngsiLdGeoProperty.instances[0].datasetId,
+                    UpdateOperationResult.REPLACED
+                )
+            )
+        } else
+            listOf(
+                UpdateAttributeResult(
+                    ngsiLdGeoProperty.name,
+                    ngsiLdGeoProperty.instances[0].datasetId,
+                    UpdateOperationResult.IGNORED,
+                    "GeoProperty does not exist"
+                )
+            )
 
     internal fun updateLocationPropertyOfEntity(
         entityId: URI,

@@ -1,0 +1,5 @@
+{
+  "operationType": "ENTITY_CREATE",
+  "entityId": "urn:ngsi-ld:Subscription:1234",
+  "operationPayload": "{\"id\": \"urn:ngsi-ld:Subscription:1234\",\"type\": \"Subscription\",\"name\": \"Alerte frelons\",\"description\": \"Description de mon alerte frelons\",\"entities\": [{\"type\": \"https://ontology.eglobalmark.com/apic#BeeHive\"}]}"
+}

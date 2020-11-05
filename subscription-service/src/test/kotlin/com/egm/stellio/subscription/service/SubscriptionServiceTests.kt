@@ -1,6 +1,5 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.EventType
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -8,12 +7,7 @@ import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.*
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
-import com.jayway.jsonpath.JsonPath.read
-import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
 import io.mockk.verify
 import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.BeforeAll
@@ -43,13 +37,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable  (https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
-    @MockkBean(relaxed = true)
-    private lateinit var subscriptionsEventsListener: SubscriptionsEventsListener
-
     private val MOCK_USER_SUB = "mock-user-sub"
 
     private lateinit var subscription1Id: URI
@@ -64,7 +51,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @BeforeAll
     fun bootstrapSubscriptions() {
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
         createSubscription1()
         createSubscription2()
         createSubscription3()
@@ -174,7 +160,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:FishContainment:*", type = "FishContainment")
             )
         )
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         val creationResult = subscriptionService.create(subscription, MOCK_USER_SUB)
 
@@ -208,17 +193,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id)
                     VALUES (:georel, :geometry, :coordinates, :subscription_id)
                     """.matchContent(it)
-                }
-            )
-        }
-        verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "Subscription" &&
-                        entityEvent.entityId == subscription.id &&
-                        entityEvent.operationType == EventType.CREATE &&
-                        entityEvent.payload != null &&
-                        entityEvent.updatedEntity == null
                 }
             )
         }
@@ -379,8 +353,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         val notifiedAt = Instant.now().atZone(ZoneOffset.UTC)
 
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
         subscriptionService.updateSubscriptionNotification(
             subscription,
@@ -403,23 +375,10 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should delete an existing subscription`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
         val deletionResult = subscriptionService.delete(subscription.id).block()
 
-        verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "Subscription" &&
-                        entityEvent.entityId == subscription.id &&
-                        entityEvent.operationType == EventType.DELETE &&
-                        entityEvent.payload == null &&
-                        entityEvent.updatedEntity == null
-                }
-            )
-        }
         assertEquals(deletionResult, 1)
     }
 
@@ -564,8 +523,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             watchedAttributes = null
         )
 
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
         val persistedSubscription =
@@ -592,8 +549,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             watchedAttributes = listOf("incoming", "outgoing", "temperature")
         )
 
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
         val persistedSubscription =
@@ -619,8 +574,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             ),
             watchedAttributes = listOf("outgoing", "temperature")
         )
-
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
 
         subscriptionService.create(subscription, MOCK_USER_SUB).block()
 
@@ -650,8 +603,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             listOf(apicContext)
         )
 
-        every { subscriptionsEventsListener.handleSubscriptionEvent(any()) } just Runs
-
         subscriptionService.update(subscription4Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription4Id)
 
@@ -665,23 +616,6 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.geoQ!!.coordinates == "[100.0, 0.0]"
             }
             .verifyComplete()
-
-        verify(timeout = 1000, exactly = 1) {
-            subscriptionsEventsListener.handleSubscriptionEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "Subscription" &&
-                        entityEvent.entityId == subscription4Id &&
-                        entityEvent.operationType == EventType.UPDATE &&
-                        entityEvent.payload != null &&
-                        read(entityEvent.updatedEntity, "$.name") as String == "My Subscription Updated" &&
-                        read(
-                        entityEvent.updatedEntity,
-                        "$.description"
-                    ) as String == "My beautiful subscription has been updated" &&
-                        read(entityEvent.updatedEntity, "$.q") as String == "foodQuantity>=150"
-                }
-            )
-        }
     }
 
     @Test

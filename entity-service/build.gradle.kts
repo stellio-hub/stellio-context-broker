@@ -14,7 +14,6 @@ plugins {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
     implementation("org.neo4j:neo4j-ogm-bolt-native-types")
-    implementation("org.jgrapht:jgrapht-core:1.4.0")
     implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.13")
     implementation(project(":shared"))
 

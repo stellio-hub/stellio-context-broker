@@ -19,26 +19,25 @@ interface EntityRepository : Neo4jRepository<Entity, URI> {
     @Query(
         "MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property)" +
             "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +
-            "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject:Entity)" +
-            "RETURN property, propValue, type(rel) as relType, relOfProp, relOfPropObject"
+            "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject)" +
+            "RETURN property, propValue, type(rel) as relType, relOfProp, relOfPropObject.id as relOfPropObjectId"
     )
     fun getEntitySpecificProperties(id: String): List<Map<String, Any>>
 
     @Query(
         "MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property {id: \$propertyId })" +
             "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +
-            "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject:Entity)" +
-            "RETURN property, propValue, type(rel) as relType, relOfProp, relOfPropObject"
+            "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject)" +
+            "RETURN property, propValue, type(rel) as relType, relOfProp, relOfPropObject.id as relOfPropObjectId"
     )
     fun getEntitySpecificProperty(id: String, propertyId: String): List<Map<String, Any>>
 
     @Query(
-        "MATCH (entity:Entity { id: \$id })-[:HAS_OBJECT]->(rel:Relationship)-[r]->(relObject:Entity)" +
-            "OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)-[or]->(relOfRelObject:Entity)" +
-            "RETURN rel, type(r) as relType, relObject, relOfRel, type(or) as relOfRelType, relOfRelObject"
+        "MATCH (entity:Entity { id: \$id })-[:HAS_OBJECT]->(rel:Relationship)-[r]->(relObject)" +
+            "OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propValue:Property)" +
+            "OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)-[or]->(relOfRelObject)" +
+            "RETURN rel, propValue, type(r) as relType, relObject.id as relObjectId, " +
+            " relOfRel, type(or) as relOfRelType, relOfRelObject.id as relOfRelObjectId"
     )
     fun getEntityRelationships(id: String): List<Map<String, Any>>
-
-    @Query("MATCH (e:Entity { id: \$id }) RETURN exists(e.id)")
-    fun exists(id: String): Boolean?
 }

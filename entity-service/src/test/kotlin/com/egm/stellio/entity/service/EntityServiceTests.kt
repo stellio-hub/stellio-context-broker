@@ -4,15 +4,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.util.EntitiesGraphBuilder
-import com.egm.stellio.entity.web.BatchEntityError
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -26,8 +18,6 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
-import org.jgrapht.graph.DefaultEdge
-import org.jgrapht.graph.DirectedPseudograph
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -55,9 +45,6 @@ class EntityServiceTests {
     private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
-    private lateinit var entitiesGraphBuilder: EntitiesGraphBuilder
-
-    @MockkBean(relaxed = true)
     private lateinit var neo4jRepository: Neo4jRepository
 
     @MockkBean(relaxed = true)
@@ -66,75 +53,31 @@ class EntityServiceTests {
     @MockkBean
     private lateinit var propertyRepository: PropertyRepository
 
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
     @MockkBean
-    private lateinit var repositoryEventsListener: RepositoryEventsListener
+    private lateinit var partialEntityRepository: PartialEntityRepository
 
-    @Test
-    fun `it should notify of a new entity`() {
-        val expectedPayloadInEvent =
-            """
-        {"id":"urn:ngsi-ld:MortalityRemovalService:014YFA9Z","type":"MortalityRemovalService","@context":["https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld","https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/aquac/jsonld-contexts/aquac.jsonld","http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]}
-            """.trimIndent()
-        val sampleDataWithContext =
-            parseSampleDataToNgsiLd("aquac/MortalityRemovalService_standalone.json")
-        val mockedBreedingService = mockkClass(Entity::class)
+    @MockkBean
+    private lateinit var entityEventService: EntityEventService
 
-        every { entityRepository.exists(eq("urn:ngsi-ld:MortalityRemovalService:014YFA9Z")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
-        every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
-        every { mockedBreedingService.properties } returns mutableListOf()
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
-        every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
-        every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
-            "@type" to listOf("MortalityRemovalService")
-        )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
-        every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
-
-        entityService.createEntity(sampleDataWithContext)
-
-        verify(timeout = 1000, exactly = 1) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "MortalityRemovalService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri() &&
-                        entityEvent.operationType == EventType.CREATE &&
-                        entityEvent.payload == expectedPayloadInEvent &&
-                        entityEvent.updatedEntity == null
-                }
-            )
-        }
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
-    }
+    private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
+    private val fishContainmentUri = "urn:ngsi-ld:FishContainment:1234".toUri()
 
     @Test
     fun `it should create an entity with a property having a property`() {
         val sampleDataWithContext =
             parseSampleDataToNgsiLd("aquac/BreedingService_propWithProp.json")
+        val breedingServiceUri = "urn:ngsi-ld:BreedingService:PropWithProp".toUri()
 
         val mockedBreedingService = mockkClass(Entity::class)
-        every { mockedBreedingService.id } returns "urn:ngsi-ld:BreedingService:PropWithProp".toUri()
+        every { mockedBreedingService.id } returns breedingServiceUri
 
-        every { entityRepository.exists(eq("urn:ngsi-ld:BreedingService:PropWithProp")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java), emptyList())
+        every { entityRepository.existsById(eq(breedingServiceUri)) } returns false
+        every { partialEntityRepository.existsById(breedingServiceUri) } returns false
         every { entityRepository.save<Entity>(any()) } returns mockedBreedingService
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
         every { entityRepository.getEntityCoreById(any()) } returns mockedBreedingService
         every { mockedBreedingService.serializeCoreProperties(true) } returns mutableMapOf(
-            "@id" to "urn:ngsi-ld:MortalityRemovalService:014YFA9Z",
+            "@id" to mortalityRemovalServiceUri.toString(),
             "@type" to listOf("MortalityRemovalService")
         )
         every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
@@ -144,37 +87,6 @@ class EntityServiceTests {
         entityService.createEntity(sampleDataWithContext)
 
         confirmVerified()
-    }
-
-    @Test
-    fun `it should not create an entity referencing an unknown entity`() {
-        val sampleDataWithContext =
-            parseSampleDataToNgsiLd("aquac/FeedingService.json")
-
-        every { entityRepository.exists(eq("urn:ngsi-ld:FeedingService:018z59")) } returns false
-        every { entitiesGraphBuilder.build(any()) } returns
-            Pair(
-                DirectedPseudograph<NgsiLdEntity, DefaultEdge>(DefaultEdge::class.java),
-                listOf(
-                    BatchEntityError(
-                        "urn:ngsi-ld:FeedingService:018z59".toUri(),
-                        arrayListOf(
-                            "Target entity urn:ngsi-ld:Feeder:018z5 does not exist",
-                            "Target entity urn:ngsi-ld:FishContainment:0012 does not exist"
-                        )
-                    )
-                )
-            )
-
-        val exception = assertThrows<BadRequestDataException>("Creation should have failed") {
-            entityService.createEntity(sampleDataWithContext)
-        }
-        assertEquals(
-            "Entity urn:ngsi-ld:FeedingService:018z59 targets unknown entities: " +
-                "Target entity urn:ngsi-ld:Feeder:018z5 does not exist," +
-                "Target entity urn:ngsi-ld:FishContainment:0012 does not exist",
-            exception.message
-        )
     }
 
     @Test
@@ -192,6 +104,7 @@ class EntityServiceTests {
                 "incoming"
             )
         }
+        verify { entityEventService wasNot called }
 
         confirmVerified(neo4jRepository)
     }
@@ -215,6 +128,7 @@ class EntityServiceTests {
         verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
         verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
         verify { propertyRepository wasNot Called }
+        verify { entityEventService wasNot called }
 
         confirmVerified()
     }
@@ -234,12 +148,13 @@ class EntityServiceTests {
 
         every { mockkedSensor.id } returns sensorId
         every { mockkedObservation.name } returns observation.attributeName
-        every { mockkedObservation.updateValues(any(), any(), any()) } just Runs
+        every { mockkedObservation.updateValues(any(), any(), any()) } returns mockkedObservation
         every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
         every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
         every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
         every { mockkedEntity.contexts } returns listOf(aquacContext!!)
         every { mockkedObservation.id } returns "property-9999".toUri()
+        every { mockkedObservation.datasetId } returns null
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
         every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
@@ -249,7 +164,7 @@ class EntityServiceTests {
         every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
             mapOf("property" to expectedPropertyUpdate)
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         entityService.updateEntityLastMeasure(observation)
 
@@ -259,15 +174,17 @@ class EntityServiceTests {
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify(timeout = 2000) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityType == "BreedingService" &&
-                        entityEvent.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
-                        entityEvent.operationType == EventType.UPDATE &&
-                        entityEvent.payload != null &&
-                        entityEvent.payload!!.contains("fishNumber") &&
-                        entityEvent.updatedEntity == null
-                }
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeReplaceEvent
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
+                        it.attributeName == "incoming" &&
+                        it.datasetId == null &&
+                        it.operationPayload.contains("fishNumber") &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "BreedingService"
             )
         }
 
@@ -285,7 +202,7 @@ class EntityServiceTests {
             {
               "filledIn": {
                 "type": "Relationship",
-                "object": "urn:ngsi-ld:FishContainment:1234"
+                "object": "$fishContainmentUri"
               }
             }
             """.trimIndent()
@@ -304,7 +221,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns "relId".toUri()
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -321,7 +238,7 @@ class EntityServiceTests {
             neo4jRepository.createRelationshipOfSubject(
                 any(),
                 any(),
-                eq("urn:ngsi-ld:FishContainment:1234".toUri())
+                eq(fishContainmentUri)
             )
         }
 
@@ -469,7 +386,7 @@ class EntityServiceTests {
 
         every { mockkedEntity.id } returns entityId
         every { mockkedEntity.properties } returns mutableListOf()
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
 
         entityService.createEntityProperty(entityId, "temperature", ngsiLdPropertyInstance)
 
@@ -517,7 +434,7 @@ class EntityServiceTests {
         every { mockkedRelationship.id } returns relationshipId
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
@@ -603,7 +520,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
-        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns relationshipId
+        every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
 
@@ -652,7 +569,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any()) } returns false
         every { mockkedEntity.id } returns entityId
-        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns UUID.randomUUID().toString().toUri()
+        every { neo4jRepository.createPropertyOfSubject(any(), any()) } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -714,7 +631,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
             neo4jRepository.createPropertyOfSubject(any(), capture(createdProperties))
-        } returns UUID.randomUUID().toString().toUri()
+        } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 
@@ -782,7 +699,7 @@ class EntityServiceTests {
         every { neo4jRepository.deleteEntityProperty(any(), any(), any()) } returns 1
         every {
             neo4jRepository.createPropertyOfSubject(any(), any())
-        } returns UUID.randomUUID().toString().toUri()
+        } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewProperty, false)
 

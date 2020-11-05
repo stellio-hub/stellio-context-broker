@@ -1,8 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.model.Subscription
+import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,9 +18,6 @@ object JsonUtils {
             .findAndRegisterModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    fun parseEntityEvent(input: String): EntityEvent =
-        mapper.readValue(input, EntityEvent::class.java)
-
     fun parseSubscription(content: String): Subscription =
         mapper.readValue(content, Subscription::class.java)
 
@@ -31,6 +26,12 @@ object JsonUtils {
 
     fun parseJsonContent(content: String): JsonNode =
         mapper.readTree(content)
+
+    fun parseListOfEntities(content: String): List<Map<String, Any>> =
+        mapper.readValue(
+            content,
+            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+        )
 
     fun serializeObject(input: Any): String =
         mapper.writeValueAsString(input)
@@ -50,4 +51,7 @@ object JsonUtils {
         )
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
+
+    fun parseEntityEvent(input: String): EntityEvent =
+        mapper.readValue(input, EntityEvent::class.java)
 }

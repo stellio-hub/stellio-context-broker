@@ -1,18 +1,26 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -95,34 +103,12 @@ object JsonLdUtils {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
 
-        val expandedEntity = try {
-            val expandedList = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()), jsonLdOptions)
-            // when list is empty, it has failed to parse the input but we don't know why ...
-            if (expandedList.isEmpty())
-                throw BadRequestDataException("Unable to parse input payload")
-            expandedList[0]
-        } catch (e: Exception) {
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
-        return JsonLdEntity(expandedEntity as Map<String, Any>, contexts)
+        return JsonLdEntity(parseAndExpandJsonLdFragment(input, jsonLdOptions), contexts)
     }
 
     fun expandJsonLdEntity(input: String): JsonLdEntity {
-        val expandedEntity = try {
-            val expandedList = JsonLdProcessor.expand(JsonUtils.fromInputStream(input.byteInputStream()))
-            // when list is empty, it has failed to parse the input but we don't know why ...
-            if (expandedList.isEmpty())
-                throw BadRequestDataException("Unable to parse input payload")
-            expandedList[0]
-        } catch (e: Exception) {
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
         // TODO find a way to avoid this extra parsing
-        val contexts = extractContextFromInput(input)
-
-        return JsonLdEntity(expandedEntity as Map<String, Any>, contexts)
+        return JsonLdEntity(parseAndExpandJsonLdFragment(input), extractContextFromInput(input))
     }
 
     fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> {
@@ -251,16 +237,7 @@ object JsonLdUtils {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf("@context" to usedContext)
-        val expandedFragment = try {
-            JsonLdProcessor.expand(JsonUtils.fromInputStream(fragment.byteInputStream()), jsonLdOptions)
-        } catch (e: Exception) {
-            throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
-        }
-
-        logger.debug("Expanded fragment $fragment to $expandedFragment")
-        if (expandedFragment.isEmpty())
-            throw BadRequestDataException("Unable to expand JSON-LD fragment : $fragment")
-        return expandedFragment[0] as Map<String, Any>
+        return parseAndExpandJsonLdFragment(fragment, jsonLdOptions)
     }
 
     fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
@@ -285,12 +262,53 @@ object JsonLdUtils {
         input: CompactedJsonLdEntity,
         includedAttributes: Set<String>
     ): Map<String, Any> {
+        val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
+        return filterEntityOnAttributes(input, identity, includedAttributes)
+    }
+
+    fun filterJsonLdEntityOnAttributes(
+        input: JsonLdEntity,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
+        val inputToMap = { i: JsonLdEntity -> i.properties }
+        return filterEntityOnAttributes(input, inputToMap, includedAttributes)
+    }
+
+    private fun <T> filterEntityOnAttributes(
+        input: T,
+        inputToMap: (T) -> Map<String, Any>,
+        includedAttributes: Set<String>
+    ): Map<String, Any> {
         return if (includedAttributes.isEmpty()) {
-            input
+            inputToMap(input)
         } else {
             val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
-            input.filterKeys { includedKeys.contains(it) }
+            inputToMap(input).filterKeys { includedKeys.contains(it) }
         }
+    }
+
+    fun extractRelationshipObject(name: String, values: Map<String, List<Any>>): Either<BadRequestDataException, URI> {
+        return values.right()
+            .flatMap {
+                if (!it.containsKey(NGSILD_RELATIONSHIP_HAS_OBJECT))
+                    BadRequestDataException("Relationship $name does not have an object field").left()
+                else it[NGSILD_RELATIONSHIP_HAS_OBJECT]!!.right()
+            }
+            .flatMap {
+                if (it.isEmpty())
+                    BadRequestDataException("Relationship $name is empty").left()
+                else it[0].right()
+            }
+            .flatMap {
+                if (it !is Map<*, *>)
+                    BadRequestDataException("Relationship $name has an invalid object type: ${it.javaClass}").left()
+                else it[JSONLD_ID].right()
+            }
+            .flatMap {
+                if (it !is String)
+                    BadRequestDataException("Relationship $name has an invalid or no object id: $it").left()
+                else it.toUri().right()
+            }
     }
 }
 
@@ -320,4 +338,24 @@ private fun simplifyValue(value: Map<*, *>): Any {
         "Relationship" -> value.getOrDefault("object", value)!!
         else -> value
     }
+}
+
+fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
+    val parsedFragment = try {
+        JsonUtils.fromInputStream(fragment.byteInputStream())
+    } catch (e: JsonParseException) {
+        throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
+    }
+    val expandedFragment = try {
+        if (jsonLdOptions != null)
+            JsonLdProcessor.expand(parsedFragment, jsonLdOptions)
+        else
+            JsonLdProcessor.expand(parsedFragment)
+    } catch (e: JsonLdError) {
+        throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
+    }
+    if (expandedFragment.isEmpty())
+        throw BadRequestDataException("Unable to parse input payload")
+
+    return expandedFragment[0] as Map<String, Any>
 }

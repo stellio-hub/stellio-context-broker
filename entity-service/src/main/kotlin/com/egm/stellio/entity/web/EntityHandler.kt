@@ -1,26 +1,23 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.service.EntityAttributeService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.InternalErrorResponse
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
-import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -37,7 +34,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 import java.net.URI
 import java.util.Optional
 
@@ -45,48 +41,51 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
     private val entityService: EntityService,
-    private val applicationEventPublisher: ApplicationEventPublisher,
-    private val authorizationService: AuthorizationService
+    private val entityAttributeService: EntityAttributeService,
+    private val authorizationService: AuthorizationService,
+    private val entityEventService: EntityEventService
 ) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * Implements 6.4.3.1 - Create Entity
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun create(@RequestHeader httpHeaders: HttpHeaders, @RequestBody body: Mono<String>): Mono<ResponseEntity<*>> {
-        return extractSubjectOrEmpty().flatMap { userId ->
-            if (!authorizationService.userCanCreateEntities(userId))
-                throw AccessDeniedException("User forbidden to create entities")
-            body.map {
-                expandJsonLdEntity(it, checkAndGetContext(httpHeaders, it)).toNgsiLdEntity()
-            }.map {
-                entityService.createEntity(it)
-            }.doOnNext {
-                authorizationService.createAdminLink(it.id, userId)
-            }.map {
-                ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .location(URI("/ngsi-ld/v1/entities/${it.id}"))
-                    .build<String>()
-            }
-        }
+    suspend fun create(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        if (!authorizationService.userCanCreateEntities(userId))
+            throw AccessDeniedException("User forbidden to create entities")
+
+        val body = requestBody.awaitFirst()
+        val ngsiLdEntity = expandJsonLdEntity(body, checkAndGetContext(httpHeaders, body)).toNgsiLdEntity()
+        val newEntityUri = entityService.createEntity(ngsiLdEntity)
+        authorizationService.createAdminLink(newEntityUri, userId)
+
+        entityEventService.publishEntityEvent(
+            EntityCreateEvent(newEntityUri, body),
+            ngsiLdEntity.type.extractShortTypeFromExpanded()
+        )
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
+            .build<String>()
     }
 
     /**
      * Implements 6.4.3.2 - Query Entities
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun getEntities(
+    suspend fun getEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
-    ): Mono<ResponseEntity<*>> {
+    ): ResponseEntity<*> {
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val q = params.getOrDefault(QUERY_PARAM_FILTER, emptyList())
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isNullOrEmpty() && type.isEmpty())
@@ -96,38 +95,26 @@ class EntityHandler(
                         "'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2)"
                     )
                 )
-                .toMono()
 
         if (!JsonLdUtils.isTypeResolvable(type, contextLink))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
-                .toMono()
 
         /**
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
+        val entities = entityService.searchEntities(type, q.decode(), contextLink, includeSysAttrs)
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val entitiesUserCanRead =
+            authorizationService.filterEntitiesUserCanRead(
+                entities.map { it.id.toUri() },
+                userId
+            ).toListOfString()
+        val filteredEntities = entities.filter { entitiesUserCanRead.contains(it.id) }
+        val compactedEntities = compactEntities(filteredEntities)
 
-        return Mono.just(entityService.searchEntities(type, q.decode(), contextLink, includeSysAttrs))
-            .zipWith(extractSubjectOrEmpty())
-            .map { entitiesAndUserId ->
-                Pair(
-                    entitiesAndUserId.t1,
-                    authorizationService.filterEntitiesUserCanRead(
-                        entitiesAndUserId.t1.map { it.id.toUri() },
-                        entitiesAndUserId.t2
-                    ).toListOfString()
-                )
-            }
-            .map { (searchEntities, authorizedIds) ->
-                searchEntities.filter { authorizedIds.contains(it.id) }
-            }
-            .map {
-                compactEntities(it)
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
-            }
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
     }
 
     /**
@@ -135,48 +122,45 @@ class EntityHandler(
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     @Suppress("ThrowsCount")
-    fun getByURI(
+    suspend fun getByURI(
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
-    ): Mono<ResponseEntity<*>> {
+    ): ResponseEntity<*> {
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri())) throw ResourceNotFoundException("Entity Not Found")
-                if (!authorizationService.userCanReadEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden read access to entity $entityId")
-            }
-            .map {
-                entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
-                    ?: throw ResourceNotFoundException("Entity Not Found")
-            }
-            .map {
-                it.compact()
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(it))
-            }
+        val userId = extractSubjectOrEmpty().awaitFirst()
+
+        if (!entityService.exists(entityId.toUri()))
+            throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+        if (!authorizationService.userCanReadEntity(entityId.toUri(), userId))
+            throw AccessDeniedException("User forbidden read access to entity $entityId")
+
+        val entity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
+            ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(entity.compact()))
     }
 
     /**
      * Implements 6.5.3.2 - Delete Entity
      */
     @DeleteMapping("/{entityId}")
-    fun delete(@PathVariable entityId: String): Mono<ResponseEntity<*>> {
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri()))
-                    throw ResourceNotFoundException("Entity Not Found")
-                if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden admin access to entity $entityId")
-            }
-            .map {
-                entityService.deleteEntity(entityId.toUri())
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+    suspend fun delete(@PathVariable entityId: String): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+
+        if (!entityService.exists(entityId.toUri()))
+            throw ResourceNotFoundException(entityNotFoundMessage(entityId))
+        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
+            throw AccessDeniedException("User forbidden admin access to entity $entityId")
+
+        val entityType = entityService.getEntityType(entityId.toUri())
+        entityService.deleteEntity(entityId.toUri())
+
+        entityEventService.publishEntityEvent(
+            EntityDeleteEvent(entityId.toUri()), entityType.extractShortTypeFromExpanded()
+        )
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
     /**
@@ -184,37 +168,34 @@ class EntityHandler(
      *
      */
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    fun appendEntityAttributes(
+    suspend fun appendEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam options: Optional<String>,
-        @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<*>> {
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri()))
-                    throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userCanUpdateEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .then(body)
-            .map {
-                val contexts = checkAndGetContext(httpHeaders, it)
-                val jsonLdAttributes = expandJsonLdFragment(it, contexts)
-                entityService.appendEntityAttributes(
-                    entityId.toUri(),
-                    parseToNgsiLdAttributes(jsonLdAttributes),
-                    disallowOverwrite
-                )
-            }
-            .map {
-                logger.debug("Appended $it attributes on entity $entityId")
-                if (it.notUpdated.isEmpty())
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it)
-            }
+
+        if (!entityService.exists(entityId.toUri()))
+            throw ResourceNotFoundException("Entity $entityId does not exist")
+
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+            throw AccessDeniedException("User forbidden write access to entity $entityId")
+
+        val body = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val updateResult = entityService.appendEntityAttributes(
+            entityId.toUri(),
+            parseToNgsiLdAttributes(jsonLdAttributes),
+            disallowOverwrite
+        )
+
+        return if (updateResult.notUpdated.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
     }
 
     /**
@@ -225,118 +206,127 @@ class EntityHandler(
         "/{entityId}/attrs",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
-    fun updateEntityAttributes(
+    suspend fun updateEntityAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
-        @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<*>> {
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri()))
-                    throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userCanUpdateEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .then(body)
-            .map {
-                val contexts = checkAndGetContext(httpHeaders, it)
-                val jsonLdAttributes = expandJsonLdFragment(it, contexts)
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        if (!entityService.exists(entityId.toUri()))
+            throw ResourceNotFoundException("Entity $entityId does not exist")
 
-                Triple(
-                    jsonLdAttributes,
-                    entityService.updateEntityAttributes(entityId.toUri(), parseToNgsiLdAttributes(jsonLdAttributes)),
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+            throw AccessDeniedException("User forbidden write access to entity $entityId")
+
+        val body = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+        val updateResult =
+            entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
+
+        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+
+        updateResult.updated.forEach { expandedAttributeName ->
+            entityEventService.publishEntityEvent(
+                AttributeReplaceEvent(
+                    entityId.toUri(),
+                    expandedAttributeName.extractShortTypeFromExpanded(),
+                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName),
+                    compactAndStringifyFragment(
+                        expandedAttributeName,
+                        jsonLdAttributes[expandedAttributeName]!!,
+                        contexts
+                    ),
+                    compactAndSerialize(updatedEntity!!),
                     contexts
-                )
-            }
-            .doOnNext {
-                it.second.updated.forEach { expandedAttributeName ->
-                    val entityEvent = EntityEvent(
-                        operationType = EventType.UPDATE,
-                        entityId = entityId.toUri(),
-                        payload =
-                            compactAndStringifyFragment(
-                                expandedAttributeName,
-                                it.first[expandedAttributeName]!!,
-                                it.third
-                            )
-                    )
-                    applicationEventPublisher.publishEvent(entityEvent)
-                }
-            }
-            .map {
-                logger.debug("Update $it attributes on entity $entityId")
-                if (it.second.notUpdated.isEmpty())
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.MULTI_STATUS).body(it.second)
-            }
+                ),
+                updatedEntity.type.extractShortTypeFromExpanded()
+            )
+        }
+
+        return if (updateResult.notUpdated.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
     }
 
     /**
      * Implements 6.7.3.1 - Partial Attribute Update
-     * Current implementation is basic and only update the value of a property.
+     *
      */
     @PatchMapping(
         "/{entityId}/attrs/{attrId}",
         consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE, JSON_MERGE_PATCH_CONTENT_TYPE]
     )
-    fun partialAttributeUpdate(
+    suspend fun partialAttributeUpdate(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @PathVariable attrId: String,
-        @RequestBody body: Mono<String>
-    ): Mono<ResponseEntity<*>> {
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri()))
-                    throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userCanUpdateEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .then(body)
-            .map {
-                val contexts = checkAndGetContext(httpHeaders, it)
-                entityService.updateEntityAttribute(entityId.toUri(), attrId, it, contexts)
-            }
-            .map {
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val entityUri = entityId.toUri()
+
+        if (!entityService.exists(entityUri))
+            throw ResourceNotFoundException("Entity $entityId does not exist")
+        if (!authorizationService.userCanUpdateEntity(entityUri, userId))
+            throw AccessDeniedException("User forbidden write access to entity $entityId")
+
+        val body = requestBody.awaitFirst()
+        val contexts = checkAndGetContext(httpHeaders, body)
+
+        val expandedBody = expandJsonLdFragment(body, contexts) as Map<String, List<Any>>
+        val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        val expandedPayload = mapOf(expandedAttrId to expandedBody)
+        entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
+
+        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+        entityEventService.publishEntityEvent(
+            AttributeUpdateEvent(
+                entityId = entityUri,
+                attributeName = attrId,
+                datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
+                operationPayload = body,
+                updatedEntity = compactAndSerialize(updatedEntity!!),
+                contexts = contexts
+            ),
+            updatedEntity.type.extractShortTypeFromExpanded()
+        )
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 
     /**
      * Implements 6.7.3.2 - Delete Entity Attribute
      */
     @DeleteMapping("/{entityId}/attrs/{attrId}")
-    fun deleteEntityAttribute(
+    suspend fun deleteEntityAttribute(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
-    ): Mono<ResponseEntity<*>> {
+    ): ResponseEntity<*> {
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
-        return extractSubjectOrEmpty()
-            .doOnNext {
-                if (!entityService.exists(entityId.toUri()))
-                    throw ResourceNotFoundException("Entity $entityId does not exist")
-                if (!authorizationService.userCanUpdateEntity(entityId.toUri(), it))
-                    throw AccessDeniedException("User forbidden write access to entity $entityId")
-            }
-            .map {
-                val contexts = checkAndGetContext(httpHeaders, it.toString())
-                if (deleteAll)
-                    entityService.deleteEntityAttribute(entityId.toUri(), expandJsonLdKey(attrId, contexts)!!)
-                else
-                    entityService.deleteEntityAttributeInstance(
-                        entityId.toUri(), expandJsonLdKey(attrId, contexts)!!, datasetId
-                    )
-            }
-            .map {
-                if (it)
-                    ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
-                    ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
-                        .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
-            }
+        val userId = extractSubjectOrEmpty().awaitFirst()
+
+        if (!entityService.exists(entityId.toUri()))
+            throw ResourceNotFoundException("Entity $entityId does not exist")
+        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+            throw AccessDeniedException("User forbidden write access to entity $entityId")
+
+        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+        val result = if (deleteAll)
+            entityService.deleteEntityAttribute(entityId.toUri(), expandJsonLdKey(attrId, contexts)!!)
+        else
+            entityService.deleteEntityAttributeInstance(
+                entityId.toUri(), expandJsonLdKey(attrId, contexts)!!, datasetId
+            )
+
+        return if (result)
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
     }
 }

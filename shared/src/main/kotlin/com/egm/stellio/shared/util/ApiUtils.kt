@@ -1,5 +1,8 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import org.springframework.http.HttpHeaders
@@ -15,11 +18,11 @@ object ApiUtils {
     }
 }
 
-fun String.parseTimeParameter(errorMsg: String): ZonedDateTime =
+fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     try {
-        ZonedDateTime.parse(this)
+        ZonedDateTime.parse(this).right()
     } catch (e: DateTimeParseException) {
-        throw BadRequestDataException(errorMsg)
+        errorMsg.left()
     }
 
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
@@ -36,6 +39,10 @@ val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
  */
 fun getContextFromLinkHeaderOrDefault(linkHeader: List<String>): String {
     return getContextFromLinkHeader(linkHeader) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
+}
+
+fun getContextFromLinkHeaderOrDefault(httpHeaders: HttpHeaders): String {
+    return getContextFromLinkHeader(httpHeaders.getOrEmpty("Link")) ?: JsonLdUtils.NGSILD_CORE_CONTEXT
 }
 
 fun getContextFromLinkHeader(linkHeader: List<String>): String? {

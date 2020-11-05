@@ -1,14 +1,15 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -16,8 +17,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockkClass
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -42,6 +42,9 @@ import java.util.UUID
 @Import(WebSecurityTestConfig::class)
 @WithMockUser
 class TemporalEntityHandlerTests {
+
+    val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
@@ -119,56 +122,14 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Unable to expand JSON-LD fragment : { \"id\": \"bad\" }"
+                    "detail":"Unable to parse input payload"
                 }
                 """
             )
     }
 
     @Test
-    fun `it should return a 400 if a service throws a BadRequestDataException`() {
-        every {
-            temporalEntityAttributeService.getForEntity(
-                any(),
-                any(),
-                any()
-            )
-        } throws BadRequestDataException("Bad request")
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
-                }
-                """
-            )
-    }
-
-    @Test
-    fun `it should raise a 400 if no timerel query param`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId?time=before")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
-                }
-                """
-            )
-    }
-
-    @Test
-    fun `it should raise a 400 if no time query param`() {
+    fun `it should raise a 400 if timerel is present without time query param`() {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/entityId?timerel=before")
             .exchange()
@@ -178,10 +139,51 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel and 'time' request parameters are mandatory"
+                    "detail":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
+    }
+
+    @Test
+    fun `it should raise a 400 if time is present without timerel query param`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId?time=2020-10-29T18:00:00Z")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'timerel' and 'time' must be used in conjunction"
+                }
+                """
+            )
+    }
+
+    @Test
+    fun `it should give a 200 if no timerel and no time query params are in the request`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = "entityId".toUri(),
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
+        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(parseSampleDataToJsonLd())
+        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
+            JsonLdEntity::class,
+            relaxed = true
+        )
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+            .exchange()
+            .expectStatus().isOk
     }
 
     @Test
@@ -263,7 +265,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must both be provided for aggregated queries"
+                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
                 } 
                 """
             )
@@ -291,7 +293,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.empty()
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.empty()
 
         webClient.get()
             .uri(
@@ -305,7 +307,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"Entity entityId was not found"
+                    "detail":"${entityNotFoundMessage("entityId")}"
                 }
                 """
             )
@@ -320,7 +322,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -343,7 +345,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -383,7 +385,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val rawEntity = parseSampleDataToJsonLd()
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty1,
             entityTemporalProperty2
         )
@@ -404,12 +406,73 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
         }
         confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should return an entity with two temporal properties evolution`() {
+        val entityTemporalProperties = listOf(
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
+        ).map {
+            TemporalEntityAttribute(
+                entityId = "entityId".toUri(),
+                type = "BeeHive",
+                attributeName = it,
+                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            )
+        }
+        val rawEntity = parseSampleDataToJsonLd()
+        val entityWith2temporalEvolutions =
+            parseSampleDataToJsonLd("beehive_with_two_temporal_attributes_evolution.jsonld")
+
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
+            entityTemporalProperties[0],
+            entityTemporalProperties[1]
+        )
+
+        val attributes = listOf(
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
+        )
+        val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
+        val attInstanceResults = attributes.flatMap { attributeName ->
+            values.map {
+                AttributeInstanceResult(
+                    attributeName = attributeName,
+                    value = it.first,
+                    observedAt = ZonedDateTime.parse(it.second)
+                )
+            }
+        }
+
+        listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
+            every {
+                attributeInstanceService.search(any(), it.second)
+            } returns Mono.just(listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]))
+        }
+
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every {
+            temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
+        } returns entityWith2temporalEvolutions
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+            .jsonPath("$.incoming.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.length()").isEqualTo(2)
+            .jsonPath("$.connectsTo").doesNotExist()
     }
 
     @Test
@@ -422,7 +485,7 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = parseSampleDataToJsonLd()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -442,7 +505,7 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -460,7 +523,7 @@ class TemporalEntityHandlerTests {
         )
         val rawEntity = parseSampleDataToJsonLd()
 
-        every { temporalEntityAttributeService.getForEntity(any(), any(), any()) } returns Flux.just(
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
@@ -484,8 +547,8 @@ class TemporalEntityHandlerTests {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
-                        temporalQuery.attrs == setOf("incoming")
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
+                        temporalQuery.expandedAttrs == setOf(incomingAttrExpandedName)
                 },
                 match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
             )
@@ -509,9 +572,10 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.size == 1 && temporalQuery.attrs.contains("outgoing"))
+        assertTrue(temporalQuery.expandedAttrs.size == 1)
+        assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
     }
 
     @Test
@@ -521,9 +585,17 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.size == 2 && temporalQuery.attrs.containsAll(listOf("outgoing", "incoming")))
+        assertTrue(temporalQuery.expandedAttrs.size == 2)
+        assertTrue(
+            temporalQuery.expandedAttrs.containsAll(
+                listOf(
+                    outgoingAttrExpandedName,
+                    incomingAttrExpandedName
+                )
+            )
+        )
     }
 
     @Test
@@ -532,9 +604,9 @@ class TemporalEntityHandlerTests {
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
-        assertTrue(temporalQuery.attrs.isEmpty())
+        assertTrue(temporalQuery.expandedAttrs.isEmpty())
     }
 
     @Test
@@ -544,7 +616,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertTrue(temporalQuery.lastN == 2)
     }
@@ -556,7 +628,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertNull(temporalQuery.lastN)
     }
@@ -568,8 +640,18 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams)
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
 
         assertNull(temporalQuery.lastN)
+    }
+
+    @Test
+    fun `it should treat time and timerel properties as optional`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+
+        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+
+        assertEquals(null, temporalQuery.time)
+        assertEquals(null, temporalQuery.timerel)
     }
 }

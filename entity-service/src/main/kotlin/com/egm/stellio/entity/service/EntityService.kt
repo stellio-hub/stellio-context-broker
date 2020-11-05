@@ -1,33 +1,10 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.Entity
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.Property
-import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.toRelationshipTypeName
-import com.egm.stellio.entity.repository.AttributeSubjectNode
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.EntitySubjectNode
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.util.EntitiesGraphBuilder
+import com.egm.stellio.entity.model.*
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdAttribute
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.NgsiLdGeoProperty
-import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdProperty
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdRelationship
-import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
-import com.egm.stellio.shared.model.Observation
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -37,12 +14,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
-import com.egm.stellio.shared.util.JsonLdUtils.parseJsonLdFragment
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -51,34 +25,27 @@ import java.net.URI
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val entitiesGraphBuilder: EntitiesGraphBuilder,
+    private val partialEntityRepository: PartialEntityRepository,
     private val propertyRepository: PropertyRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val entityEventService: EntityEventService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun createEntity(ngsiLdEntity: NgsiLdEntity): Entity {
-        if (exists(ngsiLdEntity.id)) {
+    fun createEntity(ngsiLdEntity: NgsiLdEntity): URI {
+        if (exists(ngsiLdEntity.id))
             throw AlreadyExistsException("Already Exists")
-        }
-
-        val (_, invalidRelationsErrors) = entitiesGraphBuilder.build(listOf(ngsiLdEntity))
-        if (invalidRelationsErrors.isNotEmpty()) {
-            // we have just one entity in validation, so can't have more than one relations error
-            // in its current version, it will only contain one error but it will be fixed with validation v2
-            val inErrorRelationships = invalidRelationsErrors[0].error.joinToString(",")
-            throw BadRequestDataException("Entity ${ngsiLdEntity.id} targets unknown entities: $inErrorRelationships")
-        }
 
         val rawEntity =
             Entity(id = ngsiLdEntity.id, type = listOf(ngsiLdEntity.type), contexts = ngsiLdEntity.contexts)
-        val entity = entityRepository.save(rawEntity)
+        entityRepository.save(rawEntity)
+        if (existsAsPartial(ngsiLdEntity.id))
+            neo4jRepository.mergePartialWithNormalEntity(ngsiLdEntity.id)
 
         ngsiLdEntity.relationships.forEach { ngsiLdRelationship ->
             ngsiLdRelationship.instances.forEach { ngsiLdRelationshipInstance ->
                 createEntityRelationship(
-                    entity.id,
+                    ngsiLdEntity.id,
                     ngsiLdRelationship.name,
                     ngsiLdRelationshipInstance,
                     ngsiLdRelationshipInstance.objectId
@@ -88,40 +55,16 @@ class EntityService(
 
         ngsiLdEntity.properties.forEach { ngsiLdProperty ->
             ngsiLdProperty.instances.forEach { ngsiLdPropertyInstance ->
-                createEntityProperty(entity.id, ngsiLdProperty.name, ngsiLdPropertyInstance)
+                createEntityProperty(ngsiLdEntity.id, ngsiLdProperty.name, ngsiLdPropertyInstance)
             }
         }
 
         ngsiLdEntity.geoProperties.forEach { ngsiLdGeoProperty ->
             // TODO we currently don't support multi-attributes for geoproperties
-            createLocationProperty(entity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            createLocationProperty(ngsiLdEntity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
         }
 
-        publishCreationEvent(ngsiLdEntity)
-
-        return entity
-    }
-
-    fun publishCreationEvent(ngsiLdEntity: NgsiLdEntity) {
-        getSerializedEntityById(ngsiLdEntity.id)?.also {
-            val entityEvent = EntityEvent(
-                operationType = EventType.CREATE,
-                entityId = ngsiLdEntity.id,
-                entityType = ngsiLdEntity.type.extractShortTypeFromExpanded(),
-                payload = it
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
-        }
-    }
-
-    fun publishDeletionEvent(entityId: URI) {
-        getSerializedEntityById(entityId)?.also {
-            val entityEvent = EntityEvent(
-                operationType = EventType.DELETE,
-                entityId = entityId
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
-        }
+        return ngsiLdEntity.id
     }
 
     /**
@@ -173,8 +116,8 @@ class EntityService(
         return rawRelationship.id
     }
 
-    private fun createAttributeProperties(subjectId: URI, properties: List<NgsiLdProperty>) {
-        properties.forEach { ngsiLdProperty ->
+    internal fun createAttributeProperties(subjectId: URI, properties: List<NgsiLdProperty>): Boolean =
+        properties.map { ngsiLdProperty ->
             // attribute properties cannot be multi-attributes, directly get the first and unique entry
             val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
             logger.debug("Creating property ${ngsiLdProperty.name} with values ${ngsiLdPropertyInstance.value}")
@@ -185,30 +128,21 @@ class EntityService(
                 subjectNodeInfo = AttributeSubjectNode(subjectId),
                 property = rawProperty
             )
-        }
-    }
+        }.all { it }
 
-    private fun createAttributeRelationships(subjectId: URI, relationships: List<NgsiLdRelationship>) {
-        relationships.forEach { ngsiLdRelationship ->
+    internal fun createAttributeRelationships(subjectId: URI, relationships: List<NgsiLdRelationship>): Boolean =
+        relationships.map { ngsiLdRelationship ->
             // attribute relationships cannot be multi-attributes, directly get the first and unique entry
             val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
             val objectId = ngsiLdRelationshipInstance.objectId
-            if (exists(objectId)) {
-                val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
+            val rawRelationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationshipInstance)
 
-                neo4jRepository.createRelationshipOfSubject(
-                    AttributeSubjectNode(subjectId),
-                    rawRelationship,
-                    objectId
-                )
-            } else {
-                // TODO early validation
-                throw BadRequestDataException(
-                    "Target entity $objectId in property $subjectId does not exist, create it first"
-                )
-            }
-        }
-    }
+            neo4jRepository.createRelationshipOfSubject(
+                AttributeSubjectNode(subjectId),
+                rawRelationship,
+                objectId
+            )
+        }.all { it }
 
     internal fun createLocationProperty(
         entityId: URI,
@@ -231,7 +165,9 @@ class EntityService(
         }
     }
 
-    fun exists(entityId: URI): Boolean = entityRepository.exists(entityId.toString()) ?: false
+    fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
+
+    fun existsAsPartial(entityId: URI): Boolean = partialEntityRepository.existsById(entityId)
 
     /**
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
@@ -279,12 +215,14 @@ class EntityService(
         return JsonLdEntity(resultEntity, entity.contexts)
     }
 
+    fun getEntityType(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!.type[0]
+
     private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
         contexts: List<String>,
         includeSysAttrs: Boolean
     ): Pair<String, Map<String, Any>> {
-        val property = rawProperty[0]["property"]!! as Property
+        val property = rawProperty[0]["property"] as Property
         val propertyKey = property.name
         val propertyValues = property.serializeCoreProperties(includeSysAttrs)
 
@@ -297,13 +235,13 @@ class EntityService(
         rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
             .forEach {
                 val relationship = it["relOfProp"] as Relationship
-                val targetEntity = it["relOfPropObject"] as Entity
+                val targetEntityId = it["relOfPropObjectId"] as String
                 val relationshipKey = (it["relType"] as String)
-                logger.debug("Adding relOfProp to ${targetEntity.id} with type $relationshipKey")
+                logger.debug("Adding relOfProp to $targetEntityId with type $relationshipKey")
 
                 val relationshipValue = mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntity.id.toString())
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntityId)
                 )
                 val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
                 relationshipValues.putAll(relationshipValue)
@@ -321,27 +259,34 @@ class EntityService(
         includeSysAttrs: Boolean
     ): Pair<String, Map<String, Any>> {
         val relationship = rawRelationship[0]["rel"] as Relationship
-        val primaryRelType = (rawRelationship[0]["rel"] as Relationship).type[0]
+        val primaryRelType = relationship.type[0]
         val primaryRelation =
             rawRelationship.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-        val relationshipTargetId = (primaryRelation["relObject"] as Entity).id
+        val relationshipTargetId = primaryRelation["relObjectId"] as String
         val relationshipValue = mapOf(
             JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId.toString())
+            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
         )
 
         val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
         relationshipValues.putAll(relationshipValue)
 
+        rawRelationship.filter { relEntry -> relEntry["propValue"] != null }
+            .forEach {
+                val propertyOfProperty = it["propValue"] as Property
+                relationshipValues[propertyOfProperty.name] =
+                    propertyOfProperty.serializeCoreProperties(includeSysAttrs)
+            }
+
         rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
             .forEach {
                 val relationship = it["relOfRel"] as Relationship
                 val innerRelType = (it["relOfRelType"] as String)
-                val innerTargetEntityId = (it["relOfRelObject"] as Entity).id
+                val innerTargetEntityId = it["relOfRelObjectId"] as String
 
                 val innerRelationship = mapOf(
                     JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId.toString())
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
                 )
 
                 val innerRelationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
@@ -353,12 +298,6 @@ class EntityService(
             }
 
         return Pair(primaryRelType, relationshipValues)
-    }
-
-    fun getSerializedEntityById(entityId: URI): String? {
-        return getFullEntityById(entityId, true)?.let {
-            serializeObject(it.compact())
-        }
     }
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
@@ -561,13 +500,6 @@ class EntityService(
     }
 
     @Transactional
-    fun updateEntityAttribute(id: URI, attribute: String, payload: String, contexts: List<String>): Int {
-        val expandedAttributeName = expandJsonLdKey(attribute, contexts)!!
-        val attributeValue = parseJsonLdFragment(payload)["value"]!!
-        return neo4jRepository.updateEntityAttribute(id, expandedAttributeName, attributeValue)
-    }
-
-    @Transactional
     fun updateEntityAttributes(id: URI, attributes: List<NgsiLdAttribute>): UpdateResult {
         val updatedAttributes = mutableListOf<String>()
         val notUpdatedAttributes = mutableListOf<NotUpdatedDetails>()
@@ -643,11 +575,7 @@ class EntityService(
     }
 
     @Transactional
-    fun deleteEntity(entityId: URI): Pair<Int, Int> {
-        val nodesAndRelationshipsDeleted = neo4jRepository.deleteEntity(entityId)
-        publishDeletionEvent(entityId)
-        return nodesAndRelationshipsDeleted
-    }
+    fun deleteEntity(entityId: URI) = neo4jRepository.deleteEntity(entityId)
 
     @Transactional
     fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): Boolean {
@@ -744,13 +672,21 @@ class EntityService(
                 expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
                 propertyFragment.second, entity.contexts
             )
-            val entityEvent = EntityEvent(
-                operationType = EventType.UPDATE,
-                entityId = entity.id,
-                entityType = entity.type[0].extractShortTypeFromExpanded(),
-                payload = propertyPayload
-            )
-            applicationEventPublisher.publishEvent(entityEvent)
+
+            val jsonLdEntity = getFullEntityById(entity.id, true)
+            jsonLdEntity?.let {
+                entityEventService.publishEntityEvent(
+                    AttributeReplaceEvent(
+                        entity.id,
+                        observedProperty.name.extractShortTypeFromExpanded(),
+                        observedProperty.datasetId,
+                        propertyPayload,
+                        JsonLdUtils.compactAndSerialize(it),
+                        entity.contexts
+                    ),
+                    entity.type[0].extractShortTypeFromExpanded()
+                )
+            }
         }
     }
 }

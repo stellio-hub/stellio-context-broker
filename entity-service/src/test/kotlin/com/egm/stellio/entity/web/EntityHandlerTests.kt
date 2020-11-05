@@ -2,20 +2,14 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.service.EntityAttributeService
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.entity.service.RepositoryEventsListener
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EventType
-import com.egm.stellio.shared.model.InternalErrorException
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -27,18 +21,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Runs
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -77,15 +63,14 @@ class EntityHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
-    /**
-     * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907),
-     * we are directly mocking the event listener to check it receives what is expected
-     */
     @MockkBean
-    private lateinit var repositoryEventsListener: RepositoryEventsListener
+    private lateinit var entityAttributeService: EntityAttributeService
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
+
+    @MockkBean
+    private lateinit var entityEventService: EntityEventService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -105,8 +90,8 @@ class EntityHandlerTests {
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
-        every { entityService.createEntity(any()) } returns Entity(id = breedingServiceId, type = listOf("BeeHive"))
+        every { entityService.createEntity(any()) } returns breedingServiceId
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -115,7 +100,27 @@ class EntityHandlerTests {
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
 
+        verify { authorizationService.userCanCreateEntities("mock-user") }
         verify { authorizationService.createAdminLink(breedingServiceId, "mock-user") }
+        verify {
+            entityService.createEntity(
+                match {
+                    it.id == breedingServiceId
+                }
+            )
+        }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityCreateEvent
+                    it.operationType == EventsType.ENTITY_CREATE &&
+                        it.entityId == breedingServiceId
+                },
+                "BreedingService"
+            )
+        }
+
+        confirmVerified(entityService, authorizationService)
     }
 
     @Test
@@ -135,6 +140,8 @@ class EntityHandlerTests {
                     "\"title\":\"The referred element already exists\"," +
                     "\"detail\":\"Already Exists\"}"
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -142,7 +149,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -214,7 +220,6 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityService.exists(any()) } returns false
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         every {
             entityService.createEntity(any())
@@ -797,7 +802,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
                     "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"Entity Not Found\"}"
+                    "\"detail\":\"${entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")}\"}"
             )
     }
 
@@ -977,13 +982,23 @@ class EntityHandlerTests {
 
     @Test
     fun `partial attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val deadFish =
+            """
+                {
+                    "id": "$entityId",
+                    "type": "DeadFishes",
+                    "@context": "$aquacContext"
+                }
+            """.trimIndent()
         val attrId = "fishNumber"
 
         every { entityService.exists(any()) } returns true
-        every { entityService.updateEntityAttribute(any(), any(), any(), any()) } returns 1
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns true
+        every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -994,7 +1009,103 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify { entityService.exists(entityId) }
-        verify { entityService.updateEntityAttribute(eq(entityId), eq(attrId), any(), eq(listOf(aquacContext!!))) }
+        verify {
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+        }
+        verify { entityService.getFullEntityById(entityId, true) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeUpdateEvent
+                    it.operationType == EventsType.ATTRIBUTE_UPDATE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
+                        it.contexts == listOf(aquacContext) &&
+                        it.operationPayload.matchContent(jsonLdFile) &&
+                        it.updatedEntity.removeNoise() == deadFish.removeNoise()
+                },
+                "DeadFishes"
+            )
+        }
+        confirmVerified(entityService, entityEventService)
+    }
+
+    @Test
+    fun `partial attribute update should return a 404 if entity does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns false
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { entityService.exists(entityId) }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `partial attribute update should return a 404 if attribute does not exist`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } throws
+            ResourceNotFoundException("Unknown attribute $attrId in entity $entityId")
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNotFound
+
+        verify { entityService.exists(entityId) }
+        verify { authorizationService.userCanUpdateEntity(entityId, "mock-user") }
+        verify {
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+        }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `partial attribute update should not authorize user without write rights on entity to update attribute`() {
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val attrId = "fishNumber"
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns false
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().json(
+                """ 
+                { 
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied", 
+                    "title": "The request tried to access an unauthorized resource", 
+                    "detail": "User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN" 
+                } 
+                """.trimIndent()
+            )
+
+        verify { entityService.exists(entityId) }
+        verify { authorizationService.userCanUpdateEntity(entityId, "mock-user") }
         confirmVerified(entityService)
     }
 
@@ -1025,7 +1136,7 @@ class EntityHandlerTests {
 
     @Test
     fun `entity attributes update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         every { entityService.exists(any()) } returns true
@@ -1039,7 +1150,8 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf()
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1051,12 +1163,15 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify { entityEventService.publishEntityEvent(any(), any()) }
+
         confirmVerified(entityService)
     }
 
     @Test
     fun `entity attributes update should notify for an updated attribute`() {
-        val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
 
         every { entityService.exists(any()) } returns true
@@ -1069,8 +1184,15 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf()
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1081,19 +1203,22 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify(timeout = 1000, exactly = 1) {
-            repositoryEventsListener.handleRepositoryEvent(
-                match { entityEvent ->
-                    entityEvent.entityId == entityId &&
-                        entityEvent.operationType == EventType.UPDATE &&
-                        jsonPayload.matchContent(entityEvent.payload) &&
-                        entityEvent.updatedEntity == null
-                }
+            entityEventService.publishEntityEvent(
+                match {
+                    it as AttributeReplaceEvent
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == entityId &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(jsonPayload) &&
+                        it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "DeadFishes"
             )
         }
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
+
+        confirmVerified(entityEventService)
     }
 
     @Test
@@ -1109,6 +1234,7 @@ class EntityHandlerTests {
             """
             "fishName":{
                 "type":"Property",
+                "datasetId": "urn:ngsi-ld:Dataset:fishName:1",
                 "value":"Salmon",
                 "unitCode": "C1"
             }
@@ -1135,10 +1261,17 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf()
         )
-
         val events = mutableListOf<EntityEvent>()
-        every { repositoryEventsListener.handleRepositoryEvent(capture(events)) } just Runs
+
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
+                "@type" to listOf("DeadFishes")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1148,37 +1281,33 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 2) {
-            repositoryEventsListener.handleRepositoryEvent(any())
-        }
-        assertEquals(2, events.size)
-        events.forEach { entityEvent ->
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), "DeadFishes") }
+        events.forEach {
+            it as AttributeReplaceEvent
             assertTrue(
-                entityEvent.entityId == entityId &&
-                    entityEvent.operationType == EventType.UPDATE &&
+                it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                    it.entityId == entityId &&
+                    (it.attributeName == "fishName" || it.attributeName == "fishNumber") &&
+                    (it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:fishName:1".toUri()) &&
                     (
-                        "{$fishNumberPayload}".matchContent(entityEvent.payload) ||
-                            "{$fishNamePayload}".matchContent(entityEvent.payload)
+                        "{$fishNumberPayload}".matchContent(it.operationPayload) ||
+                            "{$fishNamePayload}".matchContent(it.operationPayload)
                         ) &&
-                    entityEvent.updatedEntity == null
+                    it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
+                    it.contexts == listOf(aquacContext)
             )
         }
-
-        // I don't know where does this call come from (probably a Spring internal thing)
-        // but it is required for verification
-        verify { repositoryEventsListener.equals(any()) }
-        confirmVerified(repositoryEventsListener)
     }
 
     @Test
     fun `entity attributes update should return a 207 if some relationships objects are not found`() {
         val jsonLdFile = ClassPathResource(
-            "/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate_relationshipObjectNotFound.json"
+            "/ngsild/aquac/fragments/DeadFishes_updateEntityAttributes_invalidAttribute.json"
         )
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val notUpdatedAttribute = NotUpdatedDetails(
             "removedFrom",
-            "Target entity unknownObject in property does not exist, create it first"
+            "Property is not valid"
         )
         every { entityService.exists(any()) } returns true
         every {
@@ -1190,8 +1319,9 @@ class EntityHandlerTests {
             updated = arrayListOf("https://ontology.eglobalmark.com/aquac#fishNumber"),
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
-        every { repositoryEventsListener.handleRepositoryEvent(any()) } just Runs
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1203,6 +1333,8 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+
         confirmVerified(entityService)
     }
 
@@ -1239,6 +1371,8 @@ class EntityHandlerTests {
                 }
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -1271,7 +1405,7 @@ class EntityHandlerTests {
 
     @Test
     fun `it should not authorize user without write rights on entity to update it`() {
-        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
 
         every { entityService.exists(any()) } returns true
@@ -1300,6 +1434,8 @@ class EntityHandlerTests {
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
+        every { entityService.getEntityType(any()) } returns "Sensor"
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
@@ -1309,12 +1445,24 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
+        verify { entityService.getEntityType(eq(entityId)) }
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityDeleteEvent
+                    it.operationType == EventsType.ENTITY_DELETE &&
+                        it.entityId == entityId
+                },
+                "Sensor"
+            )
+        }
+
         confirmVerified(entityService)
     }
 
     @Test
     fun `delete entity should return a 404 if entity to be deleted has not been found`() {
-        val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
+        val entityId = "urn:ngsi-ld:Sensor:0022CCD".toUri()
         every { entityService.exists(entityId) } returns false
 
         webClient.delete()
@@ -1325,15 +1473,18 @@ class EntityHandlerTests {
                 """
                 {"type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"Entity Not Found"}
+                    "detail":"${entityNotFoundMessage("urn:ngsi-ld:Sensor:0022CCD")}"}
                 """.trimIndent()
             )
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
     fun `delete entity should return a 500 if entity could not be deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
         every { entityService.exists(entityId) } returns true
+        every { entityService.getEntityType(any()) } returns "Sensor"
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 

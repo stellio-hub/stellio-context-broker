@@ -2,6 +2,7 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.model.PartialEntity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
@@ -46,10 +47,48 @@ class Neo4jRepositoryTests {
     @Autowired
     private lateinit var relationshipRepository: RelationshipRepository
 
+    @Autowired
+    private lateinit var partialEntityRepository: PartialEntityRepository
+
+    private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
+
+    @Test
+    fun `it should merge a partial entity to a normal entity`() {
+        val partialEntity = PartialEntity(beekeeperUri)
+        partialEntityRepository.save(partialEntity)
+        createEntity(beekeeperUri, listOf("Beekeeper"))
+
+        neo4jRepository.mergePartialWithNormalEntity(beekeeperUri)
+
+        assertFalse(partialEntityRepository.existsById(beekeeperUri))
+        assertTrue(entityRepository.existsById(beekeeperUri))
+        val beekeeper = entityRepository.findById(beekeeperUri)
+        assertEquals(listOf("Beekeeper"), beekeeper.get().type)
+
+        neo4jRepository.deleteEntity(beekeeperUri)
+    }
+
+    @Test
+    fun `it should keep a relationship to a partial entity when merging with a normal entity`() {
+        val partialEntity = PartialEntity(beekeeperUri)
+        partialEntityRepository.save(partialEntity)
+        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
+        createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, beekeeperUri)
+        createEntity(beekeeperUri, listOf("Beekeeper"))
+
+        neo4jRepository.mergePartialWithNormalEntity(beekeeperUri)
+
+        val relsOfProp = propertyRepository.findById(property.id).get().relationships
+        assertEquals(1, relsOfProp.size)
+        assertEquals(EGM_OBSERVED_BY, relsOfProp[0].type[0])
+
+        neo4jRepository.deleteEntity(beekeeperUri)
+    }
+
     @Test
     fun `it should return an entity if type and string properties are correct`() {
         val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1230".toUri(),
+            beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
@@ -64,7 +103,7 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should return an empty list if string properties are wrong`() {
         val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
@@ -397,14 +436,25 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should create a relationship to an unknown entity as a partial entity`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Sensor:1233".toUri(),
+            listOf("Sensor")
+        )
+        createRelationship(EntitySubjectNode(entity.id), EGM_OBSERVED_BY, "urn:ngsi-ld:Entity:4567".toUri())
+
+        val somePartialEntity = partialEntityRepository.findById("urn:ngsi-ld:Entity:4567".toUri())
+        assertTrue(somePartialEntity.isPresent)
+    }
+
+    @Test
     fun `it should update relationships of a property instance`() {
         val temperatureProperty = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
         propertyRepository.save(temperatureProperty)
 
         val targetEntity = createEntity(
             "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf()
+            listOf("Sensor")
         )
         createRelationship(AttributeSubjectNode(temperatureProperty.id), EGM_OBSERVED_BY, targetEntity.id)
         val entity = createEntity(
@@ -413,7 +463,7 @@ class Neo4jRepositoryTests {
             mutableListOf(temperatureProperty)
         )
 
-        createEntity("urn:ngsi-ld:Sensor:6789".toUri(), listOf("Sensor"), mutableListOf())
+        createEntity("urn:ngsi-ld:Sensor:6789".toUri(), listOf("Sensor"))
         val newPropertyPayload =
             """
             {
@@ -445,30 +495,6 @@ class Neo4jRepositoryTests {
             "https://uri.etsi.org/ngsi-ld/default-context/newRel"
         )
 
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should update a property value of a string type`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1233".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
-        )
-        neo4jRepository.updateEntityAttribute(entity.id, "name", "new name")
-        assertEquals("new name", neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should update a property value of a numeric type`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Beekeeper:1233".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = 100L))
-        )
-        neo4jRepository.updateEntityAttribute(entity.id, "name", 200L)
-        assertEquals(200L, neo4jRepository.getPropertyOfSubject(entity.id, "name").value)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -548,7 +574,7 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should find a sensor by vendor id of a device and measured property`() {
         val vendorId = "urn:something:9876".toUri()
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val device = createEntity(
             "urn:ngsi-ld:Device:1233".toUri(),
             listOf("Device"),
@@ -609,7 +635,7 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should find a sensor by NGSI-LD id`() {
-        val entity = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val entity = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
         val persistedEntity =
             neo4jRepository.getObservingSensorEntity(
                 "urn:ngsi-ld:Sensor:1233".toUri(),
@@ -775,8 +801,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should delete all relationship instances`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(
             EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id, "urn:ngsi-ld:Dataset:observedBy:01".toUri()
@@ -796,8 +822,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should delete the relationship default instance`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(
             EntitySubjectNode(sensor.id),
@@ -828,8 +854,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should delete the relationship instance with the given datasetId`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
         createRelationship(
             EntitySubjectNode(sensor.id),
@@ -889,7 +915,7 @@ class Neo4jRepositoryTests {
             listOf("Sensor"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
 
         neo4jRepository.deleteEntityAttributes(sensor.id)
@@ -1026,8 +1052,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should return true if no datasetId is provided and a default relationship instance exists`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(EntitySubjectNode(sensor.id), EGM_OBSERVED_BY, device.id)
 
         assertTrue(
@@ -1042,8 +1068,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should return false if no datasetId is provided and there is no default relationship instance`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(
             EntitySubjectNode(sensor.id),
             EGM_OBSERVED_BY,
@@ -1062,8 +1088,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should return true if there is a relationship instance with the provided datasetId`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(
             EntitySubjectNode(sensor.id),
             EGM_OBSERVED_BY,
@@ -1084,8 +1110,8 @@ class Neo4jRepositoryTests {
 
     @Test
     fun `it should return false if there is no relationship instance with the provided datasetId`() {
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
-        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
         createRelationship(
             EntitySubjectNode(sensor.id),
             EGM_OBSERVED_BY,
@@ -1104,7 +1130,33 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(device.id)
     }
 
-    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property>): Entity {
+    @Test
+    fun `it should update the relationship target of an entity`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val newDevice = createEntity("urn:ngsi-ld:Device:9978".toUri(), listOf("Device"), mutableListOf())
+        createRelationship(
+            EntitySubjectNode(sensor.id),
+            EGM_OBSERVED_BY,
+            device.id
+        )
+
+        neo4jRepository.updateRelationshipTargetOfSubject(
+            sensor.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            newDevice.id
+        )
+
+        assertEquals(
+            neo4jRepository.getRelationshipTargetOfSubject(sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName())!!.id,
+            newDevice.id
+        )
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
+        neo4jRepository.deleteEntity(newDevice.id)
+    }
+
+    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)
     }

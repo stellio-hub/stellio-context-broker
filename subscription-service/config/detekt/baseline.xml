@@ -3,15 +3,10 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>LargeClass:SubscriptionServiceTests.kt$SubscriptionServiceTests : TimescaleBasedTests</ID>
-    <ID>LongParameterList:EventMessageService.kt$EventMessageService$( channelName: String, eventType: EventType, entityId: URI, entityType: String, payload: String?, updatedEntity: String? )</ID>
     <ID>MaxLineLength:NotificationServiceTests.kt$NotificationServiceTests$ </ID>
     <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ AND ( string_to_array(watched_attributes, ',') &amp;&amp; string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )</ID>
-    <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ INSERT INTO subscription (id, type, name, description, watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub) </ID>
-    <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ VALUES(:id, :type, :name, :description, :watched_attributes, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)</ID>
-    <ID>MaxLineLength:SubscriptionServiceTests.kt$SubscriptionServiceTests$/** * As Spring's ApplicationEventPublisher is not easily mockable (https://github.com/spring-projects/spring-framework/issues/18907), * we are directly mocking the event listener to check it receives what is expected */ @MockkBean(relaxed = true) private lateinit var subscriptionsEventsListener: SubscriptionsEventsListener</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
     <ID>ReturnCount:QueryUtils.kt$QueryUtils$fun extractGeorelParams(georel: String): Triple&lt;String, String?, String?&gt;</ID>
-    <ID>TooGenericExceptionCaught:EntitiesListener.kt$EntitiesListener$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FCMInitializer.kt$FCMInitializer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FCMService.kt$FCMService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$ParsingUtils$e: Exception</ID>

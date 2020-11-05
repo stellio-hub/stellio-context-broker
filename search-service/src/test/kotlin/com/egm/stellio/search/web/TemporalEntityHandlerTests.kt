@@ -470,6 +470,8 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
+            .jsonPath("$.id").exists()
+            .jsonPath("$.type").exists()
             .jsonPath("$.incoming.length()").isEqualTo(2)
             .jsonPath("$.outgoing.length()").isEqualTo(2)
             .jsonPath("$.connectsTo").doesNotExist()

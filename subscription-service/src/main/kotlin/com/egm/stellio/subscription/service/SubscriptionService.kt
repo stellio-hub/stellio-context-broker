@@ -166,7 +166,9 @@ class SubscriptionService(
         val subscriptionInputWithModifiedAt = parsedInput.first
             .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
 
-        subscriptionInputWithModifiedAt.filterKeys { it !in JsonLdUtils.JSONLD_COMPACTED_MANDATORY_FIELDS }.forEach {
+        subscriptionInputWithModifiedAt.filterKeys {
+            it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+        }.forEach {
             when (it.key) {
                 "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>

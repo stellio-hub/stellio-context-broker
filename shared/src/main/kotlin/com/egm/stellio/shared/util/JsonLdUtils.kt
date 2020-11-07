@@ -49,8 +49,8 @@ object JsonLdUtils {
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE_KW = "@value"
     const val JSONLD_CONTEXT = "@context"
-    val JSONLD_EXPANDED_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
-    val JSONLD_COMPACTED_MANDATORY_FIELDS = setOf("id", "type", JSONLD_CONTEXT)
+    val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
+    val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf("id", "type", JSONLD_CONTEXT)
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
@@ -285,12 +285,11 @@ object JsonLdUtils {
             inputToMap(input)
         } else {
             val mandatoryFields = if (isExpandedForm)
-                JSONLD_EXPANDED_MANDATORY_FIELDS
+                JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
             else
-                JSONLD_COMPACTED_MANDATORY_FIELDS
+                JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
             val includedKeys = mandatoryFields.plus(includedAttributes)
-            val tmp = inputToMap(input)
-            tmp.filterKeys { includedKeys.contains(it) }
+            inputToMap(input).filterKeys { includedKeys.contains(it) }
         }
     }
 

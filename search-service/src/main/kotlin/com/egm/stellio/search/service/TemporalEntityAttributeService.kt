@@ -307,6 +307,31 @@ class TemporalEntityAttributeService(
             entity[it.key] = it.value
         }
 
+        emptyTemporalAttributesArrays(entity, withTemporalValues)
         return JsonLdEntity(entity, jsonLdEntity.contexts)
+    }
+
+    private fun emptyTemporalAttributesArrays(entity: MutableMap<String, Any>, withTemporalValues: Boolean) {
+        // temporal attributes must have empty arrays if their injected temporal evolutions are empty
+        entity.filter {
+            it.value is List<*> &&
+                (it.value as List<*>).size == 1
+        }.forEach { entry ->
+            (entry.value as List<*>)
+                .filter {
+                    it is Map<*, *> &&
+                        it.containsKey(NGSILD_OBSERVED_AT_PROPERTY) &&
+                        it.containsKey(NGSILD_PROPERTY_VALUE)
+                }.forEach {
+                    val map = it as MutableMap<String, Any>
+                    if (withTemporalValues) {
+                        map.putIfAbsent(JSONLD_TYPE, NGSILD_PROPERTY_TYPE.uri)
+                        map.keys.removeAll(setOf(NGSILD_PROPERTY_VALUE, NGSILD_OBSERVED_AT_PROPERTY))
+                        map[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to emptyList<TemporalValue>()))
+                        entity[entry.key] = listOf(map)
+                    } else
+                        entity[entry.key] = listOf<MutableMap<String, Any>>(mutableMapOf())
+                }
+        }
     }
 }

@@ -259,6 +259,41 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
     }
 
+    @Test
+    fun `it should return empty array for the temporal attribute if empty temporal history is injected`() {
+        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
+        val rawResults = emptyList<List<AttributeInstanceResult>>()
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.properties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(loadSampleData("beehive_with_empty_temporal_attribute_evolution.jsonld").trim(), finalEntity)
+    }
+
+    @Test
+    fun `it should return empty array for the values field if empty history is injected with temporal values option`() {
+        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
+        val rawResults = emptyList<List<AttributeInstanceResult>>()
+
+        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
+        val serializedEntity = JsonLdProcessor.compact(
+            enrichedEntity.properties,
+            mapOf("@context" to enrichedEntity.contexts),
+            JsonLdOptions()
+        )
+        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
+        assertEquals(
+            loadSampleData(
+                "beehive_with_empty_temporal_attribute_evolution_temporal_values.jsonld"
+            ).trim(),
+            finalEntity
+        )
+    }
+
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
     fun `it should inject temporal numeric values into an entity with two instances property`(

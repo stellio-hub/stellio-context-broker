@@ -120,9 +120,22 @@ class TemporalEntityHandler(
             jsonLdEntityWithTemporalValues.contexts
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
+        // WORKAROUND:
+        // the json-ld lib shows empty attributes as empty objects but we need empty arrays as stated in 5.7.4.4
+        // replace empty Maps by empty Lists
+        val postProcessedEntity = replaceEmptyMapsByEmptyLists(filteredJsonLdEntity.compact())
+
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(postProcessedEntity))
     }
 
+    private fun replaceEmptyMapsByEmptyLists(compactedEntity: Map<String, Any>): Map<String, Any> {
+        return compactedEntity.mapValues {
+            if (it.value is Map<*, *> && (it.value as Map<*, *>).isEmpty())
+                emptyList<String>()
+            else
+                it.value
+        }
+    }
     /**
      * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
      */

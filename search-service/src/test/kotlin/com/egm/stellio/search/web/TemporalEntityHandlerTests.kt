@@ -1,10 +1,8 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
@@ -414,7 +412,13 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
-        mockWithIncomingAndOutgoingTemporalProperties(false)
+        mockWithTemporalProperties(
+            false,
+            listOf(incomingAttrExpandedName, outgoingAttrExpandedName),
+            temporalEntityAttributeService,
+            attributeInstanceService,
+            entityService
+        )
 
         webClient.get()
             .uri(
@@ -432,9 +436,62 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
-        mockWithIncomingAndOutgoingTemporalProperties(true)
+    fun `it should return an entity with two temporal properties empty arrays when values are out of scope`() {
+        val entityTemporalProperties = listOf(
+            incomingAttrExpandedName,
+            outgoingAttrExpandedName
+        ).map {
+            TemporalEntityAttribute(
+                entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                type = "BeeHive",
+                attributeName = it,
+                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            )
+        }
+        val rawEntity = parseSampleDataToJsonLd()
 
+        val entityWith2temporalEvolutions =
+            parseSampleDataToJsonLd("beehive_with_two_temporal_attributes_evolution_empty_arrays.jsonld")
+
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
+            entityTemporalProperties[0],
+            entityTemporalProperties[1]
+        )
+
+        listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
+            every {
+                attributeInstanceService.search(any(), it.second)
+            } returns Mono.just(emptyList())
+        }
+
+        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
+        every {
+            temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
+        } returns entityWith2temporalEvolutions
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:TESTC?" +
+                    "timerel=before&time=1970-01-01T00:00:00Z"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.incoming").isArray()
+            .jsonPath("$.incoming.length()").isEqualTo(0)
+            .jsonPath("$.outgoing").isArray()
+            .jsonPath("$.outgoing.length()").isEqualTo(0)
+    }
+
+    @Test
+    fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
+        mockWithTemporalProperties(
+            true,
+            listOf(incomingAttrExpandedName, outgoingAttrExpandedName),
+            temporalEntityAttributeService,
+            attributeInstanceService,
+            entityService
+        )
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/entityId?" +
@@ -448,77 +505,6 @@ class TemporalEntityHandlerTests {
             .jsonPath("$..observedAt").doesNotExist()
             .jsonPath("$.incoming.values.length()").isEqualTo(2)
             .jsonPath("$.outgoing.values.length()").isEqualTo(2)
-    }
-
-    private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
-        val entityTemporalProperties = listOf(
-            incomingAttrExpandedName,
-            outgoingAttrExpandedName
-        ).map {
-            TemporalEntityAttribute(
-                entityId = "entityId".toUri(),
-                type = "BeeHive",
-                attributeName = it,
-                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-            )
-        }
-        val rawEntity = parseSampleDataToJsonLd()
-        val entityFileName = if (withTemporalValues)
-            "beehive_with_two_temporal_attributes_evolution_temporal_values.jsonld"
-        else
-            "beehive_with_two_temporal_attributes_evolution.jsonld"
-
-        val entityWith2temporalEvolutions = if (withTemporalValues) {
-            val entity = parseSampleDataToJsonLd(entityFileName)
-            injectTemporalValuesForIncomingAndOutgoing(entity)
-        } else {
-            parseSampleDataToJsonLd(entityFileName)
-        }
-
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
-            entityTemporalProperties[0],
-            entityTemporalProperties[1]
-        )
-
-        val attributes = listOf(
-            incomingAttrExpandedName,
-            outgoingAttrExpandedName
-        )
-        val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
-        val attInstanceResults = attributes.flatMap { attributeName ->
-            values.map {
-                AttributeInstanceResult(
-                    attributeName = attributeName,
-                    value = it.first,
-                    observedAt = ZonedDateTime.parse(it.second)
-                )
-            }
-        }
-
-        listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
-            every {
-                attributeInstanceService.search(any(), it.second)
-            } returns Mono.just(listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]))
-        }
-
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every {
-            temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
-        } returns entityWith2temporalEvolutions
-    }
-
-    private fun injectTemporalValuesForIncomingAndOutgoing(entity: JsonLdEntity): JsonLdEntity {
-        listOf(incomingAttrExpandedName, outgoingAttrExpandedName).forEach {
-            val propList = entity.properties[it] as MutableList<MutableMap<String, *>>
-            val propHasValuesList =
-                propList[0][JsonLdUtils.NGSILD_PROPERTY_VALUES] as MutableList<MutableMap<String, *>>
-            val incomingHasValuesMap = propHasValuesList[0] as MutableMap<String, MutableList<*>>
-            incomingHasValuesMap["@list"] = mutableListOf(
-                TemporalValue(1543.toDouble(), "2020-01-24T13:01:22.066Z"),
-                TemporalValue(1600.toDouble(), "2020-01-24T14:01:22.066Z")
-            )
-        }
-        return entity
     }
 
     @Test

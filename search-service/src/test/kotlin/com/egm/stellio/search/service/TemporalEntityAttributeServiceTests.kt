@@ -142,7 +142,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should inject temporal numeric values in temporalValues format into an entity`() {
-        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
+        val rawEntity = parseSampleDataToJsonLd()
         val rawResults = listOf(
             listOf(
                 AttributeInstanceResult(
@@ -261,7 +261,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should return empty array for the temporal attribute if empty temporal history is injected`() {
-        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
+        val rawEntity = parseSampleDataToJsonLd()
         val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
@@ -276,7 +276,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should return empty array for the values field if empty history is injected with temporal values option`() {
-        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
+        val rawEntity = parseSampleDataToJsonLd()
         val rawResults = emptyList<List<AttributeInstanceResult>>()
 
         val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)

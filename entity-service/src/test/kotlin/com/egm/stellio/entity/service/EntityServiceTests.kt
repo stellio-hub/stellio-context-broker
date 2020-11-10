@@ -192,7 +192,7 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should replace an existing relationship`() {
+    fun `it should replace an existing default relationship`() {
         val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
         val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac".toUri()
         val relationshipTargetId = "urn:ngsi-ld:FishContainment:8792".toUri()
@@ -219,19 +219,19 @@ class EntityServiceTests {
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
         every { mockkedRelationship setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
 
-        every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns true
+        every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { neo4jRepository.deleteEntityRelationship(any(), any()) } returns 1
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
-        verify { neo4jRepository.hasRelationshipOfType(any(), eq("filledIn")) }
+        verify { neo4jRepository.hasRelationshipInstance(any(), eq("filledIn"), null) }
         verify {
             neo4jRepository.deleteEntityRelationship(
                 match {
                     it.id == sensorId
                 },
-                eq("filledIn"), null, true
+                eq("filledIn"), null, false
             )
         }
         verify {
@@ -240,6 +240,74 @@ class EntityServiceTests {
                 any(),
                 eq(fishContainmentUri)
             )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace a multi attribute relationship`() {
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac".toUri()
+        val relationshipTargetId = "urn:ngsi-ld:FishContainment:8792".toUri()
+        val secondRelationshipTargetId = "urn:ngsi-ld:FishContainment:9792".toUri()
+
+        val payload =
+            """
+            {
+                "filledIn": [{
+                    "type":"Relationship",
+                    "object":"$relationshipTargetId",
+                    "datasetId": "urn:ngsi-ld:Dataset:filledIn:1"
+                },
+                {
+                   "type":"Relationship",
+                   "object":"$secondRelationshipTargetId"
+                }
+            ]}
+            """.trimIndent()
+
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+
+        val mockkedSensor = mockkClass(Entity::class)
+        val mockkedRelationshipTarget = mockkClass(Entity::class)
+        val mockkedRelationship = mockkClass(Relationship::class)
+
+        val datasetSetIds = slot<URI>()
+        val createdRelationships = mutableListOf<Relationship>()
+
+        every { mockkedSensor.id } returns sensorId
+        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedRelationship.type } returns listOf("Relationship")
+        every { mockkedRelationship.id } returns relationshipId
+        every { mockkedRelationshipTarget.id } returns relationshipTargetId
+        every { mockkedRelationship setProperty "observedAt" value any<ZonedDateTime>() } answers { value }
+
+        every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.hasRelationshipInstance(any(), any(), capture(datasetSetIds)) } returns true
+        every { neo4jRepository.deleteEntityRelationship(any(), any(), any()) } returns 1
+        every { neo4jRepository.createRelationshipOfSubject(any(), capture(createdRelationships), any()) } returns true
+
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
+
+        assertEquals(datasetSetIds.captured, "urn:ngsi-ld:Dataset:filledIn:1".toUri())
+        assertTrue(
+            createdRelationships.any {
+                it.type == listOf("https://ontology.eglobalmark.com/aquac#filledIn") &&
+                    it.datasetId == "urn:ngsi-ld:Dataset:filledIn:1".toUri()
+            }.and(
+                createdRelationships.any {
+                    it.type == listOf("https://ontology.eglobalmark.com/aquac#filledIn") &&
+                        it.datasetId == null
+                }
+            )
+        )
+        verify { neo4jRepository.hasRelationshipInstance(any(), eq("filledIn"), any()) }
+        verify(exactly = 2) {
+            neo4jRepository.deleteEntityRelationship(match { it.id == sensorId }, eq("filledIn"), any())
+        }
+        verify(exactly = 2) {
+            neo4jRepository.createRelationshipOfSubject(match { it.id == sensorId }, any(), any())
         }
 
         confirmVerified()
@@ -272,6 +340,62 @@ class EntityServiceTests {
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
         verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should replace a multi attribute property`() {
+        val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
+        val payload =
+            """
+            {
+                "fishAge": [{
+                    "type":"Property",
+                    "value": 5,
+                    "datasetId": "urn:ngsi-ld:Dataset:fishAge:1"
+                },
+                {
+                   "type":"Property",
+                   "value": 9
+                }
+            ]}
+            """.trimIndent()
+        val datasetSetIds = slot<URI>()
+        val updatedInstances = mutableListOf<NgsiLdPropertyInstance>()
+
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+
+        val mockkedSensor = mockkClass(Entity::class)
+
+        every { mockkedSensor.id } returns sensorId
+        every { mockkedSensor.type } returns listOf("Sensor")
+
+        every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
+        every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns true
+        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), capture(updatedInstances)) } returns 1
+
+        entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
+
+        assertEquals(datasetSetIds.captured, "urn:ngsi-ld:Dataset:fishAge:1".toUri())
+        assertTrue(
+            updatedInstances.any {
+                it.value == 5 &&
+                    it.datasetId == "urn:ngsi-ld:Dataset:fishAge:1".toUri()
+            }.and(
+                updatedInstances.any {
+                    it.value == 9 &&
+                        it.datasetId == null
+                }
+            )
+        )
+
+        verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
+        verify(exactly = 2) {
+            neo4jRepository.updateEntityPropertyInstance(
+                match { it.id == sensorId && it.label == "Entity" }, any(), any()
+            )
+        }
 
         confirmVerified()
     }

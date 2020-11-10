@@ -360,12 +360,17 @@ class EntityService(
             .flatMap { ngsiLdAttribute ->
                 logger.debug("Fragment is of type $ngsiLdAttribute")
                 when (ngsiLdAttribute) {
-                    is NgsiLdRelationship ->
-                        listOf(appendEntityRelationship(entityId, ngsiLdAttribute, disallowOverwrite))
-                    is NgsiLdProperty ->
-                        ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
-                            appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
-                        }
+                    is NgsiLdRelationship -> ngsiLdAttribute.instances.map { ngsiLdRelationshipInstance ->
+                        appendEntityRelationship(
+                            entityId,
+                            ngsiLdAttribute,
+                            ngsiLdRelationshipInstance,
+                            disallowOverwrite
+                        )
+                    }
+                    is NgsiLdProperty -> ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
+                        appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
+                    }
                     is NgsiLdGeoProperty ->
                         listOf(appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite))
                 }
@@ -381,23 +386,25 @@ class EntityService(
     fun appendEntityRelationship(
         entityId: URI,
         ngsiLdRelationship: NgsiLdRelationship,
+        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance,
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
-        return if (!neo4jRepository.hasRelationshipOfType(
+        return if (!neo4jRepository.hasRelationshipInstance(
             EntitySubjectNode(entityId),
-            relationshipTypeName
+            relationshipTypeName,
+            ngsiLdRelationshipInstance.datasetId
         )
         ) {
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0],
-                ngsiLdRelationship.instances[0].objectId
+                ngsiLdRelationshipInstance,
+                ngsiLdRelationshipInstance.objectId
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.APPENDED,
                 null
             )
@@ -408,7 +415,7 @@ class EntityService(
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.IGNORED,
                 "Relationship $relationshipTypeName already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
@@ -416,17 +423,18 @@ class EntityService(
         } else {
             neo4jRepository.deleteEntityRelationship(
                 EntitySubjectNode(entityId),
-                relationshipTypeName
+                relationshipTypeName,
+                ngsiLdRelationshipInstance.datasetId
             )
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0],
-                ngsiLdRelationship.instances[0].objectId
+                ngsiLdRelationshipInstance,
+                ngsiLdRelationshipInstance.objectId
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.REPLACED,
                 null
             )

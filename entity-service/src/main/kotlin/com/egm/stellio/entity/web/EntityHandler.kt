@@ -232,15 +232,15 @@ class EntityHandler(
 
         val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
 
-        updateResult.updated.forEach { expandedAttributeName ->
+        updateResult.updated.forEach { updatedDetails ->
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
-                    expandedAttributeName.attributeName.extractShortTypeFromExpanded(),
-                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName.attributeName),
+                    updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, updatedDetails.attributeName),
                     compactAndStringifyFragment(
-                        expandedAttributeName.attributeName,
-                        jsonLdAttributes[expandedAttributeName.attributeName]!!,
+                        updatedDetails.attributeName,
+                        jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
                     compactAndSerialize(updatedEntity!!),
@@ -342,16 +342,16 @@ class EntityHandler(
         contexts: List<String>
     ) {
         val updatedEntity = entityService.getFullEntityById(entityId, true)
-        appendResult.updated.forEach { appendAttributeResult ->
-            if (appendAttributeResult.updateOperationResult == UpdateOperationResult.APPENDED)
+        appendResult.updated.forEach { updatedDetails ->
+            if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
                 entityEventService.publishEntityEvent(
                     AttributeAppendEvent(
                         entityId,
-                        appendAttributeResult.attributeName.extractShortTypeFromExpanded(),
-                        appendAttributeResult.datasetId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
                         compactAndStringifyFragment(
-                            appendAttributeResult.attributeName,
-                            jsonLdAttributes[appendAttributeResult.attributeName]!!,
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
                         compactAndSerialize(updatedEntity!!),
@@ -363,11 +363,11 @@ class EntityHandler(
                 entityEventService.publishEntityEvent(
                     AttributeReplaceEvent(
                         entityId,
-                        appendAttributeResult.attributeName.extractShortTypeFromExpanded(),
-                        appendAttributeResult.datasetId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
                         compactAndStringifyFragment(
-                            appendAttributeResult.attributeName,
-                            jsonLdAttributes[appendAttributeResult.attributeName]!!,
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
                         compactAndSerialize(updatedEntity!!),

@@ -360,12 +360,17 @@ class EntityService(
             .flatMap { ngsiLdAttribute ->
                 logger.debug("Fragment is of type $ngsiLdAttribute")
                 when (ngsiLdAttribute) {
-                    is NgsiLdRelationship ->
-                        listOf(appendEntityRelationship(entityId, ngsiLdAttribute, disallowOverwrite))
-                    is NgsiLdProperty ->
-                        ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
-                            appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
-                        }
+                    is NgsiLdRelationship -> ngsiLdAttribute.instances.map { ngsiLdRelationshipInstance ->
+                        appendEntityRelationship(
+                            entityId,
+                            ngsiLdAttribute,
+                            ngsiLdRelationshipInstance,
+                            disallowOverwrite
+                        )
+                    }
+                    is NgsiLdProperty -> ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
+                        appendEntityProperty(entityId, ngsiLdAttribute, ngsiLdPropertyInstance, disallowOverwrite)
+                    }
                     is NgsiLdGeoProperty ->
                         listOf(appendEntityGeoProperty(entityId, ngsiLdAttribute, disallowOverwrite))
                 }
@@ -381,23 +386,25 @@ class EntityService(
     fun appendEntityRelationship(
         entityId: URI,
         ngsiLdRelationship: NgsiLdRelationship,
+        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance,
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
-        return if (!neo4jRepository.hasRelationshipOfType(
+        return if (!neo4jRepository.hasRelationshipInstance(
             EntitySubjectNode(entityId),
-            relationshipTypeName
+            relationshipTypeName,
+            ngsiLdRelationshipInstance.datasetId
         )
         ) {
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0],
-                ngsiLdRelationship.instances[0].objectId
+                ngsiLdRelationshipInstance,
+                ngsiLdRelationshipInstance.objectId
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.APPENDED,
                 null
             )
@@ -408,7 +415,7 @@ class EntityService(
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.IGNORED,
                 "Relationship $relationshipTypeName already exists on $entityId " +
                     "and overwrite is not allowed, ignoring"
@@ -416,17 +423,18 @@ class EntityService(
         } else {
             neo4jRepository.deleteEntityRelationship(
                 EntitySubjectNode(entityId),
-                relationshipTypeName
+                relationshipTypeName,
+                ngsiLdRelationshipInstance.datasetId
             )
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0],
-                ngsiLdRelationship.instances[0].objectId
+                ngsiLdRelationshipInstance,
+                ngsiLdRelationshipInstance.objectId
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.REPLACED,
                 null
             )
@@ -530,68 +538,86 @@ class EntityService(
 
     @Transactional
     fun updateEntityAttributes(id: URI, attributes: List<NgsiLdAttribute>): UpdateResult {
-        val updateStatuses = attributes.map { ngsiLdAttribute ->
+        val updateStatuses = attributes.flatMap { ngsiLdAttribute ->
             try {
                 logger.debug("Trying to update attribute ${ngsiLdAttribute.name} of type $ngsiLdAttribute")
                 when (ngsiLdAttribute) {
-                    is NgsiLdRelationship -> updateEntityRelationship(id, ngsiLdAttribute)
-                    is NgsiLdProperty -> updateEntityProperty(id, ngsiLdAttribute)
-                    is NgsiLdGeoProperty -> updateEntityGeoProperty(id, ngsiLdAttribute)
+                    is NgsiLdRelationship -> ngsiLdAttribute.instances.map { ngsiLdRelationshipInstance ->
+                        updateEntityRelationship(id, ngsiLdAttribute, ngsiLdRelationshipInstance)
+                    }
+                    is NgsiLdProperty -> ngsiLdAttribute.instances.map { ngsiLdPropertyInstance ->
+                        updateEntityProperty(id, ngsiLdAttribute, ngsiLdPropertyInstance)
+                    }
+                    is NgsiLdGeoProperty -> listOf(updateEntityGeoProperty(id, ngsiLdAttribute))
                 }
             } catch (e: BadRequestDataException) {
-                UpdateAttributeResult(ngsiLdAttribute.name, null, UpdateOperationResult.IGNORED, e.message)
+                listOf(
+                    UpdateAttributeResult(ngsiLdAttribute.name, null, UpdateOperationResult.IGNORED, e.message)
+                )
             }
         }
-
         return updateResultFromDetailedResult(updateStatuses)
     }
 
-    fun updateEntityRelationship(entityId: URI, ngsiLdRelationship: NgsiLdRelationship): UpdateAttributeResult =
-        if (neo4jRepository.hasRelationshipOfType(
+    fun updateEntityRelationship(
+        entityId: URI,
+        ngsiLdRelationship: NgsiLdRelationship,
+        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance
+    ): UpdateAttributeResult =
+        if (neo4jRepository.hasRelationshipInstance(
             EntitySubjectNode(entityId),
-            ngsiLdRelationship.name.toRelationshipTypeName()
+            ngsiLdRelationship.name.toRelationshipTypeName(),
+            ngsiLdRelationshipInstance.datasetId
         )
         ) {
-            deleteEntityAttribute(entityId, ngsiLdRelationship.name)
-            // TODO multi-attribute support
+            deleteEntityAttributeInstance(entityId, ngsiLdRelationship.name, ngsiLdRelationshipInstance.datasetId)
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0],
-                ngsiLdRelationship.instances[0].objectId
+                ngsiLdRelationshipInstance,
+                ngsiLdRelationshipInstance.objectId
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
-                UpdateOperationResult.REPLACED
-            )
-        } else
-            UpdateAttributeResult(
-                ngsiLdRelationship.name,
-                ngsiLdRelationship.instances[0].datasetId,
-                UpdateOperationResult.IGNORED,
-                "Relationship does not exist"
-            )
-
-    fun updateEntityProperty(entityId: URI, ngsiLdProperty: NgsiLdProperty): UpdateAttributeResult =
-        if (neo4jRepository.hasPropertyInstance(
-            EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdProperty.instances[0].datasetId
-        )
-        ) {
-            updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdProperty.instances[0])
-            UpdateAttributeResult(
-                ngsiLdProperty.name,
-                ngsiLdProperty.instances[0].datasetId,
+                ngsiLdRelationshipInstance.datasetId,
                 UpdateOperationResult.REPLACED
             )
         } else {
-            val message = if (ngsiLdProperty.instances[0].datasetId != null)
-                "Property (datasetId: ${ngsiLdProperty.instances[0].datasetId}) does not exist"
+            val message = if (ngsiLdRelationshipInstance.datasetId != null)
+                "Relationship (datasetId: ${ngsiLdRelationshipInstance.datasetId}) does not exist"
+            else
+                "Relationship (default instance) does not exist"
+            UpdateAttributeResult(
+                ngsiLdRelationship.name,
+                ngsiLdRelationshipInstance.datasetId,
+                UpdateOperationResult.IGNORED,
+                message
+            )
+        }
+
+    fun updateEntityProperty(
+        entityId: URI,
+        ngsiLdProperty: NgsiLdProperty,
+        ngsiLdPropertyInstance: NgsiLdPropertyInstance
+    ): UpdateAttributeResult =
+        if (neo4jRepository.hasPropertyInstance(
+            EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
+        )
+        ) {
+            updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
+            UpdateAttributeResult(
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId,
+                UpdateOperationResult.REPLACED
+            )
+        } else {
+            val message = if (ngsiLdPropertyInstance.datasetId != null)
+                "Property (datasetId: ${ngsiLdPropertyInstance.datasetId}) does not exist"
             else
                 "Property (default instance) does not exist"
             UpdateAttributeResult(
                 ngsiLdProperty.name,
-                ngsiLdProperty.instances[0].datasetId,
+                ngsiLdPropertyInstance.datasetId,
                 UpdateOperationResult.IGNORED,
                 message
             )

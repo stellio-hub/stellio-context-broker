@@ -329,6 +329,15 @@ fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
     return this.mapValues { (_, value) -> simplifyRepresentation(value) }
 }
 
+fun CompactedJsonLdEntity.replaceEmptyMapsByLists(): Map<String, Any> {
+    return this.mapValues {
+        if (it.value is Map<*, *> && (it.value as Map<*, *>).isEmpty())
+            emptyList<String>()
+        else
+            it.value
+    }
+}
+
 private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
         // entity property value is always a Map

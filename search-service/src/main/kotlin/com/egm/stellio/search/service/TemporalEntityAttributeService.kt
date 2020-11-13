@@ -307,12 +307,12 @@ class TemporalEntityAttributeService(
             entity[it.key] = it.value
         }
 
-        emptyTemporalAttributesArrays(entity, withTemporalValues)
+        // temporal attributes that have no injected values mpty arrays if their injected temporal evolutions are empty
+        emptyTemporalAttributesHavingValueField(entity, withTemporalValues)
         return JsonLdEntity(entity, jsonLdEntity.contexts)
     }
 
-    private fun emptyTemporalAttributesArrays(entity: MutableMap<String, Any>, withTemporalValues: Boolean) {
-        // temporal attributes must have empty arrays if their injected temporal evolutions are empty
+    private fun emptyTemporalAttributesHavingValueField(entity: MutableMap<String, Any>, withTemporalValues: Boolean) {
         entity.filter {
             it.value is List<*> &&
                 (it.value as List<*>).size == 1

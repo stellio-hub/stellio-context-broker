@@ -78,40 +78,8 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareUpdateEventPayload(eventPayload)
 
-        val temporalEntityAttributeUuid = UUID.randomUUID()
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(
-                eq(fishContainmentId.toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
-                isNull()
-            )
-        }
-        verify {
-            attributeInstanceService.create(
-                match {
-                    it.temporalEntityAttribute == temporalEntityAttributeUuid
-                }
-            )
-        }
-
-        verify {
-            temporalEntityAttributeService.updateEntityPayload(
-                fishContainmentId.toUri(),
-                match {
-                    it.contains(fishContainmentId)
-                }
-            )
-        }
-
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        assertAttributeInstanceCreation(prepareAttributeReplaceEventPayload(eventPayload))
     }
 
     @Test
@@ -126,7 +94,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareUpdateEventPayload(eventPayload)
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -161,7 +129,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareUpdateEventPayload(eventPayload)
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
 
         val temporalEntityAttributeUuid = UUID.randomUUID()
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -185,7 +153,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance for a datasetId`() {
+    fun `it should create an attribute instance with a datasetId`() {
         val eventPayload =
             """
             {
@@ -197,8 +165,113 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareUpdateEventPayload(eventPayload)
 
+        assertAttributeInstanceWithDatasetIdCreation(prepareAttributeReplaceEventPayload(eventPayload))
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
+    }
+
+    @Test
+    fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+
+        assertAttributeInstanceCreation(prepareAttributeUpdateEventPayload(eventPayload))
+    }
+
+    @Test
+    fun `it should create an attribute instance with a datasetId for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\",
+                \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
+            }
+            """.trimIndent()
+
+        assertAttributeInstanceWithDatasetIdCreation(prepareAttributeUpdateEventPayload(eventPayload))
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869
+            }
+            """.trimIndent()
+        val content = prepareAttributeUpdateEventPayload(eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
+    }
+
+    private fun assertAttributeInstanceCreation(content: String) {
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(fishContainmentId.toUri()),
+                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
+                isNull()
+            )
+        }
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                fishContainmentId.toUri(),
+                match {
+                    it.contains(fishContainmentId)
+                }
+            )
+        }
+
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+    }
+
+    private fun assertAttributeInstanceWithDatasetIdCreation(content: String) {
         val temporalEntityAttributeUuid = UUID.randomUUID()
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
@@ -222,30 +295,22 @@ class EntityEventListenerServiceTest {
         }
     }
 
-    @Test
-    fun `it should ignore an attribute instance without observedAt information`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869
-                }
-            }
-            """.trimIndent()
-        val content = prepareUpdateEventPayload(eventPayload)
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
-        }
-    }
-
-    private fun prepareUpdateEventPayload(payload: String): String =
+    private fun prepareAttributeReplaceEventPayload(payload: String): String =
         """
             {
                 "operationType": "ATTRIBUTE_REPLACE",
+                "entityId": "$fishContainmentId",
+                "attributeName": "totalDissolvedSolids",
+                "operationPayload": "$payload",
+                "updatedEntity": "$entity",
+                "contexts": ["$NGSILD_CORE_CONTEXT"]
+            }
+        """.trimIndent().replace("\n", "")
+
+    private fun prepareAttributeUpdateEventPayload(payload: String): String =
+        """
+            {
+                "operationType": "ATTRIBUTE_UPDATE",
                 "entityId": "$fishContainmentId",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",

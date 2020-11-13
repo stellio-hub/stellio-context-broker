@@ -8,10 +8,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import java.net.URI
 import java.time.ZonedDateTime
 
 @Component
@@ -30,7 +32,7 @@ class EntityEventListenerService(
             is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
             is AttributeAppendEvent -> logger.warn("Attribute append operation is not yet implemented")
             is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
-            is AttributeUpdateEvent -> logger.warn("Attribute update operation is not yet implemented")
+            is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
             is AttributeDeleteEvent -> logger.warn("Attribute delete operation is not yet implemented")
         }
     }
@@ -48,12 +50,39 @@ class EntityEventListenerService(
         }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
+        val attributeNode = jacksonObjectMapper()
+            .readTree(attributeReplaceEvent.operationPayload)[attributeReplaceEvent.attributeName]
+
+        handleAttributeUpdate(
+            attributeReplaceEvent.entityId,
+            attributeReplaceEvent.attributeName,
+            attributeNode,
+            attributeReplaceEvent.updatedEntity
+        )
+    }
+
+    private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
+        val attributeNode = jacksonObjectMapper().readTree(attributeUpdateEvent.operationPayload)
+
+        handleAttributeUpdate(
+            attributeUpdateEvent.entityId,
+            attributeUpdateEvent.attributeName,
+            attributeNode,
+            attributeUpdateEvent.updatedEntity
+        )
+    }
+
+    private fun handleAttributeUpdate(
+        entityId: URI,
+        attributeName: String,
+        attributeValuesNode: JsonNode,
+        updatedEntity: String
+    ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
         //  - needs optimization (lot of JSON-LD parsing, ...)
-        val rawParsedData = jacksonObjectMapper().readTree(attributeReplaceEvent.operationPayload)
         val rawEntity = try {
-            expandJsonLdEntity(attributeReplaceEvent.updatedEntity)
+            expandJsonLdEntity(updatedEntity)
         } catch (e: BadRequestDataException) {
             logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
             return
@@ -61,8 +90,6 @@ class EntityEventListenerService(
             logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
             return
         }
-        val attributeName = rawParsedData.fieldNames().next()
-        val attributeValuesNode = rawParsedData[attributeName]
 
         if (!attributeValuesNode.has("observedAt")) {
             logger.info("Ignoring update event for $attributeName, it has no observedAt information")
@@ -79,7 +106,7 @@ class EntityEventListenerService(
         val datasetId = attributeValuesNode["datasetId"]?.asText()
 
         temporalEntityAttributeService.getForEntityAndAttribute(
-            attributeReplaceEvent.entityId, expandedAttributeName, datasetId
+            entityId, expandedAttributeName, datasetId
         ).zipWhen {
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = it,
@@ -90,8 +117,8 @@ class EntityEventListenerService(
             attributeInstanceService.create(attributeInstance)
                 .then(
                     temporalEntityAttributeService.updateEntityPayload(
-                        attributeReplaceEvent.entityId,
-                        attributeReplaceEvent.updatedEntity
+                        entityId,
+                        updatedEntity
                     )
                 )
         }.doOnError {

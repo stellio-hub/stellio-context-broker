@@ -67,30 +67,6 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance and update entity payload for attributeReplace events`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869,
-                    \"observedAt\":\"$observedAt\"
-                }
-            }
-            """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
-        val temporalEntityAttributeUuid = UUID.randomUUID()
-
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-
-        entityEventListenerService.processMessage(content)
-
-        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
-    }
-
-    @Test
     fun `it should create an attribute instance with a numeric value for attributeReplace events`() {
         val eventPayload =
             """
@@ -122,7 +98,7 @@ class EntityEventListenerServiceTest {
             )
         }
 
-        confirmVerified(attributeInstanceService)
+        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
     }
 
     @Test

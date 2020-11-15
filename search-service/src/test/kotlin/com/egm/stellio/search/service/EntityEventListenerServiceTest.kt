@@ -42,7 +42,7 @@ class EntityEventListenerServiceTest {
         """.trimIndent()
 
     @Test
-    fun `it should create a temporal entity entry`() {
+    fun `it should create a temporal entity entry for entityCreate events`() {
         val content =
             """
             {
@@ -67,23 +67,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance and update entity payload`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869,
-                    \"observedAt\":\"$observedAt\"
-                }
-            }
-            """.trimIndent()
-
-        assertAttributeInstanceCreation(prepareAttributeReplaceEventPayload(eventPayload))
-    }
-
-    @Test
-    fun `it should create an attribute instance with a numeric value`() {
+    fun `it should create an attribute instance and update entity payload for attributeReplace events`() {
         val eventPayload =
             """
             {
@@ -95,149 +79,8 @@ class EntityEventListenerServiceTest {
             }
             """.trimIndent()
         val content = prepareAttributeReplaceEventPayload(eventPayload)
-
         val temporalEntityAttributeUuid = UUID.randomUUID()
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
 
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            attributeInstanceService.create(
-                match {
-                    it.value == null &&
-                        it.measuredValue == 33869.0 &&
-                        it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
-                }
-            )
-        }
-
-        confirmVerified(attributeInstanceService)
-    }
-
-    @Test
-    fun `it should create an attribute instance with a textual value`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":\"some textual value\",
-                    \"observedAt\":\"$observedAt\"
-                }
-            }
-            """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
-
-        val temporalEntityAttributeUuid = UUID.randomUUID()
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            attributeInstanceService.create(
-                match {
-                    it.value == "some textual value" &&
-                        it.measuredValue == null &&
-                        it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
-                }
-            )
-        }
-
-        confirmVerified(attributeInstanceService)
-    }
-
-    @Test
-    fun `it should create an attribute instance with a datasetId`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":\"some textual value\",
-                    \"observedAt\":\"$observedAt\",
-                    \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
-                }
-            }
-            """.trimIndent()
-
-        assertAttributeInstanceWithDatasetIdCreation(prepareAttributeReplaceEventPayload(eventPayload))
-    }
-
-    @Test
-    fun `it should ignore an attribute instance without observedAt information`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869
-                }
-            }
-            """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
-        }
-    }
-
-    @Test
-    fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
-        val eventPayload =
-            """
-            {
-                \"type\":\"Property\",
-                \"value\":33869,
-                \"observedAt\":\"$observedAt\"
-            }
-            """.trimIndent()
-
-        assertAttributeInstanceCreation(prepareAttributeUpdateEventPayload(eventPayload))
-    }
-
-    @Test
-    fun `it should create an attribute instance with a datasetId for attributeUpdate events`() {
-        val eventPayload =
-            """
-            {
-                \"type\":\"Property\",
-                \"value\":\"some textual value\",
-                \"observedAt\":\"$observedAt\",
-                \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
-            }
-            """.trimIndent()
-
-        assertAttributeInstanceWithDatasetIdCreation(prepareAttributeUpdateEventPayload(eventPayload))
-    }
-
-    @Test
-    fun `it should ignore an attribute instance without observedAt information for attributeUpdate events`() {
-        val eventPayload =
-            """
-            {
-                \"type\":\"Property\",
-                \"value\":33869
-            }
-            """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
-        }
-    }
-
-    private fun assertAttributeInstanceCreation(content: String) {
-        val temporalEntityAttributeUuid = UUID.randomUUID()
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
@@ -271,8 +114,92 @@ class EntityEventListenerServiceTest {
         confirmVerified(attributeInstanceService, temporalEntityAttributeService)
     }
 
-    private fun assertAttributeInstanceWithDatasetIdCreation(content: String) {
+    @Test
+    fun `it should create an attribute instance with a numeric value for attributeReplace events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869,
+                    \"observedAt\":\"$observedAt\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue == 33869.0 &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should create an attribute instance with a textual value for attributeReplace events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":\"some textual value\",
+                    \"observedAt\":\"$observedAt\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == "some textual value" &&
+                        it.measuredValue == null &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should create an attribute instance with a datasetId for attributeReplace events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":\"some textual value\",
+                    \"observedAt\":\"$observedAt\",
+                    \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
@@ -292,6 +219,126 @@ class EntityEventListenerServiceTest {
                         it.temporalEntityAttribute == temporalEntityAttributeUuid
                 }
             )
+        }
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information for attributeReplace events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeReplaceEventPayload(eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
+    }
+
+    @Test
+    fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(fishContainmentId.toUri()),
+                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
+                isNull()
+            )
+        }
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                fishContainmentId.toUri(),
+                match {
+                    it.contains(fishContainmentId)
+                }
+            )
+        }
+
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+    }
+
+    @Test
+    fun `it should create an attribute instance with a datasetId for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\",
+                \"datasetId\": \"urn:ngsi-ld:Dataset:01234\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), "urn:ngsi-ld:Dataset:01234")
+        }
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == "some textual value" &&
+                        it.measuredValue == null &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information for attributeUpdate events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869
+            }
+            """.trimIndent()
+        val content = prepareAttributeUpdateEventPayload(eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
         }
     }
 

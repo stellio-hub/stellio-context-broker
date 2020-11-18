@@ -75,19 +75,19 @@ class NgsiLdEntity private constructor(
         geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
 }
 
-interface NgsiLdAttribute {
-    val name: String
+sealed class NgsiLdAttribute {
+    abstract val name: String
     val compactName: String
         get() = name.extractShortTypeFromExpanded()
 
-    fun getLinkedEntitiesIds(): List<URI>
-    fun getAttributeInstances(): List<NgsiLdAttributeInstance>
+    abstract fun getLinkedEntitiesIds(): List<URI>
+    abstract fun getAttributeInstances(): List<NgsiLdAttributeInstance>
 }
 
 class NgsiLdProperty private constructor(
     override val name: String,
     val instances: List<NgsiLdPropertyInstance>
-) : NgsiLdAttribute {
+) : NgsiLdAttribute() {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdProperty {
             checkInstancesAreOfSameType(name, instances, NGSILD_PROPERTY_TYPE)
@@ -112,7 +112,7 @@ class NgsiLdProperty private constructor(
 class NgsiLdRelationship private constructor(
     override val name: String,
     val instances: List<NgsiLdRelationshipInstance>
-) : NgsiLdAttribute {
+) : NgsiLdAttribute() {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdRelationship {
             checkInstancesAreOfSameType(name, instances, NGSILD_RELATIONSHIP_TYPE)
@@ -137,7 +137,7 @@ class NgsiLdRelationship private constructor(
 class NgsiLdGeoProperty private constructor(
     override val name: String,
     val instances: List<NgsiLdGeoPropertyInstance>
-) : NgsiLdAttribute {
+) : NgsiLdAttribute() {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdGeoProperty {
             checkInstancesAreOfSameType(name, instances, NGSILD_GEOPROPERTY_TYPE)

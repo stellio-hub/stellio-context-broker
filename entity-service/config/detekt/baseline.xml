@@ -4,6 +4,7 @@
   <CurrentIssues>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
+    <ID>LargeClass:EntityService.kt$EntityService</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests</ID>
     <ID>LongMethod:EntityHandlerTests.kt$EntityHandlerTests$@Test fun `entity attributes update should send two notification if two attributes are updated`()</ID>
@@ -14,7 +15,6 @@
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
-    <ID>NestedBlockDepth:EntityService.kt$EntityService$@Transactional fun updateEntityAttributes(id: URI, attributes: List&lt;NgsiLdAttribute&gt;): UpdateResult</ID>
     <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>TooGenericExceptionCaught:ObservationListener.kt$ObservationListener$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$e: Exception</ID>

@@ -4,14 +4,12 @@ import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.parseSampleDataToJsonLd
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -416,6 +414,43 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
+        mockWithIncomingAndOutgoingTemporalProperties(false)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+            .jsonPath("$.id").exists()
+            .jsonPath("$.type").exists()
+            .jsonPath("$.incoming.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.length()").isEqualTo(2)
+            .jsonPath("$.connectsTo").doesNotExist()
+    }
+
+    @Test
+    fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
+        mockWithIncomingAndOutgoingTemporalProperties(true)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&options=temporalValues"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+            .jsonPath("$.id").exists()
+            .jsonPath("$.type").exists()
+            .jsonPath("$..observedAt").doesNotExist()
+            .jsonPath("$.incoming.values.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.values.length()").isEqualTo(2)
+    }
+
+    private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
         val entityTemporalProperties = listOf(
             incomingAttrExpandedName,
             outgoingAttrExpandedName
@@ -428,8 +463,17 @@ class TemporalEntityHandlerTests {
             )
         }
         val rawEntity = parseSampleDataToJsonLd()
-        val entityWith2temporalEvolutions =
-            parseSampleDataToJsonLd("beehive_with_two_temporal_attributes_evolution.jsonld")
+        val entityFileName = if (withTemporalValues)
+            "beehive_with_two_temporal_attributes_evolution_temporal_values.jsonld"
+        else
+            "beehive_with_two_temporal_attributes_evolution.jsonld"
+
+        val entityWith2temporalEvolutions = if (withTemporalValues) {
+            val entity = parseSampleDataToJsonLd(entityFileName)
+            injectTemporalValuesForIncomingAndOutgoing(entity)
+        } else {
+            parseSampleDataToJsonLd(entityFileName)
+        }
 
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperties[0],
@@ -461,18 +505,20 @@ class TemporalEntityHandlerTests {
         every {
             temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
         } returns entityWith2temporalEvolutions
+    }
 
-        webClient.get()
-            .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+    private fun injectTemporalValuesForIncomingAndOutgoing(entity: JsonLdEntity): JsonLdEntity {
+        listOf(incomingAttrExpandedName, outgoingAttrExpandedName).forEach {
+            val propList = entity.properties[it] as MutableList<MutableMap<String, *>>
+            val propHasValuesList =
+                propList[0][JsonLdUtils.NGSILD_PROPERTY_VALUES] as MutableList<MutableMap<String, *>>
+            val incomingHasValuesMap = propHasValuesList[0] as MutableMap<String, MutableList<*>>
+            incomingHasValuesMap["@list"] = mutableListOf(
+                TemporalValue(1543.toDouble(), "2020-01-24T13:01:22.066Z"),
+                TemporalValue(1600.toDouble(), "2020-01-24T14:01:22.066Z")
             )
-            .exchange()
-            .expectStatus().isOk
-            .expectBody().jsonPath("$").isMap
-            .jsonPath("$.incoming.length()").isEqualTo(2)
-            .jsonPath("$.outgoing.length()").isEqualTo(2)
-            .jsonPath("$.connectsTo").doesNotExist()
+        }
+        return entity
     }
 
     @Test

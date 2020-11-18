@@ -7,8 +7,7 @@
       "type" : "Relationship",
       "object" : "urn:ngsi-ld:Sensor:IncomingSensor"
     },
-    "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ],
-    "observedAt" : "2020-01-24T13:01:22.066Z"
+    "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ]
   },
   "connectsTo" : {
     "type" : "Relationship",

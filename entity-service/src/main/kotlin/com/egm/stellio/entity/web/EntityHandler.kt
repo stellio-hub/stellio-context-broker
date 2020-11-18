@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.model.UpdateOperationResult
+import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -192,6 +194,9 @@ class EntityHandler(
             disallowOverwrite
         )
 
+        if (updateResult.updated.isNotEmpty())
+            publishAppendEntityAttributesEvents(entityId.toUri(), jsonLdAttributes, updateResult, contexts)
+
         return if (updateResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
@@ -227,15 +232,15 @@ class EntityHandler(
 
         val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
 
-        updateResult.updated.forEach { expandedAttributeName ->
+        updateResult.updated.forEach { updatedDetails ->
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
-                    expandedAttributeName.extractShortTypeFromExpanded(),
-                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, expandedAttributeName),
+                    updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, updatedDetails.attributeName),
                     compactAndStringifyFragment(
-                        expandedAttributeName,
-                        jsonLdAttributes[expandedAttributeName]!!,
+                        updatedDetails.attributeName,
+                        jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
                     compactAndSerialize(updatedEntity!!),
@@ -328,5 +333,48 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+    }
+
+    fun publishAppendEntityAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        appendResult: UpdateResult,
+        contexts: List<String>
+    ) {
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
+        appendResult.updated.forEach { updatedDetails ->
+            if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
+                entityEventService.publishEntityEvent(
+                    AttributeAppendEvent(
+                        entityId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
+                        compactAndStringifyFragment(
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            contexts
+                        ),
+                        compactAndSerialize(updatedEntity!!),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+            else
+                entityEventService.publishEntityEvent(
+                    AttributeReplaceEvent(
+                        entityId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
+                        compactAndStringifyFragment(
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            contexts
+                        ),
+                        compactAndSerialize(updatedEntity!!),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+        }
     }
 }

@@ -251,7 +251,8 @@ class TemporalEntityAttributeService(
                 if (withTemporalValues) {
                     instanceToEnrich.putIfAbsent(JSONLD_TYPE, NGSILD_PROPERTY_TYPE.uri)
                     // remove the existing value as we will inject our list of results in the property
-                    instanceToEnrich.remove(NGSILD_PROPERTY_VALUE)
+                    // remove the observedAt field as its values will be contained in the values array
+                    instanceToEnrich.keys.removeAll(setOf(NGSILD_PROPERTY_VALUE, NGSILD_OBSERVED_AT_PROPERTY))
 
                     // Postgres stores the observedAt value in UTC.
                     // The value is retrieved as offsetDateTime and converted to the current timezone

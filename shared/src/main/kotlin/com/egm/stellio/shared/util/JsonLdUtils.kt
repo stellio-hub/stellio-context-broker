@@ -48,8 +48,9 @@ object JsonLdUtils {
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE_KW = "@value"
-    val JSONLD_ENTITY_MANDATORY_FIELDS = setOf("id", "type", "@context")
-    val JSONLD_ENTITY_CORE_PROPERTIES = setOf("id", "type", "@context")
+    const val JSONLD_CONTEXT = "@context"
+    val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
+    val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf("id", "type", JSONLD_CONTEXT)
 
     const val NGSILD_CREATED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/createdAt"
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
@@ -91,7 +92,7 @@ object JsonLdUtils {
                 Map::class.java, String::class.java, Any::class.java
             )
         )
-        BASE_CONTEXT = coreContext["@context"] as Map<String, Any>
+        BASE_CONTEXT = coreContext[JSONLD_CONTEXT] as Map<String, Any>
         logger.info("Core context loaded")
     }
 
@@ -101,7 +102,7 @@ object JsonLdUtils {
     fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
 
         return JsonLdEntity(parseAndExpandJsonLdFragment(input, jsonLdOptions), contexts)
     }
@@ -125,12 +126,12 @@ object JsonLdUtils {
             )
         )
 
-        return if (!parsedInput.containsKey("@context"))
+        return if (!parsedInput.containsKey(JSONLD_CONTEXT))
             emptyList()
-        else if (parsedInput["@context"] is List<*>)
-            parsedInput["@context"] as List<String>
-        else if (parsedInput["@context"] is String)
-            listOf(parsedInput["@context"] as String)
+        else if (parsedInput[JSONLD_CONTEXT] is List<*>)
+            parsedInput[JSONLD_CONTEXT] as List<String>
+        else if (parsedInput[JSONLD_CONTEXT] is String)
+            listOf(parsedInput[JSONLD_CONTEXT] as String)
         else
             emptyList()
     }
@@ -174,24 +175,24 @@ object JsonLdUtils {
             val intermediateList = value[propertyKey] as List<Map<String, Any>>
             if (intermediateList.size == 1) {
                 val firstListEntry = intermediateList[0]
-                val finalValueType = firstListEntry["@type"]
+                val finalValueType = firstListEntry[JSONLD_TYPE]
                 if (finalValueType != null) {
-                    val finalValue = String::class.safeCast(firstListEntry["@value"])
+                    val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
                     when (finalValueType) {
                         NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
                         NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
                         NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                        else -> firstListEntry["@value"]
+                        else -> firstListEntry[JSONLD_VALUE_KW]
                     }
-                } else if (firstListEntry["@value"] != null) {
-                    firstListEntry["@value"]
+                } else if (firstListEntry[JSONLD_VALUE_KW] != null) {
+                    firstListEntry[JSONLD_VALUE_KW]
                 } else {
                     // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
-                    firstListEntry["@id"]
+                    firstListEntry[JSONLD_ID]
                 }
             } else {
                 intermediateList.map {
-                    it["@value"]
+                    it[JSONLD_VALUE_KW]
                 }
             }
         } else
@@ -209,7 +210,7 @@ object JsonLdUtils {
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to contexts)
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
         val expKey = JsonLdProcessor.expand(relationship, jsonLdOptions)
         return (expKey[0] as Map<String, Any>).keys.first()
     }
@@ -224,7 +225,7 @@ object JsonLdUtils {
     fun expandJsonLdKey(type: String, contexts: List<String>): String? {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
         val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
         logger.debug("Expanded type $type to $expandedType")
         return if (expandedType.isNotEmpty())
@@ -236,7 +237,7 @@ object JsonLdUtils {
     fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf("@context" to usedContext)
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
         return parseAndExpandJsonLdFragment(fragment, jsonLdOptions)
     }
 
@@ -246,8 +247,8 @@ object JsonLdUtils {
 
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String {
         val compactedFragment =
-            JsonLdProcessor.compact(mapOf(key to value), mapOf("@context" to context), JsonLdOptions())
-        return mapper.writeValueAsString(compactedFragment.minus("@context"))
+            JsonLdProcessor.compact(mapOf(key to value), mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
+        return mapper.writeValueAsString(compactedFragment.minus(JSONLD_CONTEXT))
     }
 
     fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =
@@ -263,7 +264,7 @@ object JsonLdUtils {
         includedAttributes: Set<String>
     ): Map<String, Any> {
         val identity: (CompactedJsonLdEntity) -> CompactedJsonLdEntity = { it }
-        return filterEntityOnAttributes(input, identity, includedAttributes)
+        return filterEntityOnAttributes(input, identity, includedAttributes, false)
     }
 
     fun filterJsonLdEntityOnAttributes(
@@ -271,18 +272,23 @@ object JsonLdUtils {
         includedAttributes: Set<String>
     ): Map<String, Any> {
         val inputToMap = { i: JsonLdEntity -> i.properties }
-        return filterEntityOnAttributes(input, inputToMap, includedAttributes)
+        return filterEntityOnAttributes(input, inputToMap, includedAttributes, true)
     }
 
     private fun <T> filterEntityOnAttributes(
         input: T,
         inputToMap: (T) -> Map<String, Any>,
-        includedAttributes: Set<String>
+        includedAttributes: Set<String>,
+        isExpandedForm: Boolean
     ): Map<String, Any> {
         return if (includedAttributes.isEmpty()) {
             inputToMap(input)
         } else {
-            val includedKeys = JSONLD_ENTITY_MANDATORY_FIELDS.plus(includedAttributes)
+            val mandatoryFields = if (isExpandedForm)
+                JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS
+            else
+                JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
+            val includedKeys = mandatoryFields.plus(includedAttributes)
             inputToMap(input).filterKeys { includedKeys.contains(it) }
         }
     }

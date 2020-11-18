@@ -8,8 +8,7 @@
       "object" : "urn:ngsi-ld:Sensor:IncomingSensor"
     },
     "datasetId" : "urn:ngsi-ld:Dataset:01234",
-    "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ],
-    "observedAt" : "2020-01-24T13:01:22.066Z"
+    "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ]
   }, {
     "type" : "Property",
     "observedBy" : {
@@ -17,8 +16,7 @@
       "object" : "urn:ngsi-ld:Sensor:IncomingSensor"
     },
     "datasetId" : "urn:ngsi-ld:Dataset:45678",
-    "values" : [ [487.0,"2020-03-25T08:29:17.965206Z"], [698.0,"2020-03-25T08:33:17.965206Z"] ],
-    "observedAt" : "2020-01-24T13:01:22.066Z"
+    "values" : [ [487.0,"2020-03-25T08:29:17.965206Z"], [698.0,"2020-03-25T08:33:17.965206Z"] ]
   } ],
   "connectsTo" : {
     "type" : "Relationship",

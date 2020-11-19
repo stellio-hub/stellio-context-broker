@@ -1,5 +1,7 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
@@ -67,6 +69,111 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should create a temporal entry with one attribute instance for attributeAppend events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869,
+                    \"observedAt\":\"$observedAt\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
+
+        every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.create(
+                match {
+                    it.entityId == fishContainmentId.toUri() &&
+                        it.type == "https://ontology.eglobalmark.com/aquac#FishContainment" &&
+                        it.attributeName == "https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids" &&
+                        it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
+                        it.datasetId == null
+                }
+            )
+        }
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
+                        it.value == null &&
+                        it.measuredValue == 33869.0
+                }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                eq(fishContainmentId.toUri()),
+                match { it.contains(fishContainmentId) }
+            )
+        }
+
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+    }
+
+    @Test
+    fun `it should create a temporal entry with attribute instance with a textual value for attributeAppend events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":\"some textual value\",
+                    \"datasetId\":\"urn:ngsi-ld:Dataset:totalDissolvedSolids:01\",
+                    \"observedAt\":\"$observedAt\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
+
+        every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.create(
+                match {
+                    it.entityId == fishContainmentId.toUri() &&
+                        it.type == "https://ontology.eglobalmark.com/aquac#FishContainment" &&
+                        it.attributeName == "https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids" &&
+                        it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+                        it.datasetId == "urn:ngsi-ld:Dataset:totalDissolvedSolids:01".toUri()
+                }
+            )
+        }
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
+                        it.value == "some textual value" &&
+                        it.measuredValue == null
+                }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                eq(fishContainmentId.toUri()),
+                match { it.contains(fishContainmentId) }
+            )
+        }
+
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+    }
+
+    @Test
     fun `it should create an attribute instance with a numeric value for attributeReplace events`() {
         val eventPayload =
             """
@@ -78,7 +185,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -113,7 +220,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -139,7 +246,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
@@ -162,7 +269,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
 
         entityEventListenerService.processMessage(content)
 
@@ -181,7 +288,7 @@ class EntityEventListenerServiceTest {
                 \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -205,7 +312,7 @@ class EntityEventListenerServiceTest {
                 \"datasetId\": \"$datasetId\"
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
@@ -226,7 +333,7 @@ class EntityEventListenerServiceTest {
                 \"value\":33869
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
 
         entityEventListenerService.processMessage(content)
 
@@ -280,22 +387,10 @@ class EntityEventListenerServiceTest {
         }
     }
 
-    private fun prepareAttributeReplaceEventPayload(payload: String): String =
+    private fun prepareAttributeEventPayload(operationType: EventsType, payload: String): String =
         """
             {
-                "operationType": "ATTRIBUTE_REPLACE",
-                "entityId": "$fishContainmentId",
-                "attributeName": "totalDissolvedSolids",
-                "operationPayload": "$payload",
-                "updatedEntity": "$entity",
-                "contexts": ["$NGSILD_CORE_CONTEXT"]
-            }
-        """.trimIndent().replace("\n", "")
-
-    private fun prepareAttributeUpdateEventPayload(payload: String): String =
-        """
-            {
-                "operationType": "ATTRIBUTE_UPDATE",
+                "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",

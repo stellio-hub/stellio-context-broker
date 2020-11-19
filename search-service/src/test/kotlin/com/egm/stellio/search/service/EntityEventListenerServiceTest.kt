@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
@@ -79,7 +80,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeAppendEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -132,7 +133,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeAppendEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -184,7 +185,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -219,7 +220,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -245,7 +246,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
@@ -268,7 +269,7 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeReplaceEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
 
         entityEventListenerService.processMessage(content)
 
@@ -287,7 +288,7 @@ class EntityEventListenerServiceTest {
                 \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -311,7 +312,7 @@ class EntityEventListenerServiceTest {
                 \"datasetId\": \"$datasetId\"
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), any()) } returns Mono.just(
@@ -332,7 +333,7 @@ class EntityEventListenerServiceTest {
                 \"value\":33869
             }
             """.trimIndent()
-        val content = prepareAttributeUpdateEventPayload(eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
 
         entityEventListenerService.processMessage(content)
 
@@ -386,34 +387,10 @@ class EntityEventListenerServiceTest {
         }
     }
 
-    private fun prepareAttributeAppendEventPayload(payload: String): String =
+    private fun prepareAttributeEventPayload(operationType: EventsType, payload: String): String =
         """
             {
-                "operationType": "ATTRIBUTE_APPEND",
-                "entityId": "$fishContainmentId",
-                "attributeName": "totalDissolvedSolids",
-                "operationPayload": "$payload",
-                "updatedEntity": "$entity",
-                "contexts": ["$NGSILD_CORE_CONTEXT"]
-            }
-        """.trimIndent().replace("\n", "")
-
-    private fun prepareAttributeReplaceEventPayload(payload: String): String =
-        """
-            {
-                "operationType": "ATTRIBUTE_REPLACE",
-                "entityId": "$fishContainmentId",
-                "attributeName": "totalDissolvedSolids",
-                "operationPayload": "$payload",
-                "updatedEntity": "$entity",
-                "contexts": ["$NGSILD_CORE_CONTEXT"]
-            }
-        """.trimIndent().replace("\n", "")
-
-    private fun prepareAttributeUpdateEventPayload(payload: String): String =
-        """
-            {
-                "operationType": "ATTRIBUTE_UPDATE",
+                "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",

@@ -43,7 +43,6 @@ import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.lang.reflect.UndeclaredThrowableException
-import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -856,9 +855,7 @@ class EntityHandlerTests {
     fun `append entity attribute should return a 204 if all attributes were appended`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
-
-        every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
+        val appendResult = UpdateResult(
             listOf(
                 UpdatedDetails(
                     fishNumberAttribute,
@@ -868,9 +865,11 @@ class EntityHandlerTests {
             ),
             emptyList()
         )
+        every { entityService.exists(any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -889,8 +888,15 @@ class EntityHandlerTests {
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entityEventService.publishEntityEvent(any(), any()) }
-
+        verify {
+            entityEventService.publishAppendEntityAttributesEvents(
+                eq(entityId),
+                any(),
+                appendResult,
+                any(),
+                listOf(aquacContext!!)
+            )
+        }
         confirmVerified()
     }
 
@@ -898,24 +904,22 @@ class EntityHandlerTests {
     fun `append entity attribute should return a 207 if some attributes could not be appended`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/fragments/BreedingService_newProperty.json")
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
+        val appendResult = UpdateResult(
+            listOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.APPENDED
+                )
+            ),
+            listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
+        )
 
         every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) }
-            .returns(
-                UpdateResult(
-                    listOf(
-                        UpdatedDetails(
-                            fishNumberAttribute,
-                            null,
-                            UpdateOperationResult.APPENDED
-                        )
-                    ),
-                    listOf(NotUpdatedDetails("wrongAttribute", "overwrite disallowed"))
-                )
-            )
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -942,124 +946,17 @@ class EntityHandlerTests {
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entityEventService.publishEntityEvent(any(), any()) }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `append entity attribute should send an append attribute event if an attribute is appended`() {
-        val jsonPayload = loadSampleData("aquac/fragments/BreedingService_newProperty.json")
-        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
-
-        every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.APPENDED
-                )
-            ),
-            emptyList()
-        )
-        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
-            mapOf(
-                "@id" to entityId.toString(),
-                "@type" to listOf("BreedingService")
-            ),
-            listOf(NGSILD_CORE_CONTEXT)
-        )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonPayload)
-            .exchange()
-            .expectStatus().isNoContent
-
-        verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214".toUri())) }
+        verify { entityEventService.publishAppendEntityAttributesEvents(eq(entityId), any(), any(), any(), any()) }
         verify {
-            entityService.appendEntityAttributes(
-                eq("urn:ngsi-ld:BreedingService:0214".toUri()),
+            entityEventService.publishAppendEntityAttributesEvents(
+                eq(entityId),
                 any(),
-                eq(false)
-            )
-        }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeAppendEvent
-                    it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == null &&
-                        it.operationPayload.matchContent(jsonPayload) &&
-                        it.updatedEntity.contains(entityId.toString()) &&
-                        it.contexts == listOf(aquacContext)
-                },
-                "BreedingService"
-            )
-        }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `append entity attribute should send replace and append attribute events`() {
-        val jsonPayload = loadSampleData("aquac/fragments/BreedingService_twoNewProperties.json")
-
-        val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
-        val events = mutableListOf<EntityEvent>()
-        every { entityService.exists(any()) } returns true
-        every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
-            listOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.APPENDED
-                ),
-                UpdatedDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishSize",
-                    "urn:ngsi-ld:Dataset:fishSize:1".toUri(),
-                    UpdateOperationResult.REPLACED
-                )
-            ),
-            emptyList()
-        )
-        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
-            mapOf(
-                "@id" to entityId.toString(),
-                "@type" to listOf("BreedingService")
-            ),
-            listOf(NGSILD_CORE_CONTEXT)
-        )
-        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
-
-        webClient.post()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonPayload)
-            .exchange()
-            .expectStatus().isNoContent
-
-        verify { entityService.exists(eq("urn:ngsi-ld:BreedingService:0214".toUri())) }
-        verify {
-            entityService.appendEntityAttributes(
-                eq("urn:ngsi-ld:BreedingService:0214".toUri()),
+                appendResult,
                 any(),
-                eq(false)
+                listOf(aquacContext!!)
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), "BreedingService") }
-        assertTrue(checkAppendAttributesEvents(entityId, events))
+
         confirmVerified()
     }
 
@@ -1883,31 +1780,4 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isForbidden
     }
-
-    private fun checkAppendAttributesEvents(entityId: URI, events: MutableList<EntityEvent>) =
-        listOf(events[0]).any {
-            it as AttributeAppendEvent
-            it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                it.entityId == entityId &&
-                it.attributeName == "fishNumber" &&
-                it.datasetId == null &&
-                it.operationPayload.matchContent("""{"fishNumber":{"type":"Property","value":500}}""".trimIndent()) &&
-                it.updatedEntity.contains(entityId.toString()) &&
-                it.contexts == listOf(aquacContext)
-        }.and(
-            listOf(events[1]).any {
-                it as AttributeReplaceEvent
-                it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                    it.entityId == entityId &&
-                    it.attributeName == "fishSize" &&
-                    it.datasetId == "urn:ngsi-ld:Dataset:fishSize:1".toUri() &&
-                    it.operationPayload.matchContent(
-                        """
-                        {"fishSize":{"type":"Property","datasetId":"urn:ngsi-ld:Dataset:fishSize:1","value":12}}
-                        """.trimIndent()
-                    ) &&
-                    it.updatedEntity.contains(entityId.toString()) &&
-                    it.contexts == listOf(aquacContext)
-            }
-        )
 }

@@ -112,8 +112,8 @@ class EntityEventServiceTests {
                                 it.entityId == entityId &&
                                 it.attributeName == "fishNumber" &&
                                 it.datasetId == null &&
-                                it.operationPayload.matchContent("{\"$fishNumberAttribute\":120}")
-                            it.contexts == listOf(NGSILD_CORE_CONTEXT)
+                                it.operationPayload.matchContent("{\"$fishNumberAttribute\":120}") &&
+                                it.contexts == listOf(NGSILD_CORE_CONTEXT)
                         }
                     } else {
                         listOf(it).any {
@@ -122,8 +122,8 @@ class EntityEventServiceTests {
                                 it.entityId == entityId &&
                                 it.attributeName == "fishSize" &&
                                 it.datasetId == "urn:ngsi-ld:Dataset:fishSize:1".toUri() &&
-                                it.operationPayload.matchContent("{\"$fishSizeAttribute\":50}")
-                            it.contexts == listOf(NGSILD_CORE_CONTEXT)
+                                it.operationPayload.matchContent("{\"$fishSizeAttribute\":50}") &&
+                                it.contexts == listOf(NGSILD_CORE_CONTEXT)
                         }
                     }
                 },

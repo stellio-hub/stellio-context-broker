@@ -3,10 +3,7 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.shared.model.AccessDeniedException
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
@@ -40,7 +37,7 @@ class EntityOperationHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val (extractedEntities, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
+        val (extractedEntities, _, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val batchOperationResult = entityOperationService.create(newEntities)
 
@@ -50,8 +47,8 @@ class EntityOperationHandler(
             }
         )
 
-        authorizationService.createAdminLinks(batchOperationResult.success, userId)
-        ngsiLdEntities.filter { it.id in batchOperationResult.success }
+        authorizationService.createAdminLinks(batchOperationResult.success.map { it.entityId }, userId)
+        ngsiLdEntities.filter { it.id in batchOperationResult.success.map { it.entityId } }
             .forEach {
                 entityEventService.publishEntityEvent(
                     EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
@@ -78,7 +75,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
-        val (_, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
+        val (extractedEntities, jsonLdEntities, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val createBatchOperationResult = when {
@@ -93,7 +90,7 @@ class EntityOperationHandler(
             )
         }
 
-        authorizationService.createAdminLinks(createBatchOperationResult.success, userId)
+        authorizationService.createAdminLinks(createBatchOperationResult.success.map { it.entityId }, userId)
 
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
@@ -120,6 +117,16 @@ class EntityOperationHandler(
             ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
         )
 
+        ngsiLdEntities.filter { it.id in createBatchOperationResult.success.map { it.entityId } }
+            .forEach {
+                entityEventService.publishEntityEvent(
+                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    it.type.extractShortTypeFromExpanded()
+                )
+            }
+        if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
+        else publishReplaceEvents(updateBatchOperationResult, extractedEntities, ngsiLdEntities)
+
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
@@ -145,11 +152,46 @@ class EntityOperationHandler(
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String): Pair<List<Map<String, Any>>, List<NgsiLdEntity>> {
-        val extractedEntities = JsonUtils.parseListOfEntities(payload)
-        return Pair(
-            extractedEntities,
-            JsonLdUtils.expandJsonLdEntities(extractedEntities).map { it.toNgsiLdEntity() }
-        )
+    private fun extractAndParseBatchOfEntities(payload: String) =
+        JsonUtils.parseListOfEntities(payload)
+            .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
+            .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
+
+    private fun publishReplaceEvents(
+        updateBatchOperationResult: BatchOperationResult,
+        extractedEntities: List<Map<String, Any>>,
+        ngsiLdEntities: List<NgsiLdEntity>
+    ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.success.map { it.entityId } }
+        .forEach {
+            entityEventService.publishEntityEvent(
+                EntityReplaceEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                it.type.extractShortTypeFromExpanded()
+            )
+        }
+
+    private fun publishUpdateEvents(
+        updateBatchOperationResult: BatchOperationResult,
+        jsonLdEntities: List<JsonLdEntity>
+    ) {
+        updateBatchOperationResult.success.forEach {
+            val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
+            entityEventService.publishAppendEntityAttributesEvents(
+                it.entityId,
+                jsonLdEntity.properties,
+                it.updateResult!!,
+                entityOperationService.getFullEntityById(it.entityId, true)!!,
+                jsonLdEntity.contexts
+            )
+        }
+        updateBatchOperationResult.errors.filter { it.updateResult!!.updated.isNotEmpty() }.forEach {
+            val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
+            entityEventService.publishAppendEntityAttributesEvents(
+                it.entityId,
+                jsonLdEntity.properties,
+                it.updateResult!!,
+                entityOperationService.getFullEntityById(it.entityId, true)!!,
+                jsonLdEntity.contexts
+            )
+        }
     }
 }

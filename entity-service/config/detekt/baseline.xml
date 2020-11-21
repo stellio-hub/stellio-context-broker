@@ -4,6 +4,7 @@
   <CurrentIssues>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
+    <ID>LargeClass:EntityOperationHandlerTests.kt$EntityOperationHandlerTests</ID>
     <ID>LargeClass:EntityService.kt$EntityService</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests</ID>

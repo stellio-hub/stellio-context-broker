@@ -5,6 +5,7 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.web.BatchEntityError
+import com.egm.stellio.entity.web.BatchEntitySuccess
 import com.egm.stellio.entity.web.BatchOperationResult
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdEntity
@@ -70,7 +71,7 @@ class EntityOperationService(
             }
             .toMutableList()
 
-        return BatchOperationResult(successfullyCreatedIds, errors)
+        return BatchOperationResult(successfullyCreatedIds.map { BatchEntitySuccess(it) }.toMutableList(), errors)
     }
 
     fun delete(entitiesIds: Set<URI>): BatchOperationResult {
@@ -91,7 +92,7 @@ class EntityOperationService(
             }
             .toMutableList()
 
-        return BatchOperationResult(successfullyDeletedIds, errors)
+        return BatchOperationResult(successfullyDeletedIds.map { BatchEntitySuccess(it) }.toMutableList(), errors)
     }
 
     /**
@@ -114,7 +115,7 @@ class EntityOperationService(
 
     private fun processEntities(
         entities: List<NgsiLdEntity>,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, URI>
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, BatchEntitySuccess>
     ): BatchOperationResult {
         return entities.parallelStream().map {
             processEntity(it, processor)
@@ -136,8 +137,8 @@ class EntityOperationService(
 
     private fun processEntity(
         entity: NgsiLdEntity,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, URI>
-    ): Either<BatchEntityError, URI> {
+        processor: (NgsiLdEntity) -> Either<BatchEntityError, BatchEntitySuccess>
+    ): Either<BatchEntityError, BatchEntitySuccess> {
         return try {
             processor(entity)
         } catch (e: BadRequestDataException) {
@@ -150,28 +151,30 @@ class EntityOperationService(
      */
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
-    fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, URI> {
+    fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, BatchEntitySuccess> {
         neo4jRepository.deleteEntityAttributes(entity.id)
         val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
-        if (notUpdated.isEmpty()) {
-            return entity.id.right()
-        } else {
+        if (notUpdated.isEmpty())
+            return BatchEntitySuccess(entity.id).right()
+        else
             throw BadRequestDataException(
                 ArrayList(notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
             )
-        }
     }
 
-    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, URI> {
-        val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
+    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, BatchEntitySuccess> {
+        val updateResult = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
 
-        return if (notUpdated.isEmpty()) {
-            entity.id.right()
-        } else {
+        return if (updateResult.notUpdated.isEmpty())
+            BatchEntitySuccess(entity.id, updateResult).right()
+        else
             BatchEntityError(
                 entity.id,
-                ArrayList(notUpdated.map { it.attributeName + " : " + it.reason })
+                ArrayList(updateResult.notUpdated.map { it.attributeName + " : " + it.reason }),
+                updateResult
             ).left()
-        }
     }
+
+    fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false) =
+        entityService.getFullEntityById(entityId, includeSysAttrs)
 }

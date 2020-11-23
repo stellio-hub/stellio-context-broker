@@ -154,7 +154,7 @@ class EntityOperationServiceTests {
             batchOperationResult.success
         )
         assertEquals(
-            listOf(BatchEntityError(secondEntityURI, arrayListOf("error"), null)),
+            listOf(BatchEntityError(secondEntityURI, arrayListOf("error"))),
             batchOperationResult.errors
         )
     }

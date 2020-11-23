@@ -27,7 +27,5 @@ data class BatchEntitySuccess(
 
 data class BatchEntityError(
     val entityId: URI,
-    val error: MutableList<String>,
-    @JsonIgnore
-    val updateResult: UpdateResult? = null
+    val error: MutableList<String>
 )

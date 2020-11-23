@@ -367,13 +367,11 @@ class EntityOperationHandlerTests {
         val errors = arrayListOf(
             BatchEntityError(
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."),
-                UpdateResult(emptyList(), emptyList())
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
             ),
             BatchEntityError(
                 "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist."),
-                UpdateResult(emptyList(), emptyList())
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
             )
         )
 

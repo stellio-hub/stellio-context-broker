@@ -162,17 +162,19 @@ class EntityOperationService(
             )
     }
 
+    /*
+     * Transactional because it should not replace entity attributes if new ones could not be replaced.
+     */
+    @Transactional(rollbackFor = [BadRequestDataException::class])
+    @Throws(BadRequestDataException::class)
     private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, BatchEntitySuccess> {
         val updateResult = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
-
-        return if (updateResult.notUpdated.isEmpty())
-            BatchEntitySuccess(entity.id, updateResult).right()
+        if (updateResult.notUpdated.isEmpty())
+            return BatchEntitySuccess(entity.id, updateResult).right()
         else
-            BatchEntityError(
-                entity.id,
-                ArrayList(updateResult.notUpdated.map { it.attributeName + " : " + it.reason }),
-                updateResult
-            ).left()
+            throw BadRequestDataException(
+                ArrayList(updateResult.notUpdated.map { it.attributeName + " : " + it.reason }).joinToString()
+            )
     }
 
     fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false) =

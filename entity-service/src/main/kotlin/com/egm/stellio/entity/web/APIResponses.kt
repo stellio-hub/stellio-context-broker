@@ -14,6 +14,8 @@ data class BatchOperationResult(
         success.addAll(other.success)
         errors.addAll(other.errors)
     }
+
+    fun getSuccessfulEntitiesIds() = success.map { it.entityId }
 }
 
 data class BatchEntitySuccess(

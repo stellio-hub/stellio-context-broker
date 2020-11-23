@@ -47,8 +47,8 @@ class EntityOperationHandler(
             }
         )
 
-        authorizationService.createAdminLinks(batchOperationResult.success.map { it.entityId }, userId)
-        ngsiLdEntities.filter { it.id in batchOperationResult.success.map { it.entityId } }
+        authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
+        ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
                 entityEventService.publishEntityEvent(
                     EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
@@ -90,7 +90,7 @@ class EntityOperationHandler(
             )
         }
 
-        authorizationService.createAdminLinks(createBatchOperationResult.success.map { it.entityId }, userId)
+        authorizationService.createAdminLinks(createBatchOperationResult.getSuccessfulEntitiesIds(), userId)
 
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
@@ -117,7 +117,7 @@ class EntityOperationHandler(
             ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
         )
 
-        ngsiLdEntities.filter { it.id in createBatchOperationResult.success.map { it.entityId } }
+        ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
                 entityEventService.publishEntityEvent(
                     EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
@@ -152,16 +152,17 @@ class EntityOperationHandler(
         return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String) =
-        JsonUtils.parseListOfEntities(payload)
-            .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
-            .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
+    private fun extractAndParseBatchOfEntities(payload: String):
+        Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
+            JsonUtils.parseListOfEntities(payload)
+                .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
+                .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
 
     private fun publishReplaceEvents(
         updateBatchOperationResult: BatchOperationResult,
         extractedEntities: List<Map<String, Any>>,
         ngsiLdEntities: List<NgsiLdEntity>
-    ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.success.map { it.entityId } }
+    ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
             entityEventService.publishEntityEvent(
                 EntityReplaceEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
@@ -174,16 +175,6 @@ class EntityOperationHandler(
         jsonLdEntities: List<JsonLdEntity>
     ) {
         updateBatchOperationResult.success.forEach {
-            val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
-            entityEventService.publishAppendEntityAttributesEvents(
-                it.entityId,
-                jsonLdEntity.properties,
-                it.updateResult!!,
-                entityOperationService.getFullEntityById(it.entityId, true)!!,
-                jsonLdEntity.contexts
-            )
-        }
-        updateBatchOperationResult.errors.filter { it.updateResult!!.updated.isNotEmpty() }.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
             entityEventService.publishAppendEntityAttributesEvents(
                 it.entityId,

@@ -82,7 +82,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             arrayListOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.success.map { it.entityId }
+            batchOperationResult.getSuccessfulEntitiesIds()
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
@@ -126,7 +126,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.success.map { it.entityId }
+            batchOperationResult.getSuccessfulEntitiesIds()
         )
 
         verify { entityService.appendEntityAttributes(eq(firstEntityURI), any(), false) }
@@ -186,8 +186,7 @@ class EntityOperationServiceTests {
             listOf(
                 BatchEntityError(
                     secondEntityURI,
-                    arrayListOf("attribute#1 : reason", "attribute#2 : reason"),
-                    updateResult
+                    arrayListOf("attribute#1 : reason, attribute#2 : reason")
                 )
             ),
             batchOperationResult.errors
@@ -215,7 +214,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.success.map { it.entityId }
+            batchOperationResult.getSuccessfulEntitiesIds()
         )
         assertTrue(batchOperationResult.errors.isEmpty())
 
@@ -293,7 +292,7 @@ class EntityOperationServiceTests {
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
-            batchOperationResult.success.map { it.entityId }
+            batchOperationResult.getSuccessfulEntitiesIds()
         )
         assertEquals(emptyList<BatchEntityError>(), batchOperationResult.errors)
 

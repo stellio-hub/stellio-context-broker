@@ -15,6 +15,7 @@ data class BatchOperationResult(
         errors.addAll(other.errors)
     }
 
+    @JsonIgnore
     fun getSuccessfulEntitiesIds() = success.map { it.entityId }
 }
 

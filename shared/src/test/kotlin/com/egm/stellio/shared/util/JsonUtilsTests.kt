@@ -65,6 +65,12 @@ class JsonUtilsTests {
     }
 
     @Test
+    fun `it should parse an event of type ENTITY_REPLACE`() {
+        val parsedEvent = parseEntityEvent(loadSampleData("events/entityReplaceEvent.jsonld"))
+        Assertions.assertTrue(parsedEvent is EntityReplaceEvent)
+    }
+
+    @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
         val parsedEvent = parseEntityEvent(loadSampleData("events/entityDeleteEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
@@ -86,6 +92,12 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_CREATE`() {
         val event = mapper.writeValueAsString(EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
+    }
+
+    @Test
+    fun `it should serialize an event of type ENTITY_REPLACE`() {
+        val event = mapper.writeValueAsString(EntityReplaceEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityReplaceEvent.jsonld")))
     }
 
     @Test

@@ -254,9 +254,15 @@ object JsonLdUtils {
     fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =
         mapper.writeValueAsString(jsonLdEntity.compact())
 
-    fun compactEntities(entities: List<JsonLdEntity>): List<CompactedJsonLdEntity> =
+    fun compactEntities(
+        entities: List<JsonLdEntity>,
+        useSimplifiedRepresentation: Boolean
+    ): List<CompactedJsonLdEntity> =
         entities.map {
-            it.compact()
+            if (useSimplifiedRepresentation)
+                it.compact().toKeyValues()
+            else
+                it.compact()
         }
 
     fun filterCompactedEntityOnAttributes(

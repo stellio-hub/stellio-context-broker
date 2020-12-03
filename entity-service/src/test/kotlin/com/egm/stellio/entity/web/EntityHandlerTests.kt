@@ -14,14 +14,17 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.ninjasquad.springmockk.MockkBean
@@ -346,6 +349,51 @@ class EntityHandlerTests {
             .expectBody()
             .jsonPath("$.attr1").doesNotExist()
             .jsonPath("$.attr2").isNotEmpty
+    }
+
+    @Test
+    fun `get entity by id should correctly return the simplified representation of an entity`() {
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+            mapOf(
+                "@id" to entityId.toString(),
+                "@type" to listOf("Beehive"),
+                "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
+                    JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        JSONLD_VALUE_KW to "some value"
+                    )
+                ),
+                "https://uri.etsi.org/ngsi-ld/default-context/rel1" to mapOf(
+                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        JSONLD_ID to "urn:ngsi-ld:Entity:1234"
+                    )
+                )
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?options=keyValues")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .json(
+                """
+                    {
+                        "id": "$entityId",
+                        "type": "Beehive",
+                        "prop1": "some value",
+                        "rel1": "urn:ngsi-ld:Entity:1234",
+                        "@context": "$NGSILD_CORE_CONTEXT"
+                    }
+                """.trimIndent()
+            )
     }
 
     @Test

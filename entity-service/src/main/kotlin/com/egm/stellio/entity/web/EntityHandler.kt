@@ -85,6 +85,8 @@ class EntityHandler(
         val q = params.getOrDefault(QUERY_PARAM_FILTER, emptyList())
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
@@ -123,7 +125,7 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = compactEntities(filteredEntities)
+        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation)
 
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
     }
@@ -140,6 +142,8 @@ class EntityHandler(
     ): ResponseEntity<*> {
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
@@ -157,8 +161,12 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
+            val compactedEntity = filteredJsonLdEntity.compact()
 
-            return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
+            return if (useSimplifiedRepresentation)
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity.toKeyValues()))
+            else
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity))
         } else
             throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
     }

@@ -123,11 +123,13 @@ class EntityHandler(
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     @Suppress("ThrowsCount")
     suspend fun getByURI(
+        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -135,10 +137,18 @@ class EntityHandler(
         if (!authorizationService.userCanReadEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
-        val entity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
+        val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
             ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(entity.compact()))
+        val filteredJsonLdEntity = JsonLdEntity(
+            JsonLdUtils.filterJsonLdEntityOnAttributes(
+                jsonLdEntity,
+                parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+            ),
+            jsonLdEntity.contexts
+        )
+
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
     }
 
     /**

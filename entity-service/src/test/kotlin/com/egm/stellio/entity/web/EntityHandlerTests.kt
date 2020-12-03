@@ -311,6 +311,42 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should correctly filter the asked attributes`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@type" to listOf("Beehive"),
+                "https://uri.etsi.org/ngsi-ld/default-context/attr1" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@value" to "some value 1"
+                    )
+                ),
+                "https://uri.etsi.org/ngsi-ld/default-context/attr2" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@value" to "some value 2"
+                    )
+                )
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.attr1").doesNotExist()
+            .jsonPath("$.attr2").isNotEmpty
+    }
+
+    @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(

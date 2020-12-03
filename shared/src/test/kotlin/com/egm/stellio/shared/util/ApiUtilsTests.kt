@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,6 +44,21 @@ class ApiUtilsTests {
     @Test
     fun `it should find a value if it is in a multi value options query param`() {
         assertTrue(hasValueInOptionsParam(Optional.of("one,temporalValues"), TEMPORAL_VALUES))
+    }
+
+    @Test
+    fun `it should return an empty list if no attrs param is provided`() {
+        assertTrue(parseAndExpandAttrsParameter(null, "").isEmpty())
+    }
+
+    @Test
+    fun `it should return an singleton list if there is one provided attrs param`() {
+        assertEquals(1, parseAndExpandAttrsParameter("attr1", NGSILD_CORE_CONTEXT).size)
+    }
+
+    @Test
+    fun `it should return a list with two elements if there are two provided attrs param`() {
+        assertEquals(2, parseAndExpandAttrsParameter("attr1, attr2", NGSILD_CORE_CONTEXT).size)
     }
 
     @Test

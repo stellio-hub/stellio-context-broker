@@ -270,8 +270,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 200 when entity exists`() {
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any()) } returns returnedJsonLdEntity
+        every { returnedJsonLdEntity.containsAnyOf(any()) } returns true
 
         val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
@@ -347,7 +349,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entity by id should return a 404 if the entity has none of the requested attributes`() {
+    fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(

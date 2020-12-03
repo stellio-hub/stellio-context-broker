@@ -347,6 +347,36 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entity by id should return a 404 if the entity has none of the requested attributes`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@type" to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                    {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"Entity $entityId does not have any of the requested attributes"
+                    }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(

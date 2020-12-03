@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -52,12 +53,14 @@ class EntityEventListenerService(
         }
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
-        val attributeNode = jacksonObjectMapper()
-            .readTree(attributeAppendEvent.operationPayload)[attributeAppendEvent.attributeName]
+        val expandedAttributeName = expandJsonLdKey(attributeAppendEvent.attributeName, attributeAppendEvent.contexts)!!
+        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val attributeNode = operationPayloadNode[attributeAppendEvent.attributeName]
+            ?: operationPayloadNode[expandedAttributeName]
 
         handleAttributeAppend(
             attributeAppendEvent.entityId,
-            attributeAppendEvent.attributeName,
+            expandedAttributeName,
             attributeNode,
             attributeAppendEvent.updatedEntity,
             attributeAppendEvent.contexts
@@ -65,23 +68,29 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
-        val attributeNode = jacksonObjectMapper()
-            .readTree(attributeReplaceEvent.operationPayload)[attributeReplaceEvent.attributeName]
+        val expandedAttributeName = expandJsonLdKey(
+            attributeReplaceEvent.attributeName,
+            attributeReplaceEvent.contexts
+        )!!
+        val operationPayloadNode = jacksonObjectMapper().readTree(attributeReplaceEvent.operationPayload)
+        val attributeNode = operationPayloadNode[attributeReplaceEvent.attributeName]
+            ?: operationPayloadNode[expandedAttributeName]
 
         handleAttributeUpdate(
             attributeReplaceEvent.entityId,
-            attributeReplaceEvent.attributeName,
+            expandedAttributeName,
             attributeNode,
             attributeReplaceEvent.updatedEntity
         )
     }
 
     private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
+        val expandedAttributeName = expandJsonLdKey(attributeUpdateEvent.attributeName, attributeUpdateEvent.contexts)!!
         val attributeNode = jacksonObjectMapper().readTree(attributeUpdateEvent.operationPayload)
 
         handleAttributeUpdate(
             attributeUpdateEvent.entityId,
-            attributeUpdateEvent.attributeName,
+            expandedAttributeName,
             attributeNode,
             attributeUpdateEvent.updatedEntity
         )
@@ -89,29 +98,21 @@ class EntityEventListenerService(
 
     private fun handleAttributeUpdate(
         entityId: URI,
-        attributeName: String,
+        expandedAttributeName: String,
         attributeValuesNode: JsonNode,
         updatedEntity: String
     ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
         //  - needs optimization (lot of JSON-LD parsing, ...)
-        val rawEntity = try {
-            expandJsonLdEntity(updatedEntity)
-        } catch (e: BadRequestDataException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-            return
-        } catch (e: InvalidRequestException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-            return
-        }
-
         if (!attributeValuesNode.has("observedAt")) {
-            logger.info("Ignoring update event for $attributeName, it has no observedAt information")
+            logger.info(
+                "Ignoring update event for " +
+                    "${expandedAttributeName.extractShortTypeFromExpanded()}, it has no observedAt information"
+            )
             return
         }
 
-        val expandedAttributeName = expandJsonLdKey(attributeName, rawEntity.contexts)!!
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -145,14 +146,13 @@ class EntityEventListenerService(
 
     fun handleAttributeAppend(
         entityId: URI,
-        attributeName: String,
+        expandedAttributeName: String,
         attributeValuesNode: JsonNode,
         updatedEntity: String,
         contexts: List<String>
     ) {
         if (!attributeValuesNode.has("observedAt")) return
 
-        val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)

@@ -279,6 +279,41 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should handle attributeReplace events with an operation payload containing expanded attribute`() {
+        val eventPayload =
+            """
+            {
+                \"https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869,
+                    \"observedAt\":\"$observedAt\"
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue == 33869.0 &&
+                        it.observedAt == ZonedDateTime.parse(observedAt) &&
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
+    }
+
+    @Test
     fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
         val eventPayload =
             """
@@ -346,7 +381,7 @@ class EntityEventListenerServiceTest {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(fishContainmentId.toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#totalDissolvedSolids"),
+                eq("https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids"),
                 isNull()
             )
         }

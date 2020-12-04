@@ -24,6 +24,7 @@ const val QUERY_PARAM_TYPE: String = "type"
 const val QUERY_PARAM_FILTER: String = "q"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
+const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 /**

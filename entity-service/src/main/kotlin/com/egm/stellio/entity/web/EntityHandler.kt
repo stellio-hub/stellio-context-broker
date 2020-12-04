@@ -111,7 +111,18 @@ class EntityHandler(
                 entities.map { it.id.toUri() },
                 userId
             ).toListOfString()
-        val filteredEntities = entities.filter { entitiesUserCanRead.contains(it.id) }
+
+        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        val filteredEntities =
+            entities.filter { entitiesUserCanRead.contains(it.id) }
+                .filter { it.containsAnyOf(expandedAttrs) }
+                .map {
+                    JsonLdEntity(
+                        JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
+                        it.contexts
+                    )
+                }
+
         val compactedEntities = compactEntities(filteredEntities)
 
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
@@ -123,11 +134,13 @@ class EntityHandler(
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     @Suppress("ThrowsCount")
     suspend fun getByURI(
+        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -135,10 +148,19 @@ class EntityHandler(
         if (!authorizationService.userCanReadEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
-        val entity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
+        val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
             ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(entity.compact()))
+        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
+            val filteredJsonLdEntity = JsonLdEntity(
+                JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
+                jsonLdEntity.contexts
+            )
+
+            return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
+        } else
+            throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
     }
 
     /**

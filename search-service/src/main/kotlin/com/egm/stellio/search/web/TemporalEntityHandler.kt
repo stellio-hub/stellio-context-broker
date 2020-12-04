@@ -187,13 +187,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         if (it >= 1) it else null
     }
 
-    val expandedAttrs = attrsParam
-        ?.split(",")
-        .orEmpty()
-        .map {
-            JsonLdUtils.expandJsonLdKey(it, contextLink)!!
-        }
-        .toSet()
+    val expandedAttrs = parseAndExpandAttrsParameter(attrsParam, contextLink)
 
     return TemporalQuery(
         expandedAttrs = expandedAttrs,

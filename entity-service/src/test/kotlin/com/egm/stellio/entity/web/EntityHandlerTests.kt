@@ -270,8 +270,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 200 when entity exists`() {
+        val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.exists(any()) } returns true
-        every { entityService.getFullEntityById(any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        every { entityService.getFullEntityById(any()) } returns returnedJsonLdEntity
+        every { returnedJsonLdEntity.containsAnyOf(any()) } returns true
 
         val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
         every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
@@ -308,6 +310,72 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001Z\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+    }
+
+    @Test
+    fun `get entity by id should correctly filter the asked attributes`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@type" to listOf("Beehive"),
+                "https://uri.etsi.org/ngsi-ld/default-context/attr1" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@value" to "some value 1"
+                    )
+                ),
+                "https://uri.etsi.org/ngsi-ld/default-context/attr2" to mapOf(
+                    "@type" to "https://uri.etsi.org/ngsi-ld/Property",
+                    NGSILD_PROPERTY_VALUE to mapOf(
+                        "@value" to "some value 2"
+                    )
+                )
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.attr1").doesNotExist()
+            .jsonPath("$.attr2").isNotEmpty
+    }
+
+    @Test
+    fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
+            mapOf(
+                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@type" to listOf("Beehive")
+            ),
+            listOf(NGSILD_CORE_CONTEXT)
+        )
+
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        every { authorizationService.userCanReadEntity(entityId, "mock-user") } returns true
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                    {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title":"The referred resource has not been found",
+                        "detail":"Entity $entityId does not have any of the requested attributes"
+                    }
+                """.trimIndent()
+            )
     }
 
     @Test

@@ -5,32 +5,42 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
-fun extractComparaisonParametersFromQuery(query: String): ArrayList<String> {
+fun splitQueryTermOnOperator(queryTerm: String): List<String> =
+    queryTerm.split("==", "!=", ">=", ">", "<=", "<")
+
+fun extractComparisonParametersFromQuery(query: String): ArrayList<String> {
     val splitted = ArrayList<String>()
-    if (query.contains("==")) {
-        splitted.add(query.split("==")[0])
-        splitted.add("=")
-        splitted.add(query.split("==")[1])
-    } else if (query.contains("!=")) {
-        splitted.add(query.split("!=")[0])
-        splitted.add("<>")
-        splitted.add(query.split("!=")[1])
-    } else if (query.contains(">=")) {
-        splitted.add(query.split(">=")[0])
-        splitted.add(">=")
-        splitted.add(query.split(">=")[1])
-    } else if (query.contains(">")) {
-        splitted.add(query.split(">")[0])
-        splitted.add(">")
-        splitted.add(query.split(">")[1])
-    } else if (query.contains("<=")) {
-        splitted.add(query.split("<=")[0])
-        splitted.add("<=")
-        splitted.add(query.split("<=")[1])
-    } else if (query.contains("<")) {
-        splitted.add(query.split("<")[0])
-        splitted.add("<")
-        splitted.add(query.split("<")[1])
+    when {
+        query.contains("==") -> {
+            splitted.add(query.split("==")[0])
+            splitted.add("=")
+            splitted.add(query.split("==")[1])
+        }
+        query.contains("!=") -> {
+            splitted.add(query.split("!=")[0])
+            splitted.add("<>")
+            splitted.add(query.split("!=")[1])
+        }
+        query.contains(">=") -> {
+            splitted.add(query.split(">=")[0])
+            splitted.add(">=")
+            splitted.add(query.split(">=")[1])
+        }
+        query.contains(">") -> {
+            splitted.add(query.split(">")[0])
+            splitted.add(">")
+            splitted.add(query.split(">")[1])
+        }
+        query.contains("<=") -> {
+            splitted.add(query.split("<=")[0])
+            splitted.add("<=")
+            splitted.add(query.split("<=")[1])
+        }
+        query.contains("<") -> {
+            splitted.add(query.split("<")[0])
+            splitted.add("<")
+            splitted.add(query.split("<")[1])
+        }
     }
     return splitted
 }

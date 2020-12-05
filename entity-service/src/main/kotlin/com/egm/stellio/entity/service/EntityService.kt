@@ -7,7 +7,8 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.PropertyRepository
-import com.egm.stellio.entity.util.extractComparaisonParametersFromQuery
+import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
+import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.util.regex.Pattern
 
 @Component
 class EntityService(
@@ -308,7 +310,7 @@ class EntityService(
      */
     fun searchEntities(
         type: String,
-        query: List<String>,
+        query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
@@ -326,28 +328,27 @@ class EntityService(
     @Transactional
     fun searchEntities(
         type: String,
-        query: List<String>,
+        query: String,
         contexts: List<String>,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
-        val queryCriteria = query
-            .map {
-                val splitted = extractComparaisonParametersFromQuery(it)
-                val expandedParam =
-                    if (splitted[2].startsWith("urn:"))
-                        splitted[0].toRelationshipTypeName()
-                    else
-                        expandJsonLdKey(splitted[0], contexts)!!
-                Triple(expandedParam, splitted[1], splitted[2])
-            }
-            .partition {
-                it.third.startsWith("urn:")
-            }
-        return neo4jRepository.getEntitiesByTypeAndQuery(expandedType, queryCriteria)
-            .map { getFullEntityById(it, includeSysAttrs) }
-            .filterNotNull()
+        val pattern = Pattern.compile("([^();|]+)")
+        val expandedQuery = query.replace(
+            pattern.toRegex()
+        ) { matchResult ->
+            val splitted = splitQueryTermOnOperator(matchResult.value)
+            val expandedParam =
+                if (splitted[2].startsWith("urn:"))
+                    splitted[0].extractShortTypeFromExpanded()
+                else
+                    expandJsonLdKey(splitted[0], contexts)!!
+            "$expandedParam${splitted[1]}${splitted[2]}"
+        }
+
+        return neo4jRepository.getEntities(expandedType, expandedQuery)
+            .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 
     @Transactional

@@ -475,7 +475,6 @@ class Neo4jRepository(
             pattern.toRegex()
         ) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-
             if (parsedQueryTerm.third.startsWith("urn:")) {
                 """
                     EXISTS {

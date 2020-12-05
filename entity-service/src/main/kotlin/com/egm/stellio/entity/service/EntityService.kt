@@ -333,16 +333,20 @@ class EntityService(
     ): List<JsonLdEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
+        // use this pattern to extract query terms (probably to be completed)
         val pattern = Pattern.compile("([^();|]+)")
         val expandedQuery = query.replace(
             pattern.toRegex()
         ) { matchResult ->
+            // for each query term, we retrieve the attribute and replace it by its persisted form (if different)
+            // it will have to be modified when we support "dotted paths" (cf 4.9)
             val splitted = splitQueryTermOnOperator(matchResult.value)
             val expandedParam =
                 if (splitted[1].startsWith("urn:"))
-                    splitted[0].extractShortTypeFromExpanded()
+                    splitted[0]
                 else
                     expandJsonLdKey(splitted[0], contexts)!!
+            // retrieve the operator from the initial query term ... (yes, not so nice)
             val operator = matchResult.value
                 .replace(splitted[0], "")
                 .replace(splitted[1], "")

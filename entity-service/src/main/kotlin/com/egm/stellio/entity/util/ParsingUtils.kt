@@ -9,27 +9,30 @@ import java.time.ZonedDateTime
 fun splitQueryTermOnOperator(queryTerm: String): List<String> =
     queryTerm.split("==", "!=", ">=", ">", "<=", "<")
 
-fun extractComparisonParametersFromQuery(query: String): Triple<String, String, String> {
+/**
+ * Parse a query term to return a triple consisting of (attribute, operator, comparable value)
+ */
+fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
     return when {
-        query.contains("==") -> {
-            Triple(query.split("==")[0], "=", query.split("==")[1])
+        queryTerm.contains("==") -> {
+            Triple(queryTerm.split("==")[0], "=", queryTerm.split("==")[1])
         }
-        query.contains("!=") -> {
-            Triple(query.split("!=")[0], "<>", query.split("!=")[1])
+        queryTerm.contains("!=") -> {
+            Triple(queryTerm.split("!=")[0], "<>", queryTerm.split("!=")[1])
         }
-        query.contains(">=") -> {
-            Triple(query.split(">=")[0], ">=", query.split(">=")[1])
+        queryTerm.contains(">=") -> {
+            Triple(queryTerm.split(">=")[0], ">=", queryTerm.split(">=")[1])
         }
-        query.contains(">") -> {
-            Triple(query.split(">")[0], ">", query.split(">")[1])
+        queryTerm.contains(">") -> {
+            Triple(queryTerm.split(">")[0], ">", queryTerm.split(">")[1])
         }
-        query.contains("<=") -> {
-            Triple(query.split("<=")[0], "<=", query.split("<=")[1])
+        queryTerm.contains("<=") -> {
+            Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
         }
-        query.contains("<") -> {
-            Triple(query.split("<")[0], "<", query.split("<")[1])
+        queryTerm.contains("<") -> {
+            Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
         }
-        else -> throw OperationNotSupportedException("Unsupported query term : $query")
+        else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
     }
 }
 

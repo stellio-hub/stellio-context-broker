@@ -4,6 +4,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
 import com.egm.stellio.entity.util.isDate
 import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 
 sealed class SubjectNodeInfo(val id: URI, val label: String)
@@ -467,38 +469,38 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun getEntitiesByTypeAndQuery(
-        type: String,
-        query: Pair<List<Triple<String, String, String>>, List<Triple<String, String, String>>>
-    ): List<URI> {
-        val propertiesFilter =
-            if (query.second.isNotEmpty())
-                query.second.joinToString(" AND ") {
-                    val comparableValue = when {
-                        it.third.isFloat() -> "toFloat('${it.third}')"
-                        it.third.isDateTime() -> "datetime('${it.third}')"
-                        it.third.isDate() -> "date('${it.third}')"
-                        it.third.isTime() -> "localtime('${it.third}')"
-                        else -> "'${it.third}'"
+    fun getEntities(type: String, rawQuery: String): List<URI> {
+        val pattern = Pattern.compile("([^();|]+)")
+        val innerQuery = rawQuery.replace(
+            pattern.toRegex()
+        ) { matchResult ->
+            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
+            if (parsedQueryTerm.third.startsWith("urn:")) {
+                """
+                    EXISTS {
+                        MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
+                        WHERE e.id ${parsedQueryTerm.second} '${parsedQueryTerm.third}'
                     }
-                    """
+                """.trimIndent()
+            } else {
+                val comparableValue = when {
+                    parsedQueryTerm.third.isFloat() -> "toFloat('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
+                    else -> "'${parsedQueryTerm.third}'"
+                }
+                """
                    EXISTS {
                        MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${it.first}' 
-                       AND p.value ${it.second} $comparableValue
+                       WHERE p.name = '${parsedQueryTerm.first}'
+                       AND p.value ${parsedQueryTerm.second} $comparableValue
                    }
-                    """.trimIndent()
-                }
-            else
-                ""
-
-        val relationshipsFilter =
-            if (query.first.isNotEmpty())
-                query.first.joinToString(" AND ") {
-                    "(n)-[:HAS_OBJECT]-()-[:${it.first}]->({ id: '${it.third}' })"
-                }
-            else
-                ""
+                """.trimIndent()
+            }
+        }
+            .replace(";", " AND ")
+            .replace("|", " OR ")
 
         val matchClause =
             if (type.isEmpty())
@@ -507,16 +509,14 @@ class Neo4jRepository(
                 "MATCH (n:`$type`)"
 
         val whereClause =
-            if (propertiesFilter.isNotEmpty() || relationshipsFilter.isNotEmpty()) " WHERE "
+            if (innerQuery.isNotEmpty()) " WHERE "
             else ""
 
         val finalQuery =
             """
             $matchClause
             $whereClause
-                $propertiesFilter
-                ${if (propertiesFilter.isNotEmpty() && relationshipsFilter.isNotEmpty()) " AND " else ""}
-                $relationshipsFilter
+                $innerQuery
             RETURN n.id as id
             """
 

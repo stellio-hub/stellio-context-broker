@@ -82,7 +82,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
-        val q = params.getOrDefault(QUERY_PARAM_FILTER, emptyList())
+        val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -90,7 +90,7 @@ class EntityHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
-        if (q.isNullOrEmpty() && type.isEmpty())
+        if (q.isEmpty() && type.isEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(

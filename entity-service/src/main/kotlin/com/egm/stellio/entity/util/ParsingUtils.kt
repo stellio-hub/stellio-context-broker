@@ -1,38 +1,39 @@
 package com.egm.stellio.entity.util
 
+import com.egm.stellio.shared.model.OperationNotSupportedException
 import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
-fun extractComparaisonParametersFromQuery(query: String): ArrayList<String> {
-    val splitted = ArrayList<String>()
-    if (query.contains("==")) {
-        splitted.add(query.split("==")[0])
-        splitted.add("=")
-        splitted.add(query.split("==")[1])
-    } else if (query.contains("!=")) {
-        splitted.add(query.split("!=")[0])
-        splitted.add("<>")
-        splitted.add(query.split("!=")[1])
-    } else if (query.contains(">=")) {
-        splitted.add(query.split(">=")[0])
-        splitted.add(">=")
-        splitted.add(query.split(">=")[1])
-    } else if (query.contains(">")) {
-        splitted.add(query.split(">")[0])
-        splitted.add(">")
-        splitted.add(query.split(">")[1])
-    } else if (query.contains("<=")) {
-        splitted.add(query.split("<=")[0])
-        splitted.add("<=")
-        splitted.add(query.split("<=")[1])
-    } else if (query.contains("<")) {
-        splitted.add(query.split("<")[0])
-        splitted.add("<")
-        splitted.add(query.split("<")[1])
+fun splitQueryTermOnOperator(queryTerm: String): List<String> =
+    queryTerm.split("==", "!=", ">=", ">", "<=", "<")
+
+/**
+ * Parse a query term to return a triple consisting of (attribute, operator, comparable value)
+ */
+fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
+    return when {
+        queryTerm.contains("==") -> {
+            Triple(queryTerm.split("==")[0], "=", queryTerm.split("==")[1])
+        }
+        queryTerm.contains("!=") -> {
+            Triple(queryTerm.split("!=")[0], "<>", queryTerm.split("!=")[1])
+        }
+        queryTerm.contains(">=") -> {
+            Triple(queryTerm.split(">=")[0], ">=", queryTerm.split(">=")[1])
+        }
+        queryTerm.contains(">") -> {
+            Triple(queryTerm.split(">")[0], ">", queryTerm.split(">")[1])
+        }
+        queryTerm.contains("<=") -> {
+            Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
+        }
+        queryTerm.contains("<") -> {
+            Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
+        }
+        else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
     }
-    return splitted
 }
 
 fun String.decode(): String =

@@ -339,11 +339,14 @@ class EntityService(
         ) { matchResult ->
             val splitted = splitQueryTermOnOperator(matchResult.value)
             val expandedParam =
-                if (splitted[2].startsWith("urn:"))
+                if (splitted[1].startsWith("urn:"))
                     splitted[0].extractShortTypeFromExpanded()
                 else
                     expandJsonLdKey(splitted[0], contexts)!!
-            "$expandedParam${splitted[1]}${splitted[2]}"
+            val operator = matchResult.value
+                .replace(splitted[0], "")
+                .replace(splitted[1], "")
+            "$expandedParam$operator${splitted[1]}"
         }
 
         return neo4jRepository.getEntities(expandedType, expandedQuery)

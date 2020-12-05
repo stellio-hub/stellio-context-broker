@@ -474,28 +474,28 @@ class Neo4jRepository(
         val innerQuery = rawQuery.replace(
             pattern.toRegex()
         ) { matchResult ->
-            val splitted = extractComparisonParametersFromQuery(matchResult.value)
+            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
 
-            if (splitted[2].startsWith("urn:")) {
+            if (parsedQueryTerm.third.startsWith("urn:")) {
                 """
                     EXISTS {
-                        MATCH (n)-[:HAS_OBJECT]-()-[:${splitted[0]}]->(e)
-                        WHERE e.id ${splitted[1]} '${splitted[2]}'
+                        MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
+                        WHERE e.id ${parsedQueryTerm.second} '${parsedQueryTerm.third}'
                     }
                 """.trimIndent()
             } else {
                 val comparableValue = when {
-                    splitted[2].isFloat() -> "toFloat('${splitted[2]}')"
-                    splitted[2].isDateTime() -> "datetime('${splitted[2]}')"
-                    splitted[2].isDate() -> "date('${splitted[2]}')"
-                    splitted[2].isTime() -> "localtime('${splitted[2]}')"
-                    else -> "'${splitted[2]}'"
+                    parsedQueryTerm.third.isFloat() -> "toFloat('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
+                    parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
+                    else -> "'${parsedQueryTerm.third}'"
                 }
                 """
                    EXISTS {
                        MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${splitted[0]}'
-                       AND p.value ${splitted[1]} $comparableValue
+                       WHERE p.name = '${parsedQueryTerm.first}'
+                       AND p.value ${parsedQueryTerm.second} $comparableValue
                    }
                 """.trimIndent()
             }

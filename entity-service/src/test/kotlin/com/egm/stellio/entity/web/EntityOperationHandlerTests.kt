@@ -23,6 +23,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWeb
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
@@ -160,7 +161,7 @@ class EntityOperationHandlerTests {
     )
 
     @Test
-    fun `create batch entity should return a 200 if JSON-LD payload is correct`() {
+    fun `create batch entity should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -194,8 +195,10 @@ class EntityOperationHandlerTests {
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isOk
-            .expectBody().json(batchFullSuccessResponse)
+            .expectStatus().isCreated
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$[*]").isEqualTo(entitiesIds.map { it.toString() })
 
         assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
 
@@ -214,7 +217,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `create batch entity should return a 200 when some entities already exist`() {
+    fun `create batch entity should return a 207 when some entities already exist`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -248,7 +251,7 @@ class EntityOperationHandlerTests {
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isOk
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(batchSomeEntitiesExistsResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }

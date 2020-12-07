@@ -56,7 +56,10 @@ class EntityOperationHandler(
                 )
             }
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {

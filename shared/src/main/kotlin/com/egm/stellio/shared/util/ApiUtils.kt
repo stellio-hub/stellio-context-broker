@@ -11,13 +11,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
 
-object ApiUtils {
-
-    fun addContextToParsedObject(parsedObject: Map<String, Any>, contexts: List<String>): Map<String, Any> {
-        return parsedObject.plus(Pair("@context", contexts))
-    }
-}
-
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     try {
         ZonedDateTime.parse(this).right()
@@ -31,6 +24,7 @@ const val QUERY_PARAM_TYPE: String = "type"
 const val QUERY_PARAM_FILTER: String = "q"
 const val QUERY_PARAM_OPTIONS: String = "options"
 const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
+const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
 
 /**
@@ -83,3 +77,12 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
         .map { it.split(",") }
         .filter { it.any { option -> option == optionValue.value } }
         .isPresent
+
+fun parseAndExpandAttrsParameter(attrsParam: String?, contextLink: String): Set<String> =
+    attrsParam
+        ?.split(",")
+        .orEmpty()
+        .map {
+            JsonLdUtils.expandJsonLdKey(it.trim(), contextLink)!!
+        }
+        .toSet()

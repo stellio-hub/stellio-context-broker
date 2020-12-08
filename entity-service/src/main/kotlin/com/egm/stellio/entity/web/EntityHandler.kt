@@ -1,8 +1,6 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -84,13 +82,15 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
-        val q = params.getOrDefault(QUERY_PARAM_FILTER, emptyList())
+        val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
-        if (q.isNullOrEmpty() && type.isEmpty())
+        if (q.isEmpty() && type.isEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
@@ -113,8 +113,19 @@ class EntityHandler(
                 entities.map { it.id.toUri() },
                 userId
             ).toListOfString()
-        val filteredEntities = entities.filter { entitiesUserCanRead.contains(it.id) }
-        val compactedEntities = compactEntities(filteredEntities)
+
+        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        val filteredEntities =
+            entities.filter { entitiesUserCanRead.contains(it.id) }
+                .filter { it.containsAnyOf(expandedAttrs) }
+                .map {
+                    JsonLdEntity(
+                        JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
+                        it.contexts
+                    )
+                }
+
+        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation)
 
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
     }
@@ -125,11 +136,15 @@ class EntityHandler(
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     @Suppress("ThrowsCount")
     suspend fun getByURI(
+        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -137,10 +152,23 @@ class EntityHandler(
         if (!authorizationService.userCanReadEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
-        val entity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
+        val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
             ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(entity.compact()))
+        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
+            val filteredJsonLdEntity = JsonLdEntity(
+                JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
+                jsonLdEntity.contexts
+            )
+            val compactedEntity = filteredJsonLdEntity.compact()
+
+            return if (useSimplifiedRepresentation)
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity.toKeyValues()))
+            else
+                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity))
+        } else
+            throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
     }
 
     /**
@@ -194,8 +222,15 @@ class EntityHandler(
             disallowOverwrite
         )
 
-        if (updateResult.updated.isNotEmpty())
-            publishAppendEntityAttributesEvents(entityId.toUri(), jsonLdAttributes, updateResult, contexts)
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishAppendEntityAttributesEvents(
+                entityId.toUri(),
+                jsonLdAttributes,
+                updateResult,
+                entityService.getFullEntityById(entityId.toUri(), true)!!,
+                contexts
+            )
+        }
 
         return if (updateResult.notUpdated.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -333,48 +368,5 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
-    }
-
-    fun publishAppendEntityAttributesEvents(
-        entityId: URI,
-        jsonLdAttributes: Map<String, Any>,
-        appendResult: UpdateResult,
-        contexts: List<String>
-    ) {
-        val updatedEntity = entityService.getFullEntityById(entityId, true)
-        appendResult.updated.forEach { updatedDetails ->
-            if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
-                entityEventService.publishEntityEvent(
-                    AttributeAppendEvent(
-                        entityId,
-                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
-                        updatedDetails.datasetId,
-                        compactAndStringifyFragment(
-                            updatedDetails.attributeName,
-                            jsonLdAttributes[updatedDetails.attributeName]!!,
-                            contexts
-                        ),
-                        compactAndSerialize(updatedEntity!!),
-                        contexts
-                    ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
-                )
-            else
-                entityEventService.publishEntityEvent(
-                    AttributeReplaceEvent(
-                        entityId,
-                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
-                        updatedDetails.datasetId,
-                        compactAndStringifyFragment(
-                            updatedDetails.attributeName,
-                            jsonLdAttributes[updatedDetails.attributeName]!!,
-                            contexts
-                        ),
-                        compactAndSerialize(updatedEntity!!),
-                        contexts
-                    ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
-                )
-        }
     }
 }

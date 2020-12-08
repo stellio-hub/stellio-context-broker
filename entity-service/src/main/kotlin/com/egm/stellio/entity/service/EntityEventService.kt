@@ -1,6 +1,13 @@
 package com.egm.stellio.entity.service
 
+import com.egm.stellio.entity.model.UpdateOperationResult
+import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -10,6 +17,7 @@ import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class EntityEventService(
@@ -34,4 +42,47 @@ class EntityEventService(
 
     private fun entityChannelName(channelSuffix: String) =
         "cim.entity.$channelSuffix"
+
+    fun publishAppendEntityAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        appendResult: UpdateResult,
+        updatedEntity: JsonLdEntity,
+        contexts: List<String>
+    ) {
+        appendResult.updated.forEach { updatedDetails ->
+            if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
+                publishEntityEvent(
+                    AttributeAppendEvent(
+                        entityId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
+                        JsonLdUtils.compactAndStringifyFragment(
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            contexts
+                        ),
+                        JsonLdUtils.compactAndSerialize(updatedEntity),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+            else
+                publishEntityEvent(
+                    AttributeReplaceEvent(
+                        entityId,
+                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        updatedDetails.datasetId,
+                        JsonLdUtils.compactAndStringifyFragment(
+                            updatedDetails.attributeName,
+                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            contexts
+                        ),
+                        JsonLdUtils.compactAndSerialize(updatedEntity),
+                        contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+        }
+    }
 }

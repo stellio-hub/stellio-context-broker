@@ -108,6 +108,11 @@ class EntityOperationHandlerTests {
 
     private val deviceParameterAttribute = "https://ontology.eglobalmark.com/aquac#deviceParameter"
 
+    private val batchCreateEndpoint = "/ngsi-ld/v1/entityOperations/create"
+    private val batchUpsertEndpoint = "/ngsi-ld/v1/entityOperations/upsert"
+    private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
+    private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
+
     private val hcmrContext = listOf(
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/shared-jsonld-contexts/egm.jsonld",
@@ -179,7 +184,7 @@ class EntityOperationHandlerTests {
         } returns true as java.lang.Boolean
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
+            .uri(batchCreateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -235,7 +240,7 @@ class EntityOperationHandlerTests {
         } returns true as java.lang.Boolean
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
+            .uri(batchCreateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -263,7 +268,7 @@ class EntityOperationHandlerTests {
         every { authorizationService.userCanCreateEntities("mock-user") } returns false
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/create")
+            .uri(batchCreateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -320,7 +325,7 @@ class EntityOperationHandlerTests {
         every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
+            .uri(batchUpsertWithUpdateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -378,7 +383,7 @@ class EntityOperationHandlerTests {
         } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
+            .uri(batchUpsertWithUpdateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -418,7 +423,7 @@ class EntityOperationHandlerTests {
         )
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
+            .uri(batchUpsertWithUpdateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -459,7 +464,7 @@ class EntityOperationHandlerTests {
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .uri(batchUpsertEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -502,7 +507,7 @@ class EntityOperationHandlerTests {
         )
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .uri(batchUpsertEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -556,7 +561,7 @@ class EntityOperationHandlerTests {
         )
 
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/upsert")
+            .uri(batchUpsertEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -632,7 +637,7 @@ class EntityOperationHandlerTests {
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/delete")
+            .uri(batchDeleteEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -664,28 +669,8 @@ class EntityOperationHandlerTests {
             )
         }
 
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
-        webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/delete")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
-            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(
-                """
-                {
-                    "success": [],
-                    "errors": [
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                            "error":["Entity does not exist"]},
-                        {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                            "error":["Entity does not exist"]},
-                        {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
-                            "error":["Entity does not exist"]}
-                    ]
-                }
-                """.trimIndent()
-            )
+        performBatchDeleteAndCheck204Response("Entity does not exist")
+
         assertEquals(emptyList<String>(), existingEntitiesIds.captured)
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
     }
@@ -715,9 +700,15 @@ class EntityOperationHandlerTests {
             )
         }
 
+        performBatchDeleteAndCheck204Response("User forbidden to delete entity")
+
+        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+    }
+
+    private fun performBatchDeleteAndCheck204Response(expectedErrorMessage: String) {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
-            .uri("/ngsi-ld/v1/entityOperations/delete")
+            .uri(batchDeleteEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
@@ -728,16 +719,15 @@ class EntityOperationHandlerTests {
                     "success": [],
                     "errors": [
                         {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                            "error":["User forbidden to delete entity"]},
+                            "error":["$expectedErrorMessage"]},
                         {"entityId":"urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                            "error":["User forbidden to delete entity"]},
+                            "error":["$expectedErrorMessage"]},
                         {"entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
-                            "error":["User forbidden to delete entity"]}
+                            "error":["$expectedErrorMessage"]}
                     ]
                 }
                 """.trimIndent()
             )
-        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
     }
 
     private fun getExpectedEntitiesEventsOperationPayload(

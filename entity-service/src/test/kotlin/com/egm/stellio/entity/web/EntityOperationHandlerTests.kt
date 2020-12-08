@@ -353,6 +353,40 @@ class EntityOperationHandlerTests {
     }
 
     @Test
+    fun `upsert batch entity should return a 204 if it has only updated existing entities`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        )
+        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
+
+        every { mockedCreatedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            listOf(mockedCreatedEntity),
+            emptyList()
+        )
+        every {
+            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+        } returns entitiesIds
+        every {
+            entityOperationService.update(any())
+        } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
+        every {
+            entityOperationService.getFullEntityById(any(), any())
+        } returns mockkClass(JsonLdEntity::class, relaxed = true)
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/upsert?options=update")
+            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+    }
+
+    @Test
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val errors = arrayListOf(

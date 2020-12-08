@@ -130,11 +130,16 @@ class EntityOperationHandler(
         if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
         else publishReplaceEvents(updateBatchOperationResult, extractedEntities, ngsiLdEntities)
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
+        else if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<BatchOperationResult> {
+    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
 
@@ -152,7 +157,10 @@ class EntityOperationHandler(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     private fun extractAndParseBatchOfEntities(payload: String):

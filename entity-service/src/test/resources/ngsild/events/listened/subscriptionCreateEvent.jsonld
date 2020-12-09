@@ -1,5 +1,9 @@
 {
    "entityId":"urn:ngsi-ld:Subscription:04",
    "operationPayload":"{\"id\": \"urn:ngsi-ld:Subscription:04\",\"type\": \"Subscription\",\"q\": \"foodQuantity<150;foodName=='dietary fibres'\"}",
-   "operationType":"ENTITY_CREATE"
+   "operationType":"ENTITY_CREATE",
+   "contexts":[
+       "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+       "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+  ]
 }

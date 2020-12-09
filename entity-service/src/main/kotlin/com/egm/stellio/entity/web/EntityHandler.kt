@@ -59,12 +59,13 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val ngsiLdEntity = expandJsonLdEntity(body, checkAndGetContext(httpHeaders, body)).toNgsiLdEntity()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
         entityEventService.publishEntityEvent(
-            EntityCreateEvent(newEntityUri, body),
+            EntityCreateEvent(newEntityUri, body, contexts),
             ngsiLdEntity.type.extractShortTypeFromExpanded()
         )
         return ResponseEntity

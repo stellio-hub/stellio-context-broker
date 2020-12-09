@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.firebase.FCMService
@@ -141,7 +142,8 @@ class NotificationServiceTests {
                     it is EntityCreateEvent &&
                         it.operationType == EventsType.ENTITY_CREATE &&
                         read(it.operationPayload, "$.subscriptionId") as String == subscription.id.toString() &&
-                        read(it.operationPayload, "$.data[0].id") as String == apiaryId
+                        read(it.operationPayload, "$.data[0].id") as String == apiaryId &&
+                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
                 }
             )
         }
@@ -194,7 +196,8 @@ class NotificationServiceTests {
                         it.operationType == EventsType.ENTITY_CREATE &&
                         (read(it.operationPayload, "$.data[*]..value") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*]..object") as List<String>).isEmpty() &&
-                        (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty()
+                        (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty() &&
+                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
                 }
             )
         }

@@ -5,6 +5,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -50,8 +51,9 @@ class EntityOperationHandler(
         authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
         ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    EntityCreateEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
@@ -122,8 +124,9 @@ class EntityOperationHandler(
 
         ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    EntityCreateEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
@@ -175,8 +178,9 @@ class EntityOperationHandler(
         ngsiLdEntities: List<NgsiLdEntity>
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
+            val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityEvent(
-                EntityReplaceEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                EntityReplaceEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
                 it.type.extractShortTypeFromExpanded()
             )
         }

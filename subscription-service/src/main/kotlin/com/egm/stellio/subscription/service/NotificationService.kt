@@ -76,7 +76,9 @@ class NotificationService(
                 .doOnNext {
                     subscriptionEventService.publishNotificationEvent(
                         EntityCreateEvent(
-                            it.second.id, serializeObject(it.second)
+                            it.second.id,
+                            serializeObject(it.second),
+                            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
                         )
                     )
                 }
@@ -122,7 +124,11 @@ class NotificationService(
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
                 subscriptionEventService.publishNotificationEvent(
-                    EntityCreateEvent(notification.id, serializeObject(notification))
+                    EntityCreateEvent(
+                        notification.id,
+                        serializeObject(notification),
+                        listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+                    )
                 )
             }
             .map {

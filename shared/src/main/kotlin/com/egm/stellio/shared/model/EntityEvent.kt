@@ -30,7 +30,8 @@ open class EntityEvent(
 @JsonTypeName("ENTITY_CREATE")
 data class EntityCreateEvent(
     override val entityId: URI,
-    val operationPayload: String
+    val operationPayload: String,
+    val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_CREATE, entityId) {
     override fun getEntity() = this.operationPayload
 }
@@ -38,7 +39,8 @@ data class EntityCreateEvent(
 @JsonTypeName("ENTITY_REPLACE")
 data class EntityReplaceEvent(
     override val entityId: URI,
-    val operationPayload: String
+    val operationPayload: String,
+    val contexts: List<String>
 ) : EntityEvent(EventsType.ENTITY_REPLACE, entityId) {
     override fun getEntity() = this.operationPayload
 }

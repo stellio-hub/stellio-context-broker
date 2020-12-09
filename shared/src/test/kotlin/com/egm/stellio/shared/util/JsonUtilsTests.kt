@@ -90,13 +90,25 @@ class JsonUtilsTests {
 
     @Test
     fun `it should serialize an event of type ENTITY_CREATE`() {
-        val event = mapper.writeValueAsString(EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        val event = mapper.writeValueAsString(
+            EntityCreateEvent(
+                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityPayload,
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_REPLACE`() {
-        val event = mapper.writeValueAsString(EntityReplaceEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        val event = mapper.writeValueAsString(
+            EntityReplaceEvent(
+                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityPayload,
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityReplaceEvent.jsonld")))
     }
 

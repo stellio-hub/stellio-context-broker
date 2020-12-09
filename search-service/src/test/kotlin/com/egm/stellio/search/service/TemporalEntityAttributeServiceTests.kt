@@ -67,7 +67,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should retrieve a persisted temporal entity attribute`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
@@ -96,7 +96,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create one entry for an entity with one temporal property`() {
         val rawEntity = loadSampleData()
 
-        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
+        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
+            rawEntity,
+            listOf(apicContext!!)
+        )
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
@@ -116,7 +119,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create two entries for an entity with a two instances property`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
-        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
+        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
+            rawEntity,
+            listOf(apicContext!!)
+        )
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
@@ -130,7 +136,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create two entries for an entity with two temporal properties`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
-        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(rawEntity)
+        val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
+            rawEntity,
+            listOf(apicContext!!)
+        )
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
@@ -282,7 +291,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() {
         val rawEntity = loadSampleData()
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(), incomingAttrExpandedName
@@ -298,7 +307,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should return the temporalEntityAttributeId of a given entityId attributeName and datasetId`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -315,7 +324,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should not return a temporalEntityAttributeId if the datasetId is unknown`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),

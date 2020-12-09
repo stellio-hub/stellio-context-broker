@@ -17,19 +17,27 @@ class EntityEventListenerService(
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_subscription")
     fun processMessage(content: String) {
         when (val entityEvent = parseEntityEvent(content)) {
-            is EntityCreateEvent -> handleEntityEvent(entityEvent.operationPayload, entityEvent.getEntity())
+            is EntityCreateEvent -> handleEntityEvent(
+                entityEvent.operationPayload,
+                entityEvent.getEntity(),
+                entityEvent.contexts
+            )
             is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
             is AttributeAppendEvent -> logger.warn("Attribute append operation is not yet implemented")
-            is AttributeReplaceEvent -> handleEntityEvent(entityEvent.operationPayload, entityEvent.getEntity())
+            is AttributeReplaceEvent -> handleEntityEvent(
+                entityEvent.operationPayload,
+                entityEvent.getEntity(),
+                entityEvent.contexts
+            )
             is AttributeUpdateEvent -> logger.warn("Attribute update operation is not yet implemented")
             is AttributeDeleteEvent -> logger.warn("Attribute delete operation is not yet implemented")
         }
     }
 
-    private fun handleEntityEvent(eventPayload: String, entityPayload: String) {
+    private fun handleEntityEvent(eventPayload: String, entityPayload: String, contents: List<String>) {
         try {
             val updatedFragment = JsonLdUtils.parseJsonLdFragment(eventPayload)
-            val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload)
+            val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contents)
             notificationService.notifyMatchingSubscribers(
                 entityPayload,
                 parsedEntity.toNgsiLdEntity(),

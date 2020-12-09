@@ -162,7 +162,8 @@ class SubscriptionHandlerTests {
                     it is EntityCreateEvent &&
                         it.operationType == EventsType.ENTITY_CREATE &&
                         it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
-                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8) &&
+                        it.contexts == listOf(apicContext!!)
                 }
             )
         }

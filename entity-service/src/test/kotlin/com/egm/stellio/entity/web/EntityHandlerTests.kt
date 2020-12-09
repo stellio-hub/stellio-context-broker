@@ -90,6 +90,13 @@ class EntityHandlerTests {
     }
 
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
+    private val hcmrContext = listOf(
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/shared-jsonld-contexts/egm.jsonld",
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/aquac/jsonld-contexts/aquac.jsonld",
+        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    )
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
@@ -121,7 +128,8 @@ class EntityHandlerTests {
                 match {
                     it as EntityCreateEvent
                     it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == breedingServiceId
+                        it.entityId == breedingServiceId &&
+                        it.contexts == hcmrContext
                 },
                 "BreedingService"
             )

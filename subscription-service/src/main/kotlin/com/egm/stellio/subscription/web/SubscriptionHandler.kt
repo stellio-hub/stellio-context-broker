@@ -47,13 +47,14 @@ class SubscriptionHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val body = requestBody.awaitFirst()
-        val parsedSubscription = parseSubscription(body, checkAndGetContext(httpHeaders, body))
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val parsedSubscription = parseSubscription(body, contexts)
         checkSubscriptionNotExists(parsedSubscription).awaitFirst()
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(EntityCreateEvent(parsedSubscription.id, body))
+        subscriptionEventService.publishSubscriptionEvent(EntityCreateEvent(parsedSubscription.id, body, contexts))
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()

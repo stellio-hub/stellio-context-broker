@@ -2,7 +2,9 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.filterCompactedEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.subscription.firebase.FCMService
@@ -41,7 +43,7 @@ class NotificationService(
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
             }
             .flatMap {
-                callSubscriber(it, id, expandJsonLdEntity(rawEntity, contexts))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity, ngsiLdEntity.contexts))
             }
             .collectList()
     }
@@ -53,7 +55,7 @@ class NotificationService(
     ): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotifData(entity, subscription.notification)
+            data = buildNotificationData(entity, subscription.notification, entity.contexts)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri")
@@ -90,9 +92,13 @@ class NotificationService(
         }
     }
 
-    private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
+    private fun buildNotificationData(
+        entity: JsonLdEntity,
+        params: NotificationParams,
+        contexts: List<String>
+    ): List<Map<String, Any>> {
         val filteredEntity =
-            JsonLdUtils.filterCompactedEntityOnAttributes(entity.compact(), params.attributes?.toSet() ?: emptySet())
+            filterCompactedEntityOnAttributes(compact(entity, contexts), params.attributes?.toSet() ?: emptySet())
         val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
             filteredEntity.toKeyValues()
         else

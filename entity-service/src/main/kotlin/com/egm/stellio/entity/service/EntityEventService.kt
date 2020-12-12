@@ -63,7 +63,7 @@ class EntityEventService(
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()
@@ -79,7 +79,7 @@ class EntityEventService(
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()

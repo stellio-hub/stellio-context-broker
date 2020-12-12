@@ -127,7 +127,7 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation)
+        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink)
 
         return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
     }
@@ -163,7 +163,7 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
-            val compactedEntity = filteredJsonLdEntity.compact()
+            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink)
 
             return if (useSimplifiedRepresentation)
                 ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity.toKeyValues()))
@@ -282,7 +282,7 @@ class EntityHandler(
                         jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
-                    compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                    compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                     contexts
                 ),
                 updatedEntity.type.extractShortTypeFromExpanded()
@@ -332,7 +332,7 @@ class EntityHandler(
                 attributeName = attrId,
                 datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
                 operationPayload = removeContextFromInput(body),
-                updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
             updatedEntity.type.extractShortTypeFromExpanded()
@@ -374,7 +374,7 @@ class EntityHandler(
                     AttributeDeleteAllInstancesEvent(
                         entityId = entityId.toUri(),
                         attributeName = attrId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()
@@ -385,7 +385,7 @@ class EntityHandler(
                         entityId = entityId.toUri(),
                         attributeName = attrId,
                         datasetId = datasetId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()

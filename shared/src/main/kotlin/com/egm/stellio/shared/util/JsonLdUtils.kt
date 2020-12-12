@@ -276,18 +276,79 @@ object JsonLdUtils {
         return mapper.writeValueAsString(compactedFragment.minus(JSONLD_CONTEXT))
     }
 
-    fun compactAndSerialize(jsonLdEntity: JsonLdEntity, mediaType: MediaType = JSON_LD_MEDIA_TYPE): String =
-        mapper.writeValueAsString(jsonLdEntity.compact(mediaType))
+    fun compactAndSerialize(
+        jsonLdEntity: JsonLdEntity,
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE
+    ): String =
+        mapper.writeValueAsString(compact(jsonLdEntity, contexts, mediaType))
+
+    private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+        val jsonLdOptions = JsonLdOptions()
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
+        val expandedType = JsonLdProcessor.expand(mapOf("datasetId" to mapOf<String, Any>()), jsonLdOptions)
+        return expandedType.isNotEmpty() &&
+            (expandedType[0] as Map<String, Any>).containsKey("https://uri.etsi.org/ngsi-ld/datasetId")
+    }
+
+    fun compact(
+        jsonLdEntity: JsonLdEntity,
+        context: String? = null,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE
+    ): CompactedJsonLdEntity {
+        val contexts =
+            if (context == null || context == NGSILD_CORE_CONTEXT)
+                listOf(NGSILD_CORE_CONTEXT)
+            // to check if the core @context is included / embedded in one of the link
+            else if (canExpandJsonLdKeyFromCore(listOfNotNull(context)))
+                listOf(context)
+            else
+                listOf(context, NGSILD_CORE_CONTEXT)
+
+        return if (mediaType == MediaType.APPLICATION_JSON)
+            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf("@context" to contexts), JsonLdOptions())
+                .minus(JSONLD_CONTEXT)
+        else
+            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf("@context" to contexts), JsonLdOptions())
+                .minus(JSONLD_CONTEXT)
+                .plus(JSONLD_CONTEXT to contexts)
+    }
+
+    fun compact(
+        jsonLdEntity: JsonLdEntity,
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE
+    ): CompactedJsonLdEntity {
+        val allContexts =
+            when {
+                contexts.isEmpty() -> listOf(NGSILD_CORE_CONTEXT)
+                // to ensure core @context comes last
+                contexts.contains(NGSILD_CORE_CONTEXT) ->
+                    contexts.filter { it != NGSILD_CORE_CONTEXT }.plus(NGSILD_CORE_CONTEXT)
+                // to check if the core @context is included / embedded in one of the link
+                canExpandJsonLdKeyFromCore(contexts) -> contexts
+                else -> contexts.plus(NGSILD_CORE_CONTEXT)
+            }
+
+        return if (mediaType == MediaType.APPLICATION_JSON)
+            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf("@context" to allContexts), JsonLdOptions())
+                .minus(JSONLD_CONTEXT)
+        else
+            JsonLdProcessor.compact(jsonLdEntity.properties, mapOf("@context" to allContexts), JsonLdOptions())
+                .minus(JSONLD_CONTEXT)
+                .plus(JSONLD_CONTEXT to allContexts)
+    }
 
     fun compactEntities(
         entities: List<JsonLdEntity>,
-        useSimplifiedRepresentation: Boolean
+        useSimplifiedRepresentation: Boolean,
+        context: String
     ): List<CompactedJsonLdEntity> =
         entities.map {
             if (useSimplifiedRepresentation)
-                it.compact().toKeyValues()
+                compact(it, context).toKeyValues()
             else
-                it.compact()
+                compact(it, context)
         }
 
     fun filterCompactedEntityOnAttributes(

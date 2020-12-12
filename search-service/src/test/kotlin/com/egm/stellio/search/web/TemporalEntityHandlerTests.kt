@@ -41,11 +41,13 @@ import java.util.UUID
 @WithMockUser
 class TemporalEntityHandlerTests {
 
-    val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
-    val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
+    private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
+
+    private lateinit var apicHeaderLink: String
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -61,6 +63,8 @@ class TemporalEntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
+        apicHeaderLink = "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+
         webClient = webClient.mutate()
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
@@ -336,6 +340,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/entityId?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
+            .header("Link", apicHeaderLink)
             .exchange()
             .expectStatus().isOk
 
@@ -421,6 +426,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/entityId?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
+            .header("Link", apicHeaderLink)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap
@@ -440,6 +446,7 @@ class TemporalEntityHandlerTests {
                 "/ngsi-ld/v1/temporal/entities/entityId?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&options=temporalValues"
             )
+            .header("Link", apicHeaderLink)
             .exchange()
             .expectStatus().isOk
             .expectBody().jsonPath("$").isMap

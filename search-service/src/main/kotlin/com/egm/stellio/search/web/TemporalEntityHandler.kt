@@ -11,6 +11,7 @@ import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
@@ -99,7 +100,8 @@ class TemporalEntityHandler(
             it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
         }.toMap()
 
-        val jsonLdEntity = loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken).awaitFirst()
+        val jsonLdEntity =
+            loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken, contextLink).awaitFirst()
         val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
             jsonLdEntity,
             attributeAndResultsMap.values.toList(),
@@ -120,7 +122,7 @@ class TemporalEntityHandler(
             jsonLdEntityWithTemporalValues.contexts
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(filteredJsonLdEntity.compact()))
+        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compact(filteredJsonLdEntity, contextLink)))
     }
 
     /**
@@ -128,13 +130,14 @@ class TemporalEntityHandler(
      */
     private fun loadEntityPayload(
         temporalEntityAttribute: TemporalEntityAttribute,
-        bearerToken: String
+        bearerToken: String,
+        contextLink: String
     ): Mono<JsonLdEntity> =
         when {
             temporalEntityAttribute.entityPayload == null ->
                 entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
                     .doOnSuccess {
-                        val entityPayload = it.compact()
+                        val entityPayload = compact(it, contextLink)
                         temporalEntityAttributeService.updateEntityPayload(
                             temporalEntityAttribute.entityId,
                             serializeObject(entityPayload)

@@ -49,9 +49,9 @@ class EntityEventListenerService(
                 logger.debug("Notified ${it.size} subscribers (success : $succeeded / failure : $failed)")
             }
         } catch (e: BadRequestDataException) {
-            logger.error("Received a non-parseable entity", e)
+            logger.error("Received a non-parsable entity", e)
         } catch (e: InvalidRequestException) {
-            logger.error("Received a non-parseable entity", e)
+            logger.error("Received a non-parsable entity", e)
         }
     }
 }

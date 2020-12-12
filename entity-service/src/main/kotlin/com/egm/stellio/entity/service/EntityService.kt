@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
@@ -784,7 +785,7 @@ class EntityService(
                         observedProperty.name.extractShortTypeFromExpanded(),
                         observedProperty.datasetId,
                         propertyPayload,
-                        JsonLdUtils.compactAndSerialize(it, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(it, listOf(NGSILD_EGM_CONTEXT), MediaType.APPLICATION_JSON),
                         entity.contexts
                     ),
                     entity.type[0].extractShortTypeFromExpanded()

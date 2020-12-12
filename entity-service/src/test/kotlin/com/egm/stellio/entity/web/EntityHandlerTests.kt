@@ -317,7 +317,14 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("{\"createdAt\":\"2015-10-18T11:20:30.000001Z\",\"@context\":\"$NGSILD_CORE_CONTEXT\"}")
+            .expectBody().json(
+                """
+                {
+                    "createdAt": "2015-10-18T11:20:30.000001Z",
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
+                }
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -395,7 +402,7 @@ class EntityHandlerTests {
                         "type": "Beehive",
                         "prop1": "some value",
                         "rel1": "urn:ngsi-ld:Entity:1234",
-                        "@context": "$NGSILD_CORE_CONTEXT"
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
                     }
                 """.trimIndent()
             )
@@ -450,7 +457,7 @@ class EntityHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectBody().json("""{"@context":"$NGSILD_CORE_CONTEXT"}""")
+            .expectBody().json("""{"@context":["$NGSILD_CORE_CONTEXT"]}""")
             .jsonPath("$.createdAt").doesNotExist()
             .jsonPath("$.modifiedAt").doesNotExist()
     }
@@ -483,7 +490,7 @@ class EntityHandlerTests {
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
-                            "@context":"$NGSILD_CORE_CONTEXT"
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
                     ]
                 """.trimMargin()
@@ -526,7 +533,7 @@ class EntityHandlerTests {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
                             "createdAt":"2015-10-18T11:20:30.000001Z",
-                            "@context":"$NGSILD_CORE_CONTEXT"
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
                     ]
                 """.trimMargin()
@@ -587,7 +594,7 @@ class EntityHandlerTests {
                         "createdAt":"2015-10-18T11:20:30.000001Z",
                         "modifiedAt":"2015-10-18T12:20:30.000001Z"
                     },
-                    "@context":"$NGSILD_CORE_CONTEXT"
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
                 } 
                 """.trimIndent()
             )
@@ -629,7 +636,7 @@ class EntityHandlerTests {
                             "@value":"2015-10-18"
                         }
                     },
-                    "@context":"$NGSILD_CORE_CONTEXT"
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
                 } 
                 """.trimIndent()
             )
@@ -671,7 +678,7 @@ class EntityHandlerTests {
                             "@value":"11:20:30"
                         }
                     },
-                    "@context":"$NGSILD_CORE_CONTEXT"
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
                 } 
                 """.trimIndent()
             )
@@ -710,7 +717,7 @@ class EntityHandlerTests {
                         "id":"urn:ngsi-ld:Beehive:4567",
                         "type":"Beehive",
                         "name":{"type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"},
-                        "@context":"$NGSILD_CORE_CONTEXT"
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
                     }
                 """.trimIndent()
             )
@@ -765,7 +772,7 @@ class EntityHandlerTests {
                             "type":"Property","datasetId":"urn:ngsi-ld:Property:french-name","value":"ruche"
                         }
                     ],
-                    "@context":"$NGSILD_CORE_CONTEXT"
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
                 }
                 """.trimIndent()
             )
@@ -806,7 +813,7 @@ class EntityHandlerTests {
                         "id":"urn:ngsi-ld:Beehive:4567",
                         "type":"Beehive",
                         "managedBy":{"type":"Relationship", "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215", "object":"urn:ngsi-ld:Beekeeper:1230"},
-                        "@context":"$NGSILD_CORE_CONTEXT"
+                        "@context": ["$NGSILD_CORE_CONTEXT"]
                     }
                 """.trimIndent()
             )
@@ -909,7 +916,7 @@ class EntityHandlerTests {
                           "object":"urn:ngsi-ld:Beekeeper:1230"
                        }
                     ],
-                    "@context":"$NGSILD_CORE_CONTEXT"
+                    "@context": ["$NGSILD_CORE_CONTEXT"]
                 }
                 """.trimIndent()
             )
@@ -1149,7 +1156,7 @@ class EntityHandlerTests {
                 {
                     "id": "$entityId",
                     "type": "DeadFishes",
-                    "@context": "$aquacContext"
+                    "@context": ["$aquacContext", "$NGSILD_CORE_CONTEXT"]
                 }
             """.trimIndent()
         val expectedUpdatedEntity =
@@ -1169,7 +1176,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header("Link", aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()

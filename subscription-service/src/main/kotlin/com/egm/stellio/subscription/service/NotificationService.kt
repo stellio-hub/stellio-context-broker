@@ -55,7 +55,7 @@ class NotificationService(
             data = buildNotifData(entity, subscription.notification)
         )
         val uri = subscription.notification.endpoint.uri.toString()
-        logger.info("Notification is about to be sent to ${uri}")
+        logger.info("Notification is about to be sent to $uri")
         if (uri == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)

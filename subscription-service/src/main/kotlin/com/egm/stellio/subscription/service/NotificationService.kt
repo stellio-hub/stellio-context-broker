@@ -54,19 +54,21 @@ class NotificationService(
             subscriptionId = subscription.id,
             data = buildNotifData(entity, subscription.notification)
         )
-
-        if (subscription.notification.endpoint.uri.toString() == "embedded-firebase") {
+        val uri = subscription.notification.endpoint.uri.toString()
+        logger.info("Notification is about to be sent to ${uri}")
+        if (uri == "embedded-firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {
             var request =
-                WebClient.create(subscription.notification.endpoint.uri.toString()).post() as WebClient.RequestBodySpec
+                WebClient.create(uri).post() as WebClient.RequestBodySpec
             subscription.notification.endpoint.info?.forEach {
                 request = request.header(it.key, it.value)
             }
             return request
                 .bodyValue(notification)
                 .exchange()
+                .doOnError { e -> logger.error("Failed to send notification to $uri : ${e.message}") }
                 .map {
                     Triple(subscription, notification, it.statusCode() == HttpStatus.OK)
                 }

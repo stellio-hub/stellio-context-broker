@@ -54,7 +54,10 @@ data class EntityUpdateEvent(
 ) : EntityEvent(EventsType.ENTITY_UPDATE, entityId)
 
 @JsonTypeName("ENTITY_DELETE")
-data class EntityDeleteEvent(override val entityId: URI) : EntityEvent(EventsType.ENTITY_DELETE, entityId)
+data class EntityDeleteEvent(
+    override val entityId: URI,
+    val contexts: List<String>
+) : EntityEvent(EventsType.ENTITY_DELETE, entityId)
 
 @JsonTypeName("ATTRIBUTE_APPEND")
 data class AttributeAppendEvent(

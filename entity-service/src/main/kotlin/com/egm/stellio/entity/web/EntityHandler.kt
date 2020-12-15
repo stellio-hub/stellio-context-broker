@@ -184,11 +184,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
-        val entityType = entityService.getEntityType(entityId.toUri())
+        val entity = entityService.getEntityCoreProperties(entityId.toUri())
+
         entityService.deleteEntity(entityId.toUri())
 
+        // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri()), entityType.extractShortTypeFromExpanded()
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

@@ -1,4 +1,7 @@
 {
     "entityId":"urn:ngsi-ld:Bus:A4567",
+    "contexts":[
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ],
     "operationType":"ENTITY_DELETE"
 }

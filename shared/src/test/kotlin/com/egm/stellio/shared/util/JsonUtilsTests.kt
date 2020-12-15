@@ -114,7 +114,12 @@ class JsonUtilsTests {
 
     @Test
     fun `it should serialize an event of type ENTITY_DELETE`() {
-        val event = mapper.writeValueAsString(EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri()))
+        val event = mapper.writeValueAsString(
+            EntityDeleteEvent(
+                "urn:ngsi-ld:Bus:A4567".toUri(),
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityDeleteEvent.jsonld")))
     }
 

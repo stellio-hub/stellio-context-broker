@@ -2,10 +2,7 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -1623,10 +1620,12 @@ class EntityHandlerTests {
     @Test
     fun `delete entity should return a 204 if an entity has been successfully deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
+        val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
-        every { entityService.getEntityType(any()) } returns "Sensor"
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf("Sensor")
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.delete()
@@ -1637,7 +1636,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
-        verify { entityService.getEntityType(eq(entityId)) }
+        verify { entityService.getEntityCoreProperties(eq(entityId)) }
         verify {
             entityEventService.publishEntityEvent(
                 match {
@@ -1676,7 +1675,7 @@ class EntityHandlerTests {
     fun `delete entity should return a 500 if entity could not be deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
         every { entityService.exists(entityId) } returns true
-        every { entityService.getEntityType(any()) } returns "Sensor"
+        every { entityService.getEntityCoreProperties(any()) } returns mockkClass(Entity::class, relaxed = true)
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 

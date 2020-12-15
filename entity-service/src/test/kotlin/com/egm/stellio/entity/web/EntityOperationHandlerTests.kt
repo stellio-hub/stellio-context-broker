@@ -9,6 +9,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
@@ -739,4 +740,5 @@ class EntityOperationHandlerTests {
         createdEntitiesIds: List<URI> = emptyList()
     ) = JsonUtils.parseListOfEntities(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
         .map { serializeObject(it) }
+        .map { JsonLdUtils.removeContextFromInput(it) }
 }

@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -19,6 +20,7 @@ import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.LocalDate
@@ -136,6 +138,18 @@ object JsonLdUtils {
             emptyList()
     }
 
+    fun removeContextFromInput(input: String): String {
+        val parsedInput: Map<String, Any> = mapper.readValue(
+            input,
+            mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
+        return if (parsedInput.containsKey(JSONLD_CONTEXT))
+            serializeObject(parsedInput.minus(JSONLD_CONTEXT))
+        else input
+    }
+
     // TODO it should be replaced by proper parsing to a NGSI-LD attribute
     fun parseJsonLdFragment(input: String): Map<String, Any> {
         return mapper.readValue(
@@ -251,8 +265,8 @@ object JsonLdUtils {
         return mapper.writeValueAsString(compactedFragment.minus(JSONLD_CONTEXT))
     }
 
-    fun compactAndSerialize(jsonLdEntity: JsonLdEntity): String =
-        mapper.writeValueAsString(jsonLdEntity.compact())
+    fun compactAndSerialize(jsonLdEntity: JsonLdEntity, mediaType: MediaType = JSON_LD_MEDIA_TYPE): String =
+        mapper.writeValueAsString(jsonLdEntity.compact(mediaType))
 
     fun compactEntities(
         entities: List<JsonLdEntity>,

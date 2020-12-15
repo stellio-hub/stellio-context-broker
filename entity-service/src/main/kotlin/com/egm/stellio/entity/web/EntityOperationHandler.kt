@@ -6,6 +6,7 @@ import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -53,7 +54,11 @@ class EntityOperationHandler(
             .forEach {
                 val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
+                    EntityCreateEvent(
+                        it.id,
+                        removeContextFromInput(entityPayload),
+                        extractContextFromInput(entityPayload)
+                    ),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
@@ -126,7 +131,11 @@ class EntityOperationHandler(
             .forEach {
                 val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
+                    EntityCreateEvent(
+                        it.id,
+                        removeContextFromInput(entityPayload),
+                        extractContextFromInput(entityPayload)
+                    ),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
@@ -180,7 +189,11 @@ class EntityOperationHandler(
         .forEach {
             val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityEvent(
-                EntityReplaceEvent(it.id, entityPayload, extractContextFromInput(entityPayload)),
+                EntityReplaceEvent(
+                    it.id,
+                    removeContextFromInput(entityPayload),
+                    extractContextFromInput(entityPayload)
+                ),
                 it.type.extractShortTypeFromExpanded()
             )
         }

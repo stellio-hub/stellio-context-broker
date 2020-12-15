@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -65,7 +66,7 @@ class EntityHandler(
         authorizationService.createAdminLink(newEntityUri, userId)
 
         entityEventService.publishEntityEvent(
-            EntityCreateEvent(newEntityUri, body, contexts),
+            EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
             ngsiLdEntity.type.extractShortTypeFromExpanded()
         )
         return ResponseEntity
@@ -281,7 +282,7 @@ class EntityHandler(
                         jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
-                    compactAndSerialize(updatedEntity!!),
+                    compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
                     contexts
                 ),
                 updatedEntity.type.extractShortTypeFromExpanded()
@@ -330,8 +331,8 @@ class EntityHandler(
                 entityId = entityUri,
                 attributeName = attrId,
                 datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
-                operationPayload = body,
-                updatedEntity = compactAndSerialize(updatedEntity!!),
+                operationPayload = removeContextFromInput(body),
+                updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
             updatedEntity.type.extractShortTypeFromExpanded()

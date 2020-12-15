@@ -1152,6 +1152,13 @@ class EntityHandlerTests {
                     "@context": "$aquacContext"
                 }
             """.trimIndent()
+        val expectedUpdatedEntity =
+            """
+                {
+                    "id": "$entityId",
+                    "type": "DeadFishes"
+                }
+            """.trimIndent()
         val attrId = "fishNumber"
 
         every { entityService.exists(any()) } returns true
@@ -1183,7 +1190,7 @@ class EntityHandlerTests {
                         it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
                         it.contexts == listOf(aquacContext) &&
                         it.operationPayload.matchContent(jsonLdFile) &&
-                        it.updatedEntity.removeNoise() == deadFish.removeNoise()
+                        it.updatedEntity.removeNoise() == expectedUpdatedEntity.removeNoise()
                 },
                 "DeadFishes"
             )

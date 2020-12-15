@@ -19,7 +19,7 @@ class JsonLdEntityTests {
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     @Test
-    fun `it should compact and return a json entity`() {
+    fun `it should compact and return a JSON entity`() {
         val entity =
             """
             {
@@ -35,7 +35,7 @@ class JsonLdEntityTests {
     }
 
     @Test
-    fun `it should compact and return a json-ld entity`() {
+    fun `it should compact and return a JSON-LD entity`() {
         val entity =
             """
             {

@@ -25,11 +25,7 @@ class JsonUtilsTests {
             "brandName": {
                 "type": "Property",
                 "value": "Mercedes"
-            },
-            "@context": [
-                "http://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-            ]
+            }
         }
         """.trimIndent()
 
@@ -51,10 +47,7 @@ class JsonUtilsTests {
               "uri": "http://localhost:8084",
               "accept": "application/json"
             }
-          },
-          "@context":[
-            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-          ]
+          }
         }
         """.trimIndent()
 

@@ -22,6 +22,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -220,7 +221,7 @@ class EntityService(
         return JsonLdEntity(resultEntity, entity.contexts)
     }
 
-    fun getEntityType(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!.type[0]
+    fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
 
     private fun buildPropertyFragment(
         rawProperty: List<Map<String, Any>>,
@@ -783,7 +784,7 @@ class EntityService(
                         observedProperty.name.extractShortTypeFromExpanded(),
                         observedProperty.datasetId,
                         propertyPayload,
-                        JsonLdUtils.compactAndSerialize(it),
+                        JsonLdUtils.compactAndSerialize(it, MediaType.APPLICATION_JSON),
                         entity.contexts
                     ),
                     entity.type[0].extractShortTypeFromExpanded()

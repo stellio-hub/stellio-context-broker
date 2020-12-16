@@ -50,11 +50,12 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ENTITY_CREATE",
                 "entityId": "$fishContainmentId",
-                "operationPayload": "$entity"
+                "operationPayload": "$entity",
+                "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent().replace("\n", "")
 
-        every { temporalEntityAttributeService.createEntityTemporalReferences(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } returns Mono.just(1)
 
         entityEventListenerService.processMessage(content)
 
@@ -62,7 +63,8 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.createEntityTemporalReferences(
                 match {
                     it.contains(fishContainmentId)
-                }
+                },
+                listOf(NGSILD_CORE_CONTEXT)
             )
         }
         confirmVerified(temporalEntityAttributeService)

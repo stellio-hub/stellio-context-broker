@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -23,7 +24,11 @@ class SubscriptionEventServiceTests {
 
     @Test
     fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
-        val event = EntityCreateEvent("urn:ngsi-ld:Subscription:1".toUri(), "operationPayload")
+        val event = EntityCreateEvent(
+            "urn:ngsi-ld:Subscription:1".toUri(),
+            "operationPayload",
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
         every {
             resolver.resolveDestination(any()).send(any())
         } returns true
@@ -35,7 +40,11 @@ class SubscriptionEventServiceTests {
 
     @Test
     fun `it should publish an event of type NOTIFICATION_CREATE`() {
-        val event = EntityCreateEvent("urn:ngsi-ld:Notification:1".toUri(), "operationPayload")
+        val event = EntityCreateEvent(
+            "urn:ngsi-ld:Notification:1".toUri(),
+            "operationPayload",
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
         every {
             resolver.resolveDestination(any()).send(any())
         } returns true

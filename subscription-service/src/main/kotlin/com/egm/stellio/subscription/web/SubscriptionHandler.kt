@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
@@ -47,13 +48,20 @@ class SubscriptionHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val body = requestBody.awaitFirst()
-        val parsedSubscription = parseSubscription(body, checkAndGetContext(httpHeaders, body))
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val parsedSubscription = parseSubscription(body, contexts)
         checkSubscriptionNotExists(parsedSubscription).awaitFirst()
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
-
-        subscriptionEventService.publishSubscriptionEvent(EntityCreateEvent(parsedSubscription.id, body))
+        val test = removeContextFromInput(body)
+        subscriptionEventService.publishSubscriptionEvent(
+            EntityCreateEvent(
+                parsedSubscription.id,
+                removeContextFromInput(body),
+                contexts
+            )
+        )
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()
@@ -138,7 +146,7 @@ class SubscriptionHandler(
         subscriptionEventService.publishSubscriptionEvent(
             EntityUpdateEvent(
                 subscriptionIdUri,
-                body,
+                removeContextFromInput(body),
                 serializeObject(subscriptionService.getById(subscriptionIdUri).awaitFirst()),
                 context
             )
@@ -158,7 +166,12 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(EntityDeleteEvent(subscriptionIdUri))
+        subscriptionEventService.publishSubscriptionEvent(
+            EntityDeleteEvent(
+                subscriptionIdUri,
+                listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

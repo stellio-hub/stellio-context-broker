@@ -1,5 +1,9 @@
 {
   "operationType": "ENTITY_CREATE",
   "entityId": "urn:ngsi-ld:Subscription:1234",
-  "operationPayload": "{\"id\": \"urn:ngsi-ld:Subscription:1234\",\"type\": \"Subscription\",\"name\": \"Alerte frelons\",\"description\": \"Description de mon alerte frelons\",\"entities\": [{\"type\": \"https://ontology.eglobalmark.com/apic#BeeHive\"}]}"
+  "operationPayload": "{\"id\": \"urn:ngsi-ld:Subscription:1234\",\"type\": \"Subscription\",\"name\": \"Alerte frelons\",\"description\": \"Description de mon alerte frelons\",\"entities\": [{\"type\": \"https://ontology.eglobalmark.com/apic#BeeHive\"}]}",
+  "contexts":[
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
+      "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    ]
 }

@@ -9,6 +9,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
@@ -202,7 +203,8 @@ class EntityOperationHandlerTests {
             assertTrue(
                 it.operationType == EventsType.ENTITY_CREATE &&
                     it.entityId in entitiesIds &&
-                    it.operationPayload in expectedEntitiesPayload
+                    it.operationPayload in expectedEntitiesPayload &&
+                    it.contexts == hcmrContext
             )
         }
         assertTrue(channelName.captured in listOf("Sensor", "Device"))
@@ -254,7 +256,8 @@ class EntityOperationHandlerTests {
             assertTrue(
                 it.operationType == EventsType.ENTITY_CREATE &&
                     it.entityId in createdEntitiesIds &&
-                    it.operationPayload in expectedEntitiesPayload
+                    it.operationPayload in expectedEntitiesPayload &&
+                    it.contexts == hcmrContext
             )
         }
         assertTrue(channelName.captured in listOf("Sensor", "Device"))
@@ -327,8 +330,7 @@ class EntityOperationHandlerTests {
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
             .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
-            .bodyValue(jsonLdFile)
-            .exchange()
+            .bodyValue(jsonLdFile).exchange()
             .expectStatus().isCreated
             .expectBody()
             .jsonPath("$").isArray
@@ -340,7 +342,8 @@ class EntityOperationHandlerTests {
                 match {
                     it as EntityCreateEvent
                     it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId in createdEntitiesIds
+                        it.entityId in createdEntitiesIds &&
+                        it.contexts == hcmrContext
                 },
                 "Sensor"
             )
@@ -478,7 +481,8 @@ class EntityOperationHandlerTests {
                 match {
                     it as EntityReplaceEvent
                     it.operationType == EventsType.ENTITY_REPLACE &&
-                        it.entityId in entitiesIds
+                        it.entityId in entitiesIds &&
+                        it.contexts == hcmrContext
                 },
                 "Sensor"
             )
@@ -574,7 +578,8 @@ class EntityOperationHandlerTests {
                 match {
                     it as EntityReplaceEvent
                     it.operationType == EventsType.ENTITY_REPLACE &&
-                        it.entityId in entitiesIdToUpdate
+                        it.entityId in entitiesIdToUpdate &&
+                        it.contexts == hcmrContext
                 },
                 "Sensor"
             )
@@ -735,4 +740,5 @@ class EntityOperationHandlerTests {
         createdEntitiesIds: List<URI> = emptyList()
     ) = JsonUtils.parseListOfEntities(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
         .map { serializeObject(it) }
+        .map { JsonLdUtils.removeContextFromInput(it) }
 }

@@ -3,7 +3,9 @@ package com.egm.stellio.subscription.web
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.removeNoise
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionEventService
@@ -144,6 +146,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `create subscription should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription.json")
+        val expectedOperationPayload = ClassPathResource("/ngsild/events/sent/subscription_create_event_payload.json")
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
@@ -162,7 +165,9 @@ class SubscriptionHandlerTests {
                     it is EntityCreateEvent &&
                         it.operationType == EventsType.ENTITY_CREATE &&
                         it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
-                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8)
+                        it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
+                        .toString(Charsets.UTF_8).removeNoise() &&
+                        it.contexts == listOf(apicContext!!)
                 }
             )
         }
@@ -383,6 +388,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
+        val expectedOperationPayload = ClassPathResource("/ngsild/events/sent/subscription_update_event_payload.json")
         val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
@@ -411,7 +417,8 @@ class SubscriptionHandlerTests {
                     it is EntityUpdateEvent &&
                         it.operationType == EventsType.ENTITY_UPDATE &&
                         it.entityId == subscriptionId &&
-                        it.operationPayload == jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8) &&
+                        it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
+                        .toString(Charsets.UTF_8).removeNoise() &&
                         it.updatedEntity == serializeObject(updatedSubscription)
                 }
             )
@@ -551,7 +558,8 @@ class SubscriptionHandlerTests {
                 match {
                     it is EntityDeleteEvent &&
                         it.operationType == EventsType.ENTITY_DELETE &&
-                        it.entityId == subscription.id
+                        it.entityId == subscription.id &&
+                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
                 }
             )
         }

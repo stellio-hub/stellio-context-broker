@@ -30,7 +30,11 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish an ENTITY_CREATE event`() {
-        val event = EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), "operationPayload")
+        val event = EntityCreateEvent(
+            "urn:ngsi-ld:Vehicle:A4567".toUri(),
+            "operationPayload",
+            listOf(NGSILD_CORE_CONTEXT)
+        )
         every { resolver.resolveDestination(any()).send(any()) } returns true
 
         entityEventService.publishEntityEvent(event, "Vehicle")

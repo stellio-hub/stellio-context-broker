@@ -42,7 +42,10 @@ class EntityEventListenerService(
 
     private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) =
         try {
-            temporalEntityAttributeService.createEntityTemporalReferences(entityCreateEvent.operationPayload)
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                entityCreateEvent.operationPayload,
+                entityCreateEvent.contexts
+            )
                 .subscribe {
                     logger.debug("Bootstrapped entity (records created: $it)")
                 }

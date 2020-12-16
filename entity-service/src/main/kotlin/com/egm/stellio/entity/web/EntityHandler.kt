@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -59,12 +60,13 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val ngsiLdEntity = expandJsonLdEntity(body, checkAndGetContext(httpHeaders, body)).toNgsiLdEntity()
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
         entityEventService.publishEntityEvent(
-            EntityCreateEvent(newEntityUri, body),
+            EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
             ngsiLdEntity.type.extractShortTypeFromExpanded()
         )
         return ResponseEntity
@@ -183,11 +185,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
-        val entityType = entityService.getEntityType(entityId.toUri())
+        val entity = entityService.getEntityCoreProperties(entityId.toUri())
+
         entityService.deleteEntity(entityId.toUri())
 
+        // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri()), entityType.extractShortTypeFromExpanded()
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -278,7 +282,7 @@ class EntityHandler(
                         jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
-                    compactAndSerialize(updatedEntity!!),
+                    compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
                     contexts
                 ),
                 updatedEntity.type.extractShortTypeFromExpanded()
@@ -327,8 +331,8 @@ class EntityHandler(
                 entityId = entityUri,
                 attributeName = attrId,
                 datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
-                operationPayload = body,
-                updatedEntity = compactAndSerialize(updatedEntity!!),
+                operationPayload = removeContextFromInput(body),
+                updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
             updatedEntity.type.extractShortTypeFromExpanded()

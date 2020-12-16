@@ -2,10 +2,7 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.model.NotUpdatedDetails
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -90,6 +87,13 @@ class EntityHandlerTests {
     }
 
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
+    private val hcmrContext = listOf(
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/shared-jsonld-contexts/egm.jsonld",
+        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
+            "master/aquac/jsonld-contexts/aquac.jsonld",
+        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    )
 
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
@@ -121,7 +125,8 @@ class EntityHandlerTests {
                 match {
                     it as EntityCreateEvent
                     it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == breedingServiceId
+                        it.entityId == breedingServiceId &&
+                        it.contexts == hcmrContext
                 },
                 "BreedingService"
             )
@@ -1147,6 +1152,13 @@ class EntityHandlerTests {
                     "@context": "$aquacContext"
                 }
             """.trimIndent()
+        val expectedUpdatedEntity =
+            """
+                {
+                    "id": "$entityId",
+                    "type": "DeadFishes"
+                }
+            """.trimIndent()
         val attrId = "fishNumber"
 
         every { entityService.exists(any()) } returns true
@@ -1178,7 +1190,7 @@ class EntityHandlerTests {
                         it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
                         it.contexts == listOf(aquacContext) &&
                         it.operationPayload.matchContent(jsonLdFile) &&
-                        it.updatedEntity.removeNoise() == deadFish.removeNoise()
+                        it.updatedEntity.removeNoise() == expectedUpdatedEntity.removeNoise()
                 },
                 "DeadFishes"
             )
@@ -1615,10 +1627,12 @@ class EntityHandlerTests {
     @Test
     fun `delete entity should return a 204 if an entity has been successfully deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
+        val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
-        every { entityService.getEntityType(any()) } returns "Sensor"
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf("Sensor")
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.delete()
@@ -1629,7 +1643,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify { entityService.deleteEntity(eq(entityId)) }
-        verify { entityService.getEntityType(eq(entityId)) }
+        verify { entityService.getEntityCoreProperties(eq(entityId)) }
         verify {
             entityEventService.publishEntityEvent(
                 match {
@@ -1668,7 +1682,7 @@ class EntityHandlerTests {
     fun `delete entity should return a 500 if entity could not be deleted`() {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
         every { entityService.exists(entityId) } returns true
-        every { entityService.getEntityType(any()) } returns "Sensor"
+        every { entityService.getEntityCoreProperties(any()) } returns mockkClass(Entity::class, relaxed = true)
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
 

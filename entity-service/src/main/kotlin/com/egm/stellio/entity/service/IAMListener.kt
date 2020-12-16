@@ -4,7 +4,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -33,7 +32,7 @@ class IAMListener(
     private fun create(authorizationEvent: EntityCreateEvent) {
         val ngsiLdEntity = expandJsonLdEntity(
             authorizationEvent.operationPayload,
-            extractContextFromInput(authorizationEvent.operationPayload)
+            authorizationEvent.contexts
         ).toNgsiLdEntity()
 
         entityService.createEntity(ngsiLdEntity)

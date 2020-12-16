@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
+import org.springframework.http.MediaType
 import org.springframework.messaging.MessageHeaders
 import org.springframework.messaging.support.MessageBuilder
 import org.springframework.scheduling.annotation.Async
@@ -62,7 +63,7 @@ class EntityEventService(
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
                         contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()
@@ -78,7 +79,7 @@ class EntityEventService(
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
                         contexts
                     ),
                     updatedEntity.type.extractShortTypeFromExpanded()

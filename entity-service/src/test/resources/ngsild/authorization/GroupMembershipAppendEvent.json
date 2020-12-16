@@ -3,7 +3,7 @@
   "entityId": "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5",
   "attributeName": "isMemberOf",
   "datasetId": "7cdad168-96ee-4649-b768-a060ac2ef435",
-  "operationPayload": "{\"isMemberOf\":[{\"type\":\"Relationship\",\"datasetId\":\"7cdad168-96ee-4649-b768-a060ac2ef435\",\"object\":\"urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435\"}],\"@context\":[\"https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld\",\"http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld\"]}",
+  "operationPayload": "{\"isMemberOf\":[{\"type\":\"Relationship\",\"datasetId\":\"7cdad168-96ee-4649-b768-a060ac2ef435\",\"object\":\"urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435\"}]}",
   "updatedEntity": "",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",

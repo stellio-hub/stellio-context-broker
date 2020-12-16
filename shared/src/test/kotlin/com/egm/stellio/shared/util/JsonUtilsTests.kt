@@ -25,11 +25,7 @@ class JsonUtilsTests {
             "brandName": {
                 "type": "Property",
                 "value": "Mercedes"
-            },
-            "@context": [
-                "http://example.org/ngsi-ld/latest/vehicle.jsonld",
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-            ]
+            }
         }
         """.trimIndent()
 
@@ -51,10 +47,7 @@ class JsonUtilsTests {
               "uri": "http://localhost:8084",
               "accept": "application/json"
             }
-          },
-          "@context":[
-            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-          ]
+          }
         }
         """.trimIndent()
 
@@ -90,19 +83,36 @@ class JsonUtilsTests {
 
     @Test
     fun `it should serialize an event of type ENTITY_CREATE`() {
-        val event = mapper.writeValueAsString(EntityCreateEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        val event = mapper.writeValueAsString(
+            EntityCreateEvent(
+                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityPayload,
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_REPLACE`() {
-        val event = mapper.writeValueAsString(EntityReplaceEvent("urn:ngsi-ld:Vehicle:A4567".toUri(), entityPayload))
+        val event = mapper.writeValueAsString(
+            EntityReplaceEvent(
+                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityPayload,
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityReplaceEvent.jsonld")))
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_DELETE`() {
-        val event = mapper.writeValueAsString(EntityDeleteEvent("urn:ngsi-ld:Bus:A4567".toUri()))
+        val event = mapper.writeValueAsString(
+            EntityDeleteEvent(
+                "urn:ngsi-ld:Bus:A4567".toUri(),
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityDeleteEvent.jsonld")))
     }
 

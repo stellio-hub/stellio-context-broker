@@ -5,6 +5,8 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -50,13 +52,21 @@ class EntityOperationHandler(
         authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
         ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    EntityCreateEvent(
+                        it.id,
+                        removeContextFromInput(entityPayload),
+                        extractContextFromInput(entityPayload)
+                    ),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {
@@ -119,19 +129,29 @@ class EntityOperationHandler(
 
         ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
                 entityEventService.publishEntityEvent(
-                    EntityCreateEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                    EntityCreateEvent(
+                        it.id,
+                        removeContextFromInput(entityPayload),
+                        extractContextFromInput(entityPayload)
+                    ),
                     it.type.extractShortTypeFromExpanded()
                 )
             }
         if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
         else publishReplaceEvents(updateBatchOperationResult, extractedEntities, ngsiLdEntities)
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
+            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
+        else if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<BatchOperationResult> {
+    suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
 
@@ -149,7 +169,10 @@ class EntityOperationHandler(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(batchOperationResult)
+        return if (batchOperationResult.errors.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     private fun extractAndParseBatchOfEntities(payload: String):
@@ -164,8 +187,13 @@ class EntityOperationHandler(
         ngsiLdEntities: List<NgsiLdEntity>
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
+            val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityEvent(
-                EntityReplaceEvent(it.id, serializeObject(extractEntityPayloadById(extractedEntities, it.id))),
+                EntityReplaceEvent(
+                    it.id,
+                    removeContextFromInput(entityPayload),
+                    extractContextFromInput(entityPayload)
+                ),
                 it.type.extractShortTypeFromExpanded()
             )
         }

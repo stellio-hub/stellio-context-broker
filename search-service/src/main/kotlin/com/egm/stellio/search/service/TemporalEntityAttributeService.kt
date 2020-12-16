@@ -76,8 +76,8 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    fun createEntityTemporalReferences(payload: String): Mono<Int> {
-        val entity = JsonLdUtils.expandJsonLdEntity(payload).toNgsiLdEntity()
+    fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
+        val entity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         logger.debug("Analyzing create event for entity ${entity.id}")
 
         val temporalProperties = entity.properties

@@ -130,7 +130,7 @@ object JsonLdUtils {
         parsedPayload[JSONLD_CONTEXT] = contexts
         return serializeObject(parsedPayload)
     }
-    
+
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput: Map<String, Any> = mapper.readValue(
             input,

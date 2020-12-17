@@ -99,11 +99,7 @@ class TemporalEntityHandler(
             it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
         }.toMap()
 
-        val jsonLdEntity = loadEntityPayload(
-            attributeAndResultsMap.keys.first(),
-            listOf(contextLink),
-            bearerToken
-        ).awaitFirst()
+        val jsonLdEntity = loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken).awaitFirst()
         val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
             jsonLdEntity,
             attributeAndResultsMap.values.toList(),
@@ -132,7 +128,6 @@ class TemporalEntityHandler(
      */
     private fun loadEntityPayload(
         temporalEntityAttribute: TemporalEntityAttribute,
-        contexts: List<String>,
         bearerToken: String
     ): Mono<JsonLdEntity> =
         when {
@@ -147,11 +142,11 @@ class TemporalEntityHandler(
                     }
             temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(
                 expandJsonLdEntity(
-                    temporalEntityAttribute.entityPayload, contexts
+                    temporalEntityAttribute.entityPayload
                 )
             )
             else -> {
-                val parsedEntity = expandJsonLdEntity(temporalEntityAttribute.entityPayload, contexts)
+                val parsedEntity = expandJsonLdEntity(temporalEntityAttribute.entityPayload)
                 Mono.just(parsedEntity)
             }
         }

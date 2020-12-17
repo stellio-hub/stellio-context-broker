@@ -94,7 +94,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == fishContainmentId.toUri() &&
-                        it.type == "https://ontology.eglobalmark.com/aquac#FishContainment" &&
+                        it.type == "https://uri.etsi.org/ngsi-ld/default-context/FishContainment" &&
                         it.attributeName == "https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids" &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
                         it.datasetId == null
@@ -147,7 +147,7 @@ class EntityEventListenerServiceTest {
             temporalEntityAttributeService.create(
                 match {
                     it.entityId == fishContainmentId.toUri() &&
-                        it.type == "https://ontology.eglobalmark.com/aquac#FishContainment" &&
+                        it.type == "https://uri.etsi.org/ngsi-ld/default-context/FishContainment" &&
                         it.attributeName == "https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids" &&
                         it.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
                         it.datasetId == "urn:ngsi-ld:Dataset:totalDissolvedSolids:01".toUri()

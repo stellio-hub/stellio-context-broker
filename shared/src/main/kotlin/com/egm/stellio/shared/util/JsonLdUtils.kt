@@ -120,6 +120,16 @@ object JsonLdUtils {
         }
     }
 
+    fun addContextToPayload(payload: String, contexts: List<String>): String {
+        val parsedPayload: MutableMap<String, Any> = mapper.readValue(
+            payload,
+            mapper.typeFactory.constructMapLikeType(
+                Map::class.java, String::class.java, Any::class.java
+            )
+        )
+        parsedPayload[JSONLD_CONTEXT] = contexts
+        return serializeObject(parsedPayload)
+    }
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput: Map<String, Any> = mapper.readValue(
             input,

@@ -34,14 +34,15 @@ class EntityEventListenerService(
         }
     }
 
-    private fun handleEntityEvent(eventPayload: String, entityPayload: String, contents: List<String>) {
+    private fun handleEntityEvent(eventPayload: String, entityPayload: String, contexts: List<String>) {
         try {
             val updatedFragment = JsonLdUtils.parseJsonLdFragment(eventPayload)
-            val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contents)
+            val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
             notificationService.notifyMatchingSubscribers(
                 entityPayload,
                 parsedEntity.toNgsiLdEntity(),
-                updatedFragment.keys
+                updatedFragment.keys,
+                contexts
             ).subscribe {
                 val succeeded = it.filter { it.third }.size
                 val failed = it.filter { !it.third }.size

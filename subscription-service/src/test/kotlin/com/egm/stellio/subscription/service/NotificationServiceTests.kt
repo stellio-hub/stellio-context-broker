@@ -124,7 +124,12 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult = notificationService.notifyMatchingSubscribers(
+            rawEntity,
+            parsedEntity,
+            setOf("name"),
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -177,7 +182,12 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult = notificationService.notifyMatchingSubscribers(
+            rawEntity,
+            parsedEntity,
+            setOf("name"),
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -235,7 +245,12 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult = notificationService.notifyMatchingSubscribers(
+            rawEntity,
+            parsedEntity,
+            setOf("name"),
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -279,7 +294,12 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+        val notificationResult = notificationService.notifyMatchingSubscribers(
+            rawEntity,
+            parsedEntity,
+            setOf("name"),
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {

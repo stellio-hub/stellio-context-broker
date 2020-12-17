@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.addContextToPayload
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
@@ -42,8 +43,9 @@ class EntityEventListenerService(
 
     private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) =
         try {
+            val operationPayload = addContextToPayload(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
             temporalEntityAttributeService.createEntityTemporalReferences(
-                entityCreateEvent.operationPayload,
+                operationPayload,
                 entityCreateEvent.contexts
             )
                 .subscribe {
@@ -83,7 +85,8 @@ class EntityEventListenerService(
             attributeReplaceEvent.entityId,
             expandedAttributeName,
             attributeNode,
-            attributeReplaceEvent.updatedEntity
+            attributeReplaceEvent.updatedEntity,
+            attributeReplaceEvent.contexts
         )
     }
 
@@ -95,7 +98,8 @@ class EntityEventListenerService(
             attributeUpdateEvent.entityId,
             expandedAttributeName,
             attributeNode,
-            attributeUpdateEvent.updatedEntity
+            attributeUpdateEvent.updatedEntity,
+            attributeUpdateEvent.contexts
         )
     }
 
@@ -103,7 +107,8 @@ class EntityEventListenerService(
         entityId: URI,
         expandedAttributeName: String,
         attributeValuesNode: JsonNode,
-        updatedEntity: String
+        updatedEntity: String,
+        contexts: List<String>
     ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
@@ -115,7 +120,7 @@ class EntityEventListenerService(
             )
             return
         }
-
+        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -137,7 +142,7 @@ class EntityEventListenerService(
                 .then(
                     temporalEntityAttributeService.updateEntityPayload(
                         entityId,
-                        updatedEntity
+                        jsonLdUpdatedEntity
                     )
                 )
         }.doOnError {
@@ -155,7 +160,7 @@ class EntityEventListenerService(
         contexts: List<String>
     ) {
         if (!attributeValuesNode.has("observedAt")) return
-
+        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -169,7 +174,7 @@ class EntityEventListenerService(
 
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
-            type = expandJsonLdEntity(updatedEntity).type,
+            type = expandJsonLdEntity(jsonLdUpdatedEntity).type,
             attributeName = expandedAttributeName,
             attributeValueType = attributeValueType,
             datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
@@ -183,7 +188,7 @@ class EntityEventListenerService(
 
         temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {
             attributeInstanceService.create(attributeInstance).then(
-                temporalEntityAttributeService.updateEntityPayload(entityId, updatedEntity)
+                temporalEntityAttributeService.updateEntityPayload(entityId, jsonLdUpdatedEntity)
             )
         }
             .doOnError {

@@ -28,7 +28,8 @@ class NotificationService(
     fun notifyMatchingSubscribers(
         rawEntity: String,
         ngsiLdEntity: NgsiLdEntity,
-        updatedAttributes: Set<String>
+        updatedAttributes: Set<String>,
+        contexts: List<String>
     ): Mono<List<Triple<Subscription, Notification, Boolean>>> {
         val id = ngsiLdEntity.id
         val type = ngsiLdEntity.type
@@ -40,7 +41,7 @@ class NotificationService(
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
             }
             .flatMap {
-                callSubscriber(it, id, expandJsonLdEntity(rawEntity))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity, contexts))
             }
             .collectList()
     }

@@ -17,10 +17,12 @@ class JsonUtilsTests {
             .findAndRegisterModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
+    private val entityId = "urn:ngsi-ld:Vehicle:A4567".toUri()
+    private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
     private val entityPayload =
         """
         {
-            "id": "urn:ngsi-ld:Vehicle:A4567",
+            "id": "$entityId",
             "type": "Vehicle",
             "brandName": {
                 "type": "Property",
@@ -32,7 +34,7 @@ class JsonUtilsTests {
     private val subscriptionPayload =
         """
         {
-          "id":"urn:ngsi-ld:Subscription:1",
+          "id":"$subscriptionId",
           "type":"Subscription",
           "entities": [
             {
@@ -97,7 +99,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_CREATE`() {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
-                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityId,
                 entityPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
@@ -109,7 +111,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_REPLACE`() {
         val event = mapper.writeValueAsString(
             EntityReplaceEvent(
-                "urn:ngsi-ld:Vehicle:A4567".toUri(),
+                entityId,
                 entityPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
@@ -121,7 +123,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_DELETE`() {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
-                "urn:ngsi-ld:Bus:A4567".toUri(),
+                entityId,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
@@ -132,7 +134,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_UPDATE`() {
         val event = mapper.writeValueAsString(
             EntityUpdateEvent(
-                "urn:ngsi-ld:Subscription:1".toUri(),
+                subscriptionId,
                 "{\"q\": \"foodQuantity>=90\"}",
                 subscriptionPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
@@ -145,7 +147,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ATTRIBUTE_REPLACE`() {
         val event = mapper.writeValueAsString(
             AttributeReplaceEvent(
-                "urn:ngsi-ld:Bus:A4567".toUri(),
+                entityId,
                 "color",
                 "urn:ngsi-ld:Dataset:color:1".toUri(),
                 "{ \"type\": \"Property\", \"value\": \"red\" }",
@@ -160,7 +162,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ATTRIBUTE_DELETE`() {
         val event = mapper.writeValueAsString(
             AttributeDeleteEvent(
-                "urn:ngsi-ld:Bus:A4567".toUri(),
+                entityId,
                 "color",
                 "urn:ngsi-ld:Dataset:color:1".toUri(),
                 "updatedEntity",
@@ -174,7 +176,7 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
         val event = mapper.writeValueAsString(
             AttributeDeleteAllInstancesEvent(
-                "urn:ngsi-ld:Bus:A4567".toUri(),
+                entityId,
                 "color",
                 "updatedEntity",
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)

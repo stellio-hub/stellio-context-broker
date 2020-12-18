@@ -1,5 +1,5 @@
 {
-   "entityId":"urn:ngsi-ld:Bus:A4567",
+   "entityId":"urn:ngsi-ld:Vehicle:A4567",
    "attributeName":"color",
    "updatedEntity":"updatedEntity",
    "contexts":[

@@ -191,7 +191,7 @@ class EntityHandler(
 
         // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0].extractShortTypeFromExpanded()
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

@@ -158,6 +158,21 @@ pipeline {
                 sh './gradlew jib -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
             }
         }
+        stage('Build tagger Docker images') {
+            when {
+                branch 'master'
+                tag 'v*'
+            }
+            environment {
+                GIT_TAG = sh(returnStdout: true, script: "git describe --tags --abbrev=0").trim().substring(1)
+            }
+            steps {
+                sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:${GIT_TAG} -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:${GIT_TAG} -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:${GIT_TAG} -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
+                sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:${GIT_TAG} -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
+            }
+        }
     }
     post {
         always {

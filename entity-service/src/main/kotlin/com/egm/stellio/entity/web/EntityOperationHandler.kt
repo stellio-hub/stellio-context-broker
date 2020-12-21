@@ -161,13 +161,26 @@ class EntityOperationHandler(
         val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
             .splitEntitiesByUserCanAdmin(existingEntities, userId)
 
-        val batchOperationResult = entityOperationService.delete(entitiesUserCanAdmin.toSet())
+        val entitiesIdsToDelete = entitiesUserCanAdmin.toSet()
+        val entitiesBeforeDelete = entitiesIdsToDelete.map {
+            entityOperationService.getEntityCoreProperties(it)
+        }
+        val batchOperationResult = entityOperationService.delete(entitiesIdsToDelete)
         batchOperationResult.errors.addAll(
             unknownEntities.map { BatchEntityError(it, arrayListOf("Entity does not exist")) }
         )
         batchOperationResult.errors.addAll(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
+
+        batchOperationResult.success.map { it.entityId }.forEach { uri ->
+            val entity = entitiesBeforeDelete.find { it.id == uri }!!
+            // FIXME The context is not supposed to be retrieved from DB
+            entityEventService.publishEntityEvent(
+                EntityDeleteEvent(uri, entity.contexts),
+                entity.type[0].extractShortTypeFromExpanded()
+            )
+        }
 
         return if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

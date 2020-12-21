@@ -2,6 +2,7 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
+import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
@@ -615,6 +616,11 @@ class EntityOperationHandlerTests {
     @Test
     fun `delete batch for correct entities should return a 204`() {
         val entitiesIds = slot<List<URI>>()
+        val deletedEntitiesIds = listOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            deviceAquaBox1.toUri()
+        )
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
             Pair(
                 entitiesIds.captured,
@@ -632,13 +638,19 @@ class EntityOperationHandlerTests {
         val computedEntitiesIdsToDelete = slot<Set<URI>>()
         every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
             BatchOperationResult(
-                mutableListOf(
-                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-                    "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                    "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-                ).map { BatchEntitySuccess(it) }.toMutableList(),
+                deletedEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
                 mutableListOf()
             )
+
+        val entityIdToDelete = slot<URI>()
+        every { entityOperationService.getEntityCoreProperties(capture(entityIdToDelete)) } answers {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns entityIdToDelete.captured
+                every { type } returns listOf("Sensor")
+                every { contexts } returns listOf(aquacContext!!)
+            }
+        }
+        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
@@ -647,6 +659,17 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
+
+        verify(timeout = 1000, exactly = 3) {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityDeleteEvent
+                    it.entityId in deletedEntitiesIds &&
+                        it.contexts == listOf(aquacContext)
+                },
+                "Sensor"
+            )
+        }
     }
 
     @Test
@@ -678,6 +701,8 @@ class EntityOperationHandlerTests {
 
         assertEquals(emptyList<String>(), existingEntitiesIds.captured)
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+
+        verify { entityEventService wasNot called }
     }
 
     @Test
@@ -708,6 +733,7 @@ class EntityOperationHandlerTests {
         performBatchDeleteAndCheck204Response("User forbidden to delete entity")
 
         assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+        verify { entityEventService wasNot called }
     }
 
     private fun performBatchDeleteAndCheck204Response(expectedErrorMessage: String) {

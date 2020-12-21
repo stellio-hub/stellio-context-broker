@@ -191,7 +191,7 @@ class EntityHandler(
 
         // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0].extractShortTypeFromExpanded()
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -366,6 +366,31 @@ class EntityHandler(
             entityService.deleteEntityAttributeInstance(
                 entityId.toUri(), expandJsonLdKey(attrId, contexts)!!, datasetId
             )
+
+        if (result) {
+            val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+            if (deleteAll)
+                entityEventService.publishEntityEvent(
+                    AttributeDeleteAllInstancesEvent(
+                        entityId = entityId.toUri(),
+                        attributeName = attrId,
+                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        contexts = contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+            else
+                entityEventService.publishEntityEvent(
+                    AttributeDeleteEvent(
+                        entityId = entityId.toUri(),
+                        attributeName = attrId,
+                        datasetId = datasetId,
+                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        contexts = contexts
+                    ),
+                    updatedEntity.type.extractShortTypeFromExpanded()
+                )
+        }
 
         return if (result)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

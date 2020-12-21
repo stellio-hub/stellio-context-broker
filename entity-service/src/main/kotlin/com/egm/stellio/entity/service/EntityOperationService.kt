@@ -179,4 +179,6 @@ class EntityOperationService(
 
     fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false) =
         entityService.getFullEntityById(entityId, includeSysAttrs)
+
+    fun getEntityCoreProperties(entityId: URI) = entityService.getEntityCoreProperties(entityId)
 }

@@ -169,6 +169,12 @@ class EntityOperationHandler(
             entitiesUserCannotAdmin.map { BatchEntityError(it, arrayListOf("User forbidden to delete entity")) }
         )
 
+        batchOperationResult.success.map { it.entityId }.forEach {
+            val entity = entityOperationService.getEntityCoreProperties(it)
+            // FIXME The context is not supposed to be retrieved from DB
+            entityEventService.publishEntityEvent(EntityDeleteEvent(it, entity.contexts), entity.type[0])
+        }
+
         return if (batchOperationResult.errors.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else

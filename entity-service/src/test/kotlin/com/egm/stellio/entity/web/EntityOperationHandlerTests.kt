@@ -642,10 +642,14 @@ class EntityOperationHandlerTests {
                 mutableListOf()
             )
 
-        val entity = mockkClass(Entity::class, relaxed = true)
-        every { entityOperationService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf("Sensor")
-        every { entity.contexts } returns listOf(aquacContext!!)
+        val entityIdToDelete = slot<URI>()
+        every { entityOperationService.getEntityCoreProperties(capture(entityIdToDelete)) } answers {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns entityIdToDelete.captured
+                every { type } returns listOf("Sensor")
+                every { contexts } returns listOf(aquacContext!!)
+            }
+        }
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")

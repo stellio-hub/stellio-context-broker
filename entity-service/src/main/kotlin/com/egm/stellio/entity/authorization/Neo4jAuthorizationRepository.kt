@@ -88,13 +88,13 @@ class Neo4jAuthorizationRepository(
     }
 
     private fun propertyToListOfRoles(property: Any?): List<String> {
-        val rolesProperty = property as Property?
+        val rolesProperty = property as Property? ?: return emptyList()
 
-        return when (rolesProperty?.value) {
+        return when (rolesProperty.value) {
             is String -> listOf(rolesProperty.value as String)
             is List<*> -> rolesProperty.value as List<String>
             else -> {
-                logger.warn("Unknown value type for roles property: ${rolesProperty?.value}")
+                logger.warn("Unknown value type for roles property: ${rolesProperty.value}")
                 emptyList()
             }
         }

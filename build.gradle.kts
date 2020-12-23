@@ -6,7 +6,7 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
 
 extra["springCloudVersion"] = "Hoxton.SR8"
-extra["testcontainersVersion"] = "1.14.3"
+extra["testcontainersVersion"] = "1.15.1"
 
 plugins {
     java // why did I have to add that ?!

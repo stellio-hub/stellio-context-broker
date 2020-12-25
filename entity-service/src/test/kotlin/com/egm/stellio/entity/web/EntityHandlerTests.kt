@@ -183,7 +183,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", aquacHeaderLink)
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
@@ -202,7 +202,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", aquacHeaderLink)
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(entityWithoutId)
             .exchange()
             .expectStatus().isBadRequest
@@ -220,8 +220,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", aquacHeaderLink)
-            .accept(MediaType.valueOf("application/ld+json"))
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(entityWithoutType)
             .exchange()
             .expectStatus().isBadRequest
@@ -261,7 +260,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header("Link", aquacHeaderLink)
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden

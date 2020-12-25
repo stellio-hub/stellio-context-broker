@@ -72,11 +72,14 @@ class SubscriptionHandler(
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getSubscriptions(
+        @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam(required = false, defaultValue = "1") page: Int,
         @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
         if (limit <= 0 || page <= 0)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
@@ -92,14 +95,21 @@ class SubscriptionHandler(
         )
 
         return if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-            ResponseEntity.status(HttpStatus.OK).header("Link", prevAndNextLinks.first)
-                .header("Link", prevAndNextLinks.second).body(subscriptions)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.first)
+                .header(HttpHeaders.LINK, prevAndNextLinks.second)
+                .body(subscriptions)
         else if (prevAndNextLinks.first != null)
-            ResponseEntity.status(HttpStatus.OK).header("Link", prevAndNextLinks.first).body(subscriptions)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.first)
+                .body(subscriptions)
         else if (prevAndNextLinks.second != null)
-            ResponseEntity.status(HttpStatus.OK).header("Link", prevAndNextLinks.second).body(subscriptions)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.second)
+                .body(subscriptions)
         else
-            ResponseEntity.status(HttpStatus.OK).body(subscriptions)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .body(subscriptions)
     }
 
     /**
@@ -107,10 +117,13 @@ class SubscriptionHandler(
      */
     @GetMapping("/{subscriptionId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getByURI(
+        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable subscriptionId: String,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
         val subscriptionIdUri = subscriptionId.toUri()
         checkSubscriptionExists(subscriptionIdUri).awaitFirst()
 
@@ -118,7 +131,8 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
 
-        return ResponseEntity.status(HttpStatus.OK).body(subscription.toJson(includeSysAttrs))
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(subscription.toJson(includeSysAttrs))
     }
 
     /**

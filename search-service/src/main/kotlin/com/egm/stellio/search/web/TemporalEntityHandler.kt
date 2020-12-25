@@ -77,7 +77,8 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders.getOrEmpty("Link"))
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
 
         // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
         //        there should be a way to do it more transparently
@@ -122,7 +123,8 @@ class TemporalEntityHandler(
             jsonLdEntityWithTemporalValues.contexts
         )
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compact(filteredJsonLdEntity, contextLink)))
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(compact(filteredJsonLdEntity, contextLink)))
     }
 
     /**

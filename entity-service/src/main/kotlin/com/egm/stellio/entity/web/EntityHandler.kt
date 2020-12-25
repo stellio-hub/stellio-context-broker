@@ -90,6 +90,7 @@ class EntityHandler(
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())
@@ -127,9 +128,10 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink)
+        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(compactedEntities))
     }
 
     /**
@@ -147,6 +149,7 @@ class EntityHandler(
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -163,12 +166,15 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
-            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink)
+            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType)
 
-            return if (useSimplifiedRepresentation)
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity.toKeyValues()))
-            else
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity))
+            return buildGetSuccessResponse(mediaType, contextLink)
+                .let {
+                    if (useSimplifiedRepresentation)
+                        it.body(serializeObject(compactedEntity.toKeyValues()))
+                    else
+                        it.body(serializeObject(compactedEntity))
+                }
         } else
             throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
     }

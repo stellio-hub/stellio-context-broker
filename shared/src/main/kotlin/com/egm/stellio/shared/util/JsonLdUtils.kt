@@ -342,13 +342,14 @@ object JsonLdUtils {
     fun compactEntities(
         entities: List<JsonLdEntity>,
         useSimplifiedRepresentation: Boolean,
-        context: String
+        context: String,
+        mediaType: MediaType
     ): List<CompactedJsonLdEntity> =
         entities.map {
             if (useSimplifiedRepresentation)
-                compact(it, context).toKeyValues()
+                compact(it, context, mediaType).toKeyValues()
             else
-                compact(it, context)
+                compact(it, context, mediaType)
         }
 
     fun filterCompactedEntityOnAttributes(

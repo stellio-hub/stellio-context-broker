@@ -54,7 +54,6 @@ class SubscriptionHandler(
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
-        val test = removeContextFromInput(body)
         subscriptionEventService.publishSubscriptionEvent(
             EntityCreateEvent(
                 parsedSubscription.id,

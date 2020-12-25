@@ -77,7 +77,7 @@ object QueryUtils {
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, location: NgsiLdGeoProperty): String {
         val locationInstance = location.instances[0]
-        val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
         val targetGeometryStatement =
             createSqlGeometry(locationInstance.geoPropertyType, locationInstance.coordinates.toString())
         val georelParams = extractGeorelParams(geoQuery.georel)

@@ -104,7 +104,14 @@ class SubscriptionService(
             .rowsUpdated()
 
     private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Mono<Int> =
-        if (geoQuery != null)
+        if (geoQuery != null) {
+            val storedCoordinates =
+                when (geoQuery.coordinates) {
+                    is String -> geoQuery.coordinates
+                    is List<*> -> geoQuery.coordinates.toString()
+                    else -> geoQuery.coordinates
+                }
+
             databaseClient.execute(
                 """
                 INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) 
@@ -113,11 +120,11 @@ class SubscriptionService(
             )
                 .bind("georel", geoQuery.georel)
                 .bind("geometry", geoQuery.geometry.name)
-                .bind("coordinates", geoQuery.coordinates)
+                .bind("coordinates", storedCoordinates)
                 .bind("subscription_id", subscriptionId)
                 .fetch()
                 .rowsUpdated()
-        else
+        } else
             Mono.just(0)
 
     fun getById(id: URI): Mono<Subscription> {

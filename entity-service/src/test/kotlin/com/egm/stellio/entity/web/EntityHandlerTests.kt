@@ -464,7 +464,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any<String>(), false) } returns listOf(
+        every { entityService.searchEntities(any(), any(), any(), any<String>(), false) } returns listOf(
             JsonLdEntity(
                 mapOf(
                     "@id" to "urn:ngsi-ld:Beehive:TESTC",
@@ -501,7 +501,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any<String>(), true) } returns listOf(
+        every { entityService.searchEntities(any(), any(), any(), any<String>(), true) } returns listOf(
             JsonLdEntity(
                 mapOf(
                     NGSILD_CREATED_AT_PROPERTY to

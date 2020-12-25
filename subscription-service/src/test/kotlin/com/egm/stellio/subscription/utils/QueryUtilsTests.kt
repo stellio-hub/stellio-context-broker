@@ -69,7 +69,7 @@ class QueryUtilsTests {
     fun `it should create an sql Polygon geometry`() {
         val geoQuery = gimmeRawSubscription().geoQ
 
-        val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
 
         assertEquals(
             queryStatement,
@@ -96,7 +96,7 @@ class QueryUtilsTests {
     fun `it should correctly parse Polygon coordinates`() {
         val geoQuery = gimmeRawSubscription().geoQ
 
-        val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
 
         assertEquals(
             parsedCoordinates,

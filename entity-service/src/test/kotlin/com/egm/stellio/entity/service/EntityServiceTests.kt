@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
 import com.egm.stellio.shared.util.parseSampleDataToNgsiLd
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -30,7 +31,6 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Optional
 import java.util.UUID
 
@@ -524,7 +524,7 @@ class EntityServiceTests {
                     it.name == "temperature" &&
                         it.value == 250 &&
                         it.unitCode == "kg" &&
-                        it.observedAt?.format(DateTimeFormatter.ISO_DATE_TIME) == "2019-12-18T10:45:44.248755Z"
+                        it.observedAt?.toNgsiLdFormat() == "2019-12-18T10:45:44.248755Z"
                 }
             )
         }

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterCompactedEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toKeyValues
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.time.format.DateTimeFormatter
 
 @Service
 class NotificationService(
@@ -124,7 +124,7 @@ class NotificationService(
             mapOf(
                 "id_alert" to notification.id.toString(),
                 "id_subscription" to subscription.id.toString(),
-                "timestamp" to notification.notifiedAt.format(DateTimeFormatter.ISO_DATE_TIME),
+                "timestamp" to notification.notifiedAt.toNgsiLdFormat(),
                 "id_beehive" to entityId.toString()
             ),
             fcmDeviceToken

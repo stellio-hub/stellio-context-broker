@@ -8,6 +8,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -21,7 +22,6 @@ import reactor.test.StepVerifier
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.random.Random
 
@@ -84,7 +84,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                 it.size == 1 &&
                     it[0].attributeName == "incoming" &&
                     it[0].value == 12.4 &&
-                    ZonedDateTime.parse(it[0].observedAt.format(DateTimeFormatter.ISO_DATE_TIME)).toInstant()
+                    ZonedDateTime.parse(it[0].observedAt.toNgsiLdFormat()).toInstant()
                     .atZone(ZoneOffset.UTC) == observationDateTime &&
                     (it[0].instanceId.toString()).startsWith("urn:ngsi-ld:Instance:")
             }

@@ -469,7 +469,7 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun getEntities(type: String, rawQuery: String): List<URI> {
+    fun getEntities(id: String?, type: String, rawQuery: String): List<URI> {
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
             pattern.toRegex()
@@ -508,14 +508,23 @@ class Neo4jRepository(
             else
                 "MATCH (n:`$type`)"
 
+        val idClause =
+            if (id != null)
+                """
+                    n.id = '$id'
+                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
+                """
+            else ""
+
         val whereClause =
-            if (innerQuery.isNotEmpty()) " WHERE "
+            if (innerQuery.isNotEmpty() || id != null) " WHERE "
             else ""
 
         val finalQuery =
             """
             $matchClause
             $whereClause
+                $idClause
                 $innerQuery
             RETURN n.id as id
             """

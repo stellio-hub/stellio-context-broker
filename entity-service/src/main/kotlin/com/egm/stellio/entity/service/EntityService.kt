@@ -310,12 +310,13 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
+        id: String?,
         type: String,
         query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(type, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(id, type, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -328,6 +329,7 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
+        id: String?,
         type: String,
         query: String,
         contexts: List<String>,
@@ -355,7 +357,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(expandedType, expandedQuery)
+        return neo4jRepository.getEntities(id, expandedType, expandedQuery)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 

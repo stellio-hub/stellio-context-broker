@@ -83,6 +83,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val id = params.getFirst(QUERY_PARAM_ID)
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -109,7 +110,7 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(type, q.decode(), contextLink, includeSysAttrs)
+        val entities = entityService.searchEntities(id, type, q.decode(), contextLink, includeSysAttrs)
         val userId = extractSubjectOrEmpty().awaitFirst()
         val entitiesUserCanRead =
             authorizationService.filterEntitiesUserCanRead(

@@ -69,7 +69,7 @@ class NotificationService(
                 request = request.header(it.key, it.value)
             }
             return request
-                .bodyValue(notification)
+                .bodyValue(serializeObject(notification))
                 .exchange()
                 .doOnError { e -> logger.error("Failed to send notification to $uri : ${e.message}") }
                 .map {

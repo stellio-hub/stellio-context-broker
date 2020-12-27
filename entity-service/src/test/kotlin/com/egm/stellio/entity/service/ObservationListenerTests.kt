@@ -26,6 +26,9 @@ class ObservationListenerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
+    private val observationDate = "2019-10-18T07:31:39.770Z"
+    private val observedByEntityUri = "urn:sosa:Sensor:10e2073a01080065".toUri()
+
     @Test
     fun `it should parse the incoming temporal property to an observation`() {
         val jsonLdObservation = loadSampleData("aquac/Observation.json")
@@ -36,8 +39,8 @@ class ObservationListenerTests {
         assertEquals("incoming", observation!!.attributeName)
         assertEquals(20.7, observation.value)
         assertEquals("CEL", observation.unitCode)
-        assertEquals("urn:sosa:Sensor:10e2073a01080065".toUri(), observation.observedBy)
-        assertEquals("2019-10-18T07:31:39.770Z", observation.observedAt.toNgsiLdFormat())
+        assertEquals(observedByEntityUri, observation.observedBy)
+        assertEquals(observationDate, observation.observedAt.toNgsiLdFormat())
         assertEquals(24.30623, observation.longitude)
         assertEquals(60.07966, observation.latitude)
     }
@@ -65,8 +68,8 @@ class ObservationListenerTests {
                     observation.attributeName == "incoming" &&
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
-                        observation.observedAt.toNgsiLdFormat() == "2019-10-18T07:31:39.770Z" &&
-                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065".toUri() &&
+                        observation.observedAt.toNgsiLdFormat() == observationDate &&
+                        observation.observedBy == observedByEntityUri &&
                         observation.longitude == 24.30623 &&
                         observation.latitude == 60.07966
                 }
@@ -89,8 +92,8 @@ class ObservationListenerTests {
                     observation.attributeName == "incoming" &&
                         observation.unitCode == "CEL" &&
                         observation.value == 20.7 &&
-                        observation.observedAt.toNgsiLdFormat() == "2019-10-18T07:31:39.770Z" &&
-                        observation.observedBy == "urn:sosa:Sensor:10e2073a01080065".toUri() &&
+                        observation.observedAt.toNgsiLdFormat() == observationDate &&
+                        observation.observedBy == observedByEntityUri &&
                         observation.latitude == null &&
                         observation.longitude == null
                 }

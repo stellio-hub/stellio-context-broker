@@ -153,7 +153,7 @@ class EntityServiceTests {
         every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
         every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
         every { mockkedEntity.contexts } returns listOf(aquacContext!!)
-        every { mockkedObservation.id } returns "property-9999".toUri()
+        every { mockkedObservation.id } returns "urn:ngsi-ld:Property:${UUID.randomUUID()}".toUri()
         every { mockkedObservation.datasetId } returns null
 
         every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
@@ -536,7 +536,7 @@ class EntityServiceTests {
     fun `it should create a new relationship`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {
@@ -590,7 +590,7 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
         val secondTargetEntityId = "urn:ngsi-ld:Beekeeper:754321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {
@@ -693,7 +693,7 @@ class EntityServiceTests {
     fun `it should overwrite the relationship instance with given datasetId`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {

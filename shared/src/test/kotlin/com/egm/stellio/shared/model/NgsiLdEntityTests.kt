@@ -3,7 +3,6 @@ package com.egm.stellio.shared.model
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,6 +13,9 @@ import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime
 
 class NgsiLdEntityTests {
+
+    private val targetRelationshipUri = "urn:ngsi-ld:Entity:target".toUri()
+    private val targetRelationshipUri2 = "urn:ngsi-ld:Entity:target2".toUri()
 
     @Test
     fun `it should parse a minimal entity`() {
@@ -535,14 +537,14 @@ class NgsiLdEntityTests {
                 "type": "Vehicle", 
                 "connectsTo": { 
                     "type": "Relationship",
-                    "object": "relation1"
+                    "object": "$targetRelationshipUri"
                 }
             }
             """.trimIndent(),
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(arrayListOf("relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(arrayListOf(targetRelationshipUri), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -554,14 +556,14 @@ class NgsiLdEntityTests {
                  "type": "Vehicle",
                  "connectsTo": {
                     "type": "Relationship",
-                    "object": "relation1"
+                    "object": "$targetRelationshipUri"
                  },
                  "speed": {
                     "type": "Property", 
                     "value": 35, 
                     "flashedFrom": { 
                         "type": "Relationship", 
-                        "object": "Radar" 
+                        "object": "$targetRelationshipUri2" 
                     }
                 }
             }
@@ -569,7 +571,10 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(listOf("Radar", "relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
+        assertTrue(
+            listOf(targetRelationshipUri, targetRelationshipUri2)
+                .containsAll(expandedEntity.getLinkedEntitiesIds())
+        )
     }
 
     @Test
@@ -581,10 +586,10 @@ class NgsiLdEntityTests {
                 "type": "Vehicle",
                 "connectsTo": {
                     "type": "Relationship",
-                    "object": "relation1",
+                    "object": "$targetRelationshipUri",
                     "createdBy ": {
                         "type": "Relationship",
-                        "object": "relation2"
+                        "object": "$targetRelationshipUri2"
                     }
                 }
             }
@@ -593,7 +598,8 @@ class NgsiLdEntityTests {
         ).toNgsiLdEntity()
 
         assertTrue(
-            listOf("relation1", "relation2").toListOfUri().containsAll(expandedEntity.getLinkedEntitiesIds())
+            listOf(targetRelationshipUri, targetRelationshipUri2)
+                .containsAll(expandedEntity.getLinkedEntitiesIds())
         )
     }
 }

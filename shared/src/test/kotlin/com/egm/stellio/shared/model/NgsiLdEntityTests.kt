@@ -535,14 +535,14 @@ class NgsiLdEntityTests {
                 "type": "Vehicle", 
                 "connectsTo": { 
                     "type": "Relationship",
-                    "object": "relation1"
+                    "object": "urn:ngsi-ld:Entity:target"
                 }
             }
             """.trimIndent(),
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(arrayListOf("relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
+        assertEquals(arrayListOf("urn:ngsi-ld:Entity:target").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
     }
 
     @Test
@@ -554,14 +554,14 @@ class NgsiLdEntityTests {
                  "type": "Vehicle",
                  "connectsTo": {
                     "type": "Relationship",
-                    "object": "relation1"
+                    "object": "urn:ngsi-ld:Entity:target"
                  },
                  "speed": {
                     "type": "Property", 
                     "value": 35, 
                     "flashedFrom": { 
                         "type": "Relationship", 
-                        "object": "Radar" 
+                        "object": "urn:ngsi-ld:Entity:target2" 
                     }
                 }
             }
@@ -569,7 +569,11 @@ class NgsiLdEntityTests {
             DEFAULT_CONTEXTS
         ).toNgsiLdEntity()
 
-        assertEquals(listOf("Radar", "relation1").toListOfUri(), expandedEntity.getLinkedEntitiesIds())
+        assertTrue(
+            listOf("urn:ngsi-ld:Entity:target", "urn:ngsi-ld:Entity:target2")
+                .toListOfUri()
+                .containsAll(expandedEntity.getLinkedEntitiesIds())
+        )
     }
 
     @Test
@@ -581,10 +585,10 @@ class NgsiLdEntityTests {
                 "type": "Vehicle",
                 "connectsTo": {
                     "type": "Relationship",
-                    "object": "relation1",
+                    "object": "urn:ngsi-ld:Entity:target",
                     "createdBy ": {
                         "type": "Relationship",
-                        "object": "relation2"
+                        "object": "urn:ngsi-ld:Entity:target2"
                     }
                 }
             }
@@ -593,7 +597,9 @@ class NgsiLdEntityTests {
         ).toNgsiLdEntity()
 
         assertTrue(
-            listOf("relation1", "relation2").toListOfUri().containsAll(expandedEntity.getLinkedEntitiesIds())
+            listOf("urn:ngsi-ld:Entity:target", "urn:ngsi-ld:Entity:target2")
+                .toListOfUri()
+                .containsAll(expandedEntity.getLinkedEntitiesIds())
         )
     }
 }

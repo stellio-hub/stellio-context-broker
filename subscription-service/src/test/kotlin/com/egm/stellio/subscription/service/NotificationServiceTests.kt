@@ -353,7 +353,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = "embedded-firebase".toUri(),
+                    uri = "urn:embedded:firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "deviceToken", value = "deviceToken-value"))
                 ),
@@ -395,7 +395,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = "embedded-firebase".toUri(),
+                    uri = "urn:embedded:firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "unknownToken-key", value = "deviceToken-value"))
                 ),

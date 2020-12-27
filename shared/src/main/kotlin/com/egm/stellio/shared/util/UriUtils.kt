@@ -6,9 +6,14 @@ import java.net.URISyntaxException
 
 fun String.toUri(): URI =
     try {
-        URI(this)
+        val uri = URI(this)
+        if (!uri.isAbsolute)
+            throw BadRequestDataException("The supplied identifier was expected to be an URI but it is not: $this")
+        uri
     } catch (e: URISyntaxException) {
-        throw BadRequestDataException("The supplied identifier was expected to be an URI but it is not: $this")
+        throw BadRequestDataException(
+            "The supplied identifier was expected to be an URI but it is not: $this (${e.message}"
+        )
     }
 
 fun List<String>.toListOfUri(): List<URI> =

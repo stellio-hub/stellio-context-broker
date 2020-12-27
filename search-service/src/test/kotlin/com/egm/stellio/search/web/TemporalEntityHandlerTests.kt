@@ -61,6 +61,8 @@ class TemporalEntityHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
+    private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
     @BeforeAll
     fun configureWebClientDefaults() {
         apicHeaderLink = "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
@@ -84,7 +86,7 @@ class TemporalEntityHandlerTests {
         every { attributeInstanceService.addAttributeInstances(any(), any(), any()) } returns Mono.just(1)
 
         webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:BeeHive:TESTC/attrs")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
@@ -93,7 +95,7 @@ class TemporalEntityHandlerTests {
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
-                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq(entityUri),
                 eq("incoming")
             )
         }
@@ -167,7 +169,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -183,7 +185,7 @@ class TemporalEntityHandlerTests {
         )
         every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
             .exchange()
             .expectStatus().isOk
     }
@@ -299,7 +301,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .exchange()
@@ -309,7 +311,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                     "title":"The referred resource has not been found",
-                    "detail":"${entityNotFoundMessage("entityId")}"
+                    "detail":"${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """
             )
@@ -318,7 +320,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -337,7 +339,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
@@ -350,12 +352,12 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
             )
         }
         confirmVerified(attributeInstanceService)
 
-        verify { entityService.getEntityById(eq("entityId".toUri()), any()) }
+        verify { entityService.getEntityById(eq(entityUri), any()) }
         confirmVerified(entityService)
 
         verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
@@ -367,7 +369,7 @@ class TemporalEntityHandlerTests {
                 },
                 match {
                     // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
-                    it.startsWith("{\"id\":\"urn:ngsi-ld:BeeHive:TESTC\",\"type\":\"BeeHive\"")
+                    it.startsWith("{\"id\":\"$entityUri\",\"type\":\"BeeHive\"")
                 }
             )
         }
@@ -376,13 +378,13 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a single entity if the entity has two temporal properties`() {
         val entityTemporalProperty1 = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
         val entityTemporalProperty2 = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -398,7 +400,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .exchange()
@@ -411,7 +413,7 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
             )
         }
         confirmVerified(attributeInstanceService)
@@ -423,7 +425,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
@@ -443,7 +445,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&options=temporalValues"
             )
             .header("Link", apicHeaderLink)
@@ -463,7 +465,7 @@ class TemporalEntityHandlerTests {
             outgoingAttrExpandedName
         ).map {
             TemporalEntityAttribute(
-                entityId = "entityId".toUri(),
+                entityId = entityUri,
                 type = "BeeHive",
                 attributeName = it,
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -531,7 +533,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should correctly dispatch queries on entities having properties with a raw value`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
@@ -547,7 +549,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
             )
             .exchange()
@@ -560,7 +562,7 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
             )
         }
         confirmVerified(attributeInstanceService)
@@ -569,7 +571,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should only return attributes asked as request parameters`() {
         val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = "entityId".toUri(),
+            entityId = entityUri,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
@@ -585,7 +587,7 @@ class TemporalEntityHandlerTests {
 
         webClient.get()
             .uri(
-                "/ngsi-ld/v1/temporal/entities/entityId?" +
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&attrs=incoming"
             )
             .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
@@ -603,7 +605,7 @@ class TemporalEntityHandlerTests {
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
                         temporalQuery.expandedAttrs == setOf(incomingAttrExpandedName)
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == "entityId".toUri() }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
             )
         }
         confirmVerified(attributeInstanceService)

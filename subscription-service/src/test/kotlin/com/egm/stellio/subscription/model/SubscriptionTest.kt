@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.jayway.jsonpath.JsonPath.read
 import org.junit.jupiter.api.Assertions.*
@@ -34,22 +35,23 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize Subscription as JSON without createdAt and modifiedAt if not specified`() {
-        val serializedSub = modifiedSubscription.toJson(false)
+        val serializedSub = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, false)
         assertFalse(serializedSub.contains("createdAt"))
         assertFalse(serializedSub.contains("modifiedAt"))
     }
 
     @Test
     fun `it should serialize Subscription as JSON with createdAt and modifiedAt if specified`() {
-        val serializedSubscription = modifiedSubscription.toJson(true)
+        val serializedSubscription = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, true)
         assertTrue(serializedSubscription.contains("createdAt"))
         assertTrue(serializedSubscription.contains("modifiedAt"))
     }
 
     @Test
     fun `it should serialize a list of subscriptions as JSON without createdAt and modifiedAt if not specified`() {
-        val serializedSubscription = listOf(modifiedSubscription, otherModifiedSubscription).toJson()
         val otherModifiedSubscription = modifiedSubscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
+        val serializedSubscription =
+            listOf(modifiedSubscription, otherModifiedSubscription).toJson(NGSILD_CORE_CONTEXT)
 
         assertFalse(serializedSubscription.contains("createdAt"))
         assertFalse(serializedSubscription.contains("modifiedAt"))
@@ -57,8 +59,9 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize a list of subscriptions as JSON with createdAt and modifiedAt if specified`() {
-        val serializedSubscriptions = listOf(modifiedSubscription, otherModifiedSubscription).toJson(true)
         val otherModifiedSubscription = modifiedSubscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
+        val serializedSubscriptions =
+            listOf(modifiedSubscription, otherModifiedSubscription).toJson(NGSILD_CORE_CONTEXT, true)
         with(serializedSubscriptions) {
             assertTrue(read<List<String>>(this, "$[*].createdAt").size == 2)
             assertTrue(read<List<String>>(this, "$[*].modifiedAt").size == 2)

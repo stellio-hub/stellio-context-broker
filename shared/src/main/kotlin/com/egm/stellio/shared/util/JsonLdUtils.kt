@@ -270,6 +270,16 @@ object JsonLdUtils {
         return expandJsonLdFragment(fragment, listOf(context))
     }
 
+    fun compactTerm(term: String, contexts: List<String>): String {
+        val compactedFragment =
+            JsonLdProcessor.compact(
+                mapOf(term to emptyMap<String, Any>()),
+                mapOf(JSONLD_CONTEXT to contexts),
+                JsonLdOptions()
+            )
+        return compactedFragment.keys.first()
+    }
+
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String {
         val compactedFragment =
             JsonLdProcessor.compact(mapOf(key to value), mapOf(JSONLD_CONTEXT to context), JsonLdOptions())

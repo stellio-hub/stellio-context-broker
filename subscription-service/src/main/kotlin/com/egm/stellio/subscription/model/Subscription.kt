@@ -1,6 +1,7 @@
 package com.egm.stellio.subscription.model
 
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
@@ -34,19 +35,30 @@ data class Subscription(
         }
     }
 
-    fun toJson(includeSysAttrs: Boolean = false): String {
+    fun compact(context: String): Subscription =
+        this.copy(
+            entities = entities.map {
+                EntityInfo(it.id, it.idPattern, compactTerm(it.type, listOf(context)))
+            }.toSet(),
+            notification = notification.copy(
+                attributes = notification.attributes?.map { compactTerm(it, listOf(context)) }
+            )
+        )
+
+    fun toJson(context: String, includeSysAttrs: Boolean = false): String {
         return if (includeSysAttrs)
-            JsonUtils.serializeObject(this)
+            JsonUtils.serializeObject(this.compact(context))
         else
-            serializeWithoutSysAttrs(this)
+            serializeWithoutSysAttrs(this.compact(context))
     }
 }
 
-fun List<Subscription>.toJson(includeSysAttrs: Boolean = false): String {
+fun List<Subscription>.toJson(context: String, includeSysAttrs: Boolean = false): String {
+    val compactedSubscriptions = this.map { it.compact(context) }
     return if (includeSysAttrs)
-        JsonUtils.serializeObject(this)
+        JsonUtils.serializeObject(compactedSubscriptions)
     else
-        serializeWithoutSysAttrs(this)
+        serializeWithoutSysAttrs(compactedSubscriptions)
 }
 
 private fun serializeWithoutSysAttrs(input: Any) =

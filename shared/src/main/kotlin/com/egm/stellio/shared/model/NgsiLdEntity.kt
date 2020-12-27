@@ -195,6 +195,8 @@ class NgsiLdPropertyInstance private constructor(
             val attributes = getNonCoreAttributes(values, NGSILD_PROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
+            if (attributes.size > relationships.size + properties.size)
+                throw BadRequestDataException("Property has unknown attributes: $attributes")
 
             return NgsiLdPropertyInstance(value, unitCode, observedAt, datasetId, properties, relationships)
         }
@@ -220,6 +222,8 @@ class NgsiLdRelationshipInstance private constructor(
             val attributes = getNonCoreAttributes(values, NGSILD_RELATIONSHIPS_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
+            if (attributes.size > relationships.size + properties.size)
+                throw BadRequestDataException("Relationship has unknown attributes: $attributes")
 
             return NgsiLdRelationshipInstance(objectId, observedAt, datasetId, properties, relationships)
         }
@@ -249,6 +253,8 @@ class NgsiLdGeoPropertyInstance(
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMEBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
+            if (attributes.size > relationships.size + properties.size)
+                throw BadRequestDataException("Geoproperty has unknown attributes: $attributes")
 
             return NgsiLdGeoPropertyInstance(
                 observedAt,

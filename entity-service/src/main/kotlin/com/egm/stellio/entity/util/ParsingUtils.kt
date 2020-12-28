@@ -44,6 +44,10 @@ fun List<String>.decode(): List<String> =
         it.decode()
     }
 
+// FIXME kinda weak ... better options?
+fun String.isRelationshipTarget(): Boolean =
+    this.removePrefix("\"").startsWith("urn:")
+
 fun String.isFloat(): Boolean =
     this.matches("-?\\d+(\\.\\d+)?".toRegex())
 

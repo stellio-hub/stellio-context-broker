@@ -7,6 +7,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.PropertyRepository
+import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -346,7 +347,7 @@ class EntityService(
             // it will have to be modified when we support "dotted paths" (cf 4.9)
             val splitted = splitQueryTermOnOperator(matchResult.value)
             val expandedParam =
-                if (splitted[1].startsWith("urn:"))
+                if (splitted[1].isRelationshipTarget())
                     splitted[0]
                 else
                     expandJsonLdKey(splitted[0], contexts)!!

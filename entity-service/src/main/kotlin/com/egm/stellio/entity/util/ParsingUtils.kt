@@ -39,11 +39,6 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
 fun String.decode(): String =
     URLDecoder.decode(this, "UTF-8")
 
-fun List<String>.decode(): List<String> =
-    this.map {
-        it.decode()
-    }
-
 // FIXME kinda weak ... better options?
 fun String.isRelationshipTarget(): Boolean =
     this.removePrefix("\"").startsWith("urn:")

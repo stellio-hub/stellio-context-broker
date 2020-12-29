@@ -1,7 +1,7 @@
 package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -55,43 +55,43 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ENTITY_CREATE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/entityCreateEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityCreateEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_REPLACE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/entityReplaceEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityReplaceEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityReplaceEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/entityDeleteEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityDeleteEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/attributeReplaceEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeReplaceEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is AttributeReplaceEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/attributeDeleteEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteAllInstancesEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_UPDATE`() {
-        val parsedEvent = parseEntityEvent(loadSampleData("events/entityUpdateEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityUpdateEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is EntityUpdateEvent)
     }
 

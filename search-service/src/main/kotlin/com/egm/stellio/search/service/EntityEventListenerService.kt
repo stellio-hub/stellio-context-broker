@@ -8,7 +8,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToPayload
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
@@ -31,7 +31,7 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
-        when (val entityEvent = parseEntityEvent(content)) {
+        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
             is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
             is AttributeAppendEvent -> handleAttributeAppendEvent(entityEvent)

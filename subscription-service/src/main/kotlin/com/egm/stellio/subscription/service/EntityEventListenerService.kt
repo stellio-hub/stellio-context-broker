@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -16,7 +16,7 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_subscription")
     fun processMessage(content: String) {
-        when (val entityEvent = parseEntityEvent(content)) {
+        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityEvent(
                 entityEvent.operationPayload,
                 entityEvent.getEntity(),

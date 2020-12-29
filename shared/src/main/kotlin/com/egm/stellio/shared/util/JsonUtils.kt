@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -12,17 +11,14 @@ import kotlin.reflect.KClass
 
 object JsonUtils {
 
-    private val mapper: ObjectMapper =
+    @PublishedApi internal val mapper: ObjectMapper =
         jacksonObjectMapper()
             .setSerializationInclusion(JsonInclude.Include.NON_NULL)
             .findAndRegisterModules()
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    fun parseSubscription(content: String): Subscription =
-        mapper.readValue(content, Subscription::class.java)
-
-    fun parseNotification(content: String): Notification =
-        mapper.readValue(content, Notification::class.java)
+    inline fun <reified T> deserializeAs(content: String): T =
+        mapper.readValue(content, T::class.java)
 
     fun parseJsonContent(content: String): JsonNode =
         mapper.readTree(content)
@@ -51,7 +47,4 @@ object JsonUtils {
         )
         return mapperWithMixin.writer(filterProvider).writeValueAsString(input)
     }
-
-    fun parseEntityEvent(input: String): EntityEvent =
-        mapper.readValue(input, EntityEvent::class.java)
 }

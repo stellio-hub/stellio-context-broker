@@ -102,10 +102,6 @@ class EntityHandler(
                     )
                 )
 
-        if (!JsonLdUtils.isTypeResolvable(type, contextLink))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
-
         /**
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values

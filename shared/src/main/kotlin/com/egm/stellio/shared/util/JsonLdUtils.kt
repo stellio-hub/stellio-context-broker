@@ -240,10 +240,6 @@ object JsonLdUtils {
         return (expKey[0] as Map<String, Any>).keys.first()
     }
 
-    fun isTypeResolvable(type: String, context: String): Boolean {
-        return expandJsonLdKey(type, context) != null
-    }
-
     fun expandJsonLdKey(type: String, context: String): String? =
         expandJsonLdKey(type, listOf(context))
 

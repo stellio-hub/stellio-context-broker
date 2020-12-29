@@ -82,7 +82,7 @@ object JsonLdUtils {
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     private val localCoreContextPayload =
-        ClassPathResource("/ngsild/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+        ClassPathResource("/contexts/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
 
     @PostConstruct

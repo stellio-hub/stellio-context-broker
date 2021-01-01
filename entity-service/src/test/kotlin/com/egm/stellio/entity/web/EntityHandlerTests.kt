@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
@@ -54,10 +53,7 @@ import java.time.ZoneOffset
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class EntityHandlerTests {
 
-    @Value("\${application.jsonld.aquac_context}")
-    val aquacContext: String? = null
-
-    private lateinit var aquacHeaderLink: String
+    private val aquacHeaderLink = buildContextLinkHeader(AQUAC_COMPOUND_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -76,8 +72,6 @@ class EntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        aquacHeaderLink = "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-
         webClient = webClient.mutate()
             .defaultHeaders {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
@@ -86,6 +80,7 @@ class EntityHandlerTests {
             .build()
     }
 
+    private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val hcmrContext = listOf(
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
@@ -946,7 +941,7 @@ class EntityHandlerTests {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
@@ -1000,7 +995,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1021,7 +1016,7 @@ class EntityHandlerTests {
                 any(),
                 appendResult,
                 any(),
-                listOf(aquacContext!!)
+                listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
         confirmVerified()
@@ -1050,7 +1045,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1080,7 +1075,7 @@ class EntityHandlerTests {
                 any(),
                 appendResult,
                 any(),
-                listOf(aquacContext!!)
+                listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
 
@@ -1097,7 +1092,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNotFound
@@ -1130,7 +1125,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(invalidPayload)
             .exchange()
@@ -1155,7 +1150,7 @@ class EntityHandlerTests {
                 {
                     "id": "$entityId",
                     "type": "DeadFishes",
-                    "@context": ["$aquacContext", "$NGSILD_CORE_CONTEXT"]
+                    "@context": ["$AQUAC_COMPOUND_CONTEXT"]
                 }
             """.trimIndent()
         val expectedUpdatedEntity =
@@ -1183,7 +1178,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(entityId) }
         verify {
-            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
         verify { entityService.getFullEntityById(entityId, true) }
         verify {
@@ -1194,7 +1189,7 @@ class EntityHandlerTests {
                         it.entityId == entityId &&
                         it.attributeName == "fishNumber" &&
                         it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
-                        it.contexts == listOf(aquacContext) &&
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT) &&
                         it.operationPayload.matchContent(jsonLdFile) &&
                         it.updatedEntity.removeNoise() == expectedUpdatedEntity.removeNoise()
                 },
@@ -1214,7 +1209,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1237,7 +1232,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1246,7 +1241,7 @@ class EntityHandlerTests {
         verify { entityService.exists(entityId) }
         verify { authorizationService.userCanUpdateEntity(entityId, "mock-user") }
         verify {
-            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(aquacContext!!)))
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
         confirmVerified(entityService)
     }
@@ -1262,7 +1257,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1292,7 +1287,7 @@ class EntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
@@ -1337,7 +1332,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1376,7 +1371,7 @@ class EntityHandlerTests {
         every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
             mapOf(
                 "@id" to "urn:ngsi-ld:DeadFishes:019BN",
-                "@type" to listOf("DeadFishes")
+                "@type" to listOf(deadFishesType)
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
@@ -1384,7 +1379,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonPayload)
             .exchange()
@@ -1400,7 +1395,7 @@ class EntityHandlerTests {
                         it.datasetId == null &&
                         it.operationPayload.matchContent(jsonPayload) &&
                         it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
-                        it.contexts == listOf(aquacContext)
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
                 "DeadFishes"
             )
@@ -1410,7 +1405,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `entity attributes update should send two notification if two attributes are updated`() {
+    fun `entity attributes update should send two notifications if two attributes are updated`() {
         val fishNumberPayload =
             """
             "fishNumber":{
@@ -1463,7 +1458,7 @@ class EntityHandlerTests {
         every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
             mapOf(
                 "@id" to "urn:ngsi-ld:DeadFishes:019BN",
-                "@type" to listOf("DeadFishes")
+                "@type" to listOf(deadFishesType)
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
@@ -1471,7 +1466,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonPayload)
             .exchange()
@@ -1490,7 +1485,7 @@ class EntityHandlerTests {
                             "{$fishNamePayload}".matchContent(it.operationPayload)
                         ) &&
                     it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
-                    it.contexts == listOf(aquacContext)
+                    it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
     }
@@ -1527,7 +1522,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jsonLdFile)
             .exchange()
@@ -1592,7 +1587,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", aquacHeaderLink)
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(payload)
             .exchange()
             .expectStatus().isNotFound
@@ -1615,7 +1610,7 @@ class EntityHandlerTests {
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
@@ -1638,11 +1633,12 @@ class EntityHandlerTests {
         every { entityService.exists(entityId) } returns true
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
         every { entityService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf("Sensor")
+        every { entity.type } returns listOf("https://ontology.eglobalmark.com/egm#Sensor")
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
@@ -1711,7 +1707,7 @@ class EntityHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
             .expectStatus().isForbidden
             .expectBody().json(
@@ -1735,12 +1731,12 @@ class EntityHandlerTests {
         every {
             entityService.getFullEntityById(any(), any())
         } returns updatedEntity
-        every { updatedEntity.type } returns "DeadFishes"
+        every { updatedEntity.type } returns deadFishesType
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
@@ -1750,7 +1746,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                eq(fishNumberAttribute),
                 null
             )
         }
@@ -1763,7 +1759,7 @@ class EntityHandlerTests {
                         it.entityId == entityId &&
                         it.attributeName == "fishNumber" &&
                         it.datasetId == null &&
-                        it.contexts == listOf(aquacContext!!)
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
                 "DeadFishes"
             )
@@ -1781,12 +1777,12 @@ class EntityHandlerTests {
         every {
             entityService.getFullEntityById(any(), any())
         } returns updatedEntity
-        every { updatedEntity.type } returns "DeadFishes"
+        every { updatedEntity.type } returns deadFishesType
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
@@ -1796,7 +1792,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttribute(
                 eq(entityId),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+                eq(fishNumberAttribute)
             )
         }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
@@ -1807,7 +1803,7 @@ class EntityHandlerTests {
                     it.operationType == EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES &&
                         it.entityId == entityId &&
                         it.attributeName == "fishNumber" &&
-                        it.contexts == listOf(aquacContext!!)
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
                 "DeadFishes"
             )
@@ -1825,12 +1821,12 @@ class EntityHandlerTests {
         every {
             entityService.getFullEntityById(any(), any())
         } returns updatedEntity
-        every { updatedEntity.type } returns "DeadFishes"
+        every { updatedEntity.type } returns deadFishesType
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNoContent
@@ -1840,7 +1836,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq(entityId),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                eq(fishNumberAttribute),
                 "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
             )
         }
@@ -1853,7 +1849,7 @@ class EntityHandlerTests {
                         it.entityId == entityId &&
                         it.attributeName == "fishNumber" &&
                         it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri() &&
-                        it.contexts == listOf(aquacContext!!)
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
                 "DeadFishes"
             )
@@ -1867,7 +1863,7 @@ class EntityHandlerTests {
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:DeadFishes:019BN/attrs/fishNumber")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNotFound
@@ -1894,7 +1890,7 @@ class EntityHandlerTests {
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isNotFound
@@ -1908,7 +1904,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttribute(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber")
+                eq(fishNumberAttribute)
             )
         }
         verify { entityEventService wasNot called }
@@ -1925,7 +1921,7 @@ class EntityHandlerTests {
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -1939,7 +1935,7 @@ class EntityHandlerTests {
         verify {
             entityService.deleteEntityAttributeInstance(
                 eq("urn:ngsi-ld:DeadFishes:019BN".toUri()),
-                eq("https://ontology.eglobalmark.com/aquac#fishNumber"),
+                eq(fishNumberAttribute),
                 null
             )
         }
@@ -1956,7 +1952,7 @@ class EntityHandlerTests {
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .contentType(MediaType.APPLICATION_JSON)
             .exchange()
             .expectStatus().isForbidden
@@ -1977,7 +1973,7 @@ class EntityHandlerTests {
     fun `it should not authorize an anonymous to call the API`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
             .expectStatus().isForbidden
     }

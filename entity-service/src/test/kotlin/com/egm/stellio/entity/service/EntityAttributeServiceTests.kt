@@ -7,7 +7,9 @@ import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -17,16 +19,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityAttributeService::class])
 @ActiveProfiles("test")
 class EntityAttributeServiceTests {
-
-    @Value("\${application.jsonld.aquac_context}")
-    val aquacContext: String? = null
 
     @Autowired
     private lateinit var entityAttributeService: EntityAttributeService
@@ -58,8 +56,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(propertyName, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(propertyName, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val property = Property(propertyName, "years", 0)
 
@@ -68,7 +66,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.getPropertyOfSubject(any(), any(), any()) } returns property
         every { propertyRepository.save<Property>(any()) } returns property
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         confirmVerified()
     }
@@ -86,8 +84,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(propertyName, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(propertyName, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val property = Property(propertyName, "years", 0)
 
@@ -96,7 +94,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.getPropertyOfSubject(any(), any(), any()) } returns property
         every { propertyRepository.save<Property>(any()) } returns property
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         confirmVerified()
     }
@@ -120,8 +118,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(propertyName, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(propertyName, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val property = Property(propertyName, "months", 0)
         val depthProperty = Property("depth", null, 0)
@@ -146,7 +144,7 @@ class EntityAttributeServiceTests {
             )
         } returns depthProperty
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             entityService.createAttributeProperties(
@@ -179,8 +177,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(propertyName, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(propertyName, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val property = Property(propertyName, "years", 0)
         val relationship = Relationship(listOf("measuredBy"))
@@ -194,7 +192,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.updateRelationshipTargetOfSubject(any(), any(), any()) } returns true
         every { relationshipRepository.save<Relationship>(any()) } returns relationship
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             neo4jRepository.updateRelationshipTargetOfSubject(
@@ -221,8 +219,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(propertyName, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(propertyName, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val property = Property(propertyName, "months", 0)
 
@@ -239,7 +237,9 @@ class EntityAttributeServiceTests {
         every { entityService.createAttributeProperties(any(), any()) } returns false
 
         val exception = assertThrows<InternalErrorException> {
-            entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+            entityAttributeService.partialUpdateEntityAttribute(
+                fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT)
+            )
         }
         assertEquals("Partial update operation failed to perform the whole update", exception.message)
     }
@@ -255,8 +255,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(relationshipType, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(relationshipType, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val relationship = Relationship(listOf("isContainedIn"))
 
@@ -265,7 +265,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.updateRelationshipTargetOfSubject(any(), any(), any()) } returns true
         every { relationshipRepository.save<Relationship>(any()) } returns relationship
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             neo4jRepository.updateRelationshipTargetOfSubject(
@@ -291,8 +291,8 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(relationshipType, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(relationshipType, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val relationship = Relationship(listOf("isContainedIn"))
 
@@ -301,7 +301,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.updateRelationshipTargetOfSubject(any(), any(), any()) } returns true
         every { relationshipRepository.save<Relationship>(any()) } returns relationship
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             neo4jRepository.updateRelationshipTargetOfSubject(
@@ -332,8 +332,8 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(relationshipType, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(relationshipType, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val relationship = Relationship(listOf("isContainedIn"))
         val property = Property("depth", null, 0)
@@ -347,7 +347,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.getPropertyOfSubject(any(), any(), any()) } returns property
         every { propertyRepository.save<Property>(any()) } returns property
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             neo4jRepository.updateRelationshipTargetOfSubject(
@@ -379,8 +379,8 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = mapOf(
-            JsonLdUtils.expandJsonLdKey(relationshipType, aquacContext!!)!! to
-                JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            JsonLdUtils.expandJsonLdKey(relationshipType, AQUAC_COMPOUND_CONTEXT)!! to
+                expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
         val relationship = Relationship(listOf("isContainedIn"))
         val measuredByRelationship = Relationship(listOf("measuredBy"))
@@ -393,7 +393,7 @@ class EntityAttributeServiceTests {
         every { neo4jRepository.updateRelationshipTargetOfSubject(any(), any(), any()) } returns true
         every { entityService.createAttributeRelationships(any(), any()) } returns true
 
-        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(aquacContext!!))
+        entityAttributeService.partialUpdateEntityAttribute(fishUri, expandedPayload, listOf(AQUAC_COMPOUND_CONTEXT))
 
         verify {
             neo4jRepository.updateRelationshipTargetOfSubject(
@@ -426,7 +426,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
         val expandedPayload = mapOf(
-            relationshipType to JsonLdUtils.expandJsonLdFragment(payload, aquacContext!!) as Map<String, List<Any>>
+            relationshipType to expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT) as Map<String, List<Any>>
         )
 
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
@@ -438,7 +438,7 @@ class EntityAttributeServiceTests {
             entityAttributeService.partialUpdateEntityAttribute(
                 fishUri,
                 expandedPayload,
-                listOf(aquacContext!!)
+                listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
         assertEquals("Unknown attribute $relationshipType in entity $fishUri", exception.message)

@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -114,10 +113,7 @@ class EntityEventListenerService(
         //  - existence of temporal entity attribute
         //  - needs optimization (lot of JSON-LD parsing, ...)
         if (!attributeValuesNode.has("observedAt")) {
-            logger.info(
-                "Ignoring update event for " +
-                    "${expandedAttributeName.extractShortTypeFromExpanded()}, it has no observedAt information"
-            )
+            logger.info("Ignoring update event for $expandedAttributeName, it has no observedAt information")
             return
         }
         val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)

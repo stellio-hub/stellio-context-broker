@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -67,7 +68,7 @@ class EntityHandler(
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            ngsiLdEntity.type.extractShortTypeFromExpanded()
+            compactTerm(ngsiLdEntity.type, contexts)
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -180,7 +181,11 @@ class EntityHandler(
      * Implements 6.5.3.2 - Delete Entity
      */
     @DeleteMapping("/{entityId}")
-    suspend fun delete(@PathVariable entityId: String): ResponseEntity<*> {
+    suspend fun delete(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String
+    ): ResponseEntity<*> {
+        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -188,13 +193,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
+        // Is there a way to avoid loading the entity to get its type... for the later event
         val entity = entityService.getEntityCoreProperties(entityId.toUri())
 
         entityService.deleteEntity(entityId.toUri())
 
-        // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0].extractShortTypeFromExpanded()
+            EntityDeleteEvent(entityId.toUri(), contexts), compactTerm(entity.type[0], contexts)
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -278,7 +283,7 @@ class EntityHandler(
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
-                    updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                    compactTerm(updatedDetails.attributeName, contexts),
                     extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, updatedDetails.attributeName),
                     compactAndStringifyFragment(
                         updatedDetails.attributeName,
@@ -288,7 +293,7 @@ class EntityHandler(
                     compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                     contexts
                 ),
-                updatedEntity.type.extractShortTypeFromExpanded()
+                compactTerm(updatedEntity.type, contexts)
             )
         }
 
@@ -338,7 +343,7 @@ class EntityHandler(
                 updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
-            updatedEntity.type.extractShortTypeFromExpanded()
+            compactTerm(updatedEntity.type, contexts)
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -380,7 +385,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
             else
                 entityEventService.publishEntityEvent(
@@ -391,7 +396,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
         }
 

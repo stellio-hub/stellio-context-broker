@@ -12,6 +12,7 @@ import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compact
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
@@ -54,12 +55,12 @@ class TemporalEntityHandler(
             .forEach {
                 val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId.toUri(),
-                    it.key.extractShortTypeFromExpanded()
+                    compactTerm(it.key, contexts)
                 ).awaitFirst()
 
                 attributeInstanceService.addAttributeInstances(
                     temporalEntityAttributeUuid,
-                    it.key.extractShortTypeFromExpanded(),
+                    compactTerm(it.key, contexts),
                     expandValueAsMap(it.value)
                 ).awaitFirst()
             }

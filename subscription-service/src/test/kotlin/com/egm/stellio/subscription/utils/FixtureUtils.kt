@@ -15,7 +15,8 @@ fun gimmeRawSubscription(
     withEndpointInfo: Boolean = true,
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
-    georel: String = "within"
+    georel: String = "within",
+    coordinates: Any = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
 ): Subscription {
     val q =
         if (withQueryAndGeoQuery.first)
@@ -28,7 +29,7 @@ fun gimmeRawSubscription(
             GeoQuery(
                 georel = georel,
                 geometry = GeoQuery.GeometryType.Polygon,
-                coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
+                coordinates = coordinates
             )
         else
             null

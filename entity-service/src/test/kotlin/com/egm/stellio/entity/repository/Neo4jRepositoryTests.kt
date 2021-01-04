@@ -334,7 +334,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should return entities if matching given type and ids`() {
+    fun `it should return entities matching given type and ids`() {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),

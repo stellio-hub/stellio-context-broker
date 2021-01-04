@@ -334,6 +334,25 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should return entities if matching given type and ids`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val entities = neo4jRepository.getEntities(listOf("urn:ngsi-ld:Beekeeper:1231"), "Beekeeper", "")
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
     fun `it should update the default property instance`() {
         val entity = createEntity(
             beekeeperUri,

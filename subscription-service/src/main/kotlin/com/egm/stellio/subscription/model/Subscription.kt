@@ -1,11 +1,15 @@
 package com.egm.stellio.subscription.model
 
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
+import com.egm.stellio.shared.util.JsonLdUtils.addContextToListOfElements
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
 import org.springframework.data.annotation.Id
+import org.springframework.http.MediaType
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -45,20 +49,32 @@ data class Subscription(
             )
         )
 
-    fun toJson(context: String, includeSysAttrs: Boolean = false): String {
-        return if (includeSysAttrs)
+    fun toJson(context: String, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false): String {
+        val serializedSubscription = if (includeSysAttrs)
             JsonUtils.serializeObject(this.compact(context))
         else
             serializeWithoutSysAttrs(this.compact(context))
+        return if (mediaType == JSON_LD_MEDIA_TYPE)
+            addContextToElement(serializedSubscription, listOf(context))
+        else
+            serializedSubscription
     }
 }
 
-fun List<Subscription>.toJson(context: String, includeSysAttrs: Boolean = false): String {
+fun List<Subscription>.toJson(
+    context: String,
+    mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+    includeSysAttrs: Boolean = false
+): String {
     val compactedSubscriptions = this.map { it.compact(context) }
-    return if (includeSysAttrs)
+    val serializedSubscriptions = if (includeSysAttrs)
         JsonUtils.serializeObject(compactedSubscriptions)
     else
         serializeWithoutSysAttrs(compactedSubscriptions)
+    return if (mediaType == JSON_LD_MEDIA_TYPE)
+        addContextToListOfElements(serializedSubscriptions, listOf(context))
+    else
+        serializedSubscriptions
 }
 
 private fun serializeWithoutSysAttrs(input: Any) =

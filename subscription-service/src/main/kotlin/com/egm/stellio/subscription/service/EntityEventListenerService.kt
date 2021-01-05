@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -36,7 +37,7 @@ class EntityEventListenerService(
 
     private fun handleEntityEvent(eventPayload: String, entityPayload: String, contexts: List<String>) {
         try {
-            val updatedFragment = JsonLdUtils.parseJsonLdFragment(eventPayload)
+            val updatedFragment = deserializeObject(eventPayload)
             val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
             notificationService.notifyMatchingSubscribers(
                 entityPayload,

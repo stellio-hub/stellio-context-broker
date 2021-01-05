@@ -23,9 +23,15 @@ object JsonUtils {
     fun parseJsonContent(content: String): JsonNode =
         mapper.readTree(content)
 
-    fun parseListOfEntities(content: String): List<Map<String, Any>> =
+    fun deserializeObject(input: String): Map<String, Any> =
         mapper.readValue(
-            content,
+            input,
+            mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
+        )
+
+    fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
+        mapper.readValue(
+            input,
             mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
         )
 

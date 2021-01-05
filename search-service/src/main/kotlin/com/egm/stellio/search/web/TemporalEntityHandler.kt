@@ -125,7 +125,7 @@ class TemporalEntityHandler(
         )
 
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(compact(filteredJsonLdEntity, contextLink)))
+            .body(serializeObject(compact(filteredJsonLdEntity, contextLink, mediaType)))
     }
 
     /**

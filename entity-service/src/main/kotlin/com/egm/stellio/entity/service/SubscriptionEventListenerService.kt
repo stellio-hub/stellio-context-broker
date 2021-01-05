@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.parseJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -38,7 +38,7 @@ class SubscriptionEventListenerService(
     }
 
     private fun handleSubscriptionCreateEvent(subscriptionCreateEvent: EntityCreateEvent) {
-        val parsedSubscription = parseJsonLdFragment(subscriptionCreateEvent.operationPayload)
+        val parsedSubscription = deserializeObject(subscriptionCreateEvent.operationPayload)
             .minus("id").minus("type")
         subscriptionHandlerService.createSubscriptionEntity(
             subscriptionCreateEvent.entityId, "Subscription", parsedSubscription
@@ -46,7 +46,7 @@ class SubscriptionEventListenerService(
     }
 
     private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
-        var parsedNotification = parseJsonLdFragment(notificationCreateEvent.operationPayload)
+        var parsedNotification = deserializeObject(notificationCreateEvent.operationPayload)
         val subscriptionId = (parsedNotification["subscriptionId"] as String).toUri()
         parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
 

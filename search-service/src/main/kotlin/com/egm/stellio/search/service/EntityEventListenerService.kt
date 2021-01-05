@@ -5,7 +5,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.addContextToPayload
+import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -42,7 +42,7 @@ class EntityEventListenerService(
 
     private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) =
         try {
-            val operationPayload = addContextToPayload(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
+            val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 operationPayload,
                 entityCreateEvent.contexts
@@ -116,7 +116,7 @@ class EntityEventListenerService(
             logger.info("Ignoring update event for $expandedAttributeName, it has no observedAt information")
             return
         }
-        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -156,7 +156,7 @@ class EntityEventListenerService(
         contexts: List<String>
     ) {
         if (!attributeValuesNode.has("observedAt")) return
-        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)

@@ -85,7 +85,7 @@ class SubscriptionHandler(
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)
-            .collectList().awaitFirst().toJson(contextLink, includeSysAttrs)
+            .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
 
         val prevAndNextLinks = getSubscriptionsPagingLinks(
             subscriptionService.getSubscriptionsCount(userId).awaitFirst(),
@@ -131,7 +131,7 @@ class SubscriptionHandler(
         val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
 
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(subscription.toJson(contextLink, includeSysAttrs))
+            .body(subscription.toJson(contextLink, mediaType, includeSysAttrs))
     }
 
     /**

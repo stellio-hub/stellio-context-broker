@@ -35,14 +35,14 @@ class SubscriptionTest {
 
     @Test
     fun `it should serialize Subscription as JSON without createdAt and modifiedAt if not specified`() {
-        val serializedSub = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, false)
+        val serializedSub = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = false)
         assertFalse(serializedSub.contains("createdAt"))
         assertFalse(serializedSub.contains("modifiedAt"))
     }
 
     @Test
     fun `it should serialize Subscription as JSON with createdAt and modifiedAt if specified`() {
-        val serializedSubscription = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, true)
+        val serializedSubscription = modifiedSubscription.toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
         assertTrue(serializedSubscription.contains("createdAt"))
         assertTrue(serializedSubscription.contains("modifiedAt"))
     }
@@ -61,7 +61,7 @@ class SubscriptionTest {
     fun `it should serialize a list of subscriptions as JSON with createdAt and modifiedAt if specified`() {
         val otherModifiedSubscription = modifiedSubscription.copy(id = "urn:ngsi-ld:Subscription:02".toUri())
         val serializedSubscriptions =
-            listOf(modifiedSubscription, otherModifiedSubscription).toJson(NGSILD_CORE_CONTEXT, true)
+            listOf(modifiedSubscription, otherModifiedSubscription).toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
         with(serializedSubscriptions) {
             assertTrue(read<List<String>>(this, "$[*].createdAt").size == 2)
             assertTrue(read<List<String>>(this, "$[*].modifiedAt").size == 2)

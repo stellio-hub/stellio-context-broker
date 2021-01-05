@@ -190,7 +190,7 @@ class EntityOperationHandler(
 
     private fun extractAndParseBatchOfEntities(payload: String):
         Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
-            JsonUtils.parseListOfEntities(payload)
+            JsonUtils.deserializeListOfObjects(payload)
                 .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
                 .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
 

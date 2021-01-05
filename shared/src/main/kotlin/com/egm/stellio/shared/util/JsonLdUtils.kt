@@ -8,6 +8,8 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonParseException
@@ -88,12 +90,7 @@ object JsonLdUtils {
     @PostConstruct
     private fun loadCoreContext() {
         val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
-        val coreContext: Map<String, Any> = mapper.readValue(
-            coreContextPayload,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
+        val coreContext: Map<String, Any> = deserializeObject(coreContextPayload)
         BASE_CONTEXT = coreContext[JSONLD_CONTEXT] as Map<String, Any>
         logger.info("Core context loaded")
     }
@@ -120,24 +117,21 @@ object JsonLdUtils {
         }
     }
 
-    fun addContextToPayload(payload: String, contexts: List<String>): String {
-        val parsedPayload: MutableMap<String, Any> = mapper.readValue(
-            payload,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
-        parsedPayload[JSONLD_CONTEXT] = contexts
+    fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
+        val updatedPayload = deserializeListOfObjects(listOfElements)
+            .map {
+                it.plus(Pair(JSONLD_CONTEXT, contexts))
+            }
+        return serializeObject(updatedPayload)
+    }
+
+    fun addContextToElement(element: String, contexts: List<String>): String {
+        val parsedPayload = deserializeObject(element).plus(Pair(JSONLD_CONTEXT, contexts))
         return serializeObject(parsedPayload)
     }
 
     fun extractContextFromInput(input: String): List<String> {
-        val parsedInput: Map<String, Any> = mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
+        val parsedInput = deserializeObject(input)
 
         return if (!parsedInput.containsKey(JSONLD_CONTEXT))
             emptyList()
@@ -150,25 +144,11 @@ object JsonLdUtils {
     }
 
     fun removeContextFromInput(input: String): String {
-        val parsedInput: Map<String, Any> = mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
+        val parsedInput = deserializeObject(input)
+
         return if (parsedInput.containsKey(JSONLD_CONTEXT))
             serializeObject(parsedInput.minus(JSONLD_CONTEXT))
         else input
-    }
-
-    // TODO it should be replaced by proper parsing to a NGSI-LD attribute
-    fun parseJsonLdFragment(input: String): Map<String, Any> {
-        return mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
     }
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =

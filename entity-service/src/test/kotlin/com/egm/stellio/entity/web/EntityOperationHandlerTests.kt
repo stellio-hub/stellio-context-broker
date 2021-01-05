@@ -764,7 +764,7 @@ class EntityOperationHandlerTests {
     private fun getExpectedEntitiesEventsOperationPayload(
         entitiesPayload: String,
         createdEntitiesIds: List<URI> = emptyList()
-    ) = JsonUtils.parseListOfEntities(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
+    ) = JsonUtils.deserializeListOfObjects(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
         .map { serializeObject(it) }
         .map { JsonLdUtils.removeContextFromInput(it) }
 }

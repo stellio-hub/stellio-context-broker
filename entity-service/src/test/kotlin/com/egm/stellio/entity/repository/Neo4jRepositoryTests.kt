@@ -334,7 +334,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should return entities matching given type and ids`() {
+    fun `it should return entities matching given type and id`() {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -350,6 +350,36 @@ class Neo4jRepositoryTests {
         assertTrue(entities.contains(secondEntity.id))
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return entities matching given type and ids`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        val entities = neo4jRepository.getEntities(
+            listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
+            "Beekeeper",
+            ""
+        )
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        assertTrue(entities.contains(thirdEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test

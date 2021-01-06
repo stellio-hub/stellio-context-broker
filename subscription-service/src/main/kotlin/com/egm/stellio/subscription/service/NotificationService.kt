@@ -2,9 +2,12 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.filterCompactedEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toKeyValues
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
@@ -14,7 +17,6 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.time.format.DateTimeFormatter
 
 @Service
 class NotificationService(
@@ -28,8 +30,7 @@ class NotificationService(
     fun notifyMatchingSubscribers(
         rawEntity: String,
         ngsiLdEntity: NgsiLdEntity,
-        updatedAttributes: Set<String>,
-        contexts: List<String>
+        updatedAttributes: Set<String>
     ): Mono<List<Triple<Subscription, Notification, Boolean>>> {
         val id = ngsiLdEntity.id
         val type = ngsiLdEntity.type
@@ -41,7 +42,7 @@ class NotificationService(
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
             }
             .flatMap {
-                callSubscriber(it, id, expandJsonLdEntity(rawEntity, contexts))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity, ngsiLdEntity.contexts))
             }
             .collectList()
     }
@@ -53,11 +54,11 @@ class NotificationService(
     ): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotifData(entity, subscription.notification)
+            data = buildNotificationData(entity, subscription.notification, entity.contexts)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri")
-        if (uri == "embedded-firebase") {
+        if (uri == "urn:embedded:firebase") {
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {
@@ -67,7 +68,7 @@ class NotificationService(
                 request = request.header(it.key, it.value)
             }
             return request
-                .bodyValue(notification)
+                .bodyValue(serializeObject(notification))
                 .exchange()
                 .doOnError { e -> logger.error("Failed to send notification to $uri : ${e.message}") }
                 .map {
@@ -90,9 +91,13 @@ class NotificationService(
         }
     }
 
-    private fun buildNotifData(entity: JsonLdEntity, params: NotificationParams): List<Map<String, Any>> {
+    private fun buildNotificationData(
+        entity: JsonLdEntity,
+        params: NotificationParams,
+        contexts: List<String>
+    ): List<Map<String, Any>> {
         val filteredEntity =
-            JsonLdUtils.filterCompactedEntityOnAttributes(entity.compact(), params.attributes?.toSet() ?: emptySet())
+            filterCompactedEntityOnAttributes(compact(entity, contexts), params.attributes?.toSet() ?: emptySet())
         val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
             filteredEntity.toKeyValues()
         else
@@ -119,7 +124,7 @@ class NotificationService(
             mapOf(
                 "id_alert" to notification.id.toString(),
                 "id_subscription" to subscription.id.toString(),
-                "timestamp" to notification.notifiedAt.format(DateTimeFormatter.ISO_DATE_TIME),
+                "timestamp" to notification.notifiedAt.toNgsiLdFormat(),
                 "id_beehive" to entityId.toString()
             ),
             fcmDeviceToken

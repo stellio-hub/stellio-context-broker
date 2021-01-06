@@ -94,7 +94,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name==Scalpa")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name==\"Scalpa\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -106,7 +106,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name==ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name==\"ScalpaXYZ\"")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -118,7 +118,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishNumber", value = 500))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishNumber==500")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishNumber==500")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -130,7 +130,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishNumber", value = 500))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishNumber==499")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishNumber==499")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -142,7 +142,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 120.50))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight==120.50")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight==120.50")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -154,55 +154,55 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = -120.50))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight==-120")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight==-120")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an empty list if given weight equals to entity weight and comparaison parameter is wrong`() {
+    fun `it should return an empty list if given weight equals to entity weight and comparison parameter is wrong`() {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 180.9))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight>180.9")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight>180.9")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an entity if given weight equals to entity weight and comparaison parameter is correct`() {
+    fun `it should return an entity if given weight equals to entity weight and comparison parameter is correct`() {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 255))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight>=255")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight>=255")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an empty list if given name equals to entity name and comparaison parameter is wrong`() {
+    fun `it should return an empty list if given name equals to entity name and comparison parameter is wrong`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "ScalpaXYZ"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name!=ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name!=\"ScalpaXYZ\"")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an entity if given name not equals to entity name and comparaison parameter is correct`() {
+    fun `it should return an entity if given name not equals to entity name and comparison parameter is correct`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name!=ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name!=\"ScalpaXYZ\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -214,7 +214,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = ZonedDateTime.parse("2018-12-04T12:00:00Z")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-04T12:00:00Z")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-04T12:00:00Z")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -226,7 +226,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-04")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-04")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -238,7 +238,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-07")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-07")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -250,7 +250,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalTime.parse("12:00:00")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -265,7 +265,7 @@ class Neo4jRepositoryTests {
                 Property(name = "name", value = "beekeeper")
             )
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00;name==beekeeper")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00;name==\"beekeeper\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -281,10 +281,10 @@ class Neo4jRepositoryTests {
             )
         )
 
-        var entities = neo4jRepository.getEntities("Beekeeper", "testedAt==13:00:00;name==beekeeper")
+        var entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==13:00:00;name==\"beekeeper\"")
         assertFalse(entities.contains(entity.id))
 
-        entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00;name==beekeeperx")
+        entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00;name==\"beekeeperx\"")
         assertFalse(entities.contains(entity.id))
 
         neo4jRepository.deleteEntity(entity.id)
@@ -303,30 +303,83 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
 
         var entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567"
+            "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567);name==beekeeper"
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567)|name==beekeeper"
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==13:00:00;observedBy==urn:ngsi-ld:Entity:4567)|name==beekeeper"
+            "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return entities matching given type and id`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val entities = neo4jRepository.getEntities(listOf("urn:ngsi-ld:Beekeeper:1231"), "Beekeeper", "")
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return entities matching given type and ids`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        val entities = neo4jRepository.getEntities(
+            listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
+            "Beekeeper",
+            ""
+        )
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        assertTrue(entities.contains(thirdEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test

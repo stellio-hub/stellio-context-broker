@@ -8,6 +8,7 @@ import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
 import com.egm.stellio.entity.util.isDate
 import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
+import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.toListOfString
@@ -469,17 +470,18 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun getEntities(type: String, rawQuery: String): List<URI> {
+    fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
+        val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
             pattern.toRegex()
         ) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-            if (parsedQueryTerm.third.startsWith("urn:")) {
+            if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
                         MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                        WHERE e.id ${parsedQueryTerm.second} '${parsedQueryTerm.third}'
+                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
                     }
                 """.trimIndent()
             } else {
@@ -488,7 +490,7 @@ class Neo4jRepository(
                     parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
                     parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
                     parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
-                    else -> "'${parsedQueryTerm.third}'"
+                    else -> parsedQueryTerm.third
                 }
                 """
                    EXISTS {
@@ -508,14 +510,23 @@ class Neo4jRepository(
             else
                 "MATCH (n:`$type`)"
 
+        val idClause =
+            if (ids != null)
+                """
+                    n.id in $formattedIds
+                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
+                """
+            else ""
+
         val whereClause =
-            if (innerQuery.isNotEmpty()) " WHERE "
+            if (innerQuery.isNotEmpty() || ids != null) " WHERE "
             else ""
 
         val finalQuery =
             """
             $matchClause
             $whereClause
+                $idClause
                 $innerQuery
             RETURN n.id as id
             """

@@ -9,6 +9,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -62,13 +63,13 @@ class Entity(
         if (includeSysAttrs) {
             resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to createdAt
+                JSONLD_VALUE_KW to createdAt.toNgsiLdFormat()
             )
 
             modifiedAt?.run {
                 resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                    JSONLD_VALUE_KW to this
+                    JSONLD_VALUE_KW to this.toNgsiLdFormat()
                 )
             }
         }

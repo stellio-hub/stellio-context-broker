@@ -50,7 +50,10 @@ class QueryUtilsTests {
 
     @Test
     fun `it should create a minDistance geoquery statement`() {
-        val geoQuery = gimmeRawSubscription(georel = "near;minDistance==15").geoQ
+        val geoQuery = gimmeRawSubscription(
+            georel = "near;minDistance==15",
+            coordinates = listOf("[100.0, 1.0]", "[100.0, 0.0]", "[101.0, 1.0]", "[100.0, 1.0]", "[100.0, 1.0]")
+        ).geoQ
         val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.30623, 30.07966)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
@@ -58,7 +61,7 @@ class QueryUtilsTests {
         assertTrue(
             queryStatement.matchContent(
                 """
-                SELECT ST_distance(ST_GeomFromText('Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))'),
+                SELECT ST_distance(ST_GeomFromText('Polygon((100.0 1.0, 100.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 1.0))'),
                                    ST_GeomFromText('Point(60.30623 30.07966)')) >= 15 as geoquery_result 
                 """
             )
@@ -69,11 +72,25 @@ class QueryUtilsTests {
     fun `it should create an sql Polygon geometry`() {
         val geoQuery = gimmeRawSubscription().geoQ
 
-        val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
 
         assertEquals(
             queryStatement,
             "Polygon((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))"
+        )
+    }
+
+    @Test
+    fun `it should create an sql Polygon geometry with coordinates as Array`() {
+        val geoQuery = gimmeRawSubscription(
+            coordinates = listOf("[100.0, 1.0]", "[100.0, 0.0]", "[101.0, 1.0]", "[100.0, 1.0]", "[100.0, 1.0]")
+        ).geoQ
+
+        val queryStatement = QueryUtils.createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
+
+        assertEquals(
+            queryStatement,
+            "Polygon((100.0 1.0, 100.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 1.0))"
         )
     }
 
@@ -96,7 +113,7 @@ class QueryUtilsTests {
     fun `it should correctly parse Polygon coordinates`() {
         val geoQuery = gimmeRawSubscription().geoQ
 
-        val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val parsedCoordinates = QueryUtils.parseCoordinates(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
 
         assertEquals(
             parsedCoordinates,

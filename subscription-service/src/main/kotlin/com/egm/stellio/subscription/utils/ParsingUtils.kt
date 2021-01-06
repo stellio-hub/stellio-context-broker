@@ -7,8 +7,11 @@ import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.slf4j.LoggerFactory
 
 object ParsingUtils {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun parseSubscription(input: String, context: List<String>): Subscription {
         val mapper = jacksonObjectMapper()
@@ -21,6 +24,7 @@ object ParsingUtils {
             subscription.expandTypes(context)
             return subscription
         } catch (e: Exception) {
+            logger.error("Error while parsing a subscription: ${e.message}", e)
             throw BadRequestDataException(e.message ?: "Failed to parse subscription")
         }
     }

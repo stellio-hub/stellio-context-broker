@@ -5,12 +5,11 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.addContextToPayload
+import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -31,7 +30,7 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
-        when (val entityEvent = parseEntityEvent(content)) {
+        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
             is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
             is AttributeAppendEvent -> handleAttributeAppendEvent(entityEvent)
@@ -43,7 +42,7 @@ class EntityEventListenerService(
 
     private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) =
         try {
-            val operationPayload = addContextToPayload(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
+            val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
             temporalEntityAttributeService.createEntityTemporalReferences(
                 operationPayload,
                 entityCreateEvent.contexts
@@ -114,13 +113,10 @@ class EntityEventListenerService(
         //  - existence of temporal entity attribute
         //  - needs optimization (lot of JSON-LD parsing, ...)
         if (!attributeValuesNode.has("observedAt")) {
-            logger.info(
-                "Ignoring update event for " +
-                    "${expandedAttributeName.extractShortTypeFromExpanded()}, it has no observedAt information"
-            )
+            logger.info("Ignoring update event for $expandedAttributeName, it has no observedAt information")
             return
         }
-        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -160,7 +156,7 @@ class EntityEventListenerService(
         contexts: List<String>
     ) {
         if (!attributeValuesNode.has("observedAt")) return
-        val jsonLdUpdatedEntity = addContextToPayload(updatedEntity, contexts)
+        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)

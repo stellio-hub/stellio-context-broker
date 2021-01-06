@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.neo4j.ogm.annotation.Id
@@ -54,20 +55,20 @@ open class Attribute(
         if (includeSysAttrs) {
             resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to createdAt
+                JSONLD_VALUE_KW to createdAt.toNgsiLdFormat()
             )
 
             modifiedAt?.run {
                 resultEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                    JSONLD_VALUE_KW to this
+                    JSONLD_VALUE_KW to this.toNgsiLdFormat()
                 )
             }
         }
         observedAt?.run {
             resultEntity[NGSILD_OBSERVED_AT_PROPERTY] = mapOf(
                 JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                JSONLD_VALUE_KW to this
+                JSONLD_VALUE_KW to this.toNgsiLdFormat()
             )
         }
 

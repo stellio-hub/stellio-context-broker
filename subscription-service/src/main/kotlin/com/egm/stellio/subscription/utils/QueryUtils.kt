@@ -77,7 +77,7 @@ object QueryUtils {
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, location: NgsiLdGeoProperty): String {
         val locationInstance = location.instances[0]
-        val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates)
+        val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
         val targetGeometryStatement =
             createSqlGeometry(locationInstance.geoPropertyType, locationInstance.coordinates.toString())
         val georelParams = extractGeorelParams(geoQuery.georel)
@@ -131,10 +131,10 @@ object QueryUtils {
 
     fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
         if (georel.contains(NEAR_QUERY_CLAUSE)) {
-            val comparaisonParams = georel.split(";")[1].split("==")
-            if (comparaisonParams[0] == MAX_DISTANCE_QUERY_CLAUSE)
-                return Triple(DISTANCE_QUERY_CLAUSE, "<=", comparaisonParams[1])
-            return Triple(DISTANCE_QUERY_CLAUSE, ">=", comparaisonParams[1])
+            val comparisonParams = georel.split(";")[1].split("==")
+            if (comparisonParams[0] == MAX_DISTANCE_QUERY_CLAUSE)
+                return Triple(DISTANCE_QUERY_CLAUSE, "<=", comparisonParams[1])
+            return Triple(DISTANCE_QUERY_CLAUSE, ">=", comparisonParams[1])
         }
         return Triple(georel, null, null)
     }

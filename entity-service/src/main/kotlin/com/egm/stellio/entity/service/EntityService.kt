@@ -7,6 +7,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.PropertyRepository
+import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -14,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
@@ -309,12 +311,13 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
+        ids: List<String>?,
         type: String,
         query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(type, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(ids, type, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -327,6 +330,7 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
+        ids: List<String>?,
         type: String,
         query: String,
         contexts: List<String>,
@@ -343,7 +347,7 @@ class EntityService(
             // it will have to be modified when we support "dotted paths" (cf 4.9)
             val splitted = splitQueryTermOnOperator(matchResult.value)
             val expandedParam =
-                if (splitted[1].startsWith("urn:"))
+                if (splitted[1].isRelationshipTarget())
                     splitted[0]
                 else
                     expandJsonLdKey(splitted[0], contexts)!!
@@ -354,7 +358,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(expandedType, expandedQuery)
+        return neo4jRepository.getEntities(ids, expandedType, expandedQuery)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 
@@ -784,7 +788,7 @@ class EntityService(
                         observedProperty.name.extractShortTypeFromExpanded(),
                         observedProperty.datasetId,
                         propertyPayload,
-                        JsonLdUtils.compactAndSerialize(it, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(it, listOf(NGSILD_EGM_CONTEXT), MediaType.APPLICATION_JSON),
                         entity.contexts
                     ),
                     entity.type[0].extractShortTypeFromExpanded()

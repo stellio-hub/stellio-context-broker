@@ -58,6 +58,13 @@ class NotificationServiceTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
 
+    private val baseEgmSharedUrl = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
+    private final val contexts = listOf(
+        "$baseEgmSharedUrl/apic/jsonld-contexts/apic.jsonld",
+        "$baseEgmSharedUrl/shared-jsonld-contexts/egm.jsonld",
+        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    )
+
     private final val rawEntity =
         """
             {
@@ -82,9 +89,7 @@ class NotificationServiceTests {
                   }
                },
                "@context":[
-                  "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                  "https://gist.githubusercontent.com/bobeal/2e5905a069ad534b4919839b6b4c1245/raw/ed0b0103c8b498c034d8ad367d3494d02a9ad28b/apic.jsonld",
-                  "https://gist.githubusercontent.com/bobeal/4a836c81b837673b12e9db9916b1cd35/raw/82fba02005f3fc572d60744e38f6591bbaa09d6d/egm.jsonld"
+                  "${contexts.joinToString("\",\"")}"                  
                ]
             } 
         """.trimIndent()
@@ -124,12 +129,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(
-            rawEntity,
-            parsedEntity,
-            setOf("name"),
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -182,12 +183,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(
-            rawEntity,
-            parsedEntity,
-            setOf("name"),
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -245,12 +242,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(
-            rawEntity,
-            parsedEntity,
-            setOf("name"),
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -294,12 +287,8 @@ class NotificationServiceTests {
                 .willReturn(ok())
         )
 
-        val notificationResult = notificationService.notifyMatchingSubscribers(
-            rawEntity,
-            parsedEntity,
-            setOf("name"),
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
 
         StepVerifier.create(notificationResult)
             .expectNextMatches {
@@ -364,7 +353,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = "embedded-firebase".toUri(),
+                    uri = "urn:embedded:firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "deviceToken", value = "deviceToken-value"))
                 ),
@@ -406,7 +395,7 @@ class NotificationServiceTests {
                 attributes = listOf("incoming"),
                 format = FormatType.KEY_VALUES,
                 endpoint = Endpoint(
-                    uri = "embedded-firebase".toUri(),
+                    uri = "urn:embedded:firebase".toUri(),
                     accept = Endpoint.AcceptType.JSONLD,
                     info = listOf(EndpointInfo(key = "unknownToken-key", value = "deviceToken-value"))
                 ),

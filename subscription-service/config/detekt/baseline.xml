@@ -7,6 +7,7 @@
     <ID>MaxLineLength:SubscriptionService.kt$SubscriptionService$ AND ( string_to_array(watched_attributes, ',') &amp;&amp; string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
     <ID>ReturnCount:QueryUtils.kt$QueryUtils$fun extractGeorelParams(georel: String): Triple&lt;String, String?, String?&gt;</ID>
+    <ID>SpreadOperator:WebConfig.kt$WebConfig$(*it.toTypedArray())</ID>
     <ID>TooGenericExceptionCaught:FCMInitializer.kt$FCMInitializer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FCMService.kt$FCMService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$ParsingUtils$e: Exception</ID>

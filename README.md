@@ -19,8 +19,10 @@ context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/
 This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for
 [Core Context](https://github.com/Fiware/catalogue/tree/master/core).
 
-| :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) |
-| ------------------------------------------------- | ---------------------------------------------------------------------- |
+The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
+
+| :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
+| ------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
 
 ## Content
 

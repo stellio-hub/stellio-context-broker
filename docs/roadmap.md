@@ -17,22 +17,23 @@ The following list of features are planned to be addressed in the short term, an
 the product planned for end of March 2021:
 
 - Implement multi-attributes support for GeoProperties [#101](https://github.com/stellio-hub/stellio-context-broker/issues/101)
-- Finish implementation of common cross-cutting behaviors as defined in the NGSI-LD specification [#11](https://github.com/stellio-hub/stellio-context-broker/issues/11), [#12](https://github.com/stellio-hub/stellio-context-broker/issues/12), [#52](https://github.com/stellio-hub/stellio-context-broker/issues/52), [#146](https://github.com/stellio-hub/stellio-context-broker/issues/146), [#206](https://github.com/stellio-hub/stellio-context-broker/issues/206), [#287](https://github.com/stellio-hub/stellio-context-broker/issues/287)
+- Finish implementation of some missing common cross-cutting behaviors as defined in the NGSI-LD specification [#11](https://github.com/stellio-hub/stellio-context-broker/issues/11), [#12](https://github.com/stellio-hub/stellio-context-broker/issues/12), [#52](https://github.com/stellio-hub/stellio-context-broker/issues/52), [#146](https://github.com/stellio-hub/stellio-context-broker/issues/146), [#206](https://github.com/stellio-hub/stellio-context-broker/issues/206), [#287](https://github.com/stellio-hub/stellio-context-broker/issues/287)
 - Implement the discovery endpoints introduced in version 1.3.1 of the NGSI-LD specification [#268](https://github.com/stellio-hub/stellio-context-broker/issues/268)
+- Implement support for the batch entities update endpoint [#62](https://github.com/stellio-hub/stellio-context-broker/issues/62)
+- Fix the currently [identified issues](https://github.com/stellio-hub/stellio-context-broker/issues?q=is%3Aissue+is%3Aopen+label%3Afix)
+- Upgrade frameworks and libraries to their last released version (Spring Boot 2.4.x, Timescale 2.x, ...)
 
 ## Medium term
 
 The following list of features are planned to be addressed in the medium term, typically within the subsequent
 release(s) generated in the next **9 months** after next planned release:
 
-- Expose an API allowing the management of authorizations inside the information context
-- Implement support for geo-queries on entities
-- Implement support for the temporal evolution of relationships
-- Finish implementation of the temporal API
+- Implement full support for geospatial features (geo-queries on entities, support for all geometries, GeoJSON rendering, ...)
 - Implement support for the all the supported data types (e.g. structured property value)
 - Implement distributed capabilities (via support of Context Source as defined in the NGSI-LD specification)
 - Experiment with an alternative Graph database (namely Janus Graph)
 - Complete the requirements to become an approved full Generic Enabler
+- Expose an API allowing the management of authorizations inside the information context
 
 ## Long term
 
@@ -40,4 +41,5 @@ The following list of features are proposals regarding the longer-term evolution
 of these features has not yet been scheduled for a release in the near future. Please feel free to contact us if you
 wish to get involved in the implementation or influence the roadmap.
 
-- To be defined...
+- Full implementation of the NGSI-LD specification version 1.4.1
+

@@ -16,22 +16,23 @@ guidelines only, and this section may be revised to provide newer information at
 The following list of features are planned to be addressed in the short term, and incorporated in the next release of
 the product planned for end of March 2021:
 
-- Finish implementation of multi-attributes support
-- Finish implementation of common behaviors as defined in the NGSI-LD specification
-- Implement the discovery endpoints introduced in version 1.3.1 of the NGSI-LD specification
-- Implement support for geo-queries on entities
-- Expose an API allowing the management of authorizations inside the information context
+- Implement multi-attributes support for GeoProperties [#101](https://github.com/stellio-hub/stellio-context-broker/issues/101)
+- Finish implementation of common cross-cutting behaviors as defined in the NGSI-LD specification [#11](https://github.com/stellio-hub/stellio-context-broker/issues/11), [#12](https://github.com/stellio-hub/stellio-context-broker/issues/12), [#52](https://github.com/stellio-hub/stellio-context-broker/issues/52), [#146](https://github.com/stellio-hub/stellio-context-broker/issues/146), [#206](https://github.com/stellio-hub/stellio-context-broker/issues/206), [#287](https://github.com/stellio-hub/stellio-context-broker/issues/287)
+- Implement the discovery endpoints introduced in version 1.3.1 of the NGSI-LD specification [#268](https://github.com/stellio-hub/stellio-context-broker/issues/268)
 
 ## Medium term
 
 The following list of features are planned to be addressed in the medium term, typically within the subsequent
 release(s) generated in the next **9 months** after next planned release:
 
+- Expose an API allowing the management of authorizations inside the information context
+- Implement support for geo-queries on entities
 - Implement support for the temporal evolution of relationships
 - Finish implementation of the temporal API
 - Implement support for the all the supported data types (e.g. structured property value)
 - Implement distributed capabilities (via support of Context Source as defined in the NGSI-LD specification)
 - Experiment with an alternative Graph database (namely Janus Graph)
+- Complete the requirements to become an approved full Generic Enabler
 
 ## Long term
 

@@ -21,6 +21,7 @@ the product planned for end of March 2021:
 - Implement the discovery endpoints introduced in version 1.3.1 of the NGSI-LD specification [#268](https://github.com/stellio-hub/stellio-context-broker/issues/268)
 - Implement support for the batch entities update endpoint [#62](https://github.com/stellio-hub/stellio-context-broker/issues/62)
 - Fix the currently [identified issues](https://github.com/stellio-hub/stellio-context-broker/issues?q=is%3Aissue+is%3Aopen+label%3Afix)
+- Implement support for the aggregated temporal representation of entities introduced in version 1.4.1 of the NGSI-LD specification
 - Upgrade frameworks and libraries to their last released version (Spring Boot 2.4.x, Timescale 2.x, ...)
 
 ## Medium term

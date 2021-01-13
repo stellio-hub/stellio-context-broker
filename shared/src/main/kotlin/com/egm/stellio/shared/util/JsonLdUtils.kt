@@ -410,6 +410,14 @@ fun String.extractShortTypeFromExpanded(): String =
      */
     this.substringAfterLast("/").substringAfterLast("#")
 
+fun String.isExpanded(): Boolean =
+    try {
+        this.toUri()
+        true
+    } catch (e: BadRequestDataException) {
+        false
+    }
+
 fun CompactedJsonLdEntity.toKeyValues(): Map<String, Any> {
     return this.mapValues { (_, value) -> simplifyRepresentation(value) }
 }

@@ -10,9 +10,16 @@ data class EntityTypeInfo(
     val attributeDetails: List<AttributeInfo>
 )
 
+// Called AttributeInfo (not Attribute as in 5.2.28) since there is already an Attribute class declared
 data class AttributeInfo(
     val id: URI,
     val type: String = "Attribute",
     val attributeName: String,
-    val attributeTypes: List<String>
+    val attributeTypes: List<AttributeType>
 )
+
+enum class AttributeType {
+    Property,
+    Relationship,
+    GeoProperty
+}

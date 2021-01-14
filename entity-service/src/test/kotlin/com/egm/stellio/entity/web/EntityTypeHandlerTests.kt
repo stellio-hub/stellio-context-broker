@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.web
 
-import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.*
+import com.egm.stellio.entity.model.AttributeType
 import com.egm.stellio.entity.service.EntityTypeService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
@@ -30,24 +30,44 @@ class EntityTypeHandlerTests {
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
 
-    @MockkBean(relaxed = true)
-    private lateinit var authorizationService: AuthorizationService
-
+    val expectedEntityTypeInfo =
+        """
+            {
+               "id":"https://ontology.eglobalmark.com/apic#Beehive",
+               "type":"EntityTypeInformation",
+               "typeName":"Beehive",
+               "entityCount":2,
+               "attributeDetails":[
+                  {
+                     "id":"https://ontology.eglobalmark.com/apic#temperature",
+                     "type":"Attribute",
+                     "attributeName":"temperature",
+                     "attributeTypes":[
+                        "Property"
+                     ]
+                  },
+                  {
+                     "id":"https://ontology.eglobalmark.com/egm#managedBy",
+                     "type":"Attribute",
+                     "attributeName":"managedBy",
+                     "attributeTypes":[
+                        "Relationship"
+                     ]
+                  },
+                  {
+                     "id":"https://uri.etsi.org/ngsi-ld/location",
+                     "type":"Attribute",
+                     "attributeName":"location",
+                     "attributeTypes":[
+                        "GeoProperty"
+                     ]
+                  }
+               ]
+            }
+        """.trimIndent()
     @Test
     fun `get entity type information should return a 200 if entities of that type exists`() {
-        val authorizedEntitiesIds = listOf("urn:ngsi-ld:Beehive:TESTC".toUri())
-
-        every { entityTypeService.getEntitiesByType(any()) } returns listOf(
-            JsonLdEntity(
-                mapOf(
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-                ),
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        every { authorizationService.filterEntitiesUserCanRead(any(), any()) } returns authorizedEntitiesIds
-        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns
+        every { entityTypeService.getEntityTypeInformation(any()) } returns
             mockkClass(EntityTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -56,24 +76,51 @@ class EntityTypeHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify { entityTypeService.getEntitiesByType("https://uri.etsi.org/ngsi-ld/default-context/Beehive") }
+        verify { entityTypeService.getEntityTypeInformation("https://uri.etsi.org/ngsi-ld/default-context/Beehive") }
+    }
+
+    @Test
+    fun `get entity type information should correctly serialize an EntityTypeInformation`() {
+        every { entityTypeService.getEntityTypeInformation(any()) } returns
+            EntityTypeInfo(
+                id = "https://ontology.eglobalmark.com/apic#Beehive".toUri(),
+                typeName = "Beehive",
+                entityCount = 2,
+                attributeDetails = listOf(
+                    AttributeInfo(
+                        "https://ontology.eglobalmark.com/apic#temperature".toUri(),
+                        "Attribute",
+                        "temperature",
+                        listOf(AttributeType.Property)
+                    ),
+                    AttributeInfo(
+                        "https://ontology.eglobalmark.com/egm#managedBy".toUri(),
+                        "Attribute",
+                        "managedBy",
+                        listOf(AttributeType.Relationship)
+                    ),
+                    AttributeInfo(
+                        "https://uri.etsi.org/ngsi-ld/location".toUri(),
+                        "Attribute",
+                        "location",
+                        listOf(AttributeType.GeoProperty)
+                    )
+                )
+            )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types/Beehive")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(expectedEntityTypeInfo)
+
+        verify { entityTypeService.getEntityTypeInformation("https://uri.etsi.org/ngsi-ld/default-context/Beehive") }
     }
 
     @Test
     fun `get entity type information should search on entities with the expanded type if provided`() {
-        val authorizedEntitiesIds = listOf("urn:ngsi-ld:Beehive:TESTC".toUri())
-
-        every { entityTypeService.getEntitiesByType(any()) } returns listOf(
-            JsonLdEntity(
-                mapOf(
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-                ),
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        every { authorizationService.filterEntitiesUserCanRead(any(), any()) } returns authorizedEntitiesIds
-        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns
+        every { entityTypeService.getEntityTypeInformation(any()) } returns
             mockkClass(EntityTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -82,37 +129,17 @@ class EntityTypeHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify { entityTypeService.getEntitiesByType("https://ontology.eglobalmark.com/apic#BeeHive") }
+        verify { entityTypeService.getEntityTypeInformation("https://ontology.eglobalmark.com/apic#BeeHive") }
     }
 
     @Test
     fun `get entity type information should return a 404 if no entities of that type exists`() {
-        every { entityTypeService.getEntitiesByType(any()) } returns emptyList()
+        every { entityTypeService.getEntityTypeInformation(any()) } returns null
 
         webClient.get()
             .uri("/ngsi-ld/v1/types/Beehive")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
-    }
-
-    @Test
-    fun `get entity type information should return a 403 if user is not authorized to read entities`() {
-        every { entityTypeService.getEntitiesByType(any()) } returns listOf(
-            JsonLdEntity(
-                mapOf(
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-                ),
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        every { authorizationService.filterEntitiesUserCanRead(any(), any()) } returns emptyList()
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/types/Beehive")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .exchange()
-            .expectStatus().isForbidden
     }
 }

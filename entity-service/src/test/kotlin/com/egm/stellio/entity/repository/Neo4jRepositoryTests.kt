@@ -21,6 +21,7 @@ import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -1243,8 +1244,151 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(newDevice.id)
     }
 
-    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {
-        val entity = Entity(id = id, type = type, properties = properties)
+    @Test
+    fun `it should return an emptyMap for unknown type`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#unknownType")
+
+        assertTrue(attributesInformation.isEmpty())
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for two entities`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "incoming", value = 61)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        assertEquals(
+            attributesInformation,
+            mapOf(
+                "properties" to setOf("humidity", "temperature", "incoming"),
+                "relationships" to emptySet<String>(),
+                "geoProperties" to emptySet<String>(),
+                "entityCount" to 2
+            )
+        )
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for two entities with relationships`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "humidity", value = 61)
+            )
+        )
+        createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", partialTargetEntityUri)
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        assertEquals(
+            attributesInformation,
+            mapOf(
+                "properties" to setOf("humidity", "temperature"),
+                "relationships" to setOf("observedBy"),
+                "geoProperties" to emptySet<String>(),
+                "entityCount" to 2
+            )
+        )
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for three entities with location`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            ),
+            GeographicPoint2d(24.30623, 60.07966)
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "humidity", value = 61)
+            )
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTD".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 25),
+                Property(name = "humidity", value = 89)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        assertEquals(
+            attributesInformation,
+            mapOf(
+                "properties" to setOf("humidity", "temperature"),
+                "relationships" to emptySet<String>(),
+                "geoProperties" to setOf("location"),
+                "entityCount" to 3
+            )
+        )
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
+    fun createEntity(
+        id: URI,
+        type: List<String>,
+        properties: MutableList<Property> = mutableListOf(),
+        location: GeographicPoint2d? = null
+    ): Entity {
+        val entity = Entity(id = id, type = type, properties = properties, location = location)
         return entityRepository.save(entity)
     }
 

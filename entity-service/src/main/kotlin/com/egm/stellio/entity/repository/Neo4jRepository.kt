@@ -470,6 +470,33 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
+    fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
+        val query =
+            """
+                MATCH (entity:Entity:`$expandedType`)
+                WITH count(entity) as entityCount  
+                OPTIONAL MATCH (entityWithLocation:Entity:`$expandedType`) WHERE entityWithLocation.location IS NOT NULL
+                WITH entityCount, count(entityWithLocation) as entityWithLocationCount
+                MATCH (entity:Entity:`$expandedType`)
+                OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)-[r]->(relObject)
+                RETURN entityCount, entityWithLocationCount, property.name as propertyName,
+                    last(labels(rel)) as relationshipName
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true)
+
+        val entityCount = (result.firstOrNull()?.get("entityCount") as Long?)?.toInt() ?: return emptyMap()
+        val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
+
+        return mapOf(
+            "properties" to result.mapNotNull { it["propertyName"] as String? }.toSet(),
+            "relationships" to result.mapNotNull { it["relationshipName"] as String? }.toSet(),
+            "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
+            "entityCount" to entityCount
+        )
+    }
+
     fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")

@@ -6,7 +6,6 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -32,9 +31,10 @@ class EntityTypeHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val expandedType = expandJsonLdKey(type.decode(), contextLink)!!
 
-        val entityTypeInformation = entityTypeService.getEntityTypeInformation(expandedType)
+        val entityTypeInformation = entityTypeService.getEntityTypeInformation(expandedType, listOf(contextLink))
             ?: throw ResourceNotFoundException("No entities found for type $expandedType")
 
-        return ResponseEntity.status(HttpStatus.OK).body(JsonUtils.serializeObject(entityTypeInformation))
+        return buildGetSuccessResponse(MediaType.APPLICATION_JSON, contextLink)
+            .body(JsonUtils.serializeObject(entityTypeInformation))
     }
 }

@@ -16,6 +16,7 @@ val DEFAULT_CONTEXTS = listOf(
 )
 
 val AQUAC_COMPOUND_CONTEXT = "$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld"
+val APIC_COMPOUND_CONTEXT = "$EGM_BASE_CONTEXT_URL/apic/jsonld-contexts/apic-compound.jsonld"
 
 fun parseSampleDataToNgsiLd(filename: String = "beehive.jsonld"): NgsiLdEntity =
     parseSampleDataToJsonLd(filename).toNgsiLdEntity()

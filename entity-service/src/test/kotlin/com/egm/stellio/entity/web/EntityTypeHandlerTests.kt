@@ -7,6 +7,7 @@ import com.egm.stellio.entity.service.EntityTypeService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Test
@@ -30,12 +31,14 @@ class EntityTypeHandlerTests {
     @MockkBean
     private lateinit var entityTypeService: EntityTypeService
 
-    val expectedEntityTypeInfo =
+    private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+
+    private val expectedEntityTypeInfo =
         """
             {
-               "id":"https://ontology.eglobalmark.com/apic#Beehive",
+               "id":"https://ontology.eglobalmark.com/apic#BeeHive",
                "type":"EntityTypeInformation",
-               "typeName":"Beehive",
+               "typeName":"BeeHive",
                "entityCount":2,
                "attributeDetails":[
                   {
@@ -67,7 +70,7 @@ class EntityTypeHandlerTests {
         """.trimIndent()
     @Test
     fun `get entity type information should return a 200 if entities of that type exists`() {
-        every { entityTypeService.getEntityTypeInformation(any()) } returns
+        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns
             mockkClass(EntityTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -76,15 +79,20 @@ class EntityTypeHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify { entityTypeService.getEntityTypeInformation("https://uri.etsi.org/ngsi-ld/default-context/Beehive") }
+        verify {
+            entityTypeService.getEntityTypeInformation(
+                "https://uri.etsi.org/ngsi-ld/default-context/Beehive",
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
     }
 
     @Test
     fun `get entity type information should correctly serialize an EntityTypeInformation`() {
-        every { entityTypeService.getEntityTypeInformation(any()) } returns
+        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns
             EntityTypeInfo(
-                id = "https://ontology.eglobalmark.com/apic#Beehive".toUri(),
-                typeName = "Beehive",
+                id = "https://ontology.eglobalmark.com/apic#BeeHive".toUri(),
+                typeName = "BeeHive",
                 entityCount = 2,
                 attributeDetails = listOf(
                     AttributeInfo(
@@ -109,18 +117,24 @@ class EntityTypeHandlerTests {
             )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/types/Beehive")
+            .uri("/ngsi-ld/v1/types/BeeHive")
+            .header(HttpHeaders.LINK, apicHeaderLink)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(expectedEntityTypeInfo)
 
-        verify { entityTypeService.getEntityTypeInformation("https://uri.etsi.org/ngsi-ld/default-context/Beehive") }
+        verify {
+            entityTypeService.getEntityTypeInformation(
+                "https://ontology.eglobalmark.com/apic#BeeHive",
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
     }
 
     @Test
     fun `get entity type information should search on entities with the expanded type if provided`() {
-        every { entityTypeService.getEntityTypeInformation(any()) } returns
+        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns
             mockkClass(EntityTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -129,12 +143,17 @@ class EntityTypeHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify { entityTypeService.getEntityTypeInformation("https://ontology.eglobalmark.com/apic#BeeHive") }
+        verify {
+            entityTypeService.getEntityTypeInformation(
+                "https://ontology.eglobalmark.com/apic#BeeHive",
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
     }
 
     @Test
     fun `get entity type information should return a 404 if no entities of that type exists`() {
-        every { entityTypeService.getEntityTypeInformation(any()) } returns null
+        every { entityTypeService.getEntityTypeInformation(any(), any()) } returns null
 
         webClient.get()
             .uri("/ngsi-ld/v1/types/Beehive")

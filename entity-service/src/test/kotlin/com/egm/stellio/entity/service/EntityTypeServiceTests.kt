@@ -3,6 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.AttributeInfo
 import com.egm.stellio.entity.model.AttributeType
 import com.egm.stellio.entity.repository.Neo4jRepository
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -30,12 +31,14 @@ class EntityTypeServiceTests {
             "entityCount" to 1
         )
 
-        val entityTypeInformation = entityTypeService
-            .getEntityTypeInformation("https://ontology.eglobalmark.com/apic#Beehive") !!
+        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+            "https://ontology.eglobalmark.com/apic#BeeHive",
+            listOf(APIC_COMPOUND_CONTEXT)
+        )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#Beehive".toUri())
+        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
         assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "Beehive")
+        assert(entityTypeInformation.typeName == "BeeHive")
         assert(entityTypeInformation.entityCount == 1)
         assert(entityTypeInformation.attributeDetails.isEmpty())
     }
@@ -49,12 +52,14 @@ class EntityTypeServiceTests {
             "entityCount" to 2
         )
 
-        val entityTypeInformation = entityTypeService
-            .getEntityTypeInformation("https://ontology.eglobalmark.com/apic#Beehive") !!
+        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+            "https://ontology.eglobalmark.com/apic#BeeHive",
+            listOf(APIC_COMPOUND_CONTEXT)
+        )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#Beehive".toUri())
+        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
         assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "Beehive")
+        assert(entityTypeInformation.typeName == "BeeHive")
         assert(entityTypeInformation.entityCount == 2)
         assert(entityTypeInformation.attributeDetails.size == 1)
         assert(
@@ -78,12 +83,14 @@ class EntityTypeServiceTests {
             "entityCount" to 3
         )
 
-        val entityTypeInformation = entityTypeService
-            .getEntityTypeInformation("https://ontology.eglobalmark.com/apic#Beehive")!!
+        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+            "https://ontology.eglobalmark.com/apic#BeeHive",
+            listOf(APIC_COMPOUND_CONTEXT)
+        )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#Beehive".toUri())
+        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
         assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "Beehive")
+        assert(entityTypeInformation.typeName == "BeeHive")
         assert(entityTypeInformation.entityCount == 3)
         assert(entityTypeInformation.attributeDetails.size == 3)
         assert(

@@ -471,6 +471,8 @@ class Neo4jRepository(
     }
 
     fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
+        // The match on geoProperties is specific since they are not fully supported
+        // (currently we only support location that is stored among the entity node attributes)
         val query =
             """
                 MATCH (entity:Entity:`$expandedType`)
@@ -479,16 +481,17 @@ class Neo4jRepository(
                 WITH entityCount, count(entityWithLocation) as entityWithLocationCount
                 MATCH (entity:Entity:`$expandedType`)
                 OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
-                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)-[r]->(relObject)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
                 RETURN entityCount, entityWithLocationCount, property.name as propertyName,
                     last(labels(rel)) as relationshipName
             """.trimIndent()
 
-        val result = session.query(query, emptyMap<String, Any>(), true)
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        if (result.isEmpty())
+            return emptyMap()
 
-        val entityCount = (result.firstOrNull()?.get("entityCount") as Long?)?.toInt() ?: return emptyMap()
+        val entityCount = (result.first()["entityCount"] as Long).toInt()
         val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
-
         return mapOf(
             "properties" to result.mapNotNull { it["propertyName"] as String? }.toSet(),
             "relationships" to result.mapNotNull { it["relationshipName"] as String? }.toSet(),

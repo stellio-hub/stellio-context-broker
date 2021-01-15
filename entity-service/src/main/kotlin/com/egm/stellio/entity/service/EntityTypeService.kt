@@ -15,47 +15,32 @@ class EntityTypeService(
         val attributesInformation = neo4jRepository.getEntityTypeAttributesInformation(expandedType)
         if (attributesInformation.isEmpty()) return null
 
+        val propertiesAttributeInfo =
+            createAttributeDetails(attributesInformation, "properties", AttributeType.Property, contexts)
+        val relationshipsAttributeInfo =
+            createAttributeDetails(attributesInformation, "relationships", AttributeType.Relationship, contexts)
+        val geoPropertiesAttributeInfo =
+            createAttributeDetails(attributesInformation, "geoProperties", AttributeType.GeoProperty, contexts)
+
         return EntityTypeInfo(
             id = expandedType.toUri(),
             typeName = compactTerm(expandedType, contexts),
             entityCount = attributesInformation["entityCount"] as Int,
-            attributeDetails = createAttributeDetails(attributesInformation, contexts)
+            attributeDetails = propertiesAttributeInfo.plus(relationshipsAttributeInfo).plus(geoPropertiesAttributeInfo)
         )
     }
 
     private fun createAttributeDetails(
         attributesInformation: Map<String, Any>,
-        contexts: List<String>
-    ): List<AttributeInfo> {
-        val propertiesAttributeInfo = createListOfAttributeInfo(
-            attributesInformation["properties"] as Set<String>,
-            AttributeType.Property,
-            contexts
-        )
-        val relationshipsAttributeInfo = createListOfAttributeInfo(
-            attributesInformation["relationships"] as Set<String>,
-            AttributeType.Relationship,
-            contexts
-        )
-        val geoPropertiesAttributeInfo = createListOfAttributeInfo(
-            attributesInformation["geoProperties"] as Set<String>,
-            AttributeType.GeoProperty,
-            contexts
-        )
-        return listOf(propertiesAttributeInfo, relationshipsAttributeInfo, geoPropertiesAttributeInfo).flatten()
-    }
-
-    private fun createListOfAttributeInfo(
-        attributesNames: Set<String>,
+        key: String,
         attributesType: AttributeType,
         contexts: List<String>
-    ): List<AttributeInfo> {
-        return attributesNames.map {
+    ): List<AttributeInfo> =
+        (attributesInformation[key] as Set<String>).map {
             AttributeInfo(
                 id = it.toUri(),
                 attributeName = compactTerm(it, contexts),
                 attributeTypes = listOf(attributesType)
             )
         }
-    }
 }

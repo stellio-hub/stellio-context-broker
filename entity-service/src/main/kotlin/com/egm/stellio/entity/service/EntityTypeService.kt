@@ -11,7 +11,7 @@ class EntityTypeService(
     private val neo4jRepository: Neo4jRepository
 ) {
 
-    fun getEntityTypeInformation(expandedType: String, contexts: List<String>): EntityTypeInfo? {
+    fun getEntityTypeInfo(expandedType: String, contexts: List<String>): EntityTypeInfo? {
         val attributesInformation = neo4jRepository.getEntityTypeAttributesInformation(expandedType)
         if (attributesInformation.isEmpty()) return null
 

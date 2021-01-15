@@ -4,7 +4,7 @@ import java.net.URI
 
 data class EntityTypeInfo(
     val id: URI,
-    val type: String = "EntityTypeInformation",
+    val type: String = "EntityTypeInfo",
     val typeName: String,
     val entityCount: Int,
     val attributeDetails: List<AttributeInfo>

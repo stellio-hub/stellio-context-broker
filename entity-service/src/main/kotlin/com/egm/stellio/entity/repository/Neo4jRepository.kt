@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import arrow.core.extensions.list.functorFilter.filter
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -483,7 +484,7 @@ class Neo4jRepository(
                 OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
                 OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
                 RETURN entityCount, entityWithLocationCount, property.name as propertyName,
-                    last(labels(rel)) as relationshipName
+                    labels(rel) as relationshipName
             """.trimIndent()
 
         val result = session.query(query, emptyMap<String, Any>(), true).toList()
@@ -494,7 +495,12 @@ class Neo4jRepository(
         val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
         return mapOf(
             "properties" to result.mapNotNull { it["propertyName"] as String? }.toSet(),
-            "relationships" to result.mapNotNull { it["relationshipName"] as String? }.toSet(),
+            "relationships" to result
+                .mapNotNull {
+                    (it["relationshipName"] as Array<String>?)?.filter { it !in listOf("Attribute", "Relationship") }
+                }
+                .flatten()
+                .toSet(),
             "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
             "entityCount" to entityCount
         )

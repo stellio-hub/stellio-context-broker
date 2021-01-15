@@ -31,10 +31,10 @@ class EntityTypeHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val expandedType = expandJsonLdKey(type.decode(), contextLink)!!
 
-        val entityTypeInformation = entityTypeService.getEntityTypeInformation(expandedType, listOf(contextLink))
+        val entityTypeInfo = entityTypeService.getEntityTypeInfo(expandedType, listOf(contextLink))
             ?: throw ResourceNotFoundException("No entities found for type $expandedType")
 
         return buildGetSuccessResponse(MediaType.APPLICATION_JSON, contextLink)
-            .body(JsonUtils.serializeObject(entityTypeInformation))
+            .body(JsonUtils.serializeObject(entityTypeInfo))
     }
 }

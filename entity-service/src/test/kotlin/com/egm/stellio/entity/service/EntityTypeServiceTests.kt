@@ -23,7 +23,7 @@ class EntityTypeServiceTests {
     private lateinit var neo4jRepository: Neo4jRepository
 
     @Test
-    fun `it should return an EntityTypeInformation for one beehive entity with no attributeDetails`() {
+    fun `it should return an EntityTypeInfo for one beehive entity with no attributeDetails`() {
         every { neo4jRepository.getEntityTypeAttributesInformation(any()) } returns mapOf(
             "properties" to emptySet<String>(),
             "relationships" to emptySet<String>(),
@@ -31,20 +31,20 @@ class EntityTypeServiceTests {
             "entityCount" to 1
         )
 
-        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+        val entityTypeInfo = entityTypeService.getEntityTypeInfo(
             "https://ontology.eglobalmark.com/apic#BeeHive",
             listOf(APIC_COMPOUND_CONTEXT)
         )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
-        assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "BeeHive")
-        assert(entityTypeInformation.entityCount == 1)
-        assert(entityTypeInformation.attributeDetails.isEmpty())
+        assert(entityTypeInfo.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
+        assert(entityTypeInfo.type == "EntityTypeInfo")
+        assert(entityTypeInfo.typeName == "BeeHive")
+        assert(entityTypeInfo.entityCount == 1)
+        assert(entityTypeInfo.attributeDetails.isEmpty())
     }
 
     @Test
-    fun `it should return an EntityTypeInformation with an attributeDetails with one attributeInfo`() {
+    fun `it should return an EntityTypeInfo with an attributeDetails with one attributeInfo`() {
         every { neo4jRepository.getEntityTypeAttributesInformation(any()) } returns mapOf(
             "properties" to setOf("https://ontology.eglobalmark.com/apic#temperature"),
             "relationships" to emptySet<String>(),
@@ -52,18 +52,18 @@ class EntityTypeServiceTests {
             "entityCount" to 2
         )
 
-        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+        val entityTypeInfo = entityTypeService.getEntityTypeInfo(
             "https://ontology.eglobalmark.com/apic#BeeHive",
             listOf(APIC_COMPOUND_CONTEXT)
         )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
-        assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "BeeHive")
-        assert(entityTypeInformation.entityCount == 2)
-        assert(entityTypeInformation.attributeDetails.size == 1)
+        assert(entityTypeInfo.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
+        assert(entityTypeInfo.type == "EntityTypeInfo")
+        assert(entityTypeInfo.typeName == "BeeHive")
+        assert(entityTypeInfo.entityCount == 2)
+        assert(entityTypeInfo.attributeDetails.size == 1)
         assert(
-            entityTypeInformation.attributeDetails.contains(
+            entityTypeInfo.attributeDetails.contains(
                 AttributeInfo(
                     "https://ontology.eglobalmark.com/apic#temperature".toUri(),
                     "Attribute",
@@ -75,7 +75,7 @@ class EntityTypeServiceTests {
     }
 
     @Test
-    fun `it should return an EntityTypeInformation with an attributeDetails with more than one attributeInfo`() {
+    fun `it should return an EntityTypeInfo with an attributeDetails with more than one attributeInfo`() {
         every { neo4jRepository.getEntityTypeAttributesInformation(any()) } returns mapOf(
             "properties" to setOf("https://ontology.eglobalmark.com/apic#temperature"),
             "relationships" to setOf("https://ontology.eglobalmark.com/egm#managedBy"),
@@ -83,18 +83,18 @@ class EntityTypeServiceTests {
             "entityCount" to 3
         )
 
-        val entityTypeInformation = entityTypeService.getEntityTypeInformation(
+        val entityTypeInfo = entityTypeService.getEntityTypeInfo(
             "https://ontology.eglobalmark.com/apic#BeeHive",
             listOf(APIC_COMPOUND_CONTEXT)
         )!!
 
-        assert(entityTypeInformation.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
-        assert(entityTypeInformation.type == "EntityTypeInformation")
-        assert(entityTypeInformation.typeName == "BeeHive")
-        assert(entityTypeInformation.entityCount == 3)
-        assert(entityTypeInformation.attributeDetails.size == 3)
+        assert(entityTypeInfo.id == "https://ontology.eglobalmark.com/apic#BeeHive".toUri())
+        assert(entityTypeInfo.type == "EntityTypeInfo")
+        assert(entityTypeInfo.typeName == "BeeHive")
+        assert(entityTypeInfo.entityCount == 3)
+        assert(entityTypeInfo.attributeDetails.size == 3)
         assert(
-            entityTypeInformation.attributeDetails.containsAll(
+            entityTypeInfo.attributeDetails.containsAll(
                 listOf(
                     AttributeInfo(
                         "https://ontology.eglobalmark.com/apic#temperature".toUri(),

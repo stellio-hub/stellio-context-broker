@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -29,11 +30,6 @@ class ObservationEventListenerTests {
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
 
-    private val apicContext = listOf(
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/" +
-            "apic-compound.jsonld"
-    )
-
     @Test
     fun `it should parse and transmit an observation event`() {
         val observationEvent = loadSampleData("observations/temperatureUpdateEvent.jsonld")
@@ -50,7 +46,7 @@ class ObservationEventListenerTests {
                 match {
                     it.containsKey("https://ontology.eglobalmark.com/apic#temperature")
                 },
-                apicContext
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
         verify { entityService.getFullEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), true) }
@@ -61,7 +57,7 @@ class ObservationEventListenerTests {
                     it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
                         it.attributeName == "temperature" &&
                         it.datasetId == "urn:ngsi-ld:Dataset:temperature:1".toUri() &&
-                        it.contexts == apicContext
+                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
                 },
                 any()
             )

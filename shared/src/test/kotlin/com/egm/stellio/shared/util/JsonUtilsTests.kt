@@ -72,6 +72,12 @@ class JsonUtilsTests {
     }
 
     @Test
+    fun `it should parse an event of type ATTRIBUTE_UPDATE`() {
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeUpdateEvent.jsonld"))
+        Assertions.assertTrue(parsedEvent is AttributeUpdateEvent)
+    }
+
+    @Test
     fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
         val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeReplaceEvent.jsonld"))
         Assertions.assertTrue(parsedEvent is AttributeReplaceEvent)
@@ -141,6 +147,21 @@ class JsonUtilsTests {
             )
         )
         Assertions.assertTrue(event.matchContent(loadSampleData("events/entityUpdateEvent.jsonld")))
+    }
+
+    @Test
+    fun `it should serialize an event of type ATTRIBUTE_UPDATE`() {
+        val event = mapper.writeValueAsString(
+            AttributeUpdateEvent(
+                entityId,
+                "color",
+                "urn:ngsi-ld:Dataset:color:1".toUri(),
+                "{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
+                "",
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
+        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeUpdateEvent.jsonld")))
     }
 
     @Test

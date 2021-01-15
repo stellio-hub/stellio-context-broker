@@ -15,34 +15,47 @@ class EntityTypeService(
         val attributesInformation = neo4jRepository.getEntityTypeAttributesInformation(expandedType)
         if (attributesInformation.isEmpty()) return null
 
-        val propertiesAttributeInfo = (attributesInformation["properties"] as Set<String>).map {
-            AttributeInfo(
-                id = it.toUri(),
-                attributeName = compactTerm(it, contexts),
-                attributeTypes = listOf(AttributeType.Property)
-            )
-        }
-        val relationshipsAttributeInfo = (attributesInformation["relationships"] as Set<String>).map {
-            AttributeInfo(
-                id = it.toUri(),
-                attributeName = compactTerm(it, contexts),
-                attributeTypes = listOf(AttributeType.Relationship)
-            )
-        }
-        val geoPropertiesAttributeInfo = (attributesInformation["geoProperties"] as Set<String>).map {
-            AttributeInfo(
-                id = it.toUri(),
-                attributeName = compactTerm(it, contexts),
-                attributeTypes = listOf(AttributeType.GeoProperty)
-            )
-        }
-
         return EntityTypeInfo(
             id = expandedType.toUri(),
             typeName = compactTerm(expandedType, contexts),
             entityCount = attributesInformation["entityCount"] as Int,
-            attributeDetails = listOf(propertiesAttributeInfo, relationshipsAttributeInfo, geoPropertiesAttributeInfo)
-                .flatten()
+            attributeDetails = createAttributeDetails(attributesInformation, contexts)
         )
+    }
+
+    private fun createAttributeDetails(
+        attributesInformation: Map<String, Any>,
+        contexts: List<String>
+    ): List<AttributeInfo> {
+        val propertiesAttributeInfo = createListOfAttributeInfo(
+            attributesInformation["properties"] as Set<String>,
+            AttributeType.Property,
+            contexts
+        )
+        val relationshipsAttributeInfo = createListOfAttributeInfo(
+            attributesInformation["relationships"] as Set<String>,
+            AttributeType.Relationship,
+            contexts
+        )
+        val geoPropertiesAttributeInfo = createListOfAttributeInfo(
+            attributesInformation["geoProperties"] as Set<String>,
+            AttributeType.GeoProperty,
+            contexts
+        )
+        return listOf(propertiesAttributeInfo, relationshipsAttributeInfo, geoPropertiesAttributeInfo).flatten()
+    }
+
+    private fun createListOfAttributeInfo(
+        attributesNames: Set<String>,
+        attributesType: AttributeType,
+        contexts: List<String>
+    ): List<AttributeInfo> {
+        return attributesNames.map {
+            AttributeInfo(
+                id = it.toUri(),
+                attributeName = compactTerm(it, contexts),
+                attributeTypes = listOf(attributesType)
+            )
+        }
     }
 }

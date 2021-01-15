@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-import arrow.core.extensions.list.functorFilter.filter
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship

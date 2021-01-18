@@ -482,8 +482,8 @@ class Neo4jRepository(
                 MATCH (entity:Entity:`$expandedType`)
                 OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
                 OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
-                RETURN entityCount, entityWithLocationCount, property.name as propertyName,
-                    labels(rel) as relationshipName
+                RETURN entityCount, entityWithLocationCount, collect(distinct property.name) as propertyNames, 
+                    reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames
             """.trimIndent()
 
         val result = session.query(query, emptyMap<String, Any>(), true).toList()
@@ -493,13 +493,9 @@ class Neo4jRepository(
         val entityCount = (result.first()["entityCount"] as Long).toInt()
         val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
         return mapOf(
-            "properties" to result.mapNotNull { it["propertyName"] as String? }.toSet(),
-            "relationships" to result
-                .mapNotNull {
-                    (it["relationshipName"] as Array<String>?)?.filter { it !in listOf("Attribute", "Relationship") }
-                }
-                .flatten()
-                .toSet(),
+            "properties" to (result.first()["propertyNames"] as Array<String>).toList(),
+            "relationships" to (result.first()["relationshipNames"] as Array<String>)
+                .filter { it !in listOf("Attribute", "Relationship") },
             "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
             "entityCount" to entityCount
         )

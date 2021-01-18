@@ -1,0 +1,11 @@
+{
+   "operationType":"ATTRIBUTE_UPDATE",
+   "entityId":"urn:ngsi-ld:BeeHive:TESTC",
+   "attributeName":"temperature",
+   "datasetId":"urn:ngsi-ld:Dataset:temperature:1",
+   "operationPayload":"{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
+   "updatedEntity":"",
+   "contexts":[
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}

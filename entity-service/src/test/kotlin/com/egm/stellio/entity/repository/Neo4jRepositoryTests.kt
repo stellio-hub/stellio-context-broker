@@ -1266,16 +1266,16 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for two entities`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Sensor:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             )
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Sensor:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "incoming", value = 61)
@@ -1283,7 +1283,7 @@ class Neo4jRepositoryTests {
         )
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 
@@ -1300,16 +1300,16 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for two entities with relationships`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Sensor1:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor1"),
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             )
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Sensor1:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor1"),
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "humidity", value = 61)
@@ -1318,7 +1318,7 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", partialTargetEntityUri)
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor1")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 
@@ -1335,8 +1335,8 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for three entities with location`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Sensor2:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
@@ -1344,16 +1344,16 @@ class Neo4jRepositoryTests {
             GeographicPoint2d(24.30623, 60.07966)
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Sensor2:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "humidity", value = 61)
             )
         )
         val thirdEntity = createEntity(
-            "urn:ngsi-ld:Sensor2:TESTD".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
+            "urn:ngsi-ld:Beehive:TESTD".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "temperature", value = 25),
                 Property(name = "humidity", value = 89)
@@ -1361,7 +1361,7 @@ class Neo4jRepositoryTests {
         )
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor2")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 

@@ -1266,16 +1266,16 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for two entities`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             )
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "incoming", value = 61)
@@ -1283,17 +1283,15 @@ class Neo4jRepositoryTests {
         )
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor")
 
-        assertEquals(
-            attributesInformation,
-            mapOf(
-                "properties" to setOf("humidity", "temperature", "incoming"),
-                "relationships" to emptySet<String>(),
-                "geoProperties" to emptySet<String>(),
-                "entityCount" to 2
-            )
-        )
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 3)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
+        assertEquals(attributesInformation["relationships"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["entityCount"], 2)
 
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
@@ -1302,16 +1300,16 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for two entities with relationships`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor1:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor1"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             )
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor1:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor1"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "humidity", value = 61)
@@ -1320,17 +1318,15 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", partialTargetEntityUri)
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor1")
 
-        assertEquals(
-            attributesInformation,
-            mapOf(
-                "properties" to setOf("humidity", "temperature"),
-                "relationships" to setOf("observedBy"),
-                "geoProperties" to emptySet<String>(),
-                "entityCount" to 2
-            )
-        )
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 2)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
+        assertEquals(attributesInformation["relationships"], setOf("observedBy"))
+        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["entityCount"], 2)
 
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
@@ -1339,8 +1335,8 @@ class Neo4jRepositoryTests {
     @Test
     fun `it should retrieve entity type attributes information for three entities with location`() {
         val firstEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTC".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor2:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
             mutableListOf(
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
@@ -1348,16 +1344,16 @@ class Neo4jRepositoryTests {
             GeographicPoint2d(24.30623, 60.07966)
         )
         val secondEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor2:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "humidity", value = 61)
             )
         )
         val thirdEntity = createEntity(
-            "urn:ngsi-ld:Beehive:TESTD".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            "urn:ngsi-ld:Sensor2:TESTD".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor2"),
             mutableListOf(
                 Property(name = "temperature", value = 25),
                 Property(name = "humidity", value = 89)
@@ -1365,17 +1361,15 @@ class Neo4jRepositoryTests {
         )
 
         val attributesInformation = neo4jRepository
-            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Sensor2")
 
-        assertEquals(
-            attributesInformation,
-            mapOf(
-                "properties" to setOf("humidity", "temperature"),
-                "relationships" to emptySet<String>(),
-                "geoProperties" to setOf("location"),
-                "entityCount" to 3
-            )
-        )
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 2)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
+        assertEquals(attributesInformation["relationships"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], setOf("location"))
+        assertEquals(attributesInformation["entityCount"], 3)
 
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)

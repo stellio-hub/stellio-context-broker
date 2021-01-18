@@ -493,9 +493,9 @@ class Neo4jRepository(
         val entityCount = (result.first()["entityCount"] as Long).toInt()
         val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
         return mapOf(
-            "properties" to (result.first()["propertyNames"] as Array<String>).toList(),
-            "relationships" to (result.first()["relationshipNames"] as Array<String>)
-                .filter { it !in listOf("Attribute", "Relationship") },
+            "properties" to (result.first()["propertyNames"] as Array<Any>).toSet(),
+            "relationships" to (result.first()["relationshipNames"] as Array<Any>)
+                .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
             "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
             "entityCount" to entityCount
         )

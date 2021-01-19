@@ -470,6 +470,37 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
+    fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
+        // The match on geoProperties is specific since they are not fully supported
+        // (currently we only support location that is stored among the entity node attributes)
+        val query =
+            """
+                MATCH (entity:Entity:`$expandedType`)
+                WITH count(entity) as entityCount  
+                OPTIONAL MATCH (entityWithLocation:Entity:`$expandedType`) WHERE entityWithLocation.location IS NOT NULL
+                WITH entityCount, count(entityWithLocation) as entityWithLocationCount
+                MATCH (entity:Entity:`$expandedType`)
+                OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
+                RETURN entityCount, entityWithLocationCount, collect(distinct property.name) as propertyNames, 
+                    reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        if (result.isEmpty())
+            return emptyMap()
+
+        val entityCount = (result.first()["entityCount"] as Long).toInt()
+        val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
+        return mapOf(
+            "properties" to (result.first()["propertyNames"] as Array<Any>).toSet(),
+            "relationships" to (result.first()["relationshipNames"] as Array<Any>)
+                .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
+            "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
+            "entityCount" to entityCount
+        )
+    }
+
     fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")

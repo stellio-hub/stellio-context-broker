@@ -9,9 +9,7 @@ import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.toUri
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
@@ -617,137 +615,6 @@ class Neo4jRepositoryTests {
         )
         val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233".toUri()).get().modifiedAt
         assertThat(updatedModifiedAt).isAfter(modifiedAt)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id with case not matching and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                vendorId.toString().toUpperCase().toUri(),
-                EGM_VENDOR_ID,
-                "outgoing"
-            )
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id of a device and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
-        val device = createEntity(
-            "urn:ngsi-ld:Device:1233".toUri(),
-            listOf("Device"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val sensorToDeviceRelationship =
-            createRelationship(EntitySubjectNode(sensor.id), EGM_IS_CONTAINED_IN, device.id)
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val propertyToDeviceRelationship =
-            createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, sensor.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(sensorToDeviceRelationship)
-        relationshipRepository.delete(propertyToDeviceRelationship)
-        neo4jRepository.deleteEntity(device.id)
-        neo4jRepository.deleteEntity(sensor.id)
-    }
-
-    @Test
-    fun `it should not find a sensor by vendor id if measured property does not exist`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "incoming")
-        assertNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should not find a sensor if measured property exists but not the vendor id`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:Unknown".toUri(),
-                EGM_VENDOR_ID,
-                "outgoing"
-            )
-        assertNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by NGSI-LD id`() {
-        val entity = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:1233".toUri(),
-                EGM_VENDOR_ID,
-                "anything"
-            )
-        assertNotNull(persistedEntity)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should not find a sensor if neither NGSI-LD or vendor id matches`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = "urn:something:9876"))
-        )
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:Unknown".toUri(),
-                EGM_VENDOR_ID,
-                "unknownMeasure"
-            )
-        assertNull(persistedEntity)
         neo4jRepository.deleteEntity(entity.id)
     }
 

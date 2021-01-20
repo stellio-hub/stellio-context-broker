@@ -5,6 +5,6 @@ import org.springframework.messaging.SubscribableChannel
 
 interface ObservationsSink {
 
-    @Input("cim.observations")
+    @Input("cim.deprecated.observations")
     fun input(): SubscribableChannel
 }

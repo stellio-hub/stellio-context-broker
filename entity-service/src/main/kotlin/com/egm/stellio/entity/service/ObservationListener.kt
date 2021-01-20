@@ -42,7 +42,7 @@ class ObservationListener(
      *  }
      * }
      */
-    @StreamListener("cim.observations")
+    @StreamListener("cim.deprecated.observations")
     fun processMessage(content: String) {
         try {
             val observation = parseTemporalPropertyUpdate(content)

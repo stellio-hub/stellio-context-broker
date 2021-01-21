@@ -25,14 +25,6 @@ interface EntityRepository : Neo4jRepository<Entity, URI> {
     fun getEntitySpecificProperties(id: String): List<Map<String, Any>>
 
     @Query(
-        "MATCH (entity:Entity { id: \$id })-[:HAS_VALUE]->(property:Property {id: \$propertyId })" +
-            "OPTIONAL MATCH (property)-[:HAS_VALUE]->(propValue:Property)" +
-            "OPTIONAL MATCH (property)-[:HAS_OBJECT]->(relOfProp:Relationship)-[rel]->(relOfPropObject)" +
-            "RETURN property, propValue, type(rel) as relType, relOfProp, relOfPropObject.id as relOfPropObjectId"
-    )
-    fun getEntitySpecificProperty(id: String, propertyId: String): List<Map<String, Any>>
-
-    @Query(
         "MATCH (entity:Entity { id: \$id })-[:HAS_OBJECT]->(rel:Relationship)-[r]->(relObject)" +
             "OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propValue:Property)" +
             "OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)-[or]->(relOfRelObject)" +

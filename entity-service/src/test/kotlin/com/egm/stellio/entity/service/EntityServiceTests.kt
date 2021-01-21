@@ -6,7 +6,6 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
@@ -23,7 +22,6 @@ import junit.framework.TestCase.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -82,108 +80,6 @@ class EntityServiceTests {
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
         entityService.createEntity(sampleDataWithContext)
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should ignore measures from an unknown sensor`() {
-        val observation = gimmeAnObservation()
-
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns null
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify {
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:01XYZ".toUri(),
-                EGM_VENDOR_ID,
-                "incoming"
-            )
-        }
-        verify { entityEventService wasNot called }
-
-        confirmVerified(neo4jRepository)
-    }
-
-    @Test
-    fun `it should do nothing if temporal property is not found`() {
-        val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
-
-        val mockkedSensor = mockkClass(Entity::class)
-        val mockkedObservation = mockkClass(Property::class)
-        val mockkedObservationId = "urn:ngsi-ld:Property:${UUID.randomUUID()}".toUri()
-
-        every { mockkedSensor.id } returns sensorId
-        every { mockkedObservation.id } returns mockkedObservationId
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
-        every { neo4jRepository.getObservedProperty(any(), any()) } returns null
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
-        verify { propertyRepository wasNot Called }
-        verify { entityEventService wasNot called }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should update an existing measure`() {
-        val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
-        val expectedPropertyUpdate = Property(
-            name = "fishNumber",
-            value = 400.0
-        )
-
-        val mockkedEntity = mockkClass(Entity::class)
-        val mockkedSensor = mockkClass(Entity::class)
-        val mockkedObservation = mockkClass(Property::class)
-
-        every { mockkedSensor.id } returns sensorId
-        every { mockkedObservation.name } returns observation.attributeName
-        every { mockkedObservation.updateValues(any(), any(), any()) } returns mockkedObservation
-        every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
-        every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
-        every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
-        every { mockkedEntity.contexts } returns listOf(AQUAC_COMPOUND_CONTEXT)
-        every { mockkedObservation.id } returns "urn:ngsi-ld:Property:${UUID.randomUUID()}".toUri()
-        every { mockkedObservation.datasetId } returns null
-
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
-        every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
-        every { neo4jRepository.getEntityByProperty(any()) } returns mockkedEntity
-        every { propertyRepository.save(any<Property>()) } returns mockkedObservation
-        every { entityRepository.save(any<Entity>()) } returns mockkedEntity
-        every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
-            mapOf("property" to expectedPropertyUpdate)
-        )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
-        verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
-        verify { propertyRepository.save(any<Property>()) }
-        verify { entityRepository.save(any<Entity>()) }
-        verify(timeout = 2000) {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeReplaceEvent
-                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                        it.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
-                        it.attributeName == "incoming" &&
-                        it.datasetId == null &&
-                        it.operationPayload.contains("fishNumber") &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                "BreedingService"
-            )
-        }
 
         confirmVerified()
     }

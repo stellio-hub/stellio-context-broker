@@ -566,59 +566,6 @@ class Neo4jRepository(
             .map { (it["id"] as String).toUri() }
     }
 
-    fun getObservingSensorEntity(observerId: URI, propertyName: String, measureName: String): Entity? {
-        // definitely not bullet proof since we are looking for a property whose name ends with the property name
-        // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
-        // TODO : this will have to be resolved with a clean provisioning architecture
-        val query =
-            """
-            MATCH (e:Entity) 
-            WHERE e.id = '$observerId' 
-            RETURN e 
-            UNION 
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
-            WHERE m.name ENDS WITH '$measureName' 
-            AND p.name = '$propertyName' 
-            AND toLower(p.value) = toLower('$observerId') 
-            RETURN e
-            UNION
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->
-            (e:Entity)-[:HAS_OBJECT]-()-[:isContainedIn]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
-            WHERE m.name ENDS WITH '$measureName' 
-            AND deviceProp.name = '$propertyName' 
-            AND toLower(deviceProp.value) = toLower('$observerId') 
-            RETURN e
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["e"] as Entity }
-            .firstOrNull()
-    }
-
-    fun getObservedProperty(observerId: URI, relationshipType: String): Property? {
-        val query =
-            """
-            MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
-            RETURN p
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["p"] as Property }
-            .firstOrNull()
-    }
-
-    fun getEntityByProperty(property: Property): Entity {
-        val query =
-            """
-            MATCH (n:Entity)-[:HAS_VALUE]->(p:Property { id: '${property.id}' })
-            RETURN n
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["n"] as Entity }
-            .first()
-    }
-
     fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
         if (entitiesIds.isEmpty()) {
             return emptyList()

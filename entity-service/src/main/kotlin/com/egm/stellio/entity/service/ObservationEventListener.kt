@@ -36,11 +36,16 @@ class ObservationEventListener(
         val expandedAttrId = expandJsonLdKey(observationEvent.attributeName, observationEvent.contexts)!!
         val expandedPayload = mapOf(expandedAttrId to expandedFragment)
 
-        entityAttributeService.partialUpdateEntityAttribute(
-            observationEvent.entityId,
-            expandedPayload,
-            observationEvent.contexts
-        )
+        try {
+            entityAttributeService.partialUpdateEntityAttribute(
+                observationEvent.entityId,
+                expandedPayload,
+                observationEvent.contexts
+            )
+        } catch (e: ResourceNotFoundException) {
+            logger.error("Entity or attribute not found in observation : ${e.message}")
+            return
+        }
 
         val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
         entityEventService.publishEntityEvent(

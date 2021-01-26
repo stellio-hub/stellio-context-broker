@@ -176,7 +176,6 @@ class EntityService(
         val entity = entityRepository.getEntityCoreById(entityId.toString()) ?: return null
         val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
 
-        // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId.toString())
             .groupBy {
                 (it["property"] as Property).id

@@ -4,15 +4,26 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.http.MediaType
 
 class JsonLdUtilsTests {
+
+    private val mapper: ObjectMapper =
+        jacksonObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     private val normalizedJson =
         """
@@ -233,5 +244,48 @@ class JsonLdUtilsTests {
         result.map {
             assertEquals(relationshipObjectId.toUri(), it)
         }
+    }
+
+    @Test
+    fun `it should compact and return a JSON entity`() {
+        val entity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
+            }
+            """.trimIndent()
+
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
+        val compactedEntity = compact(jsonLdEntity, DEFAULT_CONTEXTS, MediaType.APPLICATION_JSON)
+
+        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(entity))
+    }
+
+    @Test
+    fun `it should compact and return a JSON-LD entity`() {
+        val entity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device"
+            }
+            """.trimIndent()
+        val expectedEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "@context":[
+                    "https://fiware.github.io/data-models/context.jsonld",
+                    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+                ]
+            }
+            """.trimIndent()
+
+        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
+        val compactedEntity = compact(jsonLdEntity, DEFAULT_CONTEXTS)
+
+        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(expectedEntity))
     }
 }

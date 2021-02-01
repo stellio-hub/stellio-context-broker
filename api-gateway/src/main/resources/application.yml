@@ -41,6 +41,16 @@ spring:
           filters:
             - TokenRelay=
             - RewritePath=/subscription-service/actuator, /actuator
+      globalcors:
+        corsConfigurations:
+          '[/ngsi-ld/v1/**]':
+            allowedOrigins: ${APPLICATION_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+            allowedMethods:
+              - GET
+              - POST
+              - PATCH
+              - DELETE
+            allowedHeaders: "*"
 
 # Default values for sending log data to a Gelf compatible endpoint
 # Log data is sent only if the 'gelflogs' Spring profile is active

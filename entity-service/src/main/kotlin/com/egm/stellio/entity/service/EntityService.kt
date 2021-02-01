@@ -6,23 +6,17 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
-import com.egm.stellio.entity.repository.PropertyRepository
+import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
-import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.slf4j.LoggerFactory
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -32,9 +26,7 @@ import java.util.regex.Pattern
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val partialEntityRepository: PartialEntityRepository,
-    private val propertyRepository: PropertyRepository,
-    private val entityEventService: EntityEventService
+    private val partialEntityRepository: PartialEntityRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -184,7 +176,6 @@ class EntityService(
         val entity = entityRepository.getEntityCoreById(entityId.toString()) ?: return null
         val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
 
-        // TODO test with a property having more than one relationship (https://redmine.eglobalmark.com/issues/848)
         entityRepository.getEntitySpecificProperties(entityId.toString())
             .groupBy {
                 (it["property"] as Property).id
@@ -309,12 +300,13 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
+        ids: List<String>?,
         type: String,
         query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(type, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(ids, type, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -327,6 +319,7 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
+        ids: List<String>?,
         type: String,
         query: String,
         contexts: List<String>,
@@ -343,7 +336,7 @@ class EntityService(
             // it will have to be modified when we support "dotted paths" (cf 4.9)
             val splitted = splitQueryTermOnOperator(matchResult.value)
             val expandedParam =
-                if (splitted[1].startsWith("urn:"))
+                if (splitted[1].isRelationshipTarget())
                     splitted[0]
                 else
                     expandJsonLdKey(splitted[0], contexts)!!
@@ -354,7 +347,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(expandedType, expandedQuery)
+        return neo4jRepository.getEntities(ids, expandedType, expandedQuery)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 
@@ -735,61 +728,4 @@ class EntityService(
             expandedAttributeName,
             ngsiLdPropertyInstance
         ) >= 1
-
-    @Transactional
-    fun updateEntityLastMeasure(observation: Observation) {
-        val observingEntity =
-            neo4jRepository.getObservingSensorEntity(observation.observedBy, EGM_VENDOR_ID, observation.attributeName)
-        if (observingEntity == null) {
-            logger.warn(
-                "Unable to find observing entity ${observation.observedBy} " +
-                    "for property ${observation.attributeName}"
-            )
-            return
-        }
-        // Find the previous observation of the same unit for the given sensor, then create or update it
-        val observedByRelationshipType = EGM_OBSERVED_BY.extractShortTypeFromExpanded()
-        val observedProperty = neo4jRepository.getObservedProperty(observingEntity.id, observedByRelationshipType)
-        if (observedProperty == null ||
-            observedProperty.name.extractShortTypeFromExpanded() != observation.attributeName
-        ) {
-            logger.warn(
-                "Found no property named ${observation.attributeName} " +
-                    "observed by ${observation.observedBy}, ignoring it"
-            )
-        } else {
-            observedProperty.updateValues(observation.unitCode, observation.value, observation.observedAt)
-            if (observation.latitude != null && observation.longitude != null) {
-                val observedEntity = neo4jRepository.getEntityByProperty(observedProperty)
-                observedEntity.location = GeographicPoint2d(observation.latitude!!, observation.longitude!!)
-                entityRepository.save(observedEntity)
-            }
-            propertyRepository.save(observedProperty)
-
-            val entity = neo4jRepository.getEntityByProperty(observedProperty)
-            val rawProperty = entityRepository.getEntitySpecificProperty(
-                entity.id.toString(), observedProperty.id.toString()
-            )
-            val propertyFragment = buildPropertyFragment(rawProperty, entity.contexts, true)
-            val propertyPayload = compactAndStringifyFragment(
-                expandJsonLdKey(propertyFragment.first, entity.contexts)!!,
-                propertyFragment.second, entity.contexts
-            )
-
-            val jsonLdEntity = getFullEntityById(entity.id, true)
-            jsonLdEntity?.let {
-                entityEventService.publishEntityEvent(
-                    AttributeReplaceEvent(
-                        entity.id,
-                        observedProperty.name.extractShortTypeFromExpanded(),
-                        observedProperty.datasetId,
-                        propertyPayload,
-                        JsonLdUtils.compactAndSerialize(it, MediaType.APPLICATION_JSON),
-                        entity.contexts
-                    ),
-                    entity.type[0].extractShortTypeFromExpanded()
-                )
-            }
-        }
-    }
 }

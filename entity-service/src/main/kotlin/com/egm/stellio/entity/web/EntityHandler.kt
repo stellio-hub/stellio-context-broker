@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -67,7 +68,7 @@ class EntityHandler(
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            ngsiLdEntity.type.extractShortTypeFromExpanded()
+            compactTerm(ngsiLdEntity.type, contexts)
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -83,6 +84,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -90,6 +92,7 @@ class EntityHandler(
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())
@@ -100,15 +103,11 @@ class EntityHandler(
                     )
                 )
 
-        if (!JsonLdUtils.isTypeResolvable(type, contextLink))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Unable to resolve 'type' parameter from the provided Link header"))
-
         /**
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(type, q.decode(), contextLink, includeSysAttrs)
+        val entities = entityService.searchEntities(ids, type, q.decode(), contextLink, includeSysAttrs)
         val userId = extractSubjectOrEmpty().awaitFirst()
         val entitiesUserCanRead =
             authorizationService.filterEntitiesUserCanRead(
@@ -127,9 +126,10 @@ class EntityHandler(
                     )
                 }
 
-        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation)
+        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
 
-        return ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntities))
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(compactedEntities))
     }
 
     /**
@@ -147,6 +147,7 @@ class EntityHandler(
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -163,12 +164,15 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
-            val compactedEntity = filteredJsonLdEntity.compact()
+            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType)
 
-            return if (useSimplifiedRepresentation)
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity.toKeyValues()))
-            else
-                ResponseEntity.status(HttpStatus.OK).body(serializeObject(compactedEntity))
+            return buildGetSuccessResponse(mediaType, contextLink)
+                .let {
+                    if (useSimplifiedRepresentation)
+                        it.body(serializeObject(compactedEntity.toKeyValues()))
+                    else
+                        it.body(serializeObject(compactedEntity))
+                }
         } else
             throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
     }
@@ -177,7 +181,11 @@ class EntityHandler(
      * Implements 6.5.3.2 - Delete Entity
      */
     @DeleteMapping("/{entityId}")
-    suspend fun delete(@PathVariable entityId: String): ResponseEntity<*> {
+    suspend fun delete(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable entityId: String
+    ): ResponseEntity<*> {
+        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -185,13 +193,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
+        // Is there a way to avoid loading the entity to get its type... for the later event
         val entity = entityService.getEntityCoreProperties(entityId.toUri())
 
         entityService.deleteEntity(entityId.toUri())
 
-        // FIXME The context is not supposed to be retrieved from DB
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0].extractShortTypeFromExpanded()
+            EntityDeleteEvent(entityId.toUri(), contexts), compactTerm(entity.type[0], contexts)
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -275,17 +283,17 @@ class EntityHandler(
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId.toUri(),
-                    updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                    compactTerm(updatedDetails.attributeName, contexts),
                     extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, updatedDetails.attributeName),
                     compactAndStringifyFragment(
                         updatedDetails.attributeName,
                         jsonLdAttributes[updatedDetails.attributeName]!!,
                         contexts
                     ),
-                    compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                    compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                     contexts
                 ),
-                updatedEntity.type.extractShortTypeFromExpanded()
+                compactTerm(updatedEntity.type, contexts)
             )
         }
 
@@ -332,10 +340,10 @@ class EntityHandler(
                 attributeName = attrId,
                 datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
                 operationPayload = removeContextFromInput(body),
-                updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
-            updatedEntity.type.extractShortTypeFromExpanded()
+            compactTerm(updatedEntity.type, contexts)
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -374,10 +382,10 @@ class EntityHandler(
                     AttributeDeleteAllInstancesEvent(
                         entityId = entityId.toUri(),
                         attributeName = attrId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
             else
                 entityEventService.publishEntityEvent(
@@ -385,10 +393,10 @@ class EntityHandler(
                         entityId = entityId.toUri(),
                         attributeName = attrId,
                         datasetId = datasetId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, MediaType.APPLICATION_JSON),
+                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
         }
 

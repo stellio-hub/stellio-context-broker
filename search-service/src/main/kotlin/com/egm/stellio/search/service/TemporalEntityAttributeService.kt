@@ -18,6 +18,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
@@ -29,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Service
@@ -263,12 +263,12 @@ class TemporalEntityAttributeService(
                             if (it.value is Double)
                                 TemporalValue(
                                     it.value,
-                                    it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
+                                    it.observedAt.toNgsiLdFormat()
                                 )
                             else
                                 RawValue(
                                     it.value,
-                                    it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
+                                    it.observedAt.toNgsiLdFormat()
                                 )
                         }
                     instanceToEnrich[NGSILD_PROPERTY_VALUES] = listOf(mapOf("@list" to valuesMap))
@@ -286,7 +286,7 @@ class TemporalEntityAttributeService(
                                 NGSILD_PROPERTY_VALUE to it.value,
                                 NGSILD_OBSERVED_AT_PROPERTY to mapOf(
                                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
-                                    JSONLD_VALUE_KW to it.observedAt.format(DateTimeFormatter.ISO_DATE_TIME)
+                                    JSONLD_VALUE_KW to it.observedAt.toNgsiLdFormat()
                                 )
                             )
                             // a null datasetId should not be added to the valuesMap

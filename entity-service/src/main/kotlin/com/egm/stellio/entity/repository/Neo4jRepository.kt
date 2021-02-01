@@ -8,6 +8,7 @@ import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
 import com.egm.stellio.entity.util.isDate
 import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
+import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.toListOfString
@@ -469,17 +470,49 @@ class Neo4jRepository(
         return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun getEntities(type: String, rawQuery: String): List<URI> {
+    fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
+        // The match on geoProperties is specific since they are not fully supported
+        // (currently we only support location that is stored among the entity node attributes)
+        val query =
+            """
+                MATCH (entity:Entity:`$expandedType`)
+                WITH count(entity) as entityCount  
+                OPTIONAL MATCH (entityWithLocation:Entity:`$expandedType`) WHERE entityWithLocation.location IS NOT NULL
+                WITH entityCount, count(entityWithLocation) as entityWithLocationCount
+                MATCH (entity:Entity:`$expandedType`)
+                OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
+                RETURN entityCount, entityWithLocationCount, collect(distinct property.name) as propertyNames, 
+                    reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        if (result.isEmpty())
+            return emptyMap()
+
+        val entityCount = (result.first()["entityCount"] as Long).toInt()
+        val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
+        return mapOf(
+            "properties" to (result.first()["propertyNames"] as Array<Any>).toSet(),
+            "relationships" to (result.first()["relationshipNames"] as Array<Any>)
+                .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
+            "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
+            "entityCount" to entityCount
+        )
+    }
+
+    fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
+        val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
             pattern.toRegex()
         ) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-            if (parsedQueryTerm.third.startsWith("urn:")) {
+            if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
                         MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                        WHERE e.id ${parsedQueryTerm.second} '${parsedQueryTerm.third}'
+                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
                     }
                 """.trimIndent()
             } else {
@@ -488,7 +521,7 @@ class Neo4jRepository(
                     parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
                     parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
                     parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
-                    else -> "'${parsedQueryTerm.third}'"
+                    else -> parsedQueryTerm.third
                 }
                 """
                    EXISTS {
@@ -508,73 +541,29 @@ class Neo4jRepository(
             else
                 "MATCH (n:`$type`)"
 
+        val idClause =
+            if (ids != null)
+                """
+                    n.id in $formattedIds
+                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
+                """
+            else ""
+
         val whereClause =
-            if (innerQuery.isNotEmpty()) " WHERE "
+            if (innerQuery.isNotEmpty() || ids != null) " WHERE "
             else ""
 
         val finalQuery =
             """
             $matchClause
             $whereClause
+                $idClause
                 $innerQuery
             RETURN n.id as id
             """
 
         return session.query(finalQuery, emptyMap<String, Any>(), true)
             .map { (it["id"] as String).toUri() }
-    }
-
-    fun getObservingSensorEntity(observerId: URI, propertyName: String, measureName: String): Entity? {
-        // definitely not bullet proof since we are looking for a property whose name ends with the property name
-        // received from the Kafka observations topic (but in this case, we miss the @context to do a proper expansion)
-        // TODO : this will have to be resolved with a clean provisioning architecture
-        val query =
-            """
-            MATCH (e:Entity) 
-            WHERE e.id = '$observerId' 
-            RETURN e 
-            UNION 
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->(e:Entity)-[:HAS_VALUE]->(p:Property) 
-            WHERE m.name ENDS WITH '$measureName' 
-            AND p.name = '$propertyName' 
-            AND toLower(p.value) = toLower('$observerId') 
-            RETURN e
-            UNION
-            MATCH (m:Property)-[:HAS_OBJECT]-()-[:observedBy]->
-            (e:Entity)-[:HAS_OBJECT]-()-[:isContainedIn]->(device:Entity)-[:HAS_VALUE]->(deviceProp:Property)
-            WHERE m.name ENDS WITH '$measureName' 
-            AND deviceProp.name = '$propertyName' 
-            AND toLower(deviceProp.value) = toLower('$observerId') 
-            RETURN e
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["e"] as Entity }
-            .firstOrNull()
-    }
-
-    fun getObservedProperty(observerId: URI, relationshipType: String): Property? {
-        val query =
-            """
-            MATCH (p:Property)-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e:Entity { id: '$observerId' })
-            RETURN p
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["p"] as Property }
-            .firstOrNull()
-    }
-
-    fun getEntityByProperty(property: Property): Entity {
-        val query =
-            """
-            MATCH (n:Entity)-[:HAS_VALUE]->(p:Property { id: '${property.id}' })
-            RETURN n
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["n"] as Entity }
-            .first()
     }
 
     fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {

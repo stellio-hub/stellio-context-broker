@@ -143,7 +143,7 @@ class IAMListenerTests {
                         it[0].name == "https://ontology.eglobalmark.com/authorization#isMemberOf" &&
                         it[0] is NgsiLdRelationship &&
                         (it[0] as NgsiLdRelationship).instances[0].datasetId ==
-                        "7cdad168-96ee-4649-b768-a060ac2ef435".toUri() &&
+                        "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435".toUri() &&
                         (it[0] as NgsiLdRelationship).instances[0].objectId ==
                         "urn:ngsi-ld:Group:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
                 },

@@ -6,7 +6,7 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
 
 extra["springCloudVersion"] = "Hoxton.SR8"
-extra["testcontainersVersion"] = "1.14.3"
+extra["testcontainersVersion"] = "1.15.1"
 
 plugins {
     java // why did I have to add that ?!
@@ -61,7 +61,7 @@ subprojects {
         implementation("org.springframework.cloud:spring-cloud-starter-stream-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-        implementation("com.github.jsonld-java:jsonld-java:0.13.0")
+        implementation("com.github.jsonld-java:jsonld-java:0.13.2")
 
         implementation("io.arrow-kt:arrow-fx:0.10.4")
         implementation("io.arrow-kt:arrow-syntax:0.10.4")

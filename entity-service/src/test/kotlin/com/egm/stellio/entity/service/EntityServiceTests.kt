@@ -5,7 +5,7 @@ import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
+import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
 import com.egm.stellio.shared.util.parseSampleDataToNgsiLd
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -21,25 +22,19 @@ import junit.framework.TestCase.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.Optional
 import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityService::class])
 @ActiveProfiles("test")
 class EntityServiceTests {
-
-    @Value("\${application.jsonld.aquac_context}")
-    val aquacContext: String? = null
 
     @Autowired
     private lateinit var entityService: EntityService
@@ -90,108 +85,6 @@ class EntityServiceTests {
     }
 
     @Test
-    fun `it should ignore measures from an unknown sensor`() {
-        val observation = gimmeAnObservation()
-
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns null
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify {
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:01XYZ".toUri(),
-                EGM_VENDOR_ID,
-                "incoming"
-            )
-        }
-        verify { entityEventService wasNot called }
-
-        confirmVerified(neo4jRepository)
-    }
-
-    @Test
-    fun `it should do nothing if temporal property is not found`() {
-        val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
-
-        val mockkedSensor = mockkClass(Entity::class)
-        val mockkedObservation = mockkClass(Property::class)
-        val mockkedObservationId = "urn:ngsi-ld:Property:${UUID.randomUUID()}".toUri()
-
-        every { mockkedSensor.id } returns sensorId
-        every { mockkedObservation.id } returns mockkedObservationId
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
-        every { neo4jRepository.getObservedProperty(any(), any()) } returns null
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
-        verify { propertyRepository wasNot Called }
-        verify { entityEventService wasNot called }
-
-        confirmVerified()
-    }
-
-    @Test
-    fun `it should update an existing measure`() {
-        val observation = gimmeAnObservation()
-        val sensorId = "urn:ngsi-ld:Sensor:01XYZ".toUri()
-        val expectedPropertyUpdate = Property(
-            name = "fishNumber",
-            value = 400.0
-        )
-
-        val mockkedEntity = mockkClass(Entity::class)
-        val mockkedSensor = mockkClass(Entity::class)
-        val mockkedObservation = mockkClass(Property::class)
-
-        every { mockkedSensor.id } returns sensorId
-        every { mockkedObservation.name } returns observation.attributeName
-        every { mockkedObservation.updateValues(any(), any(), any()) } returns mockkedObservation
-        every { mockkedEntity setProperty "location" value any<GeographicPoint2d>() } answers { value }
-        every { mockkedEntity.id } returns "urn:ngsi-ld:BreedingService:01234".toUri()
-        every { mockkedEntity.type } returns listOf("https://ontology.eglobalmark.com/aquac#BreedingService")
-        every { mockkedEntity.contexts } returns listOf(aquacContext!!)
-        every { mockkedObservation.id } returns "property-9999".toUri()
-        every { mockkedObservation.datasetId } returns null
-
-        every { neo4jRepository.getObservingSensorEntity(any(), any(), any()) } returns mockkedSensor
-        every { neo4jRepository.getObservedProperty(any(), any()) } returns mockkedObservation
-        every { neo4jRepository.getEntityByProperty(any()) } returns mockkedEntity
-        every { propertyRepository.save(any<Property>()) } returns mockkedObservation
-        every { entityRepository.save(any<Entity>()) } returns mockkedEntity
-        every { entityRepository.getEntitySpecificProperty(any(), any()) } returns listOf(
-            mapOf("property" to expectedPropertyUpdate)
-        )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
-
-        entityService.updateEntityLastMeasure(observation)
-
-        verify { neo4jRepository.getObservingSensorEntity(sensorId, EGM_VENDOR_ID, "incoming") }
-        verify { neo4jRepository.getObservedProperty(sensorId, "observedBy") }
-        verify { neo4jRepository.getEntityByProperty(mockkedObservation) }
-        verify { propertyRepository.save(any<Property>()) }
-        verify { entityRepository.save(any<Entity>()) }
-        verify(timeout = 2000) {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeReplaceEvent
-                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                        it.entityId == "urn:ngsi-ld:BreedingService:01234".toUri() &&
-                        it.attributeName == "incoming" &&
-                        it.datasetId == null &&
-                        it.operationPayload.contains("fishNumber") &&
-                        it.contexts == listOf(aquacContext)
-                },
-                "BreedingService"
-            )
-        }
-
-        confirmVerified()
-    }
-
-    @Test
     fun `it should replace an existing default relationship`() {
         val sensorId = "urn:ngsi-ld:Sensor:013YFZ".toUri()
         val relationshipId = "urn:ngsi-ld:Relationship:92033f60-bb8b-4640-9464-bca23199ac".toUri()
@@ -206,7 +99,7 @@ class EntityServiceTests {
               }
             }
             """.trimIndent()
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedRelationshipTarget = mockkClass(Entity::class)
@@ -267,7 +160,7 @@ class EntityServiceTests {
             ]}
             """.trimIndent()
 
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
         val mockkedRelationshipTarget = mockkClass(Entity::class)
@@ -326,7 +219,7 @@ class EntityServiceTests {
               }
             }
             """.trimIndent()
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -364,7 +257,7 @@ class EntityServiceTests {
         val datasetSetIds = slot<URI>()
         val updatedInstances = mutableListOf<NgsiLdPropertyInstance>()
 
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -414,7 +307,7 @@ class EntityServiceTests {
               }
             }
             """.trimIndent()
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -450,7 +343,7 @@ class EntityServiceTests {
               }
             }
             """.trimIndent()
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, aquacContext!!))
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -524,7 +417,7 @@ class EntityServiceTests {
                     it.name == "temperature" &&
                         it.value == 250 &&
                         it.unitCode == "kg" &&
-                        it.observedAt?.format(DateTimeFormatter.ISO_DATE_TIME) == "2019-12-18T10:45:44.248755Z"
+                        it.observedAt?.toNgsiLdFormat() == "2019-12-18T10:45:44.248755Z"
                 }
             )
         }
@@ -536,7 +429,7 @@ class EntityServiceTests {
     fun `it should create a new relationship`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {
@@ -547,7 +440,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewRelationship = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newRelationship, aquacContext!!)
+            expandJsonLdFragment(newRelationship, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -590,7 +483,7 @@ class EntityServiceTests {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
         val secondTargetEntityId = "urn:ngsi-ld:Beekeeper:754321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {
@@ -606,7 +499,8 @@ class EntityServiceTests {
             ]}
             """.trimIndent()
 
-        val expandedNewRelationship = parseToNgsiLdAttributes(expandJsonLdFragment(newRelationship, aquacContext!!))
+        val expandedNewRelationship =
+            parseToNgsiLdAttributes(expandJsonLdFragment(newRelationship, AQUAC_COMPOUND_CONTEXT))
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
@@ -621,9 +515,7 @@ class EntityServiceTests {
         every { neo4jRepository.hasRelationshipInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
             neo4jRepository.createRelationshipOfSubject(
-                any(),
-                capture(createdRelationships),
-                any()
+                any(), capture(createdRelationships), any()
             )
         } returns true
 
@@ -651,7 +543,6 @@ class EntityServiceTests {
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }
-
         confirmVerified()
     }
 
@@ -668,7 +559,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewRelationship = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newRelationship, aquacContext!!)
+            expandJsonLdFragment(newRelationship, AQUAC_COMPOUND_CONTEXT)
         )
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
@@ -693,7 +584,7 @@ class EntityServiceTests {
     fun `it should overwrite the relationship instance with given datasetId`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val targetEntityId = "urn:ngsi-ld:Beekeeper:654321".toUri()
-        val relationshipId = UUID.randomUUID().toString().toUri()
+        val relationshipId = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri()
         val newRelationship =
             """
             {
@@ -705,7 +596,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewRelationship = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newRelationship, aquacContext!!)
+            expandJsonLdFragment(newRelationship, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -757,7 +648,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newProperty, aquacContext!!)
+            expandJsonLdFragment(newProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -815,7 +706,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newProperty, aquacContext!!)
+            expandJsonLdFragment(newProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -890,7 +781,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newProperty, aquacContext!!)
+            expandJsonLdFragment(newProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
@@ -942,7 +833,7 @@ class EntityServiceTests {
             }
             """.trimIndent()
         val expandedNewProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newProperty, aquacContext!!)
+            expandJsonLdFragment(newProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -997,7 +888,7 @@ class EntityServiceTests {
             """.trimIndent()
 
         val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, aquacContext!!)
+            expandJsonLdFragment(newGeoProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -1036,7 +927,7 @@ class EntityServiceTests {
             """.trimIndent()
 
         val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, aquacContext!!)
+            expandJsonLdFragment(newGeoProperty, AQUAC_COMPOUND_CONTEXT)
         )
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true

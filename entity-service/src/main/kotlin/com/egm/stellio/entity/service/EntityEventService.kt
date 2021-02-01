@@ -7,7 +7,7 @@ import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.extractShortTypeFromExpanded
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -56,33 +56,33 @@ class EntityEventService(
                 publishEntityEvent(
                     AttributeAppendEvent(
                         entityId,
-                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        compactTerm(updatedDetails.attributeName, contexts),
                         updatedDetails.datasetId,
                         JsonLdUtils.compactAndStringifyFragment(
                             updatedDetails.attributeName,
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
             else
                 publishEntityEvent(
                     AttributeReplaceEvent(
                         entityId,
-                        updatedDetails.attributeName.extractShortTypeFromExpanded(),
+                        compactTerm(updatedDetails.attributeName, contexts),
                         updatedDetails.datasetId,
                         JsonLdUtils.compactAndStringifyFragment(
                             updatedDetails.attributeName,
                             jsonLdAttributes[updatedDetails.attributeName]!!,
                             contexts
                         ),
-                        JsonLdUtils.compactAndSerialize(updatedEntity, MediaType.APPLICATION_JSON),
+                        JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
-                    updatedEntity.type.extractShortTypeFromExpanded()
+                    compactTerm(updatedEntity.type, contexts)
                 )
         }
     }

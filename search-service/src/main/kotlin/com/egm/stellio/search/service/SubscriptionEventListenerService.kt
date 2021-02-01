@@ -3,9 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
-import com.egm.stellio.shared.util.JsonUtils.parseNotification
-import com.egm.stellio.shared.util.JsonUtils.parseSubscription
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -22,7 +20,7 @@ class SubscriptionEventListenerService(
 
     @StreamListener("cim.subscription")
     fun processSubscription(content: String) {
-        when (val subscriptionEvent = parseEntityEvent(content)) {
+        when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
             is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
             is EntityDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
@@ -31,7 +29,7 @@ class SubscriptionEventListenerService(
 
     @StreamListener("cim.notification")
     fun processNotification(content: String) {
-        when (val notificationEvent = parseEntityEvent(content)) {
+        when (val notificationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)
             else -> logger.warn(
                 "Received unexpected event type ${notificationEvent.operationType}" +
@@ -41,7 +39,7 @@ class SubscriptionEventListenerService(
     }
 
     private fun handleSubscriptionCreateEvent(subscriptionCreateEvent: EntityCreateEvent) {
-        val subscription = parseSubscription(subscriptionCreateEvent.operationPayload)
+        val subscription = deserializeAs<Subscription>(subscriptionCreateEvent.operationPayload)
         val entityTemporalProperty = TemporalEntityAttribute(
             entityId = subscription.id,
             type = "https://uri.etsi.org/ngsi-ld/Subscription",
@@ -57,7 +55,7 @@ class SubscriptionEventListenerService(
 
     private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
         logger.debug("Received notification event payload: ${notificationCreateEvent.operationPayload}")
-        val notification = parseNotification(notificationCreateEvent.operationPayload)
+        val notification = deserializeAs<Notification>(notificationCreateEvent.operationPayload)
         val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
         temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
             .flatMap {

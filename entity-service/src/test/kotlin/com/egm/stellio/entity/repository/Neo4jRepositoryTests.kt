@@ -9,9 +9,7 @@ import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_IS_CONTAINED_IN
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_VENDOR_ID
 import com.egm.stellio.shared.util.toUri
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
@@ -21,6 +19,7 @@ import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -94,7 +93,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name==Scalpa")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name==\"Scalpa\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -106,7 +105,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name==ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name==\"ScalpaXYZ\"")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -118,7 +117,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishNumber", value = 500))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishNumber==500")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishNumber==500")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -130,7 +129,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishNumber", value = 500))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishNumber==499")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishNumber==499")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -142,7 +141,7 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 120.50))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight==120.50")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight==120.50")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -154,55 +153,55 @@ class Neo4jRepositoryTests {
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = -120.50))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight==-120")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight==-120")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an empty list if given weight equals to entity weight and comparaison parameter is wrong`() {
+    fun `it should return an empty list if given weight equals to entity weight and comparison parameter is wrong`() {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 180.9))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight>180.9")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight>180.9")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an entity if given weight equals to entity weight and comparaison parameter is correct`() {
+    fun `it should return an entity if given weight equals to entity weight and comparison parameter is correct`() {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
             mutableListOf(Property(name = "fishWeight", value = 255))
         )
-        val entities = neo4jRepository.getEntities("DeadFishes", "fishWeight>=255")
+        val entities = neo4jRepository.getEntities(null, "DeadFishes", "fishWeight>=255")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an empty list if given name equals to entity name and comparaison parameter is wrong`() {
+    fun `it should return an empty list if given name equals to entity name and comparison parameter is wrong`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "ScalpaXYZ"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name!=ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name!=\"ScalpaXYZ\"")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
-    fun `it should return an entity if given name not equals to entity name and comparaison parameter is correct`() {
+    fun `it should return an entity if given name not equals to entity name and comparison parameter is correct`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "name!=ScalpaXYZ")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "name!=\"ScalpaXYZ\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -214,7 +213,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = ZonedDateTime.parse("2018-12-04T12:00:00Z")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-04T12:00:00Z")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-04T12:00:00Z")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -226,7 +225,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-04")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-04")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -238,7 +237,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==2018-12-07")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==2018-12-07")
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -250,7 +249,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = "testedAt", value = LocalTime.parse("12:00:00")))
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -265,7 +264,7 @@ class Neo4jRepositoryTests {
                 Property(name = "name", value = "beekeeper")
             )
         )
-        val entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00;name==beekeeper")
+        val entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00;name==\"beekeeper\"")
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -281,10 +280,10 @@ class Neo4jRepositoryTests {
             )
         )
 
-        var entities = neo4jRepository.getEntities("Beekeeper", "testedAt==13:00:00;name==beekeeper")
+        var entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==13:00:00;name==\"beekeeper\"")
         assertFalse(entities.contains(entity.id))
 
-        entities = neo4jRepository.getEntities("Beekeeper", "testedAt==12:00:00;name==beekeeperx")
+        entities = neo4jRepository.getEntities(null, "Beekeeper", "testedAt==12:00:00;name==\"beekeeperx\"")
         assertFalse(entities.contains(entity.id))
 
         neo4jRepository.deleteEntity(entity.id)
@@ -303,30 +302,83 @@ class Neo4jRepositoryTests {
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
 
         var entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567"
+            "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567);name==beekeeper"
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==12:00:00;observedBy==urn:ngsi-ld:Entity:4567)|name==beekeeper"
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         entities = neo4jRepository.getEntities(
+            null,
             "Beekeeper",
-            "(testedAt==13:00:00;observedBy==urn:ngsi-ld:Entity:4567)|name==beekeeper"
+            "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
         )
         assertTrue(entities.contains(entity.id))
 
         neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return entities matching given type and id`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val entities = neo4jRepository.getEntities(listOf("urn:ngsi-ld:Beekeeper:1231"), "Beekeeper", "")
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return entities matching given type and ids`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        val entities = neo4jRepository.getEntities(
+            listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
+            "Beekeeper",
+            ""
+        )
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        assertTrue(entities.contains(thirdEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -563,137 +615,6 @@ class Neo4jRepositoryTests {
         )
         val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233".toUri()).get().modifiedAt
         assertThat(updatedModifiedAt).isAfter(modifiedAt)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id with case not matching and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                vendorId.toString().toUpperCase().toUri(),
-                EGM_VENDOR_ID,
-                "outgoing"
-            )
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by vendor id of a device and measured property`() {
-        val vendorId = "urn:something:9876".toUri()
-        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
-        val device = createEntity(
-            "urn:ngsi-ld:Device:1233".toUri(),
-            listOf("Device"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val sensorToDeviceRelationship =
-            createRelationship(EntitySubjectNode(sensor.id), EGM_IS_CONTAINED_IN, device.id)
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val propertyToDeviceRelationship =
-            createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, sensor.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "outgoing")
-        assertNotNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(sensorToDeviceRelationship)
-        relationshipRepository.delete(propertyToDeviceRelationship)
-        neo4jRepository.deleteEntity(device.id)
-        neo4jRepository.deleteEntity(sensor.id)
-    }
-
-    @Test
-    fun `it should not find a sensor by vendor id if measured property does not exist`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity = neo4jRepository.getObservingSensorEntity(vendorId, EGM_VENDOR_ID, "incoming")
-        assertNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should not find a sensor if measured property exists but not the vendor id`() {
-        val vendorId = "urn:something:9876".toUri()
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = vendorId))
-        )
-        val property = createProperty("https://ontology.eglobalmark.com/apic#outgoing", 1.0)
-        val relationship = createRelationship(AttributeSubjectNode(property.id), EGM_OBSERVED_BY, entity.id)
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:Unknown".toUri(),
-                EGM_VENDOR_ID,
-                "outgoing"
-            )
-        assertNull(persistedEntity)
-        propertyRepository.delete(property)
-        relationshipRepository.delete(relationship)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should find a sensor by NGSI-LD id`() {
-        val entity = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:1233".toUri(),
-                EGM_VENDOR_ID,
-                "anything"
-            )
-        assertNotNull(persistedEntity)
-        neo4jRepository.deleteEntity(entity.id)
-    }
-
-    @Test
-    fun `it should not find a sensor if neither NGSI-LD or vendor id matches`() {
-        val entity = createEntity(
-            "urn:ngsi-ld:Sensor:1233".toUri(),
-            listOf("Sensor"),
-            mutableListOf(Property(name = EGM_VENDOR_ID, value = "urn:something:9876"))
-        )
-        val persistedEntity =
-            neo4jRepository.getObservingSensorEntity(
-                "urn:ngsi-ld:Sensor:Unknown".toUri(),
-                EGM_VENDOR_ID,
-                "unknownMeasure"
-            )
-        assertNull(persistedEntity)
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -1190,8 +1111,145 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(newDevice.id)
     }
 
-    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {
-        val entity = Entity(id = id, type = type, properties = properties)
+    @Test
+    fun `it should return an emptyMap for unknown type`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#unknownType")
+
+        assertTrue(attributesInformation.isEmpty())
+
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for two entities`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "incoming", value = 61)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 3)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
+        assertEquals(attributesInformation["relationships"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["entityCount"], 2)
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for two entities with relationships`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "humidity", value = 61)
+            )
+        )
+        createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", partialTargetEntityUri)
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 2)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
+        assertEquals(attributesInformation["relationships"], setOf("observedBy"))
+        assertEquals(attributesInformation["geoProperties"], emptySet<String>())
+        assertEquals(attributesInformation["entityCount"], 2)
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should retrieve entity type attributes information for three entities with location`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            ),
+            GeographicPoint2d(24.30623, 60.07966)
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 30),
+                Property(name = "humidity", value = 61)
+            )
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTD".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 25),
+                Property(name = "humidity", value = 89)
+            )
+        )
+
+        val attributesInformation = neo4jRepository
+            .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#Beehive")
+
+        val propertiesInformation = attributesInformation["properties"] as Set<*>
+
+        assertEquals(propertiesInformation.size, 2)
+        assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
+        assertEquals(attributesInformation["relationships"], emptySet<String>())
+        assertEquals(attributesInformation["geoProperties"], setOf("location"))
+        assertEquals(attributesInformation["entityCount"], 3)
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
+    fun createEntity(
+        id: URI,
+        type: List<String>,
+        properties: MutableList<Property> = mutableListOf(),
+        location: GeographicPoint2d? = null
+    ): Entity {
+        val entity = Entity(id = id, type = type, properties = properties, location = location)
         return entityRepository.save(entity)
     }
 

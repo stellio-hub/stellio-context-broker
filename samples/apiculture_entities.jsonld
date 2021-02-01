@@ -7,8 +7,7 @@
            "value":"Scalpa"
        },
        "@context":[
-          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
-          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
        ]
     },
     {
@@ -29,8 +28,7 @@
           }
        },
        "@context":[
-          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
-          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
        ]
     },
     {
@@ -75,8 +73,7 @@
           }
        },
        "@context": [
-          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
-          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
        ]
     },
     {
@@ -87,8 +84,7 @@
              "value":"humidity"
        },
        "@context": [
-          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
-          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
        ]
     },
     {
@@ -99,8 +95,7 @@
              "value":"temperature"
        },
        "@context": [
-          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld",
-          "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+          "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
        ]
     }
 ]

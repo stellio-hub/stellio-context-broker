@@ -8,7 +8,6 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 
 @Configuration
 class WebSecurityConfig {
-
     @Bean
     @ConditionalOnProperty("application.authentication.enabled")
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {

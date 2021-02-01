@@ -4,7 +4,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils.parseEntityEvent
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -19,7 +19,7 @@ class IAMListener(
 
     @StreamListener("cim.iam")
     fun processMessage(content: String) {
-        when (val authorizationEvent = parseEntityEvent(content)) {
+        when (val authorizationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> create(authorizationEvent)
             is EntityDeleteEvent -> delete(authorizationEvent)
             is AttributeAppendEvent -> append(authorizationEvent)

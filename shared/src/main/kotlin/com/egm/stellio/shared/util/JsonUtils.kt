@@ -1,7 +1,6 @@
 package com.egm.stellio.shared.util
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
@@ -19,9 +18,6 @@ object JsonUtils {
 
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue(content, T::class.java)
-
-    fun parseJsonContent(content: String): JsonNode =
-        mapper.readTree(content)
 
     fun deserializeObject(input: String): Map<String, Any> =
         mapper.readValue(

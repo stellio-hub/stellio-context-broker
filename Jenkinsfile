@@ -21,12 +21,9 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarCloud for Stellio') {
                     script {
-                        def urlComponents = env.CHANGE_URL.split("/")
-                        def organisation = urlComponents[3]
-                        def repository = urlComponents[4]
                         sh "./gradlew sonarqube \
                             -Dsonar.pullrequest.provider=GitHub \
-                            -Dsonar.pullrequest.github.repository=${org}/${repo} \
+                            -Dsonar.pullrequest.github.repository=stellio-hub/stellio-context-broker \
                             -Dsonar.pullrequest.key=${env.CHANGE_ID} \
                             -Dsonar.pullrequest.branch=${env.CHANGE_BRANCH}"
                     }

@@ -23,9 +23,7 @@ pipeline {
                     script {
                         sh "./gradlew sonarqube \
                             -Dsonar.pullrequest.provider=GitHub \
-                            -Dsonar.pullrequest.github.repository=stellio-hub/stellio-context-broker \
-                            -Dsonar.pullrequest.key=${env.CHANGE_ID} \
-                            -Dsonar.pullrequest.branch=${env.BRANCH_NAME}"
+                            -Dsonar.pullrequest.github.repository=stellio-hub/stellio-context-broker"
                     }
                 }
             }

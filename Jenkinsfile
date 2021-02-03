@@ -66,7 +66,7 @@ pipeline {
                 sh './gradlew build -p subscription-service'
             }
         }
-        stage('Perform SonarCloud analysis') {
+        stage('Perform SonarCloud analysis test') {
             steps {
                 withSonarQubeEnv('SonarCloud for Stellio') {
                     sh './gradlew sonarqube'

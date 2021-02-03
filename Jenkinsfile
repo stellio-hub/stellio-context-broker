@@ -5,7 +5,6 @@ pipeline {
     }
     environment {
         EGM_CI_DH = credentials('egm-ci-dh')
-        SONAR_TOKEN = credentials('sonar-token')
     }
     stages {
         stage('Notify build in Slack') {
@@ -19,9 +18,11 @@ pipeline {
             }
         }
         stage('Perform SonarCloud analysis') {
-            withSonarQubeEnv('SonarCloud for Stellio') {
-                sh './gradlew sonarqube'
-           }
+            steps {
+                withSonarQubeEnv('SonarCloud for Stellio') {
+                    sh './gradlew sonarqube'
+                }
+            }
         }
         stage('Build Shared Lib') {
             when {

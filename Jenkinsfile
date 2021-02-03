@@ -19,9 +19,9 @@ pipeline {
             }
         }
         stage('Perform SonarCloud analysis') {
-            steps {
-                sh './gradlew sonarqube -Dsonar.login=$SONAR_TOKEN'
-            }
+            withSonarQubeEnv('SonarCloud for Stellio') {
+                sh './gradlew sonarqube'
+           }
         }
         stage('Build Shared Lib') {
             when {

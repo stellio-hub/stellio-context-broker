@@ -17,17 +17,6 @@ pipeline {
                 sh './gradlew clean'
             }
         }
-        stage('Perform SonarCloud analysis') {
-            steps {
-                withSonarQubeEnv('SonarCloud for Stellio') {
-                    script {
-                        sh "./gradlew sonarqube \
-                            -Dsonar.pullrequest.provider=GitHub \
-                            -Dsonar.pullrequest.github.repository=stellio-hub/stellio-context-broker"
-                    }
-                }
-            }
-        }
         stage('Build Shared Lib') {
             when {
                 changeset "shared/**"
@@ -75,6 +64,13 @@ pipeline {
             }
             steps {
                 sh './gradlew build -p subscription-service'
+            }
+        }
+        stage('Perform SonarCloud analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud for Stellio') {
+                    sh './gradlew sonarqube'
+                }
             }
         }
         /* Jib only allows to add tags and always set the "latest" tag on the Docker images created.

@@ -20,7 +20,16 @@ pipeline {
         stage('Perform SonarCloud analysis') {
             steps {
                 withSonarQubeEnv('SonarCloud for Stellio') {
-                    sh './gradlew sonarqube'
+                    script {
+                        def urlComponents = env.CHANGE_URL.split("/")
+                        def organisation = urlComponents[3]
+                        def repository = urlComponents[4]
+                        sh "./gradlew sonarqube \
+                            -Dsonar.pullrequest.provider=GitHub \
+                            -Dsonar.pullrequest.github.repository=${org}/${repo} \
+                            -Dsonar.pullrequest.key=${env.CHANGE_ID} \
+                            -Dsonar.pullrequest.branch=${env.CHANGE_BRANCH}"
+                    }
                 }
             }
         }

@@ -5,6 +5,7 @@ pipeline {
     }
     environment {
         EGM_CI_DH = credentials('egm-ci-dh')
+        SONAR_TOKEN = credentials('sonar-token')
     }
     stages {
         stage('Notify build in Slack') {
@@ -15,6 +16,11 @@ pipeline {
         stage('Clean previous build') {
             steps {
                 sh './gradlew clean'
+            }
+        }
+        stage('Perform SonarCloud analysis') {
+            steps {
+                sh './gradlew sonarqube -Dsonar.login=$SONAR_TOKEN'
             }
         }
         stage('Build Shared Lib') {

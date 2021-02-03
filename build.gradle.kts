@@ -20,6 +20,7 @@ plugins {
     id("com.google.cloud.tools.jib") version "2.5.0" apply false
     kotlin("kapt") version "1.3.61" apply false
     id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
+    id("org.sonarqube") version "3.1.1"
 }
 
 subprojects {
@@ -154,5 +155,13 @@ allprojects {
         mavenCentral()
         maven { url = uri("https://repo.spring.io/milestone") }
         jcenter()
+    }
+
+    sonarqube {
+        properties {
+            property("sonar.host.url", "https://sonarcloud.io")
+            property("sonar.organization", "stellio-hub")
+            property("sonar.projectKey", "stellio-hub_stellio-context-broker")
+        }
     }
 }

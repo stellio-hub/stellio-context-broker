@@ -19,30 +19,33 @@ class EntityEventListenerService(
     fun processMessage(content: String) {
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityEvent(
-                entityEvent.operationPayload,
+                deserializeObject(entityEvent.operationPayload).keys,
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
             is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
             is AttributeAppendEvent -> logger.warn("Attribute append operation is not yet implemented")
             is AttributeReplaceEvent -> handleEntityEvent(
-                entityEvent.operationPayload,
+                deserializeObject(entityEvent.operationPayload).keys,
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
-            is AttributeUpdateEvent -> logger.warn("Attribute update operation is not yet implemented")
+            is AttributeUpdateEvent -> handleEntityEvent(
+                setOf(entityEvent.attributeName),
+                entityEvent.getEntity(),
+                entityEvent.contexts
+            )
             is AttributeDeleteEvent -> logger.warn("Attribute delete operation is not yet implemented")
         }
     }
 
-    private fun handleEntityEvent(eventPayload: String, entityPayload: String, contexts: List<String>) {
+    private fun handleEntityEvent(updatedAttributes: Set<String>, entityPayload: String, contexts: List<String>) {
         try {
-            val updatedFragment = deserializeObject(eventPayload)
             val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
             notificationService.notifyMatchingSubscribers(
                 entityPayload,
                 parsedEntity.toNgsiLdEntity(),
-                updatedFragment.keys
+                updatedAttributes
             ).subscribe {
                 val succeeded = it.filter { it.third }.size
                 val failed = it.filter { !it.third }.size

@@ -25,8 +25,8 @@ class EntityEventListenerServiceTests {
     private lateinit var notificationService: NotificationService
 
     @Test
-    fun `it should parse and transmit observations`() {
-        val observation = ClassPathResource("/ngsild/events/listened/AttributeReplaceEvent.json")
+    fun `it should parse and transmit an attribute replace event`() {
+        val replaceEvent = ClassPathResource("/ngsild/events/listened/AttributeReplaceEvent.json")
 
         val mockedSubscription = mockkClass(Subscription::class)
         val mockedNotification = mockkClass(Notification::class)
@@ -40,9 +40,31 @@ class EntityEventListenerServiceTests {
             )
         }
 
-        entityEventListenerService.processMessage(observation.inputStream.readBytes().toString(Charsets.UTF_8))
+        entityEventListenerService.processMessage(replaceEvent.inputStream.readBytes().toString(Charsets.UTF_8))
 
         verify { notificationService.notifyMatchingSubscribers(any(), any(), any()) }
+        confirmVerified(notificationService)
+    }
+
+    @Test
+    fun `it should parse and transmit an attribute update event`() {
+        val updateEvent = ClassPathResource("/ngsild/events/listened/AttributeUpdateEvent.json")
+
+        val mockedSubscription = mockkClass(Subscription::class)
+        val mockedNotification = mockkClass(Notification::class)
+
+        every { notificationService.notifyMatchingSubscribers(any(), any(), any()) } answers {
+            Mono.just(
+                listOf(
+                    Triple(mockedSubscription, mockedNotification, true),
+                    Triple(mockedSubscription, mockedNotification, false)
+                )
+            )
+        }
+
+        entityEventListenerService.processMessage(updateEvent.inputStream.readBytes().toString(Charsets.UTF_8))
+
+        verify { notificationService.notifyMatchingSubscribers(any(), any(), setOf("name")) }
         confirmVerified(notificationService)
     }
 }

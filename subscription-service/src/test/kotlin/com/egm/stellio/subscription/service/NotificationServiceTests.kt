@@ -173,8 +173,10 @@ class NotificationServiceTests {
     @Test
     fun `it should notify the subscriber and only keep the expected attributes`() {
         val subscription = gimmeRawSubscription(
-            withNotifParams = Pair(FormatType.NORMALIZED,
-                listOf("https://uri.etsi.org/ngsi-ld/name", "https://uri.etsi.org/ngsi-ld/location"))
+            withNotifParams = Pair(
+                FormatType.NORMALIZED,
+                listOf("https://uri.etsi.org/ngsi-ld/name", "https://uri.etsi.org/ngsi-ld/location")
+            )
         )
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)

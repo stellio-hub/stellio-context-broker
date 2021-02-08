@@ -2,6 +2,9 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.firebase.FCMService
@@ -58,11 +61,10 @@ class NotificationServiceTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
 
-    private val baseEgmSharedUrl = "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     private final val contexts = listOf(
-        "$baseEgmSharedUrl/apic/jsonld-contexts/apic.jsonld",
-        "$baseEgmSharedUrl/shared-jsonld-contexts/egm.jsonld",
-        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+        "$EGM_BASE_CONTEXT_URL/apic/jsonld-contexts/apic.jsonld",
+        "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld",
+        NGSILD_CORE_CONTEXT
     )
 
     private final val rawEntity =
@@ -149,7 +151,7 @@ class NotificationServiceTests {
                         it.operationType == EventsType.ENTITY_CREATE &&
                         read(it.operationPayload, "$.subscriptionId") as String == subscription.id.toString() &&
                         read(it.operationPayload, "$.data[0].id") as String == apiaryId &&
-                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+                        it.contexts == listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
                 }
             )
         }
@@ -166,6 +168,42 @@ class NotificationServiceTests {
         verify { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
 
         confirmVerified(subscriptionService)
+    }
+
+    @Test
+    fun `it should notify the subscriber and only keep the expected attributes`() {
+        val subscription = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED,
+                listOf("https://uri.etsi.org/ngsi-ld/name", "https://uri.etsi.org/ngsi-ld/location"))
+        )
+
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        val notificationResult =
+            notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+
+        StepVerifier.create(notificationResult)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0].second.subscriptionId == subscription.id &&
+                    it[0].second.data.size == 1 &&
+                    it[0].second.data[0].size == 5 &&
+                    it[0].second.data[0].all { entry ->
+                        listOf("id", "type", "name", "location", "@context").contains(entry.key)
+                    } &&
+                    it[0].third
+            }
+            .expectComplete()
+            .verify()
     }
 
     @Test
@@ -204,7 +242,7 @@ class NotificationServiceTests {
                         (read(it.operationPayload, "$.data[*]..value") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*]..object") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty() &&
-                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+                        it.contexts == listOf(NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
                 }
             )
         }

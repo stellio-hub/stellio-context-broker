@@ -1,10 +1,11 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils.filterCompactedEntityOnAttributes
+import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.shared.util.toNgsiLdFormat
@@ -54,7 +55,7 @@ class NotificationService(
     ): Mono<Triple<Subscription, Notification, Boolean>> {
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotificationData(entity, subscription.notification, entity.contexts)
+            data = buildNotificationData(entity, subscription.notification)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri")
@@ -93,15 +94,16 @@ class NotificationService(
 
     private fun buildNotificationData(
         entity: JsonLdEntity,
-        params: NotificationParams,
-        contexts: List<String>
+        params: NotificationParams
     ): List<Map<String, Any>> {
         val filteredEntity =
-            filterCompactedEntityOnAttributes(compact(entity, contexts), params.attributes?.toSet() ?: emptySet())
+            filterJsonLdEntityOnAttributes(entity, params.attributes?.toSet() ?: emptySet())
+        val filteredCompactedEntity =
+            compact(JsonLdEntity(filteredEntity, entity.contexts), entity.contexts, JSON_LD_MEDIA_TYPE)
         val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
-            filteredEntity.toKeyValues()
+            filteredCompactedEntity.toKeyValues()
         else
-            filteredEntity
+            filteredCompactedEntity
 
         return listOf(processedEntity)
     }

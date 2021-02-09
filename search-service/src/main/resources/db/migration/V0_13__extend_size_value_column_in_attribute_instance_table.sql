@@ -1,0 +1,1 @@
+ALTER TABLE attribute_instance ALTER COLUMN value TYPE VARCHAR(4096);

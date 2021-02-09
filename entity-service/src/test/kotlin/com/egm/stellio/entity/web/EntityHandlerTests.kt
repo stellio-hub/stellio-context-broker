@@ -1563,8 +1563,8 @@ class EntityHandlerTests {
                     it.attributeName == "fishName" &&
                     (
                         it.datasetId == "urn:ngsi-ld:Dataset:fishName:1".toUri() ||
-                        it.datasetId == "urn:ngsi-ld:Dataset:fishName:2".toUri()
-                    ) &&
+                            it.datasetId == "urn:ngsi-ld:Dataset:fishName:2".toUri()
+                        ) &&
                     it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
                     it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
             )

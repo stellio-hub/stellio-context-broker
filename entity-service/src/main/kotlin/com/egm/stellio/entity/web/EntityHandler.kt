@@ -284,7 +284,7 @@ class EntityHandler(
                 AttributeReplaceEvent(
                     entityId.toUri(),
                     compactTerm(updatedDetails.attributeName, contexts),
-                    extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes, updatedDetails.attributeName),
+                    updatedDetails.datasetId,
                     compactAndStringifyFragment(
                         updatedDetails.attributeName,
                         jsonLdAttributes[updatedDetails.attributeName]!!,

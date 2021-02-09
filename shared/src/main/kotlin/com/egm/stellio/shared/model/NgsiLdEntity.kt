@@ -361,10 +361,6 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
         }
     }
 
-// TODO add support for multi attribute
-fun extractDatasetIdFromNgsiLdAttributes(ngsiLdAttributes: List<NgsiLdAttribute>, attributeName: String) =
-    ngsiLdAttributes.first { it.name == attributeName }.getAttributeInstances()[0].datasetId
-
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)
 

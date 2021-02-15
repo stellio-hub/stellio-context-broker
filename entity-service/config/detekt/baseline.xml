@@ -8,6 +8,7 @@
     <ID>LargeClass:EntityService.kt$EntityService</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests</ID>
+    <ID>LongMethod:EntityHandlerTests.kt$EntityHandlerTests$@Test fun `entity attributes update should send two notifications for attributes with two instances`()</ID>
     <ID>LongMethod:EntityHandlerTests.kt$EntityHandlerTests$@Test fun `entity attributes update should send two notifications if two attributes are updated`()</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
     <ID>LongParameterList:Attribute.kt$Attribute$( @Transient val attributeType: String, var observedAt: ZonedDateTime? = null, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @Convert(UriConverter::class) var datasetId: URI? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf() )</ID>
@@ -16,7 +17,6 @@
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
-    <ID>TooGenericExceptionCaught:ObservationListener.kt$ObservationListener$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$e: Exception</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService$EntityService</ID>
     <ID>TooManyFunctions:Neo4jRepository.kt$Neo4jRepository$Neo4jRepository</ID>

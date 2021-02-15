@@ -66,6 +66,13 @@ pipeline {
                 sh './gradlew build -p subscription-service'
             }
         }
+        stage('Perform SonarCloud analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud for Stellio') {
+                    sh './gradlew sonarqube'
+                }
+            }
+        }
         /* Jib only allows to add tags and always set the "latest" tag on the Docker images created.
         It's unavoidable to create separate stages for Dockerizing dev services and specify the full to.image path */
         stage('Dockerize Dev Api Gateway') {

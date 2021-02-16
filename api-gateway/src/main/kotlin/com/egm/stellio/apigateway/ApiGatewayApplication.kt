@@ -39,6 +39,13 @@ class ApiGatewayApplication(
                     .uri("http://$entityServiceUrl:8082")
             }
             .route { p ->
+                p.path("/ngsi-ld/v1/types/**")
+                    .filters {
+                        it.filter(filterFactory.apply())
+                    }
+                    .uri("http://$entityServiceUrl:8082")
+            }
+            .route { p ->
                 p.path("/ngsi-ld/v1/temporal/entities/**")
                     .filters {
                         it.filter(filterFactory.apply())

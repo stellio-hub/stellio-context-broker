@@ -1235,7 +1235,7 @@ class Neo4jRepositoryTests {
         assertEquals(propertiesInformation.size, 2)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
-        assertEquals(attributesInformation["geoProperties"], setOf("location"))
+        assertEquals(attributesInformation["geoProperties"], setOf("https://uri.etsi.org/ngsi-ld/location"))
         assertEquals(attributesInformation["entityCount"], 3)
 
         neo4jRepository.deleteEntity(firstEntity.id)

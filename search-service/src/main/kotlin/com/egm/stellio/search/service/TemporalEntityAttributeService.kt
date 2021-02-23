@@ -157,6 +157,9 @@ class TemporalEntityAttributeService(
             val attributePayload = parsedPayload[attributeName] as List<CompactedJsonLdAttribute>
             attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
         } else parsedPayload[attributeName]!! as CompactedJsonLdAttribute
+
+        attributeInstancePayload.toMutableMap()["instanceId"] = instanceId.toString()
+
         return serializeObject(attributeInstancePayload)
     }
 

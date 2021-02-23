@@ -3,14 +3,19 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.egm.stellio.shared.util.toUri
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
+import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
+import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import java.time.ZonedDateTime
 
@@ -33,6 +39,9 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @SpykBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
+    @MockkBean
+    private lateinit var attributeInstanceService: AttributeInstanceService
+
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
@@ -41,6 +50,32 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
     val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
+
+    val incomingAttributeInstance =
+        """
+    {   
+        "type": "Property",
+        "value": 1543,
+        "observedAt": "2020-01-24T13:01:22.066Z",
+        "observedBy": {
+          "type": "Relationship",
+          "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+        }
+    }
+        """.trimIndent()
+
+    val outgoingAttributeInstance =
+        """
+    {    
+        "type": "Property",
+        "value": 666,
+        "observedAt": "2020-01-25T17:01:22.066Z",
+        "observedBy": {
+          "type": "Relationship",
+          "object": "urn:ngsi-ld:Sensor:OutgoingSensor"
+        }
+    }
+        """.trimIndent()
 
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
@@ -66,6 +101,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should retrieve a persisted temporal entity attribute`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
@@ -96,6 +133,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create one entry for an entity with one temporal property`() {
         val rawEntity = loadSampleData()
 
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
             listOf(apicContext!!)
@@ -119,6 +158,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create two entries for an entity with a two instances property`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
             listOf(apicContext!!)
@@ -136,6 +177,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should create two entries for an entity with two temporal properties`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
             listOf(apicContext!!)
@@ -147,6 +190,32 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             }
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should create two entries for an entity with two attribute instances with metadata`() {
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            rawEntity,
+            listOf(apicContext!!)
+        ).block()
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    val metadata = serializeObject(
+                        deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    )
+                    (
+                        metadata.matchContent(incomingAttributeInstance) ||
+                            metadata.matchContent(outgoingAttributeInstance)
+                        )
+                }
+            )
+        }
     }
 
     @Test
@@ -291,6 +360,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() {
         val rawEntity = loadSampleData()
 
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
@@ -306,6 +377,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should return the temporalEntityAttributeId of a given entityId attributeName and datasetId`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
@@ -323,6 +396,8 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should not return a temporalEntityAttributeId if the datasetId is unknown`() {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 

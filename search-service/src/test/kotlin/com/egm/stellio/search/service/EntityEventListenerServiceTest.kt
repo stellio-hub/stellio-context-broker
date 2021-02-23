@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -82,6 +84,14 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":33869,
+                    "observedAt":"$observedAt"
+               }
+            """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
@@ -105,9 +115,13 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
+                    val metadata = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    )
                     it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
                         it.value == null &&
-                        it.measuredValue == 33869.0
+                        it.measuredValue == 33869.0 &&
+                        metadata.matchContent(expectedAttributeInstance)
                 }
             )
         }
@@ -222,6 +236,14 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt"
+               }
+            """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -231,7 +253,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, null, expectedAttributeInstance)
     }
 
     @Test
@@ -248,6 +270,15 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt",
+                    "datasetId": "$datasetId"
+               }
+            """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -257,7 +288,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
     }
 
     @Test
@@ -349,6 +380,16 @@ class EntityEventListenerServiceTest {
                 \"datasetId\": \"$datasetId\"
             }
             """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt",
+                    "datasetId": "$datasetId"
+               }
+            """.trimIndent()
+
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -358,7 +399,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
     }
 
     @Test
@@ -407,7 +448,11 @@ class EntityEventListenerServiceTest {
         confirmVerified(attributeInstanceService, temporalEntityAttributeService)
     }
 
-    private fun verifyAndConfirmMockForValue(temporalEntityAttributeUuid: UUID, datasetId: String? = null) {
+    private fun verifyAndConfirmMockForValue(
+        temporalEntityAttributeUuid: UUID,
+        datasetId: String? = null,
+        expectedAttributeInstance: String
+    ) {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), datasetId)
         }
@@ -415,10 +460,14 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
+                    val metadata = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    )
                     it.value == "some textual value" &&
                         it.measuredValue == null &&
                         it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid &&
+                        metadata.matchContent(expectedAttributeInstance)
                 }
             )
         }

@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.shared.model.CompactedJsonLdAttribute
+import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -17,7 +19,10 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
@@ -78,6 +83,8 @@ class TemporalEntityAttributeService(
 
     fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
         val entity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
+        val parsedPayload = JsonUtils.deserializeObject(payload)
+
         logger.debug("Analyzing create event for entity ${entity.id}")
 
         val temporalProperties = entity.properties
@@ -95,16 +102,13 @@ class TemporalEntityAttributeService(
             )
 
         logger.debug("Found temporal properties for entity : $temporalProperties")
-        if (temporalProperties.isEmpty())
-            return Mono.just(0)
+        if (temporalProperties.isEmpty()) return Mono.just(0)
 
         return Flux.fromIterable(temporalProperties.asIterable())
             .map {
                 val attributeValueType =
-                    if (isAttributeOfMeasureType(it.second.value))
-                        TemporalEntityAttribute.AttributeValueType.MEASURE
-                    else
-                        TemporalEntityAttribute.AttributeValueType.ANY
+                    if (isAttributeOfMeasureType(it.second.value)) TemporalEntityAttribute.AttributeValueType.MEASURE
+                    else TemporalEntityAttribute.AttributeValueType.ANY
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = entity.id,
                     type = entity.type,
@@ -113,12 +117,21 @@ class TemporalEntityAttributeService(
                     datasetId = it.second.datasetId,
                     entityPayload = payload
                 )
-
+                val instanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
                 val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
+                    instanceId = instanceId,
                     observedAt = it.second.observedAt!!,
                     measuredValue = valueToDoubleOrNull(it.second.value),
-                    value = valueToStringOrNull(it.second.value)
+                    value = valueToStringOrNull(it.second.value),
+                    metadata = Json.of(
+                        extractAttributeInstanceFromParsedPayload(
+                            parsedPayload,
+                            compactTerm(it.first, contexts),
+                            it.second.datasetId,
+                            instanceId
+                        )
+                    )
                 )
 
                 Pair(temporalEntityAttribute, attributeInstance)
@@ -132,6 +145,19 @@ class TemporalEntityAttributeService(
             .map { it.size }
             .zipWith(createEntityPayload(entity.id, payload))
             .map { it.t1 + it.t2 }
+    }
+
+    private fun extractAttributeInstanceFromParsedPayload(
+        parsedPayload: CompactedJsonLdEntity,
+        attributeName: String,
+        datasetId: URI?,
+        instanceId: URI
+    ): String {
+        val attributeInstancePayload = if (parsedPayload[attributeName] is List<*>) {
+            val attributePayload = parsedPayload[attributeName] as List<CompactedJsonLdAttribute>
+            attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
+        } else parsedPayload[attributeName]!! as CompactedJsonLdAttribute
+        return serializeObject(attributeInstancePayload)
     }
 
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {

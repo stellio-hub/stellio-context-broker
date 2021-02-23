@@ -9,15 +9,19 @@ import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.ZonedDateTime
+import java.util.*
 
 @Component
 class EntityEventListenerService(
@@ -128,11 +132,18 @@ class EntityEventListenerService(
         temporalEntityAttributeService.getForEntityAndAttribute(
             entityId, expandedAttributeName, datasetId
         ).zipWhen {
+            val instanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = it,
+                instanceId = instanceId,
                 observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                 value = parsedAttributeValue.first,
-                measuredValue = parsedAttributeValue.second
+                measuredValue = parsedAttributeValue.second,
+                metadata = Json.of(
+                    serializeObject(
+                        (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
+                    )
+                )
             )
             attributeInstanceService.create(attributeInstance)
                 .then(
@@ -175,11 +186,18 @@ class EntityEventListenerService(
             attributeValueType = attributeValueType,
             datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
         )
+        val instanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
+            instanceId = instanceId,
             observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
             measuredValue = parsedAttributeValue.second,
-            value = parsedAttributeValue.first
+            value = parsedAttributeValue.first,
+            metadata = Json.of(
+                serializeObject(
+                    (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
+                )
+            )
         )
 
         temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {

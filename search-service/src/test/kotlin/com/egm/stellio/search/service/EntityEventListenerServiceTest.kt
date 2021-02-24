@@ -45,6 +45,54 @@ class EntityEventListenerServiceTest {
         }
         """.trimIndent()
 
+    private val updatedEntityTextualValue =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\",
+                \"datasetId\": \"urn:ngsi-ld:Dataset:01234\",
+                \"observedBy\": {
+                     \"type\": \"Relationship\",
+                     \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
+                }
+            },
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
+    private val updatedEntityTextualValueDefaultInstance =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\"
+            },
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
+    private val updatedEntityNumericValue =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+                
+            },
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
     @Test
     fun `it should create a temporal entity entry for entityCreate events`() {
         val content =
@@ -92,7 +140,7 @@ class EntityEventListenerServiceTest {
                     "observedAt":"$observedAt"
                }
             """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload, updatedEntityNumericValue)
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -244,7 +292,11 @@ class EntityEventListenerServiceTest {
                     "observedAt":"$observedAt"
                }
             """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
+        val content = prepareAttributeEventPayload(
+            EventsType.ATTRIBUTE_REPLACE,
+            eventPayload,
+            updatedEntityTextualValueDefaultInstance
+        )
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -266,7 +318,11 @@ class EntityEventListenerServiceTest {
                     \"type\":\"Property\",
                     \"value\":\"some textual value\",
                     \"observedAt\":\"$observedAt\",
-                    \"datasetId\": \"$datasetId\"
+                    \"datasetId\": \"$datasetId\",
+                    \"observedBy\": {
+                      \"type\": \"Relationship\",
+                      \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
+                    }
                 }
             }
             """.trimIndent()
@@ -276,7 +332,11 @@ class EntityEventListenerServiceTest {
                     "type":"Property",
                     "value":"some textual value",
                     "observedAt":"$observedAt",
-                    "datasetId": "$datasetId"
+                    "datasetId": "$datasetId",
+                    "observedBy": {
+                      "type": "Relationship",
+                      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                    }
                }
             """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
@@ -386,10 +446,13 @@ class EntityEventListenerServiceTest {
                     "type":"Property",
                     "value":"some textual value",
                     "observedAt":"$observedAt",
-                    "datasetId": "$datasetId"
+                    "datasetId": "$datasetId",
+                    "observedBy": {
+                      "type": "Relationship",
+                      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                    }
                }
             """.trimIndent()
-
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -473,14 +536,18 @@ class EntityEventListenerServiceTest {
         }
     }
 
-    private fun prepareAttributeEventPayload(operationType: EventsType, payload: String): String =
+    private fun prepareAttributeEventPayload(
+        operationType: EventsType,
+        payload: String,
+        updatedEntity: String = updatedEntityTextualValue
+    ): String =
         """
             {
                 "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",
-                "updatedEntity": "$entity",
+                "updatedEntity": "$updatedEntity",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
         """.trimIndent().replace("\n", "")

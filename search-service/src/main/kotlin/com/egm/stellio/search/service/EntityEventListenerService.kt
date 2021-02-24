@@ -2,18 +2,19 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.util.extractAttributeInstanceFromParsedPayload
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
@@ -121,6 +122,7 @@ class EntityEventListenerService(
             return
         }
         val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
+        val parsedUpdatedEntity = JsonUtils.deserializeObject(jsonLdUpdatedEntity)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -140,8 +142,11 @@ class EntityEventListenerService(
                 value = parsedAttributeValue.first,
                 measuredValue = parsedAttributeValue.second,
                 payload = Json.of(
-                    serializeObject(
-                        (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
+                    extractAttributeInstanceFromParsedPayload(
+                        parsedUpdatedEntity,
+                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                        datasetId?.toUri(),
+                        instanceId
                     )
                 )
             )
@@ -168,6 +173,7 @@ class EntityEventListenerService(
     ) {
         if (!attributeValuesNode.has("observedAt")) return
         val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
+        val parsedUpdatedEntity = JsonUtils.deserializeObject(jsonLdUpdatedEntity)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
@@ -178,13 +184,13 @@ class EntityEventListenerService(
         val attributeValueType =
             if (parsedAttributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE
             else TemporalEntityAttribute.AttributeValueType.ANY
-
+        val datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
             type = expandJsonLdEntity(jsonLdUpdatedEntity).type,
             attributeName = expandedAttributeName,
             attributeValueType = attributeValueType,
-            datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
+            datasetId = datasetId
         )
         val instanceId = AttributeInstance.generateRandomInstanceId()
         val attributeInstance = AttributeInstance(
@@ -194,8 +200,11 @@ class EntityEventListenerService(
             measuredValue = parsedAttributeValue.second,
             value = parsedAttributeValue.first,
             payload = Json.of(
-                serializeObject(
-                    (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
+                extractAttributeInstanceFromParsedPayload(
+                    parsedUpdatedEntity,
+                    JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                    datasetId,
+                    instanceId
                 )
             )
         )

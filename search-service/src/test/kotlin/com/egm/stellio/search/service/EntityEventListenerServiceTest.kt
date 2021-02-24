@@ -115,13 +115,13 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
-                    val metadata = JsonUtils.serializeObject(
-                        JsonUtils.deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    val payload = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.payload.asString()).filterKeys { it != "instanceId" }
                     )
                     it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
                         it.value == null &&
                         it.measuredValue == 33869.0 &&
-                        metadata.matchContent(expectedAttributeInstance)
+                        payload.matchContent(expectedAttributeInstance)
                 }
             )
         }
@@ -460,14 +460,14 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
-                    val metadata = JsonUtils.serializeObject(
-                        JsonUtils.deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    val payload = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.payload.asString()).filterKeys { it != "instanceId" }
                     )
                     it.value == "some textual value" &&
                         it.measuredValue == null &&
                         it.observedAt == ZonedDateTime.parse(observedAt) &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid &&
-                        metadata.matchContent(expectedAttributeInstance)
+                        payload.matchContent(expectedAttributeInstance)
                 }
             )
         }

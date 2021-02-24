@@ -48,20 +48,23 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val body = requestBody.awaitFirst()
+        val parsedBody = JsonUtils.deserializeObject(body)
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
 
         jsonLdAttributes
             .forEach {
+                val compactedAttributeName = compactTerm(it.key, contexts)
                 val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId.toUri(),
-                    compactTerm(it.key, contexts)
+                    compactedAttributeName
                 ).awaitFirst()
 
                 attributeInstanceService.addAttributeInstances(
                     temporalEntityAttributeUuid,
-                    compactTerm(it.key, contexts),
-                    expandValueAsMap(it.value)
+                    compactedAttributeName,
+                    expandValueAsMap(it.value),
+                    parsedBody
                 ).awaitFirst()
             }
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

@@ -193,7 +193,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create two entries for an entity with two attribute instances with metadata`() {
+    fun `it should create two entries for an entity with two attribute instances with payload`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -206,12 +206,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         verify {
             attributeInstanceService.create(
                 match {
-                    val metadata = serializeObject(
-                        deserializeObject(it.metadata!!.asString()).filterKeys { it != "instanceId" }
+                    val payload = serializeObject(
+                        deserializeObject(it.payload.asString()).filterKeys { it != "instanceId" }
                     )
                     (
-                        metadata.matchContent(incomingAttributeInstance) ||
-                            metadata.matchContent(outgoingAttributeInstance)
+                        payload.matchContent(incomingAttributeInstance) ||
+                            payload.matchContent(outgoingAttributeInstance)
                         )
                 }
             )

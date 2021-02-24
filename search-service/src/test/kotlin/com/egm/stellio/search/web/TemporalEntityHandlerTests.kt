@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
-import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
@@ -77,19 +76,20 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
-        val jsonLdObservation = ClassPathResource("/ngsild/observation.jsonld")
+        val jsonLdObservation = loadSampleData("observation.jsonld")
+        val parsedJsonLdObservation = JsonUtils.deserializeObject(jsonLdObservation)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
-        every { attributeInstanceService.addAttributeInstances(any(), any(), any()) } returns Mono.just(1)
+        every { attributeInstanceService.addAttributeInstances(any(), any(), any(), any()) } returns Mono.just(1)
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
+            .body(BodyInserters.fromValue(jsonLdObservation))
             .exchange()
             .expectStatus().isNoContent
 
@@ -105,7 +105,8 @@ class TemporalEntityHandlerTests {
                 eq("incoming"),
                 match {
                     it.size == 4
-                }
+                },
+                parsedJsonLdObservation
             )
         }
         confirmVerified(temporalEntityAttributeService)

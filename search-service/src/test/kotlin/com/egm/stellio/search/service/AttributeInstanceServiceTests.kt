@@ -8,8 +8,12 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
+import io.mockk.*
+import io.r2dbc.postgresql.codec.Json
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -255,6 +259,17 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
+        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val observationPayload =
+            """
+        {
+          "outgoing": {
+            "type": "Property",
+            "value": 550.0
+          }
+        }
+            """.trimIndent()
+        val parsedObservationPayload = JsonUtils.deserializeObject(observationPayload)
         val attributeValues = mapOf(
             EGM_OBSERVED_BY to listOf(
                 mapOf(
@@ -268,19 +283,39 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             )
         )
 
-        val attributeInstance =
-            attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
+        attributeInstanceService.addAttributeInstances(
+            temporalEntityAttribute.id,
+            "outgoing",
+            attributeValues,
+            parsedObservationPayload
+        ).block()
 
-        StepVerifier.create(attributeInstance)
-            .expectNextMatches {
-                it > 0
-            }
-            .expectComplete()
-            .verify()
+        verify {
+            attributeInstanceService["create"](
+                match<AttributeInstance> {
+                    it.measuredValue == 550.0 &&
+                        it.payload.asString()
+                            .matchContent("""{"type": "Property","value": 550.0, "instanceId": "${it.instanceId}"}""")
+                }
+            )
+        }
+
+        confirmVerified()
     }
 
     @Test
     fun `it should not create an AttributeInstance if it has a null value and null measuredValue`() {
+        val observationPayload =
+            """
+        {
+          "outgoing": {
+            "type": "Property",
+            "observedBy": "2015-10-18T11:20:30.000001Z"
+          }
+        }
+            """.trimIndent()
+        val parsedObservationPayload = JsonUtils.deserializeObject(observationPayload)
+
         val attributeValues = mapOf(
             EGM_OBSERVED_BY to listOf(
                 mapOf(
@@ -290,15 +325,31 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         )
 
         assertThrows<BadRequestDataException>("Value cannot be null") {
-            attributeInstanceService.addAttributeInstances(temporalEntityAttribute.id, "outgoing", attributeValues)
+            attributeInstanceService.addAttributeInstances(
+                temporalEntityAttribute.id,
+                "outgoing",
+                attributeValues,
+                parsedObservationPayload
+            )
         }
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {
+        val measuredValue = Random.nextDouble()
+        val observedAt = Instant.now().atZone(ZoneOffset.UTC)
         return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
-            measuredValue = Random.nextDouble(),
-            observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            measuredValue = measuredValue,
+            observedAt = observedAt,
+            payload = Json.of(
+                """
+                {   
+                    "type": "Property",
+                    "value": $measuredValue,
+                    "observedAt": "$observedAt"
+                }
+                """.trimIndent()
+            )
         )
     }
 }

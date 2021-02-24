@@ -13,5 +13,9 @@ data class AttributeInstance(
     val value: String? = null,
     val measuredValue: Double? = null,
     // FIXME should not be null
-    val metadata: Json? = null
-)
+    val payload: Json
+) {
+    companion object {
+        fun generateRandomInstanceId() = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+    }
+}

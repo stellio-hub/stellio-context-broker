@@ -132,14 +132,14 @@ class EntityEventListenerService(
         temporalEntityAttributeService.getForEntityAndAttribute(
             entityId, expandedAttributeName, datasetId
         ).zipWhen {
-            val instanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+            val instanceId = AttributeInstance.generateRandomInstanceId()
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = it,
                 instanceId = instanceId,
                 observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                 value = parsedAttributeValue.first,
                 measuredValue = parsedAttributeValue.second,
-                metadata = Json.of(
+                payload = Json.of(
                     serializeObject(
                         (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
                     )
@@ -186,14 +186,14 @@ class EntityEventListenerService(
             attributeValueType = attributeValueType,
             datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
         )
-        val instanceId = "urn:ngsi-ld:Instance:${UUID.randomUUID()}".toUri()
+        val instanceId = AttributeInstance.generateRandomInstanceId()
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             instanceId = instanceId,
             observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
             measuredValue = parsedAttributeValue.second,
             value = parsedAttributeValue.first,
-            metadata = Json.of(
+            payload = Json.of(
                 serializeObject(
                     (attributeValuesNode as ObjectNode).put("instanceId", instanceId.toString())
                 )

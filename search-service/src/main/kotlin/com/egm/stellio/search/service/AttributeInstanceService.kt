@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.util.extractAttributeInstanceFromParsedPayload
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -12,6 +13,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.toUri
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -37,16 +39,27 @@ class AttributeInstanceService(
     fun addAttributeInstances(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
-        attributeValues: Map<String, List<Any>>
+        attributeValues: Map<String, List<Any>>,
+        parsedPayload: Map<String, Any>
     ): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Value cannot be null")
 
+        val instanceId = AttributeInstance.generateRandomInstanceId()
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
+            instanceId = instanceId,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
-            measuredValue = valueToDoubleOrNull(attributeValue)
+            measuredValue = valueToDoubleOrNull(attributeValue),
+            payload = Json.of(
+                extractAttributeInstanceFromParsedPayload(
+                    parsedPayload,
+                    attributeKey,
+                    null,
+                    instanceId
+                )
+            )
         )
         return create(attributeInstance)
     }

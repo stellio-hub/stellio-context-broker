@@ -3,6 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
+    <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$fun createEntityTemporalReferences(payload: String, contexts: List&lt;String&gt;): Mono&lt;Int&gt;</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$fun injectTemporalValues( jsonLdEntity: JsonLdEntity, rawResults: List&lt;List&lt;AttributeInstanceResult&gt;&gt;, withTemporalValues: Boolean ): JsonLdEntity</ID>
     <ID>MaxLineLength:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$ INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, dataset_id)</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>

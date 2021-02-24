@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -63,7 +65,8 @@ class SubscriptionEventListenerService(
                     temporalEntityAttribute = it,
                     observedAt = notification.notifiedAt,
                     value = entitiesIds,
-                    instanceId = notification.id
+                    instanceId = notification.id,
+                    payload = Json.of(serializeObject(notification.data))
                 )
                 attributeInstanceService.create(attributeInstance)
             }

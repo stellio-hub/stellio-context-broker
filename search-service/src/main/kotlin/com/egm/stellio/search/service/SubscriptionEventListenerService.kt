@@ -4,7 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.toNgsiLdFormat
 import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
@@ -66,7 +66,16 @@ class SubscriptionEventListenerService(
                     observedAt = notification.notifiedAt,
                     value = entitiesIds,
                     instanceId = notification.id,
-                    payload = Json.of(serializeObject(notification.data))
+                    payload = Json.of(
+                        """
+                        {
+                            "type": "Notification",
+                            "value": "$entitiesIds",
+                            "instanceId": "${notification.id}",
+                            "notifiedAt": "${notification.notifiedAt.toNgsiLdFormat()}"
+                        }
+                        """.trimIndent()
+                    )
                 )
                 attributeInstanceService.create(attributeInstance)
             }

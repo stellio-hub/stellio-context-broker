@@ -12,7 +12,6 @@ data class AttributeInstance(
     val observedAt: ZonedDateTime,
     val value: String? = null,
     val measuredValue: Double? = null,
-    // FIXME should not be null
     val payload: Json
 ) {
     companion object {

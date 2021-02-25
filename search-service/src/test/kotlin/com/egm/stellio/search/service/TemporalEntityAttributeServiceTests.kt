@@ -1,27 +1,18 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.TimescaleBasedTests
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.parseSampleDataToJsonLd
 import com.egm.stellio.shared.util.toUri
-import com.github.jsonldjava.core.JsonLdOptions
-import com.github.jsonldjava.core.JsonLdProcessor
-import com.github.jsonldjava.utils.JsonUtils
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -29,7 +20,6 @@ import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -119,8 +109,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectNextMatches {
                 it.entityId == "urn:ngsi-ld:BeeHive:TESTD".toUri() &&
                     it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                    it.attributeName == incomingAttrExpandedName &&
-                    it.entityPayload !== null
+                    it.attributeName == incomingAttrExpandedName
             }
             .expectNextMatches {
                 it.entityId == "urn:ngsi-ld:BeeHive:TESTD".toUri()
@@ -255,144 +244,6 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                 }
             )
         }
-    }
-
-    @Test
-    fun `it should inject temporal numeric values in temporalValues format into an entity`() {
-        val rawEntity = parseSampleDataToJsonLd("beehive.jsonld")
-        val rawResults = listOf(
-            listOf(
-                AttributeInstanceResult(
-                    attributeName = incomingAttrExpandedName,
-                    value = 550.0,
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
-                ),
-                AttributeInstanceResult(
-                    attributeName = incomingAttrExpandedName,
-                    value = 650.0,
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:00Z")
-                )
-            )
-        )
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/beehive_with_incoming_temporal_values.jsonld").trim(), finalEntity)
-    }
-
-    @Test
-    fun `it should inject temporal string values in temporalValues format into an entity`() {
-        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
-        val rawResults = listOf(
-            listOf(
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:1234",
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
-                ),
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:5678",
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
-                )
-            )
-        )
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(
-            loadSampleData("expectations/subscription_with_notifications_temporal_values.jsonld").trim(),
-            finalEntity
-        )
-    }
-
-    @Test
-    fun `it should inject temporal string values in default format into an entity`() {
-        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
-        val rawResults = listOf(
-            listOf(
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:1234",
-                    instanceId = "urn:ngsi-ld:Beehive:notification:1234".toUri(),
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
-                ),
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:5678",
-                    instanceId = "urn:ngsi-ld:Beehive:notification:4567".toUri(),
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
-                )
-            )
-        )
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, false)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("expectations/subscription_with_notifications.jsonld").trim(), finalEntity)
-    }
-
-    @Test
-    fun `it should return the entity untouched if it has no temporal history`() {
-        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
-        val rawResults = emptyList<List<AttributeInstanceResult>>()
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
-    }
-
-    @Test
-    fun `it should return the entity untouched if it has an empty temporal history`() {
-        val rawEntity = parseSampleDataToJsonLd("subscription.jsonld")
-        val rawResults = emptyList<List<AttributeInstanceResult>>()
-
-        val enrichedEntity = temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, true)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(loadSampleData("subscription.jsonld").trim(), finalEntity)
-    }
-
-    @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
-    fun `it should inject temporal numeric values into an entity with two instances property`(
-        rawEntity: JsonLdEntity,
-        rawResults: List<List<AttributeInstanceResult>>,
-        withTemporalValues: Boolean,
-        expectation: String
-    ) {
-        val enrichedEntity =
-            temporalEntityAttributeService.injectTemporalValues(rawEntity, rawResults, withTemporalValues)
-        val serializedEntity = JsonLdProcessor.compact(
-            enrichedEntity.properties,
-            mapOf("@context" to enrichedEntity.contexts),
-            JsonLdOptions()
-        )
-        val finalEntity = JsonUtils.toPrettyString(serializedEntity)
-        assertEquals(expectation.trim(), finalEntity)
     }
 
     @Test

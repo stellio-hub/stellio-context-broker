@@ -10,7 +10,7 @@ data class TemporalEntityAttribute(
     val attributeName: String,
     val attributeValueType: AttributeValueType,
     val datasetId: URI? = null,
-    // FIXME it should be not null, but we have existing data where the payload is not present
+    // FIXME it should be removed since it is no longer used
     val entityPayload: String? = null
 ) {
     enum class AttributeValueType {

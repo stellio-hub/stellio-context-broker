@@ -80,7 +80,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -104,7 +104,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -118,7 +118,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     fun `it should retrieve all known observations and return the filled entity without timerel and time parameters`() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
-        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -139,7 +139,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             null, "1 day", TemporalQuery.Aggregate.SUM
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -166,7 +166,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(12),
             null, "2 hours", TemporalQuery.Aggregate.SUM, 3
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -189,7 +189,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
             lastN = 5
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -226,7 +226,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             TemporalQuery.Timerel.AFTER,
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute)
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -246,7 +246,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
         )
         val enrichedEntity =
-            attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()))
+            attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()), false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
@@ -337,7 +337,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     private fun gimmeAttributeInstance(): AttributeInstance {
         val measuredValue = Random.nextDouble()
         val observedAt = Instant.now().atZone(ZoneOffset.UTC)
-        return AttributeInstance.invoke(
+        return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
             observedAt = observedAt,

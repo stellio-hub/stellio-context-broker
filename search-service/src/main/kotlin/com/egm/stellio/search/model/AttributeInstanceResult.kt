@@ -8,5 +8,6 @@ data class AttributeInstanceResult(
     val instanceId: URI? = null,
     val datasetId: URI? = null,
     val value: Any,
-    val observedAt: ZonedDateTime
+    val observedAt: ZonedDateTime,
+    val payload: String? = null
 )

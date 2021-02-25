@@ -131,6 +131,12 @@ object JsonLdUtils {
     ): CompactedJsonLdEntity =
         compactedJsonLdEntity.plus(Pair(JSONLD_CONTEXT, contexts))
 
+    fun addContextToElement(element: String, contexts: List<String>, mediaType: MediaType) =
+        if (mediaType == MediaType.APPLICATION_JSON)
+            element
+        else
+            addContextToElement(element, contexts)
+
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput = deserializeObject(input)
 
@@ -276,7 +282,7 @@ object JsonLdUtils {
     /**
      * Utility but basic method to find if given contexts can resolve a known term from the core context.
      */
-    private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+    fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
         val expandedType = JsonLdProcessor.expand(mapOf("datasetId" to mapOf<String, Any>()), jsonLdOptions)
@@ -461,4 +467,18 @@ fun extractAttributeInstanceFromCompactedEntity(
         val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
         attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
     } else compactedJsonLdEntity[attributeName]!! as CompactedJsonLdAttribute
+}
+
+fun buildAttributeInstancePayload(
+    value: Any,
+    observedAt: ZonedDateTime,
+    datasetId: URI? = null,
+    instanceId: URI? = null
+): String {
+    val payload = mutableMapOf<String, Any>("type" to "Property")
+    datasetId?.let { payload["datasetId"] = it }
+    payload["value"] = value
+    instanceId?.let { payload["instanceId"] = it }
+    payload["observedAt"] = observedAt
+    return serializeObject(payload)
 }

@@ -1,7 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.extractAttributeInstanceFromParsedPayload
+import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
@@ -127,11 +128,13 @@ class TemporalEntityAttributeService(
                     measuredValue = valueToDoubleOrNull(it.second.value),
                     value = valueToStringOrNull(it.second.value),
                     payload = Json.of(
-                        extractAttributeInstanceFromParsedPayload(
-                            parsedPayload,
-                            compactTerm(it.first, contexts),
-                            it.second.datasetId,
-                            instanceId
+                        serializeObject(
+                            extractAttributeInstanceAndAddInstanceId(
+                                parsedPayload,
+                                compactTerm(it.first, contexts),
+                                it.second.datasetId,
+                                instanceId
+                            )
                         )
                     )
                 )

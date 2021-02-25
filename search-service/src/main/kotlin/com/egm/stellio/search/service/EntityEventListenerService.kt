@@ -2,7 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.util.extractAttributeInstanceFromParsedPayload
+import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
@@ -142,11 +143,13 @@ class EntityEventListenerService(
                 value = parsedAttributeValue.first,
                 measuredValue = parsedAttributeValue.second,
                 payload = Json.of(
-                    extractAttributeInstanceFromParsedPayload(
-                        parsedUpdatedEntity,
-                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
-                        datasetId?.toUri(),
-                        instanceId
+                    serializeObject(
+                        extractAttributeInstanceAndAddInstanceId(
+                            parsedUpdatedEntity,
+                            JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                            datasetId?.toUri(),
+                            instanceId
+                        )
                     )
                 )
             )
@@ -200,11 +203,13 @@ class EntityEventListenerService(
             measuredValue = parsedAttributeValue.second,
             value = parsedAttributeValue.first,
             payload = Json.of(
-                extractAttributeInstanceFromParsedPayload(
-                    parsedUpdatedEntity,
-                    JsonLdUtils.compactTerm(expandedAttributeName, contexts),
-                    datasetId,
-                    instanceId
+                serializeObject(
+                    extractAttributeInstanceAndAddInstanceId(
+                        parsedUpdatedEntity,
+                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                        datasetId,
+                        instanceId
+                    )
                 )
             )
         )

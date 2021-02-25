@@ -4,7 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.util.extractAttributeInstanceFromParsedPayload
+import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -12,6 +12,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -53,11 +54,13 @@ class AttributeInstanceService(
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
             payload = Json.of(
-                extractAttributeInstanceFromParsedPayload(
-                    parsedPayload,
-                    attributeKey,
-                    null,
-                    instanceId
+                serializeObject(
+                    extractAttributeInstanceAndAddInstanceId(
+                        parsedPayload,
+                        attributeKey,
+                        null,
+                        instanceId
+                    )
                 )
             )
         )

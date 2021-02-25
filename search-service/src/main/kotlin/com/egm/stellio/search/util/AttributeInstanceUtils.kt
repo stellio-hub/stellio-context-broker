@@ -1,8 +1,7 @@
 package com.egm.stellio.search.util
 
-import com.egm.stellio.shared.model.CompactedJsonLdAttribute
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.extractAttributeInstanceFromParsedPayload
 import java.net.URI
 
 fun isAttributeOfMeasureType(value: Any): Boolean =
@@ -21,19 +20,19 @@ fun valueToStringOrNull(value: Any): String? =
         else -> null
     }
 
-fun extractAttributeInstanceFromParsedPayload(
+fun extractAttributeInstanceAndAddInstanceId(
     parsedPayload: CompactedJsonLdEntity,
     attributeName: String,
     datasetId: URI?,
     instanceId: URI
-): String {
-    val attributeInstancePayload = if (parsedPayload[attributeName] is List<*>) {
-        val attributePayload = parsedPayload[attributeName] as List<CompactedJsonLdAttribute>
-        attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
-    } else parsedPayload[attributeName]!! as CompactedJsonLdAttribute
-
+): Map<String, Any> {
+    val attributeInstancePayload = extractAttributeInstanceFromParsedPayload(
+        parsedPayload,
+        attributeName,
+        datasetId
+    )
     val enrichedAttributeInstancePayload = attributeInstancePayload.toMutableMap()
     enrichedAttributeInstancePayload["instanceId"] = instanceId.toString()
 
-    return JsonUtils.serializeObject(enrichedAttributeInstancePayload)
+    return enrichedAttributeInstancePayload.toMap()
 }

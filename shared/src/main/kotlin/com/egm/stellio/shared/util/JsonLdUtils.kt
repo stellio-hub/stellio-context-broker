@@ -4,10 +4,7 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -447,4 +444,15 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
         throw BadRequestDataException("Unable to parse input payload")
 
     return expandedFragment[0] as Map<String, Any>
+}
+
+fun extractAttributeInstanceFromParsedPayload(
+    parsedPayload: CompactedJsonLdEntity,
+    attributeName: String,
+    datasetId: URI?
+): CompactedJsonLdAttribute {
+    return if (parsedPayload[attributeName] is List<*>) {
+        val attributePayload = parsedPayload[attributeName] as List<CompactedJsonLdAttribute>
+        attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
+    } else parsedPayload[attributeName]!! as CompactedJsonLdAttribute
 }

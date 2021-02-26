@@ -2,28 +2,22 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
-import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
 
 @Component
 class EntityEventListenerService(
@@ -135,21 +129,16 @@ class EntityEventListenerService(
         temporalEntityAttributeService.getForEntityAndAttribute(
             entityId, expandedAttributeName, datasetId
         ).zipWhen {
-            val instanceId = AttributeInstance.generateRandomInstanceId()
-            val attributeInstance = AttributeInstance(
+            val attributeInstance = AttributeInstance.invoke(
                 temporalEntityAttribute = it,
-                instanceId = instanceId,
                 observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                 value = parsedAttributeValue.first,
                 measuredValue = parsedAttributeValue.second,
-                payload = Json.of(
-                    serializeObject(
-                        extractAttributeInstanceAndAddInstanceId(
-                            parsedUpdatedEntity,
-                            JsonLdUtils.compactTerm(expandedAttributeName, contexts),
-                            datasetId?.toUri(),
-                            instanceId
-                        )
+                payload = serializeObject(
+                    extractAttributeInstanceFromParsedPayload(
+                        parsedUpdatedEntity,
+                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                        datasetId?.toUri()
                     )
                 )
             )
@@ -195,21 +184,16 @@ class EntityEventListenerService(
             attributeValueType = attributeValueType,
             datasetId = datasetId
         )
-        val instanceId = AttributeInstance.generateRandomInstanceId()
-        val attributeInstance = AttributeInstance(
+        val attributeInstance = AttributeInstance.invoke(
             temporalEntityAttribute = temporalEntityAttribute.id,
-            instanceId = instanceId,
             observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
             measuredValue = parsedAttributeValue.second,
             value = parsedAttributeValue.first,
-            payload = Json.of(
-                serializeObject(
-                    extractAttributeInstanceAndAddInstanceId(
-                        parsedUpdatedEntity,
-                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
-                        datasetId,
-                        instanceId
-                    )
+            payload = serializeObject(
+                extractAttributeInstanceFromParsedPayload(
+                    parsedUpdatedEntity,
+                    JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                    datasetId
                 )
             )
         )

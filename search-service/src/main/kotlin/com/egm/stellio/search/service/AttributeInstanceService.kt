@@ -4,7 +4,6 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -13,10 +12,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.extractAttributeInstanceFromParsedPayload
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -27,13 +29,23 @@ class AttributeInstanceService(
     private val databaseClient: DatabaseClient
 ) {
 
-    fun create(attributeInstance: AttributeInstance): Mono<Int> {
-        return databaseClient.insert()
-            .into(AttributeInstance::class.java)
-            .using(attributeInstance)
+    @Transactional
+    fun create(attributeInstance: AttributeInstance): Mono<Int> =
+        databaseClient.execute(
+            """
+            INSERT INTO attribute_instance 
+                (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                VALUES (:observed_at, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+            """
+        )
+            .bind("observed_at", attributeInstance.observedAt)
+            .bind("measured_value", attributeInstance.measuredValue)
+            .bind("value", attributeInstance.value)
+            .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
+            .bind("instance_id", attributeInstance.instanceId)
+            .bind("payload", Json.of(attributeInstance.payload))
             .fetch()
             .rowsUpdated()
-    }
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances
@@ -46,21 +58,16 @@ class AttributeInstanceService(
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Value cannot be null")
 
-        val instanceId = AttributeInstance.generateRandomInstanceId()
-        val attributeInstance = AttributeInstance(
+        val attributeInstance = AttributeInstance.invoke(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            instanceId = instanceId,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = Json.of(
-                serializeObject(
-                    extractAttributeInstanceAndAddInstanceId(
-                        parsedPayload,
-                        attributeKey,
-                        null,
-                        instanceId
-                    )
+            payload = serializeObject(
+                extractAttributeInstanceFromParsedPayload(
+                    parsedPayload,
+                    attributeKey,
+                    null
                 )
             )
         )

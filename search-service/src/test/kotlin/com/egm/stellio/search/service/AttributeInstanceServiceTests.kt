@@ -13,7 +13,6 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import io.mockk.*
-import io.r2dbc.postgresql.codec.Json
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -294,8 +293,9 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
                     it.measuredValue == 550.0 &&
-                        it.payload.asString()
-                            .matchContent("""{"type": "Property","value": 550.0, "instanceId": "${it.instanceId}"}""")
+                        it.payload.matchContent(
+                            """{"type": "Property","value": 550.0, "instanceId": "${it.instanceId}"}"""
+                        )
                 }
             )
         }
@@ -337,11 +337,11 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     private fun gimmeAttributeInstance(): AttributeInstance {
         val measuredValue = Random.nextDouble()
         val observedAt = Instant.now().atZone(ZoneOffset.UTC)
-        return AttributeInstance(
+        return AttributeInstance.invoke(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
             observedAt = observedAt,
-            payload = Json.of(
+            payload =
                 """
                 {   
                     "type": "Property",
@@ -349,7 +349,6 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                     "observedAt": "$observedAt"
                 }
                 """.trimIndent()
-            )
         )
     }
 }

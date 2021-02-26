@@ -5,7 +5,6 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.toNgsiLdFormat
-import io.r2dbc.postgresql.codec.Json
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.annotation.EnableBinding
 import org.springframework.cloud.stream.annotation.StreamListener
@@ -61,21 +60,19 @@ class SubscriptionEventListenerService(
         val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
         temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
             .flatMap {
-                val attributeInstance = AttributeInstance(
+                val attributeInstance = AttributeInstance.invoke(
                     temporalEntityAttribute = it,
                     observedAt = notification.notifiedAt,
                     value = entitiesIds,
                     instanceId = notification.id,
-                    payload = Json.of(
+                    payload =
                         """
                         {
                             "type": "Notification",
                             "value": "$entitiesIds",
-                            "instanceId": "${notification.id}",
                             "notifiedAt": "${notification.notifiedAt.toNgsiLdFormat()}"
                         }
                         """.trimIndent()
-                    )
                 )
                 attributeInstanceService.create(attributeInstance)
             }

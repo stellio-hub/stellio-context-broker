@@ -65,13 +65,13 @@ class SubscriptionEventListenerServiceTest {
                 match {
                     it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
                         it.temporalEntityAttribute == temporalEntityAttributeUuid &&
-                        it.payload.asString().matchContent(
+                        it.payload.matchContent(
                             """
                             {
                                 "type": "Notification",
                                 "value": "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD",
-                                "instanceId": "urn:ngsi-ld:Notification:1234",
-                                "notifiedAt": "2020-03-10T00:00:00.000Z"
+                                "notifiedAt": "2020-03-10T00:00:00.000Z",
+                                "instanceId": "urn:ngsi-ld:Notification:1234"
                             }
                             """.trimIndent()
                         )

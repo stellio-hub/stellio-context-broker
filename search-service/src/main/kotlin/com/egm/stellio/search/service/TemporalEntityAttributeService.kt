@@ -1,13 +1,12 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.extractAttributeInstanceAndAddInstanceId
 import com.egm.stellio.search.util.isAttributeOfMeasureType
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -20,10 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.toNgsiLdFormat
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -120,21 +116,16 @@ class TemporalEntityAttributeService(
                     entityPayload = payload
                 )
 
-                val instanceId = AttributeInstance.generateRandomInstanceId()
-                val attributeInstance = AttributeInstance(
+                val attributeInstance = AttributeInstance.invoke(
                     temporalEntityAttribute = temporalEntityAttribute.id,
-                    instanceId = instanceId,
                     observedAt = it.second.observedAt!!,
                     measuredValue = valueToDoubleOrNull(it.second.value),
                     value = valueToStringOrNull(it.second.value),
-                    payload = Json.of(
-                        serializeObject(
-                            extractAttributeInstanceAndAddInstanceId(
-                                parsedPayload,
-                                compactTerm(it.first, contexts),
-                                it.second.datasetId,
-                                instanceId
-                            )
+                    payload = serializeObject(
+                        extractAttributeInstanceFromParsedPayload(
+                            parsedPayload,
+                            compactTerm(it.first, contexts),
+                            it.second.datasetId
                         )
                     )
                 )

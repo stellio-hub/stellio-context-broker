@@ -207,7 +207,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             attributeInstanceService.create(
                 match {
                     val payload = serializeObject(
-                        deserializeObject(it.payload.asString()).filterKeys { it != "instanceId" }
+                        deserializeObject(it.payload).filterKeys { it != "instanceId" }
                     )
                     (
                         payload.matchContent(incomingAttributeInstance) ||

@@ -337,7 +337,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     private fun gimmeAttributeInstance(): AttributeInstance {
         val measuredValue = Random.nextDouble()
         val observedAt = Instant.now().atZone(ZoneOffset.UTC)
-        return AttributeInstance.invoke(
+        return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
             observedAt = observedAt,

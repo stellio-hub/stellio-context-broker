@@ -1,6 +1,5 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
@@ -23,9 +22,9 @@ data class AttributeInstance private constructor(
             observedAt: ZonedDateTime,
             value: String? = null,
             measuredValue: Double? = null,
-            payload: String
+            payload: Map<String, Any>
         ): AttributeInstance {
-            val parsedPayload = deserializeObject(payload).toMutableMap()
+            val parsedPayload = payload.toMutableMap()
             val attributeInstanceId = instanceId ?: generateRandomInstanceId()
             parsedPayload.putIfAbsent("instanceId", attributeInstanceId)
 

@@ -125,6 +125,12 @@ object JsonLdUtils {
         return serializeObject(parsedPayload)
     }
 
+    fun addContextsToEntity(
+        compactedJsonLdEntity: CompactedJsonLdEntity,
+        contexts: List<String>
+    ): CompactedJsonLdEntity =
+        compactedJsonLdEntity.plus(Pair(JSONLD_CONTEXT, contexts))
+
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput = deserializeObject(input)
 
@@ -446,13 +452,13 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
     return expandedFragment[0] as Map<String, Any>
 }
 
-fun extractAttributeInstanceFromParsedPayload(
-    parsedPayload: CompactedJsonLdEntity,
+fun extractAttributeInstanceFromCompactedEntity(
+    compactedJsonLdEntity: CompactedJsonLdEntity,
     attributeName: String,
     datasetId: URI?
 ): CompactedJsonLdAttribute {
-    return if (parsedPayload[attributeName] is List<*>) {
-        val attributePayload = parsedPayload[attributeName] as List<CompactedJsonLdAttribute>
+    return if (compactedJsonLdEntity[attributeName] is List<*>) {
+        val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
         attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
-    } else parsedPayload[attributeName]!! as CompactedJsonLdAttribute
+    } else compactedJsonLdEntity[attributeName]!! as CompactedJsonLdAttribute
 }

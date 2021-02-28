@@ -341,14 +341,11 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
             observedAt = observedAt,
-            payload =
-                """
-                {   
-                    "type": "Property",
-                    "value": $measuredValue,
-                    "observedAt": "$observedAt"
-                }
-                """.trimIndent()
+            payload = mapOf(
+                "type" to "Property",
+                "value" to measuredValue,
+                "observedAt" to observedAt
+            )
         )
     }
 }

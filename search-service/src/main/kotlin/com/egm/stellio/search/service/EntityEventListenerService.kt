@@ -7,7 +7,8 @@ import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -116,37 +117,35 @@ class EntityEventListenerService(
             logger.info("Ignoring update event for $expandedAttributeName, it has no observedAt information")
             return
         }
-        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
-        val parsedUpdatedEntity = JsonUtils.deserializeObject(jsonLdUpdatedEntity)
+        val compactedJsonLdEntity = addContextsToEntity(JsonUtils.deserializeObject(updatedEntity), contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
                 Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
             else
                 Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
-        val datasetId = attributeValuesNode["datasetId"]?.asText()
+        val datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
 
         temporalEntityAttributeService.getForEntityAndAttribute(
             entityId, expandedAttributeName, datasetId
         ).zipWhen {
-            val attributeInstance = AttributeInstance.invoke(
+            val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = it,
                 observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
                 value = parsedAttributeValue.first,
                 measuredValue = parsedAttributeValue.second,
-                payload = serializeObject(
-                    extractAttributeInstanceFromParsedPayload(
-                        parsedUpdatedEntity,
-                        JsonLdUtils.compactTerm(expandedAttributeName, contexts),
-                        datasetId?.toUri()
+                payload =
+                    extractAttributeInstanceFromCompactedEntity(
+                        compactedJsonLdEntity,
+                        compactTerm(expandedAttributeName, contexts),
+                        datasetId
                     )
-                )
             )
             attributeInstanceService.create(attributeInstance)
                 .then(
                     temporalEntityAttributeService.updateEntityPayload(
                         entityId,
-                        jsonLdUpdatedEntity
+                        serializeObject(compactedJsonLdEntity)
                     )
                 )
         }.doOnError {
@@ -163,44 +162,45 @@ class EntityEventListenerService(
         updatedEntity: String,
         contexts: List<String>
     ) {
-        if (!attributeValuesNode.has("observedAt")) return
-        val jsonLdUpdatedEntity = addContextToElement(updatedEntity, contexts)
-        val parsedUpdatedEntity = JsonUtils.deserializeObject(jsonLdUpdatedEntity)
+        if (!attributeValuesNode.has("observedAt")) {
+            logger.info("Ignoring append event for $expandedAttributeName, it has no observedAt information")
+            return
+        }
+        val compactedJsonLdEntity = addContextsToEntity(JsonUtils.deserializeObject(updatedEntity), contexts)
         val rawAttributeValue = attributeValuesNode["value"]
         val parsedAttributeValue =
             if (rawAttributeValue.isNumber)
                 Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
             else
                 Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
+        val datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
 
         val attributeValueType =
             if (parsedAttributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE
             else TemporalEntityAttribute.AttributeValueType.ANY
-        val datasetId = attributeValuesNode["datasetId"]?.asText()?.toUri()
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
-            type = expandJsonLdEntity(jsonLdUpdatedEntity).type,
+            type = expandJsonLdKey(compactedJsonLdEntity.getType(), contexts)!!,
             attributeName = expandedAttributeName,
             attributeValueType = attributeValueType,
             datasetId = datasetId
         )
-        val attributeInstance = AttributeInstance.invoke(
+        val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             observedAt = ZonedDateTime.parse(attributeValuesNode["observedAt"].asText()),
             measuredValue = parsedAttributeValue.second,
             value = parsedAttributeValue.first,
-            payload = serializeObject(
-                extractAttributeInstanceFromParsedPayload(
-                    parsedUpdatedEntity,
+            payload =
+                extractAttributeInstanceFromCompactedEntity(
+                    compactedJsonLdEntity,
                     JsonLdUtils.compactTerm(expandedAttributeName, contexts),
                     datasetId
                 )
-            )
         )
 
         temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {
             attributeInstanceService.create(attributeInstance).then(
-                temporalEntityAttributeService.updateEntityPayload(entityId, jsonLdUpdatedEntity)
+                temporalEntityAttributeService.updateEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
             )
         }
             .doOnError {

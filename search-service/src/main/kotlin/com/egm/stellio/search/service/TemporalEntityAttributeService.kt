@@ -19,7 +19,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUES
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
@@ -116,18 +115,17 @@ class TemporalEntityAttributeService(
                     entityPayload = payload
                 )
 
-                val attributeInstance = AttributeInstance.invoke(
+                val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
                     observedAt = it.second.observedAt!!,
                     measuredValue = valueToDoubleOrNull(it.second.value),
                     value = valueToStringOrNull(it.second.value),
-                    payload = serializeObject(
-                        extractAttributeInstanceFromParsedPayload(
+                    payload =
+                        extractAttributeInstanceFromCompactedEntity(
                             parsedPayload,
                             compactTerm(it.first, contexts),
                             it.second.datasetId
                         )
-                    )
                 )
 
                 Pair(temporalEntityAttribute, attributeInstance)
@@ -183,7 +181,7 @@ class TemporalEntityAttributeService(
             .first()
     }
 
-    fun getForEntityAndAttribute(id: URI, attributeName: String, datasetId: String? = null): Mono<UUID> {
+    fun getForEntityAndAttribute(id: URI, attributeName: String, datasetId: URI? = null): Mono<UUID> {
         val selectQuery =
             """
             SELECT id

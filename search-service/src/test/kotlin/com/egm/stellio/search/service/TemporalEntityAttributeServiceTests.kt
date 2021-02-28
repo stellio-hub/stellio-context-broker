@@ -384,7 +384,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:01234"
+            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:01234".toUri()
         )
 
         StepVerifier.create(temporalEntityAttributeId)
@@ -403,7 +403,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:Unknown"
+            incomingAttrExpandedName, "urn:ngsi-ld:Dataset:Unknown".toUri()
         )
 
         StepVerifier.create(temporalEntityAttributeId)

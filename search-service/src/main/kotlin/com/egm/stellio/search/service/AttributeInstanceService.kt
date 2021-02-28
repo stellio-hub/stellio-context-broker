@@ -11,8 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.extractAttributeInstanceFromParsedPayload
+import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -58,18 +57,17 @@ class AttributeInstanceService(
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Value cannot be null")
 
-        val attributeInstance = AttributeInstance.invoke(
+        val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = serializeObject(
-                extractAttributeInstanceFromParsedPayload(
+            payload =
+                extractAttributeInstanceFromCompactedEntity(
                     parsedPayload,
                     attributeKey,
                     null
                 )
-            )
         )
         return create(attributeInstance)
     }

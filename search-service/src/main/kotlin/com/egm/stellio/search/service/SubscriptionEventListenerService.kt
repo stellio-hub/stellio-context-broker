@@ -60,19 +60,16 @@ class SubscriptionEventListenerService(
         val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
         temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
             .flatMap {
-                val attributeInstance = AttributeInstance.invoke(
+                val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = it,
                     observedAt = notification.notifiedAt,
                     value = entitiesIds,
                     instanceId = notification.id,
-                    payload =
-                        """
-                        {
-                            "type": "Notification",
-                            "value": "$entitiesIds",
-                            "notifiedAt": "${notification.notifiedAt.toNgsiLdFormat()}"
-                        }
-                        """.trimIndent()
+                    payload = mapOf(
+                        "type" to "Notification",
+                        "value" to entitiesIds,
+                        "notifiedAt" to notification.notifiedAt.toNgsiLdFormat()
+                    )
                 )
                 attributeInstanceService.create(attributeInstance)
             }

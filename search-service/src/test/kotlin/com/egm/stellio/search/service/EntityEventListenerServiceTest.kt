@@ -517,7 +517,7 @@ class EntityEventListenerServiceTest {
         expectedAttributeInstance: String
     ) {
         verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), datasetId)
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), datasetId?.toUri())
         }
 
         verify {

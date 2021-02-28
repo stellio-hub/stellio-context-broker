@@ -25,3 +25,6 @@ data class JsonLdEntity(
         types[0]
     }
 }
+
+fun CompactedJsonLdEntity.getType(): String =
+    this["type"] as String

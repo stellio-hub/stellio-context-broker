@@ -127,6 +127,19 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             }
             .expectComplete()
             .verify()
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue in listOf(1543.0, 666.0) &&
+                        it.observedAt in listOf(
+                        ZonedDateTime.parse("2020-01-24T13:01:22.066Z"),
+                        ZonedDateTime.parse("2020-01-25T17:01:22.066Z")
+                    )
+                }
+            )
+        }
     }
 
     @Test
@@ -151,6 +164,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             temporalEntityAttributeService.createEntityPayload("urn:ngsi-ld:BeeHive:TESTC".toUri(), any())
         }
 
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue == 1543.0 &&
+                        it.observedAt == ZonedDateTime.parse("2020-01-24T13:01:22.066Z")
+                }
+            )
+        }
+
         confirmVerified()
     }
 
@@ -171,6 +194,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             }
             .expectComplete()
             .verify()
+
+        verify {
+            attributeInstanceService.create(
+                match {
+                    it.value == null &&
+                        it.measuredValue == 1543.0 &&
+                        it.observedAt == ZonedDateTime.parse("2020-01-24T13:01:22.066Z")
+                }
+            )
+        }
     }
 
     @Test
@@ -209,10 +242,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                     val payload = serializeObject(
                         deserializeObject(it.payload).filterKeys { it != "instanceId" }
                     )
-                    (
-                        payload.matchContent(incomingAttributeInstance) ||
-                            payload.matchContent(outgoingAttributeInstance)
-                        )
+                    it.value == null &&
+                        it.measuredValue in listOf(1543.0, 666.0) &&
+                        it.observedAt in listOf(
+                        ZonedDateTime.parse("2020-01-24T13:01:22.066Z"),
+                        ZonedDateTime.parse("2020-01-25T17:01:22.066Z")
+                    ) &&
+                        (
+                            payload.matchContent(incomingAttributeInstance) ||
+                                payload.matchContent(outgoingAttributeInstance)
+                            )
                 }
             )
         }

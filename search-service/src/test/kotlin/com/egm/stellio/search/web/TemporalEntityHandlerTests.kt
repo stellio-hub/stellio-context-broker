@@ -96,7 +96,7 @@ class TemporalEntityHandlerTests {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("incoming")
+                eq("https://ontology.eglobalmark.com/apic#incoming")
             )
         }
         verify {

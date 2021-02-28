@@ -57,7 +57,7 @@ class TemporalEntityHandler(
                 val compactedAttributeName = compactTerm(it.key, contexts)
                 val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId.toUri(),
-                    compactedAttributeName
+                    it.key
                 ).awaitFirst()
 
                 attributeInstanceService.addAttributeInstances(

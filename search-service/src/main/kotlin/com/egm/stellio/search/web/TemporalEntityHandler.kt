@@ -9,7 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
+import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
@@ -105,7 +105,7 @@ class TemporalEntityHandler(
         )
 
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(addContextToElement(serializeObject(temporalEntity), listOf(contextLink), mediaType))
+            .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
 }
 

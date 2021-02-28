@@ -131,11 +131,11 @@ object JsonLdUtils {
     ): CompactedJsonLdEntity =
         compactedJsonLdEntity.plus(Pair(JSONLD_CONTEXT, contexts))
 
-    fun addContextToElement(element: String, contexts: List<String>, mediaType: MediaType) =
+    fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =
         if (mediaType == MediaType.APPLICATION_JSON)
             element
         else
-            addContextToElement(element, contexts)
+            element.plus(Pair(JSONLD_CONTEXT, contexts))
 
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput = deserializeObject(input)

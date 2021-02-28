@@ -282,7 +282,7 @@ object JsonLdUtils {
     /**
      * Utility but basic method to find if given contexts can resolve a known term from the core context.
      */
-    fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
+    private fun canExpandJsonLdKeyFromCore(contexts: List<String>): Boolean {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
         val expandedType = JsonLdProcessor.expand(mapOf("datasetId" to mapOf<String, Any>()), jsonLdOptions)

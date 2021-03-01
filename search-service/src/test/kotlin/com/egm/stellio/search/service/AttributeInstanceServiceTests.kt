@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -84,6 +85,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
+                it as List<FullAttributeInstanceResult>
                 it.size == 1 &&
                     it[0].attributeName == "incoming" &&
                     it[0].value == 12.4 &&

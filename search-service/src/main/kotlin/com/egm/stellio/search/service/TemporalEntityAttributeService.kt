@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
-import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -44,25 +43,6 @@ class TemporalEntityAttributeService(
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
-            .fetch()
-            .rowsUpdated()
-
-    internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
-        databaseClient.execute(
-            """
-            INSERT INTO entity_payload (entity_id, payload)
-            VALUES (:entity_id, :payload)
-            """
-        )
-            .bind("entity_id", entityId)
-            .bind("payload", entityPayload?.let { Json.of(entityPayload) })
-            .fetch()
-            .rowsUpdated()
-
-    fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
-        databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
-            .bind("payload", Json.of(payload))
-            .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
 
@@ -102,8 +82,7 @@ class TemporalEntityAttributeService(
                     type = entity.type,
                     attributeName = it.first,
                     attributeValueType = attributeValueType,
-                    datasetId = it.second.datasetId,
-                    entityPayload = payload
+                    datasetId = it.second.datasetId
                 )
 
                 val attributeInstance = AttributeInstance(
@@ -128,14 +107,12 @@ class TemporalEntityAttributeService(
             }
             .collectList()
             .map { it.size }
-            .zipWith(createEntityPayload(entity.id, payload))
-            .map { it.t1 + it.t2 }
     }
 
     fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
         val selectQuery =
             """
-            SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type, dataset_id
+            SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
             FROM temporal_entity_attribute            
             WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()

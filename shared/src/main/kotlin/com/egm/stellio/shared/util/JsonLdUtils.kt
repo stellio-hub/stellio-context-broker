@@ -468,17 +468,3 @@ fun extractAttributeInstanceFromCompactedEntity(
         attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
     } else compactedJsonLdEntity[attributeName]!! as CompactedJsonLdAttribute
 }
-
-fun buildAttributeInstancePayload(
-    value: Any,
-    observedAt: ZonedDateTime,
-    datasetId: URI? = null,
-    instanceId: URI? = null
-): String {
-    val payload = mutableMapOf<String, Any>("type" to "Property")
-    datasetId?.let { payload["datasetId"] = it }
-    payload["value"] = value
-    instanceId?.let { payload["instanceId"] = it }
-    payload["observedAt"] = observedAt
-    return serializeObject(payload)
-}

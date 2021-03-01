@@ -1,10 +1,11 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.util.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -112,7 +113,7 @@ class TemporalEntityServiceTests {
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
-                AttributeInstanceResult(
+                FullAttributeInstanceResult(
                     attributeName = "https://uri.etsi.org/ngsi-ld/notification",
                     value = "urn:ngsi-ld:Beehive:1234",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -123,7 +124,7 @@ class TemporalEntityServiceTests {
                         "urn:ngsi-ld:Beehive:notification:1234".toUri()
                     )
                 ),
-                AttributeInstanceResult(
+                FullAttributeInstanceResult(
                     attributeName = "https://uri.etsi.org/ngsi-ld/notification",
                     value = "urn:ngsi-ld:Beehive:5678",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -170,7 +171,7 @@ class TemporalEntityServiceTests {
         )
         assertTrue(
             serializeObject(temporalEntity).matchContent(
-                loadSampleData("expectations/subscription_without_temporal_attributes.jsonld")
+                loadSampleData("expectations/subscription_empty_notification.jsonld")
             )
         )
     }

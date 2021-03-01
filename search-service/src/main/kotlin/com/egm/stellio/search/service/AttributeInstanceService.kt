@@ -1,9 +1,7 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
+import com.egm.stellio.search.util.buildAttributeInstancePayload
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -11,7 +9,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
@@ -137,26 +134,37 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return if (!withTemporalValues && temporalQuery.timeBucket != null) {
-            val value = row["value"]!!
-            val observedAt = row["time_bucket"]!!
-                .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-            AttributeInstanceResult(
+        return when {
+            withTemporalValues -> SimplifiedAttributeInstanceResult(
                 attributeName = temporalEntityAttribute.attributeName,
                 datasetId = temporalEntityAttribute.datasetId,
-                value = value,
-                observedAt = observedAt,
-                payload = buildAttributeInstancePayload(value, observedAt, temporalEntityAttribute.datasetId)
+                value = row["value"]!!,
+                observedAt =
+                    row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                        ?: row["observed_at"]
+                            .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
-        } else AttributeInstanceResult(
-            attributeName = temporalEntityAttribute.attributeName,
-            instanceId = row["instance_id"]?.let { (it as String).toUri() },
-            datasetId = temporalEntityAttribute.datasetId,
-            value = row["value"]!!,
-            observedAt =
-                row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                    ?: row["observed_at"].let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) },
-            payload = row["payload"]?.let { it as String }
-        )
+            temporalQuery.timeBucket != null -> {
+                val value = row["value"]!!
+                val observedAt = row["time_bucket"]!!
+                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                FullAttributeInstanceResult(
+                    attributeName = temporalEntityAttribute.attributeName,
+                    datasetId = temporalEntityAttribute.datasetId,
+                    value = value,
+                    observedAt = observedAt,
+                    payload = buildAttributeInstancePayload(value, observedAt, temporalEntityAttribute.datasetId)
+                )
+            }
+            else -> FullAttributeInstanceResult(
+                attributeName = temporalEntityAttribute.attributeName,
+                instanceId = row["instance_id"]?.let { (it as String).toUri() },
+                datasetId = temporalEntityAttribute.datasetId,
+                value = row["value"]!!,
+                observedAt = row["observed_at"]
+                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) },
+                payload = row["payload"].let { it as String }
+            )
+        }
     }
 }

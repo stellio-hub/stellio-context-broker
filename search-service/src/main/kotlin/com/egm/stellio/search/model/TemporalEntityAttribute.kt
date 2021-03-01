@@ -9,9 +9,7 @@ data class TemporalEntityAttribute(
     val type: String,
     val attributeName: String,
     val attributeValueType: AttributeValueType,
-    val datasetId: URI? = null,
-    // FIXME it should be removed since it is no longer used
-    val entityPayload: String? = null
+    val datasetId: URI? = null
 ) {
     enum class AttributeValueType {
         MEASURE,

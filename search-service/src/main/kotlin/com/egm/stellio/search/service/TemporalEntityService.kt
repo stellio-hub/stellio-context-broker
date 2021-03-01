@@ -1,12 +1,15 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.CompactedJsonLdAttribute
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import org.springframework.stereotype.Service
 import java.net.URI
+
+typealias SimplifiedTemporalAttribute = Map<String, Any>
 
 @Service
 class TemporalEntityService {
@@ -18,7 +21,7 @@ class TemporalEntityService {
         withTemporalValues: Boolean
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
-            attributeAndResultsMap.filterValues { it.isNotEmpty() },
+            attributeAndResultsMap,
             contexts,
             withTemporalValues
         )
@@ -43,13 +46,16 @@ class TemporalEntityService {
                 mergeAttributeInstancesResultsOnAttributeName(attributeAndResultsMap)
                     .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
                     .mapValues {
-                        it.value.map { JsonUtils.deserializeObject(it.payload!!) }
+                        it.value.map {
+                            it as FullAttributeInstanceResult
+                            JsonUtils.deserializeObject(it.payload)
+                        }
                     }
         }
 
     private fun buildAttributesSimplifiedRepresentation(
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
-    ): Map<TemporalEntityAttribute, CompactedJsonLdAttribute> {
+    ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
                 "type" to "Property"

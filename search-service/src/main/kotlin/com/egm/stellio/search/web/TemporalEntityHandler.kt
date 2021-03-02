@@ -1,16 +1,21 @@
 package com.egm.stellio.search.web
 
 import arrow.core.*
+import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -30,6 +35,7 @@ import java.util.*
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityService: EntityService,
     private val temporalEntityService: TemporalEntityService
 ) {
 
@@ -107,6 +113,35 @@ class TemporalEntityHandler(
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
+
+    /**
+     * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
+     */
+    private fun loadEntityPayload(
+        temporalEntityAttribute: TemporalEntityAttribute,
+        bearerToken: String,
+        contextLink: String
+    ): Mono<JsonLdEntity> =
+        when {
+            temporalEntityAttribute.entityPayload == null ->
+                entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
+                    .doOnSuccess {
+                        val entityPayload = compact(it, contextLink)
+                        temporalEntityAttributeService.updateEntityPayload(
+                            temporalEntityAttribute.entityId,
+                            serializeObject(entityPayload)
+                        ).subscribe()
+                    }
+            temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(
+                expandJsonLdEntity(
+                    temporalEntityAttribute.entityPayload
+                )
+            )
+            else -> {
+                val parsedEntity = expandJsonLdEntity(temporalEntityAttribute.entityPayload)
+                Mono.just(parsedEntity)
+            }
+        }
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {

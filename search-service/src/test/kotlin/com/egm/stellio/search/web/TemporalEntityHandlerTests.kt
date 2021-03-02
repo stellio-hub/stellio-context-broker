@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.util.*
@@ -52,6 +53,9 @@ class TemporalEntityHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+
+    @MockkBean
+    private lateinit var entityService: EntityService
 
     @MockkBean(relaxed = true)
     private lateinit var temporalEntityService: TemporalEntityService

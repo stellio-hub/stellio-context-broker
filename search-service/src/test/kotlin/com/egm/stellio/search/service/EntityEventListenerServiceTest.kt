@@ -144,6 +144,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
 
         entityEventListenerService.processMessage(content)
 
@@ -173,6 +174,13 @@ class EntityEventListenerServiceTest {
             )
         }
 
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                eq(fishContainmentId.toUri()),
+                match { it.contains(fishContainmentId) }
+            )
+        }
+
         confirmVerified(attributeInstanceService, temporalEntityAttributeService)
     }
 
@@ -193,6 +201,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
 
         entityEventListenerService.processMessage(content)
 
@@ -215,6 +224,13 @@ class EntityEventListenerServiceTest {
                         it.value == "some textual value" &&
                         it.measuredValue == null
                 }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                eq(fishContainmentId.toUri()),
+                match { it.contains(fishContainmentId) }
             )
         }
 
@@ -391,7 +407,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance for attributeUpdate events`() {
+    fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
         val eventPayload =
             """
             {
@@ -479,6 +495,15 @@ class EntityEventListenerServiceTest {
             attributeInstanceService.create(
                 match {
                     it.temporalEntityAttribute == temporalEntityAttributeUuid
+                }
+            )
+        }
+
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                fishContainmentId.toUri(),
+                match {
+                    it.contains(fishContainmentId)
                 }
             )
         }

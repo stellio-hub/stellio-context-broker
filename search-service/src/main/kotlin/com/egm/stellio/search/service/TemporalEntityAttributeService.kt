@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
+import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -43,6 +44,25 @@ class TemporalEntityAttributeService(
             .bind("attribute_name", temporalEntityAttribute.attributeName)
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
+            .fetch()
+            .rowsUpdated()
+
+    internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
+        databaseClient.execute(
+            """
+            INSERT INTO entity_payload (entity_id, payload)
+            VALUES (:entity_id, :payload)
+            """
+        )
+            .bind("entity_id", entityId)
+            .bind("payload", entityPayload?.let { Json.of(entityPayload) })
+            .fetch()
+            .rowsUpdated()
+
+    fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
+        databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
+            .bind("payload", Json.of(payload))
+            .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
 
@@ -82,7 +102,8 @@ class TemporalEntityAttributeService(
                     type = entity.type,
                     attributeName = it.first,
                     attributeValueType = attributeValueType,
-                    datasetId = it.second.datasetId
+                    datasetId = it.second.datasetId,
+                    entityPayload = payload
                 )
 
                 val attributeInstance = AttributeInstance(
@@ -107,14 +128,24 @@ class TemporalEntityAttributeService(
             }
             .collectList()
             .map { it.size }
+            .zipWith(createEntityPayload(entity.id, payload))
+            .map { it.t1 + it.t2 }
     }
 
-    fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
-        val selectQuery =
+    fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
+        val selectQuery = if (withEntityPayload)
             """
-            SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
-            FROM temporal_entity_attribute            
-            WHERE temporal_entity_attribute.entity_id = :entity_id
+                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
+                payload::TEXT, dataset_id²
+                FROM temporal_entity_attribute
+                LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+                WHERE temporal_entity_attribute.entity_id = :entity_id
+            """.trimIndent()
+        else
+            """
+                SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
+                FROM temporal_entity_attribute            
+                WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
 
         val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
@@ -128,8 +159,9 @@ class TemporalEntityAttributeService(
         return databaseClient
             .execute(finalQuery)
             .bind("entity_id", id)
-            .map(rowToTemporalEntityAttribute)
+            .fetch()
             .all()
+            .map { rowToTemporalEntityAttribute(it) }
     }
 
     fun getFirstForEntity(id: URI): Mono<UUID> {
@@ -169,21 +201,18 @@ class TemporalEntityAttributeService(
             .one()
     }
 
-    private var rowToTemporalEntityAttribute: ((Row) -> TemporalEntityAttribute) = { row ->
+    private fun rowToTemporalEntityAttribute(row: Map<String, Any>) =
         TemporalEntityAttribute(
-            id = row.get("id", UUID::class.java)!!,
-            entityId = row.get("entity_id", String::class.java)!!.toUri(),
-            type = row.get("type", String::class.java)!!,
-            attributeName = row.get("attribute_name", String::class.java)!!,
+            id = row["id"] as UUID,
+            entityId = (row["entity_id"] as String).toUri(),
+            type = row["type"] as String,
+            attributeName = row["attribute_name"] as String,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
-                row.get(
-                    "attribute_value_type",
-                    String::class.java
-                )!!
+                row["attribute_value_type"] as String
             ),
-            datasetId = row.get("dataset_id", String::class.java)?.toUri()
+            datasetId = (row["dataset_id"] as String?)?.toUri(),
+            entityPayload = row["payload"] as String?
         )
-    }
 
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!

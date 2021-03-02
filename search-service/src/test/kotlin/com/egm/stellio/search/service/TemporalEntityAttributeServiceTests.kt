@@ -71,6 +71,12 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
         databaseClient.delete()
+            .from("entity_payload")
+            .fetch()
+            .rowsUpdated()
+            .block()
+
+        databaseClient.delete()
             .from("attribute_instance")
             .fetch()
             .rowsUpdated()
@@ -139,7 +145,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 1
+                it == 2
             }
             .expectComplete()
             .verify()
@@ -170,7 +176,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 2
+                it == 3
             }
             .expectComplete()
             .verify()
@@ -199,7 +205,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 2
+                it == 3
             }
             .expectComplete()
             .verify()

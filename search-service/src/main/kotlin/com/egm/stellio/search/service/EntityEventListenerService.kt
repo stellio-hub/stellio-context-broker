@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -141,6 +142,12 @@ class EntityEventListenerService(
                     )
             )
             attributeInstanceService.create(attributeInstance)
+                .then(
+                    temporalEntityAttributeService.updateEntityPayload(
+                        entityId,
+                        serializeObject(compactedJsonLdEntity)
+                    )
+                )
         }.doOnError {
             logger.error("Failed to persist new attribute instance, ignoring it", it)
         }.doOnNext {
@@ -192,7 +199,9 @@ class EntityEventListenerService(
         )
 
         temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {
-            attributeInstanceService.create(attributeInstance)
+            attributeInstanceService.create(attributeInstance).then(
+                temporalEntityAttributeService.updateEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
+            )
         }
             .doOnError {
                 logger.error("Failed to persist new temporal entity attribute, ignoring it", it)

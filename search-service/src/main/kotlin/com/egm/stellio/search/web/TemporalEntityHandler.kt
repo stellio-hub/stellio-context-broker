@@ -106,6 +106,7 @@ class TemporalEntityHandler(
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             entityId.toUri(),
             attributeAndResultsMap,
+            temporalQuery,
             listOf(contextLink),
             withTemporalValues
         )

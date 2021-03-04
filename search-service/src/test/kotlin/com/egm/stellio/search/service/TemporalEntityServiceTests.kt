@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.FullAttributeInstanceResult
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -18,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -56,6 +55,7 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             attributeAndResultsMap,
+            TemporalQuery(),
             listOf(apicContext!!),
             true
         )
@@ -90,6 +90,7 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeAndResultsMap,
+            TemporalQuery(),
             listOf(NGSILD_CORE_CONTEXT),
             true
         )
@@ -132,6 +133,7 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeAndResultsMap,
+            TemporalQuery(),
             listOf(NGSILD_CORE_CONTEXT),
             false
         )
@@ -157,6 +159,7 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             "urn:ngsi-ld:Subscription:1234".toUri(),
             attributeAndResultsMap,
+            TemporalQuery(),
             listOf(NGSILD_CORE_CONTEXT),
             false
         )
@@ -177,11 +180,52 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             attributeAndResultsMap,
+            TemporalQuery(),
             listOf(apicContext!!),
             withTemporalValues
         )
         assertTrue(
             serializeObject(temporalEntity).matchContent(expectation)
+        )
+    }
+
+    @Test
+    fun `it should return a temporal entity with values aggregated`() {
+        val temporalEntityAttribute = TemporalEntityAttribute(
+            entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
+            type = "https://uri.etsi.org/ngsi-ld/Subscription",
+            attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+        )
+        val attributeAndResultsMap = mapOf(
+            temporalEntityAttribute to listOf(
+                SimplifiedAttributeInstanceResult(
+                    value = "urn:ngsi-ld:Beehive:1234",
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                ),
+                SimplifiedAttributeInstanceResult(
+                    value = "urn:ngsi-ld:Beehive:5678",
+                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                )
+            )
+        )
+        val temporalQuery = TemporalQuery(
+            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            null, "1 day", TemporalQuery.Aggregate.SUM
+        )
+
+        val temporalEntity = temporalEntityService.buildTemporalEntity(
+            "urn:ngsi-ld:Subscription:1234".toUri(),
+            attributeAndResultsMap,
+            temporalQuery,
+            listOf(NGSILD_CORE_CONTEXT),
+            false
+        )
+
+        assertTrue(
+            serializeObject(temporalEntity).matchContent(
+                loadSampleData("expectations/subscription_with_notifications_aggregated.jsonld")
+            )
         )
     }
 }

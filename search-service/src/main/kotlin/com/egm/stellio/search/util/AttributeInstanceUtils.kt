@@ -26,7 +26,7 @@ fun buildAttributeInstancePayload(
     datasetId: URI? = null,
     instanceId: URI? = null
 ) = JsonUtils.serializeObject(
-    mutableMapOf(
+    mapOf(
         "type" to "Property",
         "datasetId" to datasetId,
         "value" to value,

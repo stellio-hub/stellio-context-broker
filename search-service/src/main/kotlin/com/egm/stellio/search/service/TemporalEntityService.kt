@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.FullAttributeInstanceResult
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import org.springframework.stereotype.Service
@@ -17,11 +14,13 @@ class TemporalEntityService {
     fun buildTemporalEntity(
         entityId: URI,
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+        temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
             attributeAndResultsMap,
+            temporalQuery,
             contexts,
             withTemporalValues
         )
@@ -34,11 +33,12 @@ class TemporalEntityService {
 
     private fun buildTemporalAttributes(
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+        temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean
     ):
         Map<String, Any> {
-            return if (withTemporalValues) {
+            return if (withTemporalValues || temporalQuery.timeBucket != null) {
                 val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
                 mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                     .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }

@@ -179,7 +179,7 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
             .exchange()
@@ -326,7 +326,7 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -348,7 +348,7 @@ class TemporalEntityHandlerTests {
             )
         }
 
-        verify { temporalEntityService.buildTemporalEntity(any(), any(), any(), false) }
+        verify { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), false) }
 
         confirmVerified(attributeInstanceService)
     }
@@ -372,7 +372,7 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty2
         )
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -502,7 +502,7 @@ class TemporalEntityHandlerTests {
         }
 
         every {
-            temporalEntityService.buildTemporalEntity(any(), any(), any(), any())
+            temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any())
         } returns entityWith2temporalEvolutions
     }
 
@@ -519,7 +519,7 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -556,7 +556,7 @@ class TemporalEntityHandlerTests {
             entityTemporalProperty
         )
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(

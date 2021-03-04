@@ -1,7 +1,6 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.buildAttributeInstancePayload
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -10,7 +9,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
@@ -123,48 +121,24 @@ class AttributeInstanceService(
             .fetch()
             .all()
             .map {
-                rowToAttributeInstanceResult(it, temporalEntityAttribute, temporalQuery, withTemporalValues)
+                rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues)
             }
             .collectList()
     }
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
-        temporalEntityAttribute: TemporalEntityAttribute,
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return when {
-            withTemporalValues -> SimplifiedAttributeInstanceResult(
-                attributeName = temporalEntityAttribute.attributeName,
-                datasetId = temporalEntityAttribute.datasetId,
+        return if (withTemporalValues || temporalQuery.timeBucket != null)
+            SimplifiedAttributeInstanceResult(
                 value = row["value"]!!,
                 observedAt =
                     row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
                         ?: row["observed_at"]
                             .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
-            temporalQuery.timeBucket != null -> {
-                val value = row["value"]!!
-                val observedAt = row["time_bucket"]!!
-                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                FullAttributeInstanceResult(
-                    attributeName = temporalEntityAttribute.attributeName,
-                    datasetId = temporalEntityAttribute.datasetId,
-                    value = value,
-                    observedAt = observedAt,
-                    payload = buildAttributeInstancePayload(value, observedAt, temporalEntityAttribute.datasetId)
-                )
-            }
-            else -> FullAttributeInstanceResult(
-                attributeName = temporalEntityAttribute.attributeName,
-                instanceId = row["instance_id"]?.let { (it as String).toUri() },
-                datasetId = temporalEntityAttribute.datasetId,
-                value = row["value"]!!,
-                observedAt = row["observed_at"]
-                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) },
-                payload = row["payload"].let { it as String }
-            )
-        }
+        else FullAttributeInstanceResult(row["payload"].let { it as String })
     }
 }

@@ -25,11 +25,12 @@ fun buildAttributeInstancePayload(
     observedAt: ZonedDateTime,
     datasetId: URI? = null,
     instanceId: URI? = null
-): String {
-    val payload = mutableMapOf<String, Any>("type" to "Property")
-    datasetId?.let { payload["datasetId"] = it }
-    payload["value"] = value
-    instanceId?.let { payload["instanceId"] = it }
-    payload["observedAt"] = observedAt
-    return JsonUtils.serializeObject(payload)
-}
+) = JsonUtils.serializeObject(
+    mutableMapOf(
+        "type" to "Property",
+        "datasetId" to datasetId,
+        "value" to value,
+        "instanceId" to instanceId,
+        "observedAt" to observedAt
+    )
+)

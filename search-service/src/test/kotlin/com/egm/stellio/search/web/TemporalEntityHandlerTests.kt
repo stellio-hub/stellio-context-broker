@@ -1,7 +1,7 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
@@ -486,10 +486,9 @@ class TemporalEntityHandlerTests {
             outgoingAttrExpandedName
         )
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
-        val attInstanceResults = attributes.flatMap { attributeName ->
+        val attInstanceResults = attributes.flatMap {
             values.map {
-                AttributeInstanceResult(
-                    attributeName = attributeName,
+                SimplifiedAttributeInstanceResult(
                     value = it.first,
                     observedAt = ZonedDateTime.parse(it.second)
                 )
@@ -542,6 +541,51 @@ class TemporalEntityHandlerTests {
             )
         }
         confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should only return attributes asked as request parameters`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = entityUri,
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+        )
+
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
+            entityTemporalProperty
+        )
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&attrs=incoming"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().jsonPath("$").isMap
+
+        verify {
+            temporalEntityAttributeService.getForEntity(
+                entityUri,
+                setOf("https://uri.etsi.org/ngsi-ld/default-context/incoming")
+            )
+        }
+
+        verify {
+            attributeInstanceService.search(
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                },
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
+            )
+        }
+
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test

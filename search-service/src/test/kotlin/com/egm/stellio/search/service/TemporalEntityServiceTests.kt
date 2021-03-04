@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.FullAttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.buildAttributeInstancePayload
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -41,13 +42,11 @@ class TemporalEntityServiceTests {
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
-                AttributeInstanceResult(
-                    attributeName = incomingAttrExpandedName,
+                SimplifiedAttributeInstanceResult(
                     value = 550.0,
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                AttributeInstanceResult(
-                    attributeName = incomingAttrExpandedName,
+                SimplifiedAttributeInstanceResult(
                     value = 650.0,
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:00Z")
                 )
@@ -77,13 +76,11 @@ class TemporalEntityServiceTests {
         )
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                SimplifiedAttributeInstanceResult(
                     value = "urn:ngsi-ld:Beehive:1234",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
-                AttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
+                SimplifiedAttributeInstanceResult(
                     value = "urn:ngsi-ld:Beehive:5678",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )
@@ -114,9 +111,6 @@ class TemporalEntityServiceTests {
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
                 FullAttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:1234",
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                     payload = buildAttributeInstancePayload(
                         "urn:ngsi-ld:Beehive:1234",
                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -125,9 +119,6 @@ class TemporalEntityServiceTests {
                     )
                 ),
                 FullAttributeInstanceResult(
-                    attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-                    value = "urn:ngsi-ld:Beehive:5678",
-                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                     payload = buildAttributeInstancePayload(
                         "urn:ngsi-ld:Beehive:5678",
                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -152,7 +143,7 @@ class TemporalEntityServiceTests {
     }
 
     @Test
-    fun `it should return a temporal entity without temporal attributes if it has no temporal history`() {
+    fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
         val temporalEntityAttribute = TemporalEntityAttribute(
             entityId = "urn:ngsi-ld:Subscription:1234".toUri(),
             type = "https://uri.etsi.org/ngsi-ld/Subscription",

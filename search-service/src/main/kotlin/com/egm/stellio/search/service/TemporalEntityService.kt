@@ -2,8 +2,8 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.FullAttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.model.CompactedJsonLdAttribute
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import org.springframework.stereotype.Service
@@ -40,7 +40,7 @@ class TemporalEntityService {
         Map<String, Any> {
             return if (withTemporalValues) {
                 val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
-                mergeAttributeInstancesOnAttributeName(attributes)
+                mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                     .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
             } else
                 mergeAttributeInstancesResultsOnAttributeName(attributeAndResultsMap)
@@ -53,6 +53,12 @@ class TemporalEntityService {
                     }
         }
 
+    /*
+        Creates the simplified representation for each temporal entity attribute in the input Map
+        The simplified representation is created from the attribute instance results of the temporal entity attribute
+        It returns a Map with the same keys of the input Map and values corresponding to simplified representation
+        of the temporal entity attribute.
+    */
     private fun buildAttributesSimplifiedRepresentation(
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
@@ -61,15 +67,23 @@ class TemporalEntityService {
                 "type" to "Property"
             )
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
-            attributeInstance["values"] = it.value.map { listOf(it.value, it.observedAt) }
+            attributeInstance["values"] = it.value.map {
+                it as SimplifiedAttributeInstanceResult
+                listOf(it.value, it.observedAt)
+            }
             attributeInstance.toMap()
         }
     }
 
+    /*
+        Group the attribute instances results by temporal entity attribute name and return a Map with:
+            - Key: temporal entity attribute name
+            - Value: list of attribute instances results of the temporal entity attribute name
+    */
     private fun mergeAttributeInstancesResultsOnAttributeName(
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
     ):
-        MutableMap<String, MutableList<AttributeInstanceResult>> {
+        Map<String, MutableList<AttributeInstanceResult>> {
             val resultMap: MutableMap<String, MutableList<AttributeInstanceResult>> = mutableMapOf()
 
             attributeAndResultsMap.forEach {
@@ -79,14 +93,19 @@ class TemporalEntityService {
                     resultMap[it.key.attributeName] = it.value.toMutableList()
             }
 
-            return resultMap
+            return resultMap.toMap()
         }
 
-    private fun mergeAttributeInstancesOnAttributeName(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, CompactedJsonLdAttribute>
+    /*
+        Group the simplified representations by temporal entity attribute name and return a Map with:
+            - Key: temporal entity attribute name
+            - Value: list of the simplified temporal attributes of the temporal entity attribute name
+    */
+    private fun mergeSimplifiedTemporalAttributesOnAttributeName(
+        attributeAndResultsMap: Map<TemporalEntityAttribute, SimplifiedTemporalAttribute>
     ):
-        MutableMap<String, MutableList<CompactedJsonLdAttribute>> {
-            val resultMap: MutableMap<String, MutableList<CompactedJsonLdAttribute>> = mutableMapOf()
+        Map<String, MutableList<SimplifiedTemporalAttribute>> {
+            val resultMap: MutableMap<String, MutableList<SimplifiedTemporalAttribute>> = mutableMapOf()
 
             attributeAndResultsMap.forEach {
                 if (resultMap.containsKey(it.key.attributeName))
@@ -95,6 +114,6 @@ class TemporalEntityService {
                     resultMap[it.key.attributeName] = mutableListOf(it.value)
             }
 
-            return resultMap
+            return resultMap.toMap()
         }
 }

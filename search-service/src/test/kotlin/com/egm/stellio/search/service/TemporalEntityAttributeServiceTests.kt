@@ -151,6 +151,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .verify()
 
         verify {
+            temporalEntityAttributeService.createEntityPayload("urn:ngsi-ld:BeeHive:TESTC".toUri(), any())
+        }
+
+        verify {
             attributeInstanceService.create(
                 match {
                     it.value == null &&

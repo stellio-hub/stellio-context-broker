@@ -3,9 +3,11 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
+import java.net.URI
 import java.time.ZonedDateTime
 import java.util.stream.Stream
 
@@ -223,3 +225,18 @@ class ParameterizedTests {
         }
     }
 }
+
+fun buildAttributeInstancePayload(
+    value: Any,
+    observedAt: ZonedDateTime,
+    datasetId: URI? = null,
+    instanceId: URI? = null
+) = JsonUtils.serializeObject(
+    mapOf(
+        "type" to "Property",
+        "datasetId" to datasetId,
+        "value" to value,
+        "instanceId" to instanceId,
+        "observedAt" to observedAt
+    )
+)

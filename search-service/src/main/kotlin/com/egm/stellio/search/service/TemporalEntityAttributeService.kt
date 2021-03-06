@@ -135,8 +135,8 @@ class TemporalEntityAttributeService(
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
         val selectQuery = if (withEntityPayload)
             """
-                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
-                payload::TEXT, dataset_id²
+                SELECT id, temporal_entity_attribute.entity_id as entity_id, type, attribute_name, attribute_value_type,
+                        payload::TEXT, dataset_id
                 FROM temporal_entity_attribute
                 LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 WHERE temporal_entity_attribute.entity_id = :entity_id

@@ -1,12 +1,12 @@
 package com.egm.stellio.search.model
 
-import java.net.URI
 import java.time.ZonedDateTime
 
-data class AttributeInstanceResult(
-    val attributeName: String,
-    val instanceId: URI? = null,
-    val datasetId: URI? = null,
+sealed class AttributeInstanceResult
+
+data class FullAttributeInstanceResult(val payload: String) : AttributeInstanceResult()
+
+data class SimplifiedAttributeInstanceResult(
     val value: Any,
     val observedAt: ZonedDateTime
-)
+) : AttributeInstanceResult()

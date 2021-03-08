@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -63,7 +64,17 @@ class SubscriptionEventListenerServiceTest {
             attributeInstanceService.create(
                 match {
                     it.value == "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD" &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid &&
+                        it.payload.matchContent(
+                            """
+                            {
+                                "type": "Notification",
+                                "value": "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTD",
+                                "notifiedAt": "2020-03-10T00:00:00.000Z",
+                                "instanceId": "urn:ngsi-ld:Notification:1234"
+                            }
+                            """.trimIndent()
+                        )
                 }
             )
         }

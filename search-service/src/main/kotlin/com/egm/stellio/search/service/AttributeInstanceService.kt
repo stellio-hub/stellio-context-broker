@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -11,9 +8,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
+import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -24,20 +24,31 @@ class AttributeInstanceService(
     private val databaseClient: DatabaseClient
 ) {
 
-    fun create(attributeInstance: AttributeInstance): Mono<Int> {
-        return databaseClient.insert()
-            .into(AttributeInstance::class.java)
-            .using(attributeInstance)
+    @Transactional
+    fun create(attributeInstance: AttributeInstance): Mono<Int> =
+        databaseClient.execute(
+            """
+            INSERT INTO attribute_instance 
+                (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                VALUES (:observed_at, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+            """
+        )
+            .bind("observed_at", attributeInstance.observedAt)
+            .bind("measured_value", attributeInstance.measuredValue)
+            .bind("value", attributeInstance.value)
+            .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
+            .bind("instance_id", attributeInstance.instanceId)
+            .bind("payload", Json.of(attributeInstance.payload))
             .fetch()
             .rowsUpdated()
-    }
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances
     fun addAttributeInstances(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
-        attributeValues: Map<String, List<Any>>
+        attributeValues: Map<String, List<Any>>,
+        parsedPayload: Map<String, Any>
     ): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
             ?: throw BadRequestDataException("Value cannot be null")
@@ -46,14 +57,21 @@ class AttributeInstanceService(
             temporalEntityAttribute = temporalEntityAttributeUuid,
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
-            measuredValue = valueToDoubleOrNull(attributeValue)
+            measuredValue = valueToDoubleOrNull(attributeValue),
+            payload =
+                extractAttributeInstanceFromCompactedEntity(
+                    parsedPayload,
+                    attributeKey,
+                    null
+                )
         )
         return create(attributeInstance)
     }
 
     fun search(
         temporalQuery: TemporalQuery,
-        temporalEntityAttribute: TemporalEntityAttribute
+        temporalEntityAttribute: TemporalEntityAttribute,
+        withTemporalValues: Boolean
     ): Mono<List<AttributeInstanceResult>> {
         var selectQuery =
             when {
@@ -71,6 +89,9 @@ class AttributeInstanceService(
                         SELECT observed_at, measured_value as value, instance_id
                     """.trimIndent()
             }
+
+        if (!withTemporalValues && temporalQuery.timeBucket == null)
+            selectQuery = selectQuery.plus(", payload::TEXT")
 
         selectQuery = selectQuery.plus(
             """
@@ -100,23 +121,24 @@ class AttributeInstanceService(
             .fetch()
             .all()
             .map {
-                rowToAttributeInstanceResult(it, temporalEntityAttribute)
+                rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues)
             }
             .collectList()
     }
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
-        temporalEntityAttribute: TemporalEntityAttribute
+        temporalQuery: TemporalQuery,
+        withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return AttributeInstanceResult(
-            attributeName = temporalEntityAttribute.attributeName,
-            instanceId = row["instance_id"]?.let { (it as String).toUri() },
-            datasetId = temporalEntityAttribute.datasetId,
-            value = row["value"]!!,
-            observedAt =
-                row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                    ?: row["observed_at"].let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-        )
+        return if (withTemporalValues || temporalQuery.timeBucket != null)
+            SimplifiedAttributeInstanceResult(
+                value = row["value"]!!,
+                observedAt =
+                    row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                        ?: row["observed_at"]
+                            .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+            )
+        else FullAttributeInstanceResult(row["payload"].let { it as String })
     }
 }

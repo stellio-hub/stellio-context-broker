@@ -193,7 +193,7 @@ class EntityEventListenerService(
             payload =
                 extractAttributeInstanceFromCompactedEntity(
                     compactedJsonLdEntity,
-                    JsonLdUtils.compactTerm(expandedAttributeName, contexts),
+                    compactTerm(expandedAttributeName, contexts),
                     datasetId
                 )
         )

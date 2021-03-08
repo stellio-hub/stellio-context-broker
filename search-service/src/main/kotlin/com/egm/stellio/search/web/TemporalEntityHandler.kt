@@ -6,11 +6,13 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -33,7 +35,8 @@ import java.util.*
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val temporalEntityService: TemporalEntityService
 ) {
 
     /**
@@ -84,10 +87,6 @@ class TemporalEntityHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
-        //        there should be a way to do it more transparently
-        val bearerToken = httpHeaders.getOrEmpty("Authorization").firstOrNull() ?: ""
-
         val temporalQuery = try {
             buildTemporalQuery(params, contextLink)
         } catch (e: BadRequestDataException) {
@@ -95,40 +94,25 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
-        // TODO : REFACTOR getForEntity retrieves entity payload for each temporalEntityAttribute,it should be done once
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
             temporalQuery.expandedAttrs
         ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
 
         val attributeAndResultsMap = temporalEntityAttributes.map {
-            it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
+            it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
         }.toMap()
 
-        val jsonLdEntity =
-            loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken, contextLink).awaitFirst()
-        val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
-            jsonLdEntity,
-            attributeAndResultsMap.values.toList(),
+        val temporalEntity = temporalEntityService.buildTemporalEntity(
+            entityId.toUri(),
+            attributeAndResultsMap,
+            temporalQuery,
+            listOf(contextLink),
             withTemporalValues
         )
 
-        // filter on temporal attributes by default
-        val attributesToFilter = if (temporalQuery.expandedAttrs.isNotEmpty())
-            temporalQuery.expandedAttrs
-        else
-            attributeAndResultsMap.keys.map { it.attributeName }.toSet()
-
-        val filteredJsonLdEntity = JsonLdEntity(
-            JsonLdUtils.filterJsonLdEntityOnAttributes(
-                jsonLdEntityWithTemporalValues,
-                attributesToFilter
-            ),
-            jsonLdEntityWithTemporalValues.contexts
-        )
-
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(compact(filteredJsonLdEntity, contextLink, mediaType)))
+            .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
 
     /**

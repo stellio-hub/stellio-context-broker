@@ -1,9 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.AttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -12,7 +9,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
@@ -74,7 +70,8 @@ class AttributeInstanceService(
 
     fun search(
         temporalQuery: TemporalQuery,
-        temporalEntityAttribute: TemporalEntityAttribute
+        temporalEntityAttribute: TemporalEntityAttribute,
+        withTemporalValues: Boolean
     ): Mono<List<AttributeInstanceResult>> {
         var selectQuery =
             when {
@@ -92,6 +89,9 @@ class AttributeInstanceService(
                         SELECT observed_at, measured_value as value, instance_id
                     """.trimIndent()
             }
+
+        if (!withTemporalValues && temporalQuery.timeBucket == null)
+            selectQuery = selectQuery.plus(", payload::TEXT")
 
         selectQuery = selectQuery.plus(
             """
@@ -121,23 +121,24 @@ class AttributeInstanceService(
             .fetch()
             .all()
             .map {
-                rowToAttributeInstanceResult(it, temporalEntityAttribute)
+                rowToAttributeInstanceResult(it, temporalQuery, withTemporalValues)
             }
             .collectList()
     }
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
-        temporalEntityAttribute: TemporalEntityAttribute
+        temporalQuery: TemporalQuery,
+        withTemporalValues: Boolean
     ): AttributeInstanceResult {
-        return AttributeInstanceResult(
-            attributeName = temporalEntityAttribute.attributeName,
-            instanceId = row["instance_id"]?.let { (it as String).toUri() },
-            datasetId = temporalEntityAttribute.datasetId,
-            value = row["value"]!!,
-            observedAt =
-                row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                    ?: row["observed_at"].let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-        )
+        return if (withTemporalValues || temporalQuery.timeBucket != null)
+            SimplifiedAttributeInstanceResult(
+                value = row["value"]!!,
+                observedAt =
+                    row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                        ?: row["observed_at"]
+                            .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+            )
+        else FullAttributeInstanceResult(row["payload"].let { it as String })
     }
 }

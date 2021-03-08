@@ -172,7 +172,7 @@ class TemporalEntityServiceTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
-    fun `it should return a temporal entity with two instances property with numeric values`(
+    fun `it should correctly build a temporal entity`(
         attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
         withTemporalValues: Boolean,
         expectation: String
@@ -226,6 +226,24 @@ class TemporalEntityServiceTests {
             serializeObject(temporalEntity).matchContent(
                 loadSampleData("expectations/subscription_with_notifications_aggregated.jsonld")
             )
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
+    fun `it should correctly build temporal entities`(
+        queryResult: QueryTemporalEntitiesResult,
+        withTemporalValues: Boolean,
+        expectation: String
+    ) {
+        val temporalEntity = temporalEntityService.buildTemporalEntities(
+            queryResult,
+            TemporalQuery(),
+            listOf(apicContext!!),
+            withTemporalValues
+        )
+        assertTrue(
+            serializeObject(temporalEntity).matchContent(loadSampleData(expectation))
         )
     }
 }

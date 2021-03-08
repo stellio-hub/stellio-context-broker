@@ -7,9 +7,17 @@ import org.springframework.stereotype.Service
 import java.net.URI
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
+typealias QueryTemporalEntitiesResult = List<Pair<URI, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>
 
 @Service
 class TemporalEntityService {
+
+    fun buildTemporalEntities(
+        queryResult: QueryTemporalEntitiesResult,
+        temporalQuery: TemporalQuery,
+        contexts: List<String>,
+        withTemporalValues: Boolean
+    ) = queryResult.map { buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues) }
 
     fun buildTemporalEntity(
         entityId: URI,

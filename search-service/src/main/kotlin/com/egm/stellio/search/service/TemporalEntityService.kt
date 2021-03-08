@@ -7,21 +7,23 @@ import org.springframework.stereotype.Service
 import java.net.URI
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
-typealias QueryTemporalEntitiesResult = List<Pair<URI, Map<TemporalEntityAttribute, List<AttributeInstanceResult>>>>
+typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
 
 @Service
 class TemporalEntityService {
 
     fun buildTemporalEntities(
-        queryResult: QueryTemporalEntitiesResult,
+        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean
-    ) = queryResult.map { buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues) }
+    ): List<CompactedJsonLdEntity> {
+        return queryResult.map { buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues) }
+    }
 
     fun buildTemporalEntity(
         entityId: URI,
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean
@@ -40,7 +42,7 @@ class TemporalEntityService {
     }
 
     private fun buildTemporalAttributes(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
         withTemporalValues: Boolean
@@ -70,7 +72,7 @@ class TemporalEntityService {
      * of the temporal entity attribute.
      */
     private fun buildAttributesSimplifiedRepresentation(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
@@ -91,7 +93,7 @@ class TemporalEntityService {
      * - Value: list of the full representation of the attribute instances
      */
     private fun mergeFullTemporalAttributesOnAttributeName(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult
     ): Map<String, List<AttributeInstanceResult>> =
         attributeAndResultsMap.toList()
             .groupBy { (temporalEntityAttribute, _) ->

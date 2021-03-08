@@ -302,6 +302,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectComplete()
             .verify()
     }
+
     @Test
     fun `it should retrieve the persisted temporal attributes of the requested entities`() {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")

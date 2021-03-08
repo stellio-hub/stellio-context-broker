@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -173,7 +174,7 @@ class TemporalEntityServiceTests {
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
     fun `it should correctly build a temporal entity`(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         withTemporalValues: Boolean,
         expectation: String
     ) {
@@ -232,7 +233,7 @@ class TemporalEntityServiceTests {
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
     fun `it should correctly build temporal entities`(
-        queryResult: QueryTemporalEntitiesResult,
+        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
         withTemporalValues: Boolean,
         expectation: String
     ) {

@@ -81,14 +81,17 @@ fun hasValueInOptionsParam(options: Optional<String>, optionValue: OptionsParamV
         .filter { it.any { option -> option == optionValue.value } }
         .isPresent
 
-fun parseAndExpandAttrsParameter(attrsParam: String?, contextLink: String): Set<String> =
-    attrsParam
+fun parseRequestParameter(requestParam: String?): Set<String> =
+    requestParam
         ?.split(",")
         .orEmpty()
+        .toSet()
+
+fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
+    parseRequestParameter(requestParam)
         .map {
             JsonLdUtils.expandJsonLdKey(it.trim(), contextLink)!!
-        }
-        .toSet()
+        }.toSet()
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
     httpHeaders.accept.getApplicable()

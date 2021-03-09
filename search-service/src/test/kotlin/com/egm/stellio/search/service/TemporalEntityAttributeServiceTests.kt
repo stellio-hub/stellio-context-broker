@@ -302,4 +302,94 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectComplete()
             .verify()
     }
+
+    @Test
+    fun `it should retrieve the persisted temporal attributes of the requested entities`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                setOf(
+                    incomingAttrExpandedName,
+                    outgoingAttrExpandedName
+                )
+            )
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.keys.first() == "urn:ngsi-ld:BeeHive:TESTD".toUri() &&
+                    it.values.first().size == 2 &&
+                    it.values.first().all {
+                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                            it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+                    }
+            }
+            .expectNextMatches {
+                it.keys.first() == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
+                    it.values.first().size == 1 &&
+                    it.values.first().all {
+                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                            it.attributeName in setOf(incomingAttrExpandedName)
+                    }
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should return an empty list no temporal attribute matches the requested entities`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
+                setOf(
+                    incomingAttrExpandedName,
+                    outgoingAttrExpandedName
+                )
+            )
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should return an empty list if the requested attributes does not exist in the requested entities`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                setOf("unknownAttribute")
+            )
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
+    }
 }

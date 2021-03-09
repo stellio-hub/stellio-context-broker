@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -172,8 +173,8 @@ class TemporalEntityServiceTests {
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.search.util.ParameterizedTests#rawResultsProvider")
-    fun `it should return a temporal entity with two instances property with numeric values`(
-        attributeAndResultsMap: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>,
+    fun `it should correctly build a temporal entity`(
+        attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         withTemporalValues: Boolean,
         expectation: String
     ) {
@@ -226,6 +227,24 @@ class TemporalEntityServiceTests {
             serializeObject(temporalEntity).matchContent(
                 loadSampleData("expectations/subscription_with_notifications_aggregated.jsonld")
             )
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
+    fun `it should correctly build temporal entities`(
+        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
+        withTemporalValues: Boolean,
+        expectation: String
+    ) {
+        val temporalEntity = temporalEntityService.buildTemporalEntities(
+            queryResult,
+            TemporalQuery(),
+            listOf(apicContext!!),
+            withTemporalValues
+        )
+        assertTrue(
+            serializeObject(temporalEntity).matchContent(loadSampleData(expectation))
         )
     }
 }

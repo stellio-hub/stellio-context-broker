@@ -74,6 +74,55 @@ class TemporalEntityHandler(
     }
 
     /**
+     * Partial implementation of 6.18.3.2 - Query Temporal Evolution of Entities
+     */
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getForEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val withTemporalValues =
+            hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val ids = parseRequestParameter(params.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
+        val types = parseAndExpandRequestParameter(params.getFirst(QUERY_PARAM_TYPE), contextLink)
+        val temporalQuery = try {
+            buildTemporalQuery(params, contextLink)
+        } catch (e: BadRequestDataException) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse(e.message))
+        }
+        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
+            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+
+        val temporalEntityAttributesResult = temporalEntityAttributeService.getForEntities(
+            ids,
+            types,
+            temporalQuery.expandedAttrs
+        ).awaitFirst()
+
+        val queryResult = temporalEntityAttributesResult.toList().map {
+            Pair(
+                it.first,
+                it.second.map {
+                    it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
+                }.toMap()
+            )
+        }
+
+        val temporalEntities = temporalEntityService.buildTemporalEntities(
+            queryResult,
+            temporalQuery,
+            listOf(contextLink),
+            withTemporalValues
+        )
+
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
+    }
+
+    /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -180,7 +229,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         if (it >= 1) it else null
     }
 
-    val expandedAttrs = parseAndExpandAttrsParameter(attrsParam, contextLink)
+    val expandedAttrs = parseAndExpandRequestParameter(attrsParam, contextLink)
 
     return TemporalQuery(
         expandedAttrs = expandedAttrs,

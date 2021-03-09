@@ -115,7 +115,7 @@ class EntityHandler(
                 userId
             ).toListOfString()
 
-        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         val filteredEntities =
             entities.filter { entitiesUserCanRead.contains(it.id) }
                 .filter { it.containsAnyOf(expandedAttrs) }
@@ -158,7 +158,7 @@ class EntityHandler(
         val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
             ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
-        val expandedAttrs = parseAndExpandAttrsParameter(params.getFirst("attrs"), contextLink)
+        val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
             val filteredJsonLdEntity = JsonLdEntity(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),

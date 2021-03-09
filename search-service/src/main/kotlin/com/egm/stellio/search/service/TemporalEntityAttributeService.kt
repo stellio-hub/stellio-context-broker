@@ -132,6 +132,42 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
+    fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
+        Flux<Map<URI, List<TemporalEntityAttribute>>> {
+            var selectQuery = if (withEntityPayload)
+                """
+                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
+                payload::TEXT, dataset_id
+                FROM temporal_entity_attribute
+                LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
+                WHERE
+                """.trimIndent()
+            else
+                """
+                SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
+                FROM temporal_entity_attribute            
+                WHERE
+                """.trimIndent()
+
+            val formattedIds = ids.joinToString(",") { "'$it'" }
+            val formattedTypes = types.joinToString(",") { "'$it'" }
+            val formattedAttrs = attrs.joinToString(",") { "'$it'" }
+            if (ids.isNotEmpty()) selectQuery = "$selectQuery entity_id in ($formattedIds) AND"
+            if (types.isNotEmpty()) selectQuery = "$selectQuery type in ($formattedTypes) AND"
+            if (attrs.isNotEmpty()) selectQuery = "$selectQuery attribute_name in ($formattedAttrs) AND"
+            return databaseClient
+                .execute(selectQuery.removeSuffix("AND"))
+                .fetch()
+                .all()
+                .map { rowToTemporalEntityAttribute(it) }
+                .groupBy { it.entityId }
+                .flatMap { grouped ->
+                    grouped.collectList().map {
+                        mapOf(grouped.key()!! to it.toList())
+                    }
+                }
+        }
+
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
         val selectQuery = if (withEntityPayload)
             """

@@ -22,5 +22,5 @@ jobs:
           path-to-cla-document: 'https://fiware.github.io/contribution-requirements/individual-cla.pdf' # e.g. a CLA or a DCO document
           # branch should not be protected
           branch: 'master'
-          allowlist: bobeal,franckLG,HoucemKacem,bot*
+          allowlist: bobeal,franckLG,HoucemKacem,dependabot,bot*
           signed-commit-message: '$contributorName has signed the CLA in #$pullRequestNo'

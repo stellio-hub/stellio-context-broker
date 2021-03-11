@@ -51,6 +51,10 @@ class TemporalEntityService {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
             mergeSimplifiedTemporalAttributesOnAttributeName(attributes)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }
+                .mapValues {
+                    if (it.value.size == 1) it.value.first()
+                    else it.value
+                }
         } else {
             mergeFullTemporalAttributesOnAttributeName(attributeAndResultsMap)
                 .mapKeys { JsonLdUtils.compactTerm(it.key, contexts) }

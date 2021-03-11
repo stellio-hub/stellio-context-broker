@@ -333,9 +333,9 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
                     } &&
                     it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.size == 2 &&
                     it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.all {
-                    it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                        it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
-                }
+                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                            it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+                    }
             }
             .expectComplete()
             .verify()

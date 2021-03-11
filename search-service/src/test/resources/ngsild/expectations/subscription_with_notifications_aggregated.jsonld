@@ -1,19 +1,17 @@
 {
    "id":"urn:ngsi-ld:Subscription:1234",
    "type":"Subscription",
-   "notification":[
-      {
-         "type":"Property",
-         "values":[
-            [
-               "urn:ngsi-ld:Beehive:1234",
-               "2020-03-25T08:29:17.965206Z"
-            ],
-            [
-               "urn:ngsi-ld:Beehive:5678",
-               "2020-03-25T08:33:17.965206Z"
-            ]
-         ]
-      }
-   ]
+   "notification": {
+     "type":"Property",
+     "values":[
+        [
+           "urn:ngsi-ld:Beehive:1234",
+           "2020-03-25T08:29:17.965206Z"
+        ],
+        [
+           "urn:ngsi-ld:Beehive:5678",
+           "2020-03-25T08:33:17.965206Z"
+        ]
+     ]
+  }
 }

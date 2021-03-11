@@ -2,31 +2,27 @@
    {
       "id":"urn:ngsi-ld:BeeHive:TESTC",
       "type":"BeeHive",
-      "incoming":[
-         {
-            "type":"Property",
-            "values":[
-               [
-                  20,
-                  "2020-03-25T08:33:17.965206Z"
-               ]
+      "incoming": {
+         "type":"Property",
+         "values":[
+            [
+               20,
+               "2020-03-25T08:33:17.965206Z"
             ]
-         }
-      ]
+         ]
+      }
    },
    {
       "id":"urn:ngsi-ld:BeeHive:TESTD",
       "type":"BeeHive",
-      "outgoing":[
-         {
-            "type":"Property",
-            "values":[
-               [
-                  25,
-                  "2020-03-25T08:33:17.965206Z"
-               ]
+      "outgoing": {
+         "type":"Property",
+         "values":[
+            [
+               25,
+               "2020-03-25T08:33:17.965206Z"
             ]
-         }
-      ]
+         ]
+      }
    }
 ]

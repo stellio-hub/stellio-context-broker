@@ -19,7 +19,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "9.3.0"
     id("com.google.cloud.tools.jib") version "2.5.0" apply false
     kotlin("kapt") version "1.3.61" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.16.0" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
     id("org.sonarqube") version "3.1.1"
 }
 
@@ -68,7 +68,7 @@ subprojects {
         implementation("io.arrow-kt:arrow-syntax:0.10.4")
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.16.0")
+        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.11.2")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

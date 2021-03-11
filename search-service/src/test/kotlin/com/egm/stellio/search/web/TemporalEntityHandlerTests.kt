@@ -625,7 +625,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Flux.just(emptyMap())
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
         every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
@@ -657,7 +657,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Flux.just(emptyMap())
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
         every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
@@ -685,7 +685,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Flux.just(emptyMap())
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
         every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
@@ -718,7 +718,7 @@ class TemporalEntityHandlerTests {
         )
 
         every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
-            Flux.just(mapOf(entityUri to listOf(entityTemporalProperty)))
+            Mono.just(mapOf(entityUri to listOf(entityTemporalProperty)))
 
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
         every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
@@ -758,7 +758,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Flux.just(emptyMap())
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
         every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
         every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 

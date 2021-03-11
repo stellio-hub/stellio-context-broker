@@ -65,7 +65,7 @@ subprojects {
         implementation("com.github.jsonld-java:jsonld-java:0.13.2")
 
         implementation("io.arrow-kt:arrow-fx:0.10.4")
-        implementation("io.arrow-kt:arrow-syntax:0.10.4")
+        implementation("io.arrow-kt:arrow-syntax:0.11.0")
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
         "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.11.2")

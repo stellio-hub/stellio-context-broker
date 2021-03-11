@@ -325,20 +325,17 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
-                it.keys.first() == "urn:ngsi-ld:BeeHive:TESTD".toUri() &&
-                    it.values.first().size == 2 &&
-                    it.values.first().all {
-                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                            it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
-                    }
-            }
-            .expectNextMatches {
-                it.keys.first() == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                    it.values.first().size == 1 &&
-                    it.values.first().all {
+                it.size == 2 &&
+                    it["urn:ngsi-ld:BeeHive:TESTC".toUri()]!!.size == 1 &&
+                    it["urn:ngsi-ld:BeeHive:TESTC".toUri()]!!.all {
                         it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
                             it.attributeName in setOf(incomingAttrExpandedName)
-                    }
+                    } &&
+                    it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.size == 2 &&
+                    it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.all {
+                    it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                        it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+                }
             }
             .expectComplete()
             .verify()
@@ -365,7 +362,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
 
         StepVerifier.create(temporalEntityAttributes)
-            .expectNextCount(0)
+            .expectNext(emptyMap())
             .expectComplete()
             .verify()
     }
@@ -388,7 +385,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
 
         StepVerifier.create(temporalEntityAttributes)
-            .expectNextCount(0)
+            .expectNext(emptyMap())
             .expectComplete()
             .verify()
     }

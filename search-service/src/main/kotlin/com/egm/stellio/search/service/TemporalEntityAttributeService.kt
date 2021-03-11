@@ -133,7 +133,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
-        Flux<Map<URI, List<TemporalEntityAttribute>>> {
+        Mono<Map<URI, List<TemporalEntityAttribute>>> {
             var selectQuery = if (withEntityPayload)
                 """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
@@ -160,11 +160,9 @@ class TemporalEntityAttributeService(
                 .fetch()
                 .all()
                 .map { rowToTemporalEntityAttribute(it) }
-                .groupBy { it.entityId }
-                .flatMap { grouped ->
-                    grouped.collectList().map {
-                        mapOf(grouped.key()!! to it.toList())
-                    }
+                .collectList()
+                .map { temporalEntityAttributes ->
+                    temporalEntityAttributes.groupBy { it.entityId }
                 }
         }
 

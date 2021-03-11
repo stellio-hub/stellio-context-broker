@@ -20,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -100,7 +101,7 @@ class TemporalEntityHandler(
             ids,
             types,
             temporalQuery.expandedAttrs
-        ).awaitFirst()
+        ).awaitFirstOrDefault(emptyMap())
 
         val queryResult = temporalEntityAttributesResult.toList().map {
             Pair(

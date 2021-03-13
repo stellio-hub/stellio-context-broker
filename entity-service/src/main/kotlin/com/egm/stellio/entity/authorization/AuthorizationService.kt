@@ -21,6 +21,11 @@ interface AuthorizationService {
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)
     }
 
+    enum class SpecificAccessPolicy {
+        AUTH_READ,
+        AUTH_WRITE
+    }
+
     fun userIsAdmin(userSub: String): Boolean
     fun userCanCreateEntities(userSub: String): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<URI>, userSub: String): List<URI>

@@ -69,6 +69,7 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
+    const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 

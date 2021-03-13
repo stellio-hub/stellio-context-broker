@@ -7,6 +7,7 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
@@ -217,29 +218,33 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
+        val entityUri = entityId.toUri()
 
-        if (!entityService.exists(entityId.toUri()))
+        if (!entityService.exists(entityUri))
             throw ResourceNotFoundException("Entity $entityId does not exist")
 
         val userId = extractSubjectOrEmpty().awaitFirst()
-        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+        if (!authorizationService.userCanUpdateEntity(entityUri, userId))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+        checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, userId)
+
         val updateResult = entityService.appendEntityAttributes(
-            entityId.toUri(),
-            parseToNgsiLdAttributes(jsonLdAttributes),
+            entityUri,
+            ngsiLdAttributes,
             disallowOverwrite
         )
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAppendEntityAttributesEvents(
-                entityId.toUri(),
+                entityUri,
                 jsonLdAttributes,
                 updateResult,
-                entityService.getFullEntityById(entityId.toUri(), true)!!,
+                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
         }
@@ -263,26 +268,28 @@ class EntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        if (!entityService.exists(entityId.toUri()))
+        val entityUri = entityId.toUri()
+
+        if (!entityService.exists(entityUri))
             throw ResourceNotFoundException("Entity $entityId does not exist")
 
         val userId = extractSubjectOrEmpty().awaitFirst()
-        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+        if (!authorizationService.userCanUpdateEntity(entityUri, userId))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        val updateResult =
-            entityService.updateEntityAttributes(entityId.toUri(), ngsiLdAttributes)
+        checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, userId)
+        val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
-        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+        val updatedEntity = entityService.getFullEntityById(entityUri, true)
 
         updateResult.updated.forEach { updatedDetails ->
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
-                    entityId.toUri(),
+                    entityUri,
                     compactTerm(updatedDetails.attributeName, contexts),
                     updatedDetails.datasetId,
                     compactAndStringifyFragment(
@@ -330,10 +337,11 @@ class EntityHandler(
 
         val expandedBody = expandJsonLdFragment(body, contexts) as Map<String, List<Any>>
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        checkAttributeIsAuthorized(expandedAttrId, entityUri, userId)
         val expandedPayload = mapOf(expandedAttrId to expandedBody)
         entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
 
-        val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+        val updatedEntity = entityService.getFullEntityById(entityUri, true)
         entityEventService.publishEntityEvent(
             AttributeUpdateEvent(
                 entityId = entityUri,
@@ -358,29 +366,33 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val entityUri = entityId.toUri()
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
         val userId = extractSubjectOrEmpty().awaitFirst()
 
-        if (!entityService.exists(entityId.toUri()))
+        if (!entityService.exists(entityUri))
             throw ResourceNotFoundException("Entity $entityId does not exist")
-        if (!authorizationService.userCanUpdateEntity(entityId.toUri(), userId))
+        if (!authorizationService.userCanUpdateEntity(entityUri, userId))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+        val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        checkAttributeIsAuthorized(expandedAttrId, entityUri, userId)
+
         val result = if (deleteAll)
-            entityService.deleteEntityAttribute(entityId.toUri(), expandJsonLdKey(attrId, contexts)!!)
+            entityService.deleteEntityAttribute(entityUri, expandedAttrId)
         else
             entityService.deleteEntityAttributeInstance(
-                entityId.toUri(), expandJsonLdKey(attrId, contexts)!!, datasetId
+                entityUri, expandedAttrId, datasetId
             )
 
         if (result) {
-            val updatedEntity = entityService.getFullEntityById(entityId.toUri(), true)
+            val updatedEntity = entityService.getFullEntityById(entityUri, true)
             if (deleteAll)
                 entityEventService.publishEntityEvent(
                     AttributeDeleteAllInstancesEvent(
-                        entityId = entityId.toUri(),
+                        entityId = entityUri,
                         attributeName = attrId,
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
@@ -390,7 +402,7 @@ class EntityHandler(
             else
                 entityEventService.publishEntityEvent(
                     AttributeDeleteEvent(
-                        entityId = entityId.toUri(),
+                        entityId = entityUri,
                         attributeName = attrId,
                         datasetId = datasetId,
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
@@ -405,5 +417,17 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+    }
+
+    private fun checkAttributesAreAuthorized(ngsiLdAttributes: List<NgsiLdAttribute>, entityUri: URI, userId: String) =
+        ngsiLdAttributes.forEach { ngsiLdAttribute ->
+            checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri, userId)
+        }
+
+    private fun checkAttributeIsAuthorized(expandedAttributeName: String, entityUri: URI, userId: String) {
+        if (expandedAttributeName == EGM_SPECIFIC_ACCESS_POLICY &&
+            !authorizationService.userIsAdminOfEntity(entityUri, userId)
+        )
+            throw AccessDeniedException("User forbidden to update access policy of entity")
     }
 }

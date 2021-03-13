@@ -18,7 +18,7 @@ plugins {
     kotlin("plugin.spring") version "1.3.72" apply false
     id("org.jlleitschuh.gradle.ktlint") version "9.3.0"
     id("com.google.cloud.tools.jib") version "2.5.0" apply false
-    kotlin("kapt") version "1.3.61" apply false
+    kotlin("kapt") version "1.4.31" apply false
     id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
     id("org.sonarqube") version "3.1.1"
 }

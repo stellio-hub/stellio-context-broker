@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.*
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
@@ -11,6 +12,7 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -167,6 +169,87 @@ class Neo4jAuthorizationRepositoryTest {
 
         neo4jRepository.deleteEntity(clientUri)
         neo4jRepository.deleteEntity(apiaryUri)
+    }
+
+    @Test
+    fun `it should filter entities authorized per a specific access policy`() {
+        createEntity(
+            apiaryUri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
+        createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
+
+        val authorizedEntities =
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                listOf(apiaryUri, apiary02Uri),
+                listOf(SpecificAccessPolicy.AUTH_READ.name)
+            )
+
+        assert(authorizedEntities == listOf(apiaryUri))
+
+        neo4jRepository.deleteEntity(apiaryUri)
+        neo4jRepository.deleteEntity(apiary02Uri)
+    }
+
+    @Test
+    fun `it should filter entities with auth write if auth read and auth write are asked for`() {
+        createEntity(
+            apiaryUri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_WRITE.name
+                )
+            )
+        )
+
+        val authorizedEntities =
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                listOf(apiaryUri, apiary02Uri),
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+            )
+
+        assert(authorizedEntities == listOf(apiaryUri))
+
+        neo4jRepository.deleteEntity(apiaryUri)
+    }
+
+    @Test
+    fun `it should filter entities with auth write if only auth write is asked for`() {
+        createEntity(
+            apiaryUri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_WRITE.name
+                )
+            )
+        )
+        createEntity(
+            apiary02Uri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
+
+        val authorizedEntities =
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                listOf(apiaryUri, apiary02Uri),
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name)
+            )
+
+        assert(authorizedEntities == listOf(apiaryUri))
+
+        neo4jRepository.deleteEntity(apiaryUri)
+        neo4jRepository.deleteEntity(apiary02Uri)
     }
 
     @Test

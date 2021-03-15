@@ -220,6 +220,39 @@ class Neo4jAuthorizationRepositoryTest {
     }
 
     @Test
+    fun `it should filter entities with auth write if only auth write is asked for`() {
+        createEntity(
+            apiaryUri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_WRITE.name
+                )
+            )
+        )
+        createEntity(
+            apiary02Uri, listOf("Apiary"),
+            mutableListOf(
+                Property(
+                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    value = SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
+
+        val authorizedEntities =
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                listOf(apiaryUri, apiary02Uri),
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name)
+            )
+
+        assert(authorizedEntities == listOf(apiaryUri))
+
+        neo4jRepository.deleteEntity(apiaryUri)
+        neo4jRepository.deleteEntity(apiary02Uri)
+    }
+
+    @Test
     fun `it should get all user's roles`() {
         createEntity(
             userUri,

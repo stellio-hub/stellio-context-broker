@@ -428,6 +428,6 @@ class EntityHandler(
         if (expandedAttributeName == EGM_SPECIFIC_ACCESS_POLICY &&
             !authorizationService.userIsAdminOfEntity(entityUri, userId)
         )
-            throw AccessDeniedException("User forbidden to update access policy of entity")
+            throw AccessDeniedException("User forbidden to update access policy of entity $entityUri")
     }
 }

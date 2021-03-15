@@ -17,7 +17,9 @@ class EntityEventListenerService(
     // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_subscription")
     fun processMessage(content: String) {
-        when (val entityEvent = deserializeAs<EntityEvent>(content)) {
+        val entityEvent = deserializeAs<EntityEvent>(content)
+        logger.debug("Handling ${entityEvent.operationType} event on entity ${entityEvent.entityId}")
+        when (entityEvent) {
             is EntityCreateEvent -> handleEntityEvent(
                 deserializeObject(entityEvent.operationPayload).keys,
                 entityEvent.getEntity(),
@@ -40,6 +42,7 @@ class EntityEventListenerService(
     }
 
     private fun handleEntityEvent(updatedAttributes: Set<String>, entityPayload: String, contexts: List<String>) {
+        logger.debug("Attributes considered in the event: $updatedAttributes")
         try {
             val parsedEntity = JsonLdUtils.expandJsonLdEntity(entityPayload, contexts)
             notificationService.notifyMatchingSubscribers(

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -287,14 +288,17 @@ class EntityHandler(
         val updatedEntity = entityService.getFullEntityById(entityUri, true)
 
         updateResult.updated.forEach { updatedDetails ->
+            val attributeName = updatedDetails.attributeName
+            val attributePayload =
+                getAttributeFromExpandedAttributes(jsonLdAttributes, attributeName, updatedDetails.datasetId)
             entityEventService.publishEntityEvent(
                 AttributeReplaceEvent(
                     entityUri,
-                    compactTerm(updatedDetails.attributeName, contexts),
+                    compactTerm(attributeName, contexts),
                     updatedDetails.datasetId,
                     compactAndStringifyFragment(
-                        updatedDetails.attributeName,
-                        jsonLdAttributes[updatedDetails.attributeName]!!,
+                        attributeName,
+                        attributePayload!!,
                         contexts
                     ),
                     compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),

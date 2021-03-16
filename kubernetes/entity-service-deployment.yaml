@@ -53,6 +53,11 @@ spec:
               configMapKeyRef:
                 name: stellio-conf
                 key: KAFKA_URL
+          - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+            valueFrom:
+              configMapKeyRef:
+                name: stellio-conf
+                key: KAFKA_URL
           image: 'stellio/stellio-entity-service:latest'
           name: stellio-entity-service
           ports:

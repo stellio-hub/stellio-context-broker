@@ -68,7 +68,7 @@ class SubscriptionEventListenerService(
                     payload = mapOf(
                         "type" to "Notification",
                         "value" to entitiesIds,
-                        "notifiedAt" to notification.notifiedAt.toNgsiLdFormat()
+                        "observedAt" to notification.notifiedAt.toNgsiLdFormat()
                     )
                 )
                 attributeInstanceService.create(attributeInstance)

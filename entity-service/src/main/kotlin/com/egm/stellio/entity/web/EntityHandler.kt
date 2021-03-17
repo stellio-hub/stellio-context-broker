@@ -10,13 +10,11 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -285,26 +283,13 @@ class EntityHandler(
         checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, userId)
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
-        val updatedEntity = entityService.getFullEntityById(entityUri, true)
-
-        updateResult.updated.forEach { updatedDetails ->
-            val attributeName = updatedDetails.attributeName
-            val attributePayload =
-                getAttributeFromExpandedAttributes(jsonLdAttributes, attributeName, updatedDetails.datasetId)
-            entityEventService.publishEntityEvent(
-                AttributeReplaceEvent(
-                    entityUri,
-                    compactTerm(attributeName, contexts),
-                    updatedDetails.datasetId,
-                    compactAndStringifyFragment(
-                        attributeName,
-                        attributePayload!!,
-                        contexts
-                    ),
-                    compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                    contexts
-                ),
-                compactTerm(updatedEntity.type, contexts)
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishUpdateEntityAttributesEvents(
+                entityUri,
+                jsonLdAttributes,
+                updateResult,
+                entityService.getFullEntityById(entityUri, true)!!,
+                contexts
             )
         }
 

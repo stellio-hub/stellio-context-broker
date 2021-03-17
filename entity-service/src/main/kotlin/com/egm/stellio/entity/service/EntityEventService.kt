@@ -52,15 +52,22 @@ class EntityEventService(
         contexts: List<String>
     ) {
         appendResult.updated.forEach { updatedDetails ->
+            val attributeName = updatedDetails.attributeName
+            val attributePayload =
+                JsonLdUtils.getAttributeFromExpandedAttributes(
+                    jsonLdAttributes,
+                    attributeName,
+                    updatedDetails.datasetId
+                )
             if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
                 publishEntityEvent(
                     AttributeAppendEvent(
                         entityId,
-                        compactTerm(updatedDetails.attributeName, contexts),
+                        compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
                         JsonLdUtils.compactAndStringifyFragment(
-                            updatedDetails.attributeName,
-                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            attributeName,
+                            attributePayload!!,
                             contexts
                         ),
                         JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
@@ -72,11 +79,11 @@ class EntityEventService(
                 publishEntityEvent(
                     AttributeReplaceEvent(
                         entityId,
-                        compactTerm(updatedDetails.attributeName, contexts),
+                        compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
                         JsonLdUtils.compactAndStringifyFragment(
-                            updatedDetails.attributeName,
-                            jsonLdAttributes[updatedDetails.attributeName]!!,
+                            attributeName,
+                            attributePayload!!,
                             contexts
                         ),
                         JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
@@ -84,6 +91,39 @@ class EntityEventService(
                     ),
                     compactTerm(updatedEntity.type, contexts)
                 )
+        }
+    }
+
+    fun publishUpdateEntityAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        updateResult: UpdateResult,
+        updatedEntity: JsonLdEntity,
+        contexts: List<String>
+    ) {
+        updateResult.updated.forEach { updatedDetails ->
+            val attributeName = updatedDetails.attributeName
+            val attributePayload =
+                JsonLdUtils.getAttributeFromExpandedAttributes(
+                    jsonLdAttributes,
+                    attributeName,
+                    updatedDetails.datasetId
+                )
+            publishEntityEvent(
+                AttributeReplaceEvent(
+                    entityId,
+                    compactTerm(attributeName, contexts),
+                    updatedDetails.datasetId,
+                    JsonLdUtils.compactAndStringifyFragment(
+                        attributeName,
+                        attributePayload!!,
+                        contexts
+                    ),
+                    JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
+                    contexts
+                ),
+                compactTerm(updatedEntity.type, contexts)
+            )
         }
     }
 }

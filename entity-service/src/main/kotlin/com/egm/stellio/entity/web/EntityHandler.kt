@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndStringifyFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -284,23 +283,13 @@ class EntityHandler(
         checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, userId)
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
-        val updatedEntity = entityService.getFullEntityById(entityUri, true)
-
-        updateResult.updated.forEach { updatedDetails ->
-            entityEventService.publishEntityEvent(
-                AttributeReplaceEvent(
-                    entityUri,
-                    compactTerm(updatedDetails.attributeName, contexts),
-                    updatedDetails.datasetId,
-                    compactAndStringifyFragment(
-                        updatedDetails.attributeName,
-                        jsonLdAttributes[updatedDetails.attributeName]!!,
-                        contexts
-                    ),
-                    compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                    contexts
-                ),
-                compactTerm(updatedEntity.type, contexts)
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishUpdateEntityAttributesEvents(
+                entityUri,
+                jsonLdAttributes,
+                updateResult,
+                entityService.getFullEntityById(entityUri, true)!!,
+                contexts
             )
         }
 

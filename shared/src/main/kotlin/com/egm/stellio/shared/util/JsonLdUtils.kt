@@ -221,6 +221,26 @@ object JsonLdUtils {
     fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =
         String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
 
+    fun getAttributeFromExpandedAttributes(
+        expandedAttributes: Map<String, Any>,
+        expandedAttributeName: String,
+        datasetId: URI?
+    ): Any? {
+        if (!expandedAttributes.containsKey(expandedAttributeName))
+            return null
+
+        return (expandedAttributes[expandedAttributeName]!! as List<Map<String, Any>>)
+            .find {
+                if (datasetId == null)
+                    !it.containsKey(NGSILD_DATASET_ID_PROPERTY)
+                else
+                    getPropertyValueFromMap(
+                        it as Map<String, List<Any>>,
+                        NGSILD_DATASET_ID_PROPERTY
+                    ) == datasetId.toString()
+            }
+    }
+
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()
         jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)

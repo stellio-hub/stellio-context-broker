@@ -1441,7 +1441,7 @@ class EntityHandlerTests {
             updated = arrayListOf(
                 UpdatedDetails(
                     "https://ontology.eglobalmark.com/aquac#fishName",
-                    null,
+                    "urn:ngsi-ld:Dataset:fishName:1".toUri(),
                     UpdateOperationResult.REPLACED
                 ),
                 UpdatedDetails(

@@ -1,5 +1,7 @@
 package com.egm.stellio.subscription.service
 
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -728,6 +730,28 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                     it.modifiedAt != null
             }
             .verifyComplete()
+    }
+
+    @Test
+    fun `it should throw a BadRequestData exception if the subscription has an unknown attribute`() {
+        val parsedInput = Pair(mapOf("unknownAttribute" to "unknownValue"), listOf(apicContext))
+
+        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
+            .expectErrorMatches { throwable ->
+                throwable.cause is BadRequestDataException
+            }
+            .verify()
+    }
+
+    @Test
+    fun `it should throw a NotImplemented exception if the subscription has an unsupported attribute`() {
+        val parsedInput = Pair(mapOf("throttling" to "someValue"), listOf(apicContext))
+
+        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
+            .expectErrorMatches { throwable ->
+                throwable.cause is NotImplementedException
+            }
+            .verify()
     }
 
     @Test

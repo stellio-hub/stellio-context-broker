@@ -44,6 +44,10 @@ class ExceptionHandler {
                 HttpStatus.FORBIDDEN,
                 AccessDeniedResponse(cause.message)
             )
+            is NotImplementedException -> generateErrorResponse(
+                HttpStatus.NOT_IMPLEMENTED,
+                NotImplementedResponse(cause.message)
+            )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")

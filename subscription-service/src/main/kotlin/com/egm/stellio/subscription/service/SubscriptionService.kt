@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toUri
@@ -22,6 +23,7 @@ import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
+import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.relational.core.query.Criteria
@@ -41,6 +43,8 @@ class SubscriptionService(
     private val databaseClient: DatabaseClient,
     private val subscriptionRepository: SubscriptionRepository
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun create(subscription: Subscription, sub: String): Mono<Int> {
@@ -176,23 +180,31 @@ class SubscriptionService(
         subscriptionInputWithModifiedAt.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
         }.forEach {
-            when (it.key) {
-                "geoQ" -> {
+            when {
+                it.key == "geoQ" -> {
                     val geoQuery = it.value as Map<String, Any>
                     updates.add(updateGeometryQuery(subscriptionId, geoQuery))
                 }
-                "notification" -> {
+                it.key == "notification" -> {
                     val notification = it.value as Map<String, Any>
                     updates.add(updateNotification(subscriptionId, notification, contexts))
                 }
-                "entities" -> {
+                it.key == "entities" -> {
                     val entities = it.value as List<Map<String, Any>>
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
-                else -> {
+                listOf("name", "description", "watchedAttributes", "q", "isActive", "modifiedAt").contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
                     updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
+                }
+                listOf("expiresAt", "timeInterval", "csf", "throttling", "temporalQ").contains(it.key) -> {
+                    logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
+                    throw NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
+                }
+                else -> {
+                    logger.warn("Subscription $subscriptionId has invalid attribute: ${it.key}")
+                    throw BadRequestDataException("Subscription $subscriptionId has invalid attribute: ${it.key}")
                 }
             }
         }

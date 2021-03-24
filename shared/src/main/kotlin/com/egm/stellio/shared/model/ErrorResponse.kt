@@ -74,6 +74,13 @@ data class AccessDeniedResponse(override val detail: String) :
         detail
     )
 
+data class NotImplementedResponse(override val detail: String) :
+    ErrorResponse(
+        "https://uri.etsi.org/ngsi-ld/errors/NotImplemented",
+        "The requested functionality is not yet implemented",
+        detail
+    )
+
 enum class ErrorType(val type: String) {
     INVALID_REQUEST("https://uri.etsi.org/ngsi-ld/errors/InvalidRequest"),
     BAD_REQUEST_DATA("https://uri.etsi.org/ngsi-ld/errors/BadRequestData"),

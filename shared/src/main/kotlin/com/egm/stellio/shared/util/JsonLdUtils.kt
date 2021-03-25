@@ -33,7 +33,7 @@ data class AttributeType(val uri: String)
 @Component
 object JsonLdUtils {
 
-    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+    const val NGSILD_CORE_CONTEXT = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
     const val EGM_BASE_CONTEXT_URL =
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
@@ -60,7 +60,9 @@ object JsonLdUtils {
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
-    const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
+    const val NGSILD_COORDINATES_PROPERTY = "https://purl.org/geojson/vocab#coordinates"
+    const val NGSILD_POINT_PROPERTY = "https://purl.org/geojson/vocab#Point"
+    const val NGSILD_COMPACT_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
@@ -73,7 +75,7 @@ object JsonLdUtils {
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =
-        ClassPathResource("/contexts/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
+        ClassPathResource("/contexts/ngsi-ld-core-context-v1.3.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
 
     @PostConstruct

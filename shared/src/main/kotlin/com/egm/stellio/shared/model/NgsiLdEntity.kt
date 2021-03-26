@@ -46,6 +46,8 @@ class NgsiLdEntity private constructor(
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
             val type = (parsedKeys[JSONLD_TYPE]!! as List<String>)[0]
+            if (!type.extractShortTypeFromExpanded().isNgsiLdSupportedName())
+                throw BadRequestDataException("The provided NGSI-LD entity has a type with invalid characters")
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
@@ -77,19 +79,22 @@ class NgsiLdEntity private constructor(
         geoProperties.find { it.name == NGSILD_LOCATION_PROPERTY }
 }
 
-sealed class NgsiLdAttribute {
-    abstract val name: String
-    val compactName: String
-        get() = name.extractShortTypeFromExpanded()
+sealed class NgsiLdAttribute(val name: String) {
+    val compactName: String = name.extractShortTypeFromExpanded()
+
+    init {
+        if (!compactName.isNgsiLdSupportedName())
+            throw BadRequestDataException("Entity has an invalid attribute name: $compactName")
+    }
 
     abstract fun getLinkedEntitiesIds(): List<URI>
     abstract fun getAttributeInstances(): List<NgsiLdAttributeInstance>
 }
 
 class NgsiLdProperty private constructor(
-    override val name: String,
+    name: String,
     val instances: List<NgsiLdPropertyInstance>
-) : NgsiLdAttribute() {
+) : NgsiLdAttribute(name) {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdProperty {
             checkInstancesAreOfSameType(name, instances, NGSILD_PROPERTY_TYPE)
@@ -112,9 +117,9 @@ class NgsiLdProperty private constructor(
 }
 
 class NgsiLdRelationship private constructor(
-    override val name: String,
+    name: String,
     val instances: List<NgsiLdRelationshipInstance>
-) : NgsiLdAttribute() {
+) : NgsiLdAttribute(name) {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdRelationship {
             checkInstancesAreOfSameType(name, instances, NGSILD_RELATIONSHIP_TYPE)
@@ -137,9 +142,9 @@ class NgsiLdRelationship private constructor(
 }
 
 class NgsiLdGeoProperty private constructor(
-    override val name: String,
+    name: String,
     val instances: List<NgsiLdGeoPropertyInstance>
-) : NgsiLdAttribute() {
+) : NgsiLdAttribute(name) {
     companion object {
         operator fun invoke(name: String, instances: List<Map<String, List<Any>>>): NgsiLdGeoProperty {
             checkInstancesAreOfSameType(name, instances, NGSILD_GEOPROPERTY_TYPE)
@@ -360,6 +365,9 @@ fun parseToNgsiLdAttributes(attributes: Map<String, Any>): List<NgsiLdAttribute>
             else -> throw BadRequestDataException("Unrecognized type for ${it.key}")
         }
     }
+
+fun String.isNgsiLdSupportedName() =
+    this.all { char -> char.isLetterOrDigit() || listOf(':', '_').contains(char) }
 
 fun JsonLdEntity.toNgsiLdEntity(): NgsiLdEntity =
     NgsiLdEntity(this.properties, this.contexts)

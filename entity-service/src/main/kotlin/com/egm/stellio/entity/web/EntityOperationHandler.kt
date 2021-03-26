@@ -5,16 +5,20 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -33,13 +37,19 @@ class EntityOperationHandler(
      * Implements 6.14.3.1 - Create Batch of Entities
      */
     @PostMapping("/create", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun create(@RequestBody requestBody: Mono<String>): ResponseEntity<*> {
+    suspend fun create(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         if (!authorizationService.userCanCreateEntities(userId))
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
-        val (extractedEntities, _, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
+        checkContext(httpHeaders, body)
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+        val (extractedEntities, _, ngsiLdEntities) =
+            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val batchOperationResult = entityOperationService.create(newEntities)
 
@@ -80,12 +90,17 @@ class EntityOperationHandler(
      */
     @PostMapping("/upsert", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun upsert(
+        @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>,
         @RequestParam(required = false) options: String?
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val body = requestBody.awaitFirst()
-        val (extractedEntities, jsonLdEntities, ngsiLdEntities) = extractAndParseBatchOfEntities(body)
+        checkContext(httpHeaders, body)
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+
+        val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
+            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val createBatchOperationResult = when {
@@ -93,9 +108,7 @@ class EntityOperationHandler(
             authorizationService.userCanCreateEntities(userId) -> entityOperationService.create(newEntities)
             else -> BatchOperationResult(
                 errors = ArrayList(
-                    newEntities.map {
-                        BatchEntityError(it.id, arrayListOf("User forbidden to create entities"))
-                    }
+                    newEntities.map { BatchEntityError(it.id, arrayListOf("User forbidden to create entities")) }
                 )
             )
         }
@@ -188,11 +201,25 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(payload: String):
-        Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
-            JsonUtils.deserializeListOfObjects(payload)
-                .let { Pair(it, JsonLdUtils.expandJsonLdEntities(it)) }
-                .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
+    private fun extractAndParseBatchOfEntities(
+        payload: String,
+        context: String?,
+        contentType: MediaType?
+    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> {
+        val rawEntities = JsonUtils.deserializeListOfObjects(payload)
+        if (contentType == JSON_LD_MEDIA_TYPE && rawEntities.any { !it.containsKey(JSONLD_CONTEXT) })
+            throw BadRequestDataException(
+                "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
+            )
+
+        return rawEntities.let {
+            if (contentType == JSON_LD_MEDIA_TYPE)
+                Pair(it, expandJsonLdEntities(it))
+            else
+                Pair(it, expandJsonLdEntities(it, listOf(context!!)))
+        }
+            .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
+    }
 
     private fun publishReplaceEvents(
         updateBatchOperationResult: BatchOperationResult,

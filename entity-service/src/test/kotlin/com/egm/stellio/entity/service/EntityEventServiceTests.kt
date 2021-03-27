@@ -5,6 +5,7 @@ import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -26,8 +27,10 @@ class EntityEventServiceTests {
     private lateinit var resolver: BinderAwareChannelResolver
 
     private val entityUri = "urn:ngsi-ld:BreedingService:0214".toUri()
+    private val fishNameAttribute = "https://ontology.eglobalmark.com/aquac#fishName"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
-    private val fishSizeAttribute = "https://ontology.eglobalmark.com/aquac#fishSize"
+    private val fishName1DatasetUri = "urn:ngsi-ld:Dataset:fishName:1".toUri()
+    private val fishName2DatasetUri = "urn:ngsi-ld:Dataset:fishName:2".toUri()
 
     @Test
     fun `it should publish an ENTITY_CREATE event`() {
@@ -46,7 +49,16 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish an ATTRIBUTE_APPEND event if an attribute were appended`() {
         val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
-        val jsonLdAttributes = mapOf(fishNumberAttribute to 120)
+        val fishNumberAttributeFragment =
+            """
+            {
+                "fishNumber": {
+                    "type": "Property",
+                    "value": 120
+                }
+            }            
+            """.trimIndent()
+        val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         val appendResult = UpdateResult(
             listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
             emptyList()
@@ -68,7 +80,7 @@ class EntityEventServiceTests {
                         it.entityId == entityUri &&
                         it.attributeName == "fishNumber" &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent("{\"fishNumber\":120}") &&
+                        it.operationPayload.matchContent(fishNumberAttributeFragment) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
                 any<String>()
@@ -81,19 +93,27 @@ class EntityEventServiceTests {
     @Test
     fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`() {
         val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
-        val jsonLdAttributes = mapOf(fishNumberAttribute to 120, fishSizeAttribute to 50)
+        val fishNumberAttributeFragment =
+            """
+            "fishNumber": {
+                "type": "Property",
+                "value": 120
+            }
+            """.trimIndent()
+        val fishNameAttributeFragment =
+            """
+            "fishName": {
+                "type": "Property",
+                "datasetId": "$fishName1DatasetUri",
+                "value": 50
+            }
+            """.trimIndent()
+        val attributesFragment = "{ $fishNumberAttributeFragment, $fishNameAttributeFragment }"
+        val jsonLdAttributes = expandJsonLdFragment(attributesFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         val appendResult = UpdateResult(
             listOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.APPENDED
-                ),
-                UpdatedDetails(
-                    fishSizeAttribute,
-                    "urn:ngsi-ld:Dataset:fishSize:1".toUri(),
-                    UpdateOperationResult.REPLACED
-                )
+                UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED),
+                UpdatedDetails(fishNameAttribute, fishName1DatasetUri, UpdateOperationResult.REPLACED)
             ),
             emptyList()
         )
@@ -111,29 +131,147 @@ class EntityEventServiceTests {
                 match<EntityEvent> {
                     if (it is AttributeAppendEvent) {
                         listOf(it).any {
-                            it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                                it.entityId == entityUri &&
+                            it.entityId == entityUri &&
                                 it.attributeName == "fishNumber" &&
                                 it.datasetId == null &&
-                                it.operationPayload.matchContent("{\"fishNumber\":120}") &&
+                                it.operationPayload.matchContent("{$fishNumberAttributeFragment}") &&
                                 it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                         }
-                    } else {
+                    } else if (it is AttributeReplaceEvent) {
                         listOf(it).any {
-                            it as AttributeReplaceEvent
-                            it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                                it.entityId == entityUri &&
-                                it.attributeName == "fishSize" &&
-                                it.datasetId == "urn:ngsi-ld:Dataset:fishSize:1".toUri() &&
-                                it.operationPayload.matchContent("{\"fishSize\":50}") &&
+                            it.entityId == entityUri &&
+                                it.attributeName == "fishName" &&
+                                it.datasetId == fishName1DatasetUri &&
+                                it.operationPayload.matchContent("{$fishNameAttributeFragment}") &&
                                 it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                         }
+                    } else false
+                },
+                any<String>()
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`() {
+        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val fishNumberPayload =
+            """
+            "fishNumber":{
+                "type":"Property",
+                "value":600
+            }
+            """.trimIndent()
+        val fishNamePayload =
+            """
+            "fishName":{
+                "type":"Property",
+                "datasetId": "$fishName1DatasetUri",
+                "value":"Salmon",
+                "unitCode": "C1"
+            }
+            """.trimIndent()
+        val attributePayload = "{ $fishNumberPayload, $fishNamePayload }"
+        val jsonLdAttributes = expandJsonLdFragment(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(fishNameAttribute, fishName1DatasetUri, UpdateOperationResult.REPLACED),
+                UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.REPLACED)
+            ),
+            notUpdated = arrayListOf()
+        )
+
+        entityEventService.publishAppendEntityAttributesEvents(
+            entityUri,
+            jsonLdAttributes,
+            updateResult,
+            mockkClass(JsonLdEntity::class, relaxed = true),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<EntityEvent> {
+                    listOf(it).all {
+                        it as AttributeReplaceEvent
+                        it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                            it.entityId == entityUri &&
+                            (it.attributeName == "fishName" || it.attributeName == "fishNumber") &&
+                            (it.datasetId == fishName1DatasetUri || it.datasetId == null) &&
+                            (
+                                "{$fishNumberPayload}".matchContent(it.operationPayload) ||
+                                    "{$fishNamePayload}".matchContent(it.operationPayload)
+                                ) &&
+                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                     }
                 },
                 any<String>()
             )
         }
+        confirmVerified()
+    }
 
+    @Test
+    fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`() {
+        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val fishNamePayload1 =
+            """
+            {
+                "type":"Property",
+                "datasetId":"urn:ngsi-ld:Dataset:fishName:1",
+                "value":"Salmon",
+                "unitCode":"C1"
+            }
+            """.trimIndent()
+        val fishNamePayload2 =
+            """
+            {
+                "type":"Property",
+                "datasetId":"urn:ngsi-ld:Dataset:fishName:2",
+                "value":"Salmon2",
+                "unitCode":"C1"
+            }            
+            """.trimIndent()
+        val attributePayload = "{ \"fishName\": [$fishNamePayload1,$fishNamePayload2] }"
+        val jsonLdAttributes = expandJsonLdFragment(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(fishNameAttribute, fishName1DatasetUri, UpdateOperationResult.REPLACED),
+                UpdatedDetails(fishNameAttribute, fishName2DatasetUri, UpdateOperationResult.REPLACED)
+            ),
+            notUpdated = arrayListOf()
+        )
+
+        entityEventService.publishAppendEntityAttributesEvents(
+            entityUri,
+            jsonLdAttributes,
+            updateResult,
+            mockkClass(JsonLdEntity::class, relaxed = true),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<EntityEvent> {
+                    listOf(it).all {
+                        it as AttributeReplaceEvent
+                        it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                            it.entityId == entityUri &&
+                            it.attributeName == "fishName" &&
+                            (
+                                it.datasetId == fishName1DatasetUri || it.datasetId == fishName2DatasetUri
+                                ) &&
+                            (
+                                it.operationPayload.matchContent("{\"fishName\": $fishNamePayload1}") ||
+                                    it.operationPayload.matchContent("{\"fishName\": $fishNamePayload2}")
+                                ) &&
+                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                    }
+                },
+                any<String>()
+            )
+        }
         confirmVerified()
     }
 }

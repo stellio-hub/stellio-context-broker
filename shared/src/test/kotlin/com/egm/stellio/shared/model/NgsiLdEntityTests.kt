@@ -74,6 +74,67 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should not parse an entity with an invalid type name`() {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Invalid(Type)"
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<BadRequestDataException> {
+            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        }
+        assertEquals(
+            "The provided NGSI-LD entity has a type with invalid characters",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `it should parse an entity with allowed characters for attribute name`() {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Property",
+                "prefix:device_state": {
+                    "type": "Property",
+                    "value": 23
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        assertEquals(1, ngsiLdEntity.properties.size)
+        assertEquals("prefix:device_state", ngsiLdEntity.properties[0].compactName)
+    }
+
+    @Test
+    fun `it should not parse an entity with an invalid attribute name`() {
+        val rawEntity =
+            """
+            {
+                "id": "urn:ngsi-ld:Device:01234",
+                "type": "Device",
+                "device<State": {
+                    "type": "Property",
+                    "value": 23
+                }
+            }
+            """.trimIndent()
+
+        val exception = assertThrows<BadRequestDataException> {
+            expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+        }
+        assertEquals(
+            "Entity has an invalid attribute name: device<State",
+            exception.message
+        )
+    }
+
+    @Test
     fun `it should parse an entity with a minimal property`() {
         val rawEntity =
             """
@@ -587,7 +648,7 @@ class NgsiLdEntityTests {
                 "connectsTo": {
                     "type": "Relationship",
                     "object": "$targetRelationshipUri",
-                    "createdBy ": {
+                    "createdBy": {
                         "type": "Relationship",
                         "object": "$targetRelationshipUri2"
                     }

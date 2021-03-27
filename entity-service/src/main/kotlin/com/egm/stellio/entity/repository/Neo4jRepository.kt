@@ -339,10 +339,11 @@ class Neo4jRepository(
          * 5. the relationships
          * 6. the properties of relationships
          * 7. the relationships of relationships
+         * 8. the incoming relationships (incl. authorizations ones)
          */
         val query =
             """
-            MATCH (n:Entity { id: ${'$'}entityId }) 
+            MATCH (n:Entity { id: ${'$'}entityId })
             OPTIONAL MATCH (n)-[:HAS_VALUE]->(prop:Property)
             WITH n, prop
             OPTIONAL MATCH (prop)-[:HAS_OBJECT]->(relOfProp:Relationship)
@@ -354,7 +355,9 @@ class Neo4jRepository(
             OPTIONAL MATCH (rel)-[:HAS_VALUE]->(propOfRel:Property)
             WITH n, prop, relOfProp, propOfProp, rel, propOfRel
             OPTIONAL MATCH (rel)-[:HAS_OBJECT]->(relOfRel:Relationship)
-            DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
+            WITH n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel            
+            OPTIONAL MATCH (inRel:Relationship)-[]->(n)
+            DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel, inRel
             """.trimIndent()
 
         val parameters = mapOf(
@@ -496,7 +499,8 @@ class Neo4jRepository(
             "properties" to (result.first()["propertyNames"] as Array<Any>).toSet(),
             "relationships" to (result.first()["relationshipNames"] as Array<Any>)
                 .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
-            "geoProperties" to if (entityWithLocationCount > 0) setOf("location") else emptySet(),
+            "geoProperties" to
+                if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet(),
             "entityCount" to entityCount
         )
     }

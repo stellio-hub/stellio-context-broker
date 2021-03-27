@@ -884,6 +884,20 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should delete incoming relationships when deleting an entity`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"))
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"))
+        createRelationship(EntitySubjectNode(device.id), EGM_OBSERVED_BY, sensor.id)
+
+        neo4jRepository.deleteEntity(sensor.id)
+
+        val entity = entityRepository.findById(device.id).get()
+        assertEquals(entity.relationships.size, 0)
+
+        neo4jRepository.deleteEntity(device.id)
+    }
+
+    @Test
     fun `it should return the default property instance if no datasetId is provided`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
@@ -1235,7 +1249,7 @@ class Neo4jRepositoryTests {
         assertEquals(propertiesInformation.size, 2)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
-        assertEquals(attributesInformation["geoProperties"], setOf("location"))
+        assertEquals(attributesInformation["geoProperties"], setOf("https://uri.etsi.org/ngsi-ld/location"))
         assertEquals(attributesInformation["entityCount"], 3)
 
         neo4jRepository.deleteEntity(firstEntity.id)

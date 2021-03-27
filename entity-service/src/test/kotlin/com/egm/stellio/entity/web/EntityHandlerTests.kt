@@ -27,7 +27,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -1328,7 +1327,7 @@ class EntityHandlerTests {
         )
 
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1341,7 +1340,7 @@ class EntityHandlerTests {
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
         verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entityEventService.publishEntityEvent(any(), any()) }
+        verify { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) }
 
         confirmVerified(entityService)
     }
@@ -1350,14 +1349,7 @@ class EntityHandlerTests {
     fun `entity attributes update should notify for an updated attribute`() {
         val jsonPayload = loadSampleData("aquac/fragments/DeadFishes_updateEntityAttribute.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-
-        every { entityService.exists(any()) } returns true
-        every {
-            entityService.updateEntityAttributes(
-                any(),
-                any()
-            )
-        } returns UpdateResult(
+        val updateResult = UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(
                     fishNumberAttribute,
@@ -1367,6 +1359,14 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf()
         )
+
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.updateEntityAttributes(
+                any(),
+                any()
+            )
+        } returns updateResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
             mapOf(
@@ -1375,7 +1375,7 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1385,190 +1385,17 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify(timeout = 1000, exactly = 1) {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeReplaceEvent
-                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == null &&
-                        it.operationPayload.matchContent(jsonPayload) &&
-                        it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                "DeadFishes"
-            )
-        }
-
-        confirmVerified(entityEventService)
-    }
-
-    @Test
-    fun `entity attributes update should send two notifications if two attributes are updated`() {
-        val fishNumberPayload =
-            """
-            "fishNumber":{
-                "type":"Property",
-                "value":600
-            }
-            """.trimIndent()
-        val fishNamePayload =
-            """
-            "fishName":{
-                "type":"Property",
-                "datasetId": "urn:ngsi-ld:Dataset:fishName:1",
-                "value":"Salmon",
-                "unitCode": "C1"
-            }
-            """.trimIndent()
-        val jsonPayload =
-            """
-            {
-                $fishNumberPayload,
-                $fishNamePayload
-            }
-            """.trimIndent()
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-
-        every { entityService.exists(any()) } returns true
-        every {
-            entityService.updateEntityAttributes(
+        verify { entityService.getFullEntityById(eq(entityId), any()) }
+        verify {
+            entityEventService.publishUpdateEntityAttributesEvents(
+                eq(entityId),
                 any(),
-                any()
-            )
-        } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishName",
-                    null,
-                    UpdateOperationResult.REPLACED
-                ),
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    null,
-                    UpdateOperationResult.REPLACED
-                )
-            ),
-            notUpdated = arrayListOf()
-        )
-        val events = mutableListOf<EntityEvent>()
-
-        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
-            mapOf(
-                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
-                "@type" to listOf(deadFishesType)
-            ),
-            listOf(NGSILD_CORE_CONTEXT)
-        )
-        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(jsonPayload)
-            .exchange()
-            .expectStatus().isNoContent
-
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), "DeadFishes") }
-        events.forEach {
-            it as AttributeReplaceEvent
-            assertTrue(
-                it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                    it.entityId == entityId &&
-                    (it.attributeName == "fishName" || it.attributeName == "fishNumber") &&
-                    (it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:fishName:1".toUri()) &&
-                    (
-                        "{$fishNumberPayload}".matchContent(it.operationPayload) ||
-                            "{$fishNamePayload}".matchContent(it.operationPayload)
-                        ) &&
-                    it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
-                    it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-            )
-        }
-    }
-
-    @Test
-    fun `entity attributes update should send two notifications for attributes with two instances`() {
-        val attributePayload =
-            """
-            {
-                "fishName":[
-                  {
-                     "type":"Property",
-                     "datasetId":"urn:ngsi-ld:Dataset:fishName:1",
-                     "value":"Salmon",
-                     "unitCode":"C1"
-                  },
-                  {
-                     "type":"Property",
-                     "datasetId":"urn:ngsi-ld:Dataset:fishName:2",
-                     "value":"Salmon2",
-                     "unitCode":"C1"
-                  }
-                ]
-            }
-            """.trimIndent()
-        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-
-        every { entityService.exists(any()) } returns true
-        every {
-            entityService.updateEntityAttributes(
+                updateResult,
                 any(),
-                any()
-            )
-        } returns UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishName",
-                    "urn:ngsi-ld:Dataset:fishName:1".toUri(),
-                    UpdateOperationResult.REPLACED
-                ),
-                UpdatedDetails(
-                    "https://ontology.eglobalmark.com/aquac#fishName",
-                    "urn:ngsi-ld:Dataset:fishName:2".toUri(),
-                    UpdateOperationResult.REPLACED
-                )
-            ),
-            notUpdated = arrayListOf()
-        )
-        val events = mutableListOf<EntityEvent>()
-
-        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
-            mapOf(
-                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
-                "@type" to listOf(deadFishesType)
-            ),
-            listOf(NGSILD_CORE_CONTEXT)
-        )
-        every { entityEventService.publishEntityEvent(capture(events), any()) } returns true as java.lang.Boolean
-
-        webClient.patch()
-            .uri("/ngsi-ld/v1/entities/$entityId/attrs")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(attributePayload)
-            .exchange()
-            .expectStatus().isNoContent
-
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), "DeadFishes") }
-        events.forEach {
-            it as AttributeReplaceEvent
-            assertTrue(
-                it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                    it.entityId == entityId &&
-                    it.attributeName == "fishName" &&
-                    (
-                        it.datasetId == "urn:ngsi-ld:Dataset:fishName:1".toUri() ||
-                            it.datasetId == "urn:ngsi-ld:Dataset:fishName:2".toUri()
-                        ) &&
-                    it.updatedEntity.contains("urn:ngsi-ld:DeadFishes:019BN") &&
-                    it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
+        confirmVerified()
     }
 
     @Test
@@ -1599,7 +1426,7 @@ class EntityHandlerTests {
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

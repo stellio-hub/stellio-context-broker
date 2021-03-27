@@ -6,11 +6,13 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -18,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -33,7 +36,8 @@ import java.util.*
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val temporalEntityService: TemporalEntityService
 ) {
 
     /**
@@ -48,23 +52,75 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val body = requestBody.awaitFirst()
+        val parsedBody = JsonUtils.deserializeObject(body)
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
 
         jsonLdAttributes
             .forEach {
+                val compactedAttributeName = compactTerm(it.key, contexts)
                 val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId.toUri(),
-                    compactTerm(it.key, contexts)
+                    it.key
                 ).awaitFirst()
 
                 attributeInstanceService.addAttributeInstances(
                     temporalEntityAttributeUuid,
-                    compactTerm(it.key, contexts),
-                    expandValueAsMap(it.value)
+                    compactedAttributeName,
+                    expandValueAsMap(it.value),
+                    parsedBody
                 ).awaitFirst()
             }
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }
+
+    /**
+     * Partial implementation of 6.18.3.2 - Query Temporal Evolution of Entities
+     */
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getForEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val withTemporalValues =
+            hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val ids = parseRequestParameter(params.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
+        val types = parseAndExpandRequestParameter(params.getFirst(QUERY_PARAM_TYPE), contextLink)
+        val temporalQuery = try {
+            buildTemporalQuery(params, contextLink)
+        } catch (e: BadRequestDataException) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse(e.message))
+        }
+        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
+            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+
+        val temporalEntityAttributesResult = temporalEntityAttributeService.getForEntities(
+            ids,
+            types,
+            temporalQuery.expandedAttrs
+        ).awaitFirstOrDefault(emptyMap())
+
+        val queryResult = temporalEntityAttributesResult.toList().map {
+            Pair(
+                it.first,
+                it.second.map {
+                    it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
+                }.toMap()
+            )
+        }
+
+        val temporalEntities = temporalEntityService.buildTemporalEntities(
+            queryResult,
+            temporalQuery,
+            listOf(contextLink),
+            withTemporalValues
+        )
+
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
     }
 
     /**
@@ -81,10 +137,6 @@ class TemporalEntityHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        // TODO : a quick and dirty fix to propagate the Bearer token when calling context registry
-        //        there should be a way to do it more transparently
-        val bearerToken = httpHeaders.getOrEmpty("Authorization").firstOrNull() ?: ""
-
         val temporalQuery = try {
             buildTemporalQuery(params, contextLink)
         } catch (e: BadRequestDataException) {
@@ -92,40 +144,25 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
-        // TODO : REFACTOR getForEntity retrieves entity payload for each temporalEntityAttribute,it should be done once
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
             entityId.toUri(),
             temporalQuery.expandedAttrs
         ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
 
         val attributeAndResultsMap = temporalEntityAttributes.map {
-            it to attributeInstanceService.search(temporalQuery, it).awaitFirst()
+            it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
         }.toMap()
 
-        val jsonLdEntity =
-            loadEntityPayload(attributeAndResultsMap.keys.first(), bearerToken, contextLink).awaitFirst()
-        val jsonLdEntityWithTemporalValues = temporalEntityAttributeService.injectTemporalValues(
-            jsonLdEntity,
-            attributeAndResultsMap.values.toList(),
+        val temporalEntity = temporalEntityService.buildTemporalEntity(
+            entityId.toUri(),
+            attributeAndResultsMap,
+            temporalQuery,
+            listOf(contextLink),
             withTemporalValues
         )
 
-        // filter on temporal attributes by default
-        val attributesToFilter = if (temporalQuery.expandedAttrs.isNotEmpty())
-            temporalQuery.expandedAttrs
-        else
-            attributeAndResultsMap.keys.map { it.attributeName }.toSet()
-
-        val filteredJsonLdEntity = JsonLdEntity(
-            JsonLdUtils.filterJsonLdEntityOnAttributes(
-                jsonLdEntityWithTemporalValues,
-                attributesToFilter
-            ),
-            jsonLdEntityWithTemporalValues.contexts
-        )
-
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(compact(filteredJsonLdEntity, contextLink, mediaType)))
+            .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
 
     /**
@@ -193,7 +230,7 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         if (it >= 1) it else null
     }
 
-    val expandedAttrs = parseAndExpandAttrsParameter(attrsParam, contextLink)
+    val expandedAttrs = parseAndExpandRequestParameter(attrsParam, contextLink)
 
     return TemporalQuery(
         expandedAttrs = expandedAttrs,

@@ -4,10 +4,7 @@ import arrow.core.Either
 import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -72,6 +69,7 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
+    const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -127,6 +125,18 @@ object JsonLdUtils {
         val parsedPayload = deserializeObject(element).plus(Pair(JSONLD_CONTEXT, contexts))
         return serializeObject(parsedPayload)
     }
+
+    fun addContextsToEntity(
+        compactedJsonLdEntity: CompactedJsonLdEntity,
+        contexts: List<String>
+    ): CompactedJsonLdEntity =
+        compactedJsonLdEntity.plus(Pair(JSONLD_CONTEXT, contexts))
+
+    fun addContextsToEntity(element: CompactedJsonLdEntity, contexts: List<String>, mediaType: MediaType) =
+        if (mediaType == MediaType.APPLICATION_JSON)
+            element
+        else
+            element.plus(Pair(JSONLD_CONTEXT, contexts))
 
     fun extractContextFromInput(input: String): List<String> {
         val parsedInput = deserializeObject(input)
@@ -210,6 +220,26 @@ object JsonLdUtils {
 
     fun getPropertyValueFromMapAsString(values: Map<String, List<Any>>, propertyKey: String): String? =
         String::class.safeCast(getPropertyValueFromMap(values, propertyKey))
+
+    fun getAttributeFromExpandedAttributes(
+        expandedAttributes: Map<String, Any>,
+        expandedAttributeName: String,
+        datasetId: URI?
+    ): Any? {
+        if (!expandedAttributes.containsKey(expandedAttributeName))
+            return null
+
+        return (expandedAttributes[expandedAttributeName]!! as List<Map<String, Any>>)
+            .find {
+                if (datasetId == null)
+                    !it.containsKey(NGSILD_DATASET_ID_PROPERTY)
+                else
+                    getPropertyValueFromMap(
+                        it as Map<String, List<Any>>,
+                        NGSILD_DATASET_ID_PROPERTY
+                    ) == datasetId.toString()
+            }
+    }
 
     fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
         val jsonLdOptions = JsonLdOptions()
@@ -447,4 +477,15 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
         throw BadRequestDataException("Unable to parse input payload")
 
     return expandedFragment[0] as Map<String, Any>
+}
+
+fun extractAttributeInstanceFromCompactedEntity(
+    compactedJsonLdEntity: CompactedJsonLdEntity,
+    attributeName: String,
+    datasetId: URI?
+): CompactedJsonLdAttribute {
+    return if (compactedJsonLdEntity[attributeName] is List<*>) {
+        val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
+        attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
+    } else compactedJsonLdEntity[attributeName]!! as CompactedJsonLdAttribute
 }

@@ -1,7 +1,9 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.*
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -30,32 +32,74 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should find user has read right on entity`() {
-        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanReadEntity)
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanReadEntity,
+            hasGrantedAccess = true,
+            hasSpecificPolicyAccess = false
+        )
     }
 
     @Test
-    fun `it should find user has not read right on entity`() {
-        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanReadEntity)
+    fun `it should find user has not read right on entity if no policies match`() {
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanReadEntity,
+            hasGrantedAccess = false,
+            hasSpecificPolicyAccess = false
+        )
+    }
+
+    @Test
+    fun `it should find user has read right on entity with auth read policy`() {
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanReadEntity,
+            hasGrantedAccess = false,
+            hasSpecificPolicyAccess = true
+        )
     }
 
     @Test
     fun `it should find user has write right on entity`() {
-        assertUserHasRightOnEntity(neo4jAuthorizationService::userCanUpdateEntity)
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanUpdateEntity,
+            hasGrantedAccess = true,
+            hasSpecificPolicyAccess = false
+        )
     }
 
     @Test
-    fun `it should find user has not write right on entity`() {
-        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userCanUpdateEntity)
+    fun `it should find user has not write right on entity if no policies match`() {
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanUpdateEntity,
+            hasGrantedAccess = false,
+            hasSpecificPolicyAccess = false
+        )
+    }
+
+    @Test
+    fun `it should find user has write right on entity with auth write policy`() {
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userCanUpdateEntity,
+            hasGrantedAccess = false,
+            hasSpecificPolicyAccess = true
+        )
     }
 
     @Test
     fun `it should find user has admin right on entity`() {
-        assertUserHasRightOnEntity(neo4jAuthorizationService::userIsAdminOfEntity)
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userIsAdminOfEntity,
+            hasGrantedAccess = true,
+            hasSpecificPolicyAccess = false
+        )
     }
 
     @Test
     fun `it should find user has not admin right on entity`() {
-        assertUserHasNotRightOnEntity(neo4jAuthorizationService::userIsAdminOfEntity)
+        assertUserHasRightOnEntity(
+            neo4jAuthorizationService::userIsAdminOfEntity,
+            hasGrantedAccess = false,
+            hasSpecificPolicyAccess = false
+        )
     }
 
     @Test
@@ -73,6 +117,12 @@ class Neo4jAuthorizationServiceTest {
     fun `it should filter entities which user has read right`() {
         val entitiesId = (1..5).map { "urn:ngsi-ld:Entity:$it" }.toListOfUri()
 
+        every {
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                entitiesId,
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+            )
+        } returns emptyList()
         every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
@@ -89,12 +139,69 @@ class Neo4jAuthorizationServiceTest {
     }
 
     @Test
+    fun `it should filter entities which have an access policy set to auth read`() {
+        val entitiesId = (1..5).map { "urn:ngsi-ld:Entity:$it" }.toListOfUri()
+
+        every {
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                entitiesId,
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+            )
+        } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
+        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
+                mockUserUri,
+                listOf("urn:ngsi-ld:Entity:2", "urn:ngsi-ld:Entity:3", "urn:ngsi-ld:Entity:5").toListOfUri(),
+                READ_RIGHT
+            )
+        } returns emptyList()
+
+        assert(
+            neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesId, mockUserSub)
+                == listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
+        )
+    }
+
+    @Test
+    fun `it should filter entities mixed with write right and auth write access policy`() {
+        val entitiesId = (1..5).map { "urn:ngsi-ld:Entity:$it" }.toListOfUri()
+
+        every {
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                entitiesId,
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name)
+            )
+        } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
+        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
+                mockUserUri,
+                listOf("urn:ngsi-ld:Entity:2", "urn:ngsi-ld:Entity:3", "urn:ngsi-ld:Entity:5").toListOfUri(),
+                WRITE_RIGHT
+            )
+        } returns listOf("urn:ngsi-ld:Entity:3").toListOfUri()
+
+        assert(
+            neo4jAuthorizationService.filterEntitiesUserCanUpdate(entitiesId, mockUserSub)
+                == listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4", "urn:ngsi-ld:Entity:3").toListOfUri()
+        )
+    }
+
+    @Test
     fun `it should keep all entities if user has admin rights`() {
+        val entitiesIds = listOf(entityUri)
+
+        every {
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                entitiesIds,
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+            )
+        } returns emptyList()
         every {
             neo4jAuthorizationRepository.getUserRoles(mockUserUri)
         } returns setOf(ADMIN_ROLE_LABEL)
 
-        val entitiesIds = listOf(entityUri)
         assert(
             neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesIds, mockUserSub) == entitiesIds
         )
@@ -122,17 +229,10 @@ class Neo4jAuthorizationServiceTest {
         confirmVerified()
     }
 
-    private fun assertUserHasRightOnEntity(userHasRightOnEntity: (URI, String) -> Boolean) {
-        assertUserHasRightOnEntity(userHasRightOnEntity, true)
-    }
-
-    private fun assertUserHasNotRightOnEntity(userHasRightOnEntity: (URI, String) -> Boolean) {
-        assertUserHasRightOnEntity(userHasRightOnEntity, false)
-    }
-
     private fun assertUserHasRightOnEntity(
         userHasRightOnEntity: (URI, String) -> Boolean,
-        can: Boolean
+        hasGrantedAccess: Boolean,
+        hasSpecificPolicyAccess: Boolean
     ) {
         every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
         every {
@@ -141,8 +241,14 @@ class Neo4jAuthorizationServiceTest {
                 listOf(entityUri),
                 any()
             )
-        } returns if (can) listOf(entityUri) else emptyList()
+        } returns if (hasGrantedAccess) listOf(entityUri) else emptyList()
+        every {
+            neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
+                any(),
+                any()
+            )
+        } returns if (hasSpecificPolicyAccess) listOf(entityUri) else emptyList()
 
-        assert(userHasRightOnEntity(entityUri, mockUserSub) == can)
+        assert(userHasRightOnEntity(entityUri, mockUserSub) == (hasGrantedAccess || hasSpecificPolicyAccess))
     }
 }

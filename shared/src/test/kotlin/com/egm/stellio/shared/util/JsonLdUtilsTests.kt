@@ -5,13 +5,18 @@ import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.compact
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
+import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -287,5 +292,82 @@ class JsonLdUtilsTests {
         val compactedEntity = compact(jsonLdEntity, DEFAULT_CONTEXTS)
 
         assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(expectedEntity))
+    }
+
+    @Test
+    fun `it should not find an unknown attribute instance in a list of attributes`() {
+        val entityFragment =
+            """
+            {
+                "brandName": {
+                    "value": "a new value"
+                }            
+            }
+            """.trimIndent()
+
+        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, "unknownAttribute", null))
+    }
+
+    @Test
+    fun `it should find an attribute instance from a list of attributes without multi-attributes`() {
+        val entityFragment =
+            """
+            {
+                "brandName": {
+                    "value": "a new value",
+                    "observedAt": "2021-03-16T00:00:00.000Z"
+                },
+                "name": {
+                    "value": 12
+                }
+            }
+            """.trimIndent()
+
+        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        val expandedBrandName = expandJsonLdKey("brandName", DEFAULT_CONTEXTS)!!
+
+        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
+        assertNull(
+            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId".toUri())
+        )
+    }
+
+    @Test
+    fun `it should find an attribute instance from a list of attributes with multi-attributes`() {
+        val entityFragment =
+            """
+            {
+                "brandName": [{
+                    "value": "a new value",
+                    "observedAt": "2021-03-16T00:00:00.000Z"
+                },
+                {
+                    "value": "a new value",
+                    "observedAt": "2021-03-16T00:00:00.000Z",
+                    "datasetId": "urn:datasetId:1"
+                }],
+                "name": {
+                    "value": 12,
+                    "datasetId": "urn:datasetId:1"
+                }
+            }
+            """.trimIndent()
+
+        val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
+        val expandedBrandName = expandJsonLdKey("brandName", DEFAULT_CONTEXTS)!!
+        val expandedName = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
+
+        assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
+        assertNotNull(
+            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:1".toUri())
+        )
+        assertNull(
+            getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, "urn:datasetId:2".toUri())
+        )
+        assertNotNull(
+            getAttributeFromExpandedAttributes(expandedAttributes, expandedName, "urn:datasetId:1".toUri())
+        )
+        assertNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedName, null))
     }
 }

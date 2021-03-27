@@ -4,6 +4,8 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -39,6 +41,54 @@ class EntityEventListenerServiceTest {
         {
             \"id\": \"$fishContainmentId\",
             \"type\": \"FishContainment\",
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
+    private val updatedEntityTextualValue =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\",
+                \"datasetId\": \"urn:ngsi-ld:Dataset:01234\",
+                \"observedBy\": {
+                     \"type\": \"Relationship\",
+                     \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
+                }
+            },
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
+    private val updatedEntityTextualValueDefaultInstance =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\"
+            },
+            \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
+        }
+        """.trimIndent()
+
+    private val updatedEntityNumericValue =
+        """
+        {
+            \"id\": \"$fishContainmentId\",
+            \"type\": \"FishContainment\",
+            \"totalDissolvedSolids\": {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+                
+            },
             \"@context\": \"$EGM_BASE_CONTEXT_URL/aquac/jsonld-contexts/aquac-compound.jsonld\"
         }
         """.trimIndent()
@@ -82,7 +132,15 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":33869,
+                    "observedAt":"$observedAt"
+               }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload, updatedEntityNumericValue)
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -105,9 +163,13 @@ class EntityEventListenerServiceTest {
         verify {
             attributeInstanceService.create(
                 match {
+                    val payload = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.payload).filterKeys { it != "instanceId" }
+                    )
                     it.observedAt == ZonedDateTime.parse("2020-03-12T08:33:38Z") &&
                         it.value == null &&
-                        it.measuredValue == 33869.0
+                        it.measuredValue == 33869.0 &&
+                        payload.matchContent(expectedAttributeInstance)
                 }
             )
         }
@@ -222,7 +284,19 @@ class EntityEventListenerServiceTest {
                 }
             }
             """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt"
+               }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(
+            EventsType.ATTRIBUTE_REPLACE,
+            eventPayload,
+            updatedEntityTextualValueDefaultInstance
+        )
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -231,7 +305,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, null, expectedAttributeInstance)
     }
 
     @Test
@@ -244,9 +318,26 @@ class EntityEventListenerServiceTest {
                     \"type\":\"Property\",
                     \"value\":\"some textual value\",
                     \"observedAt\":\"$observedAt\",
-                    \"datasetId\": \"$datasetId\"
+                    \"datasetId\": \"$datasetId\",
+                    \"observedBy\": {
+                      \"type\": \"Relationship\",
+                      \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
+                    }
                 }
             }
+            """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt",
+                    "datasetId": "$datasetId",
+                    "observedBy": {
+                      "type": "Relationship",
+                      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                    }
+               }
             """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
@@ -257,7 +348,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
     }
 
     @Test
@@ -349,6 +440,19 @@ class EntityEventListenerServiceTest {
                 \"datasetId\": \"$datasetId\"
             }
             """.trimIndent()
+        val expectedAttributeInstance =
+            """
+               {
+                    "type":"Property",
+                    "value":"some textual value",
+                    "observedAt":"$observedAt",
+                    "datasetId": "$datasetId",
+                    "observedBy": {
+                      "type": "Relationship",
+                      "object": "urn:ngsi-ld:Sensor:IncomingSensor"
+                    }
+               }
+            """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -358,7 +462,7 @@ class EntityEventListenerServiceTest {
 
         entityEventListenerService.processMessage(content)
 
-        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId)
+        verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
     }
 
     @Test
@@ -407,31 +511,43 @@ class EntityEventListenerServiceTest {
         confirmVerified(attributeInstanceService, temporalEntityAttributeService)
     }
 
-    private fun verifyAndConfirmMockForValue(temporalEntityAttributeUuid: UUID, datasetId: String? = null) {
+    private fun verifyAndConfirmMockForValue(
+        temporalEntityAttributeUuid: UUID,
+        datasetId: String? = null,
+        expectedAttributeInstance: String
+    ) {
         verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), datasetId)
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any(), datasetId?.toUri())
         }
 
         verify {
             attributeInstanceService.create(
                 match {
+                    val payload = JsonUtils.serializeObject(
+                        JsonUtils.deserializeObject(it.payload).filterKeys { it != "instanceId" }
+                    )
                     it.value == "some textual value" &&
                         it.measuredValue == null &&
                         it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
+                        it.temporalEntityAttribute == temporalEntityAttributeUuid &&
+                        payload.matchContent(expectedAttributeInstance)
                 }
             )
         }
     }
 
-    private fun prepareAttributeEventPayload(operationType: EventsType, payload: String): String =
+    private fun prepareAttributeEventPayload(
+        operationType: EventsType,
+        payload: String,
+        updatedEntity: String = updatedEntityTextualValue
+    ): String =
         """
             {
                 "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",
-                "updatedEntity": "$entity",
+                "updatedEntity": "$updatedEntity",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
         """.trimIndent().replace("\n", "")

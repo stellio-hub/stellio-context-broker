@@ -1,0 +1,26 @@
+[
+   {
+      "id":"urn:ngsi-ld:BeeHive:TESTC",
+      "type":"BeeHive",
+      "incoming":[
+         {
+            "type":"Property",
+            "value":20,
+            "instanceId":"urn:ngsi-ld:Instance:45678",
+            "observedAt":"2020-03-25T08:33:17.965206Z"
+         }
+      ]
+   },
+   {
+      "id":"urn:ngsi-ld:BeeHive:TESTD",
+      "type":"BeeHive",
+      "outgoing":[
+         {
+            "type":"Property",
+            "value":25,
+            "instanceId":"urn:ngsi-ld:Instance:45679",
+            "observedAt":"2020-03-25T08:33:17.965206Z"
+         }
+      ]
+   }
+]

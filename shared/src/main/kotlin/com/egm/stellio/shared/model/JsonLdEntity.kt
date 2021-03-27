@@ -4,6 +4,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 
 typealias CompactedJsonLdEntity = Map<String, Any>
+typealias CompactedJsonLdAttribute = Map<String, Any>
 
 data class JsonLdEntity(
     val properties: Map<String, Any>,
@@ -24,3 +25,6 @@ data class JsonLdEntity(
         types[0]
     }
 }
+
+fun CompactedJsonLdEntity.getType(): String =
+    this["type"] as String

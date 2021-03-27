@@ -1,20 +1,17 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.model.TemporalValue
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -22,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
-import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.security.test.context.support.WithMockUser
@@ -61,7 +57,11 @@ class TemporalEntityHandlerTests {
     @MockkBean
     private lateinit var entityService: EntityService
 
+    @MockkBean(relaxed = true)
+    private lateinit var temporalEntityService: TemporalEntityService
+
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    private val secondEntityUri = "urn:ngsi-ld:BeeHive:TESTB".toUri()
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -77,26 +77,27 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
-        val jsonLdObservation = ClassPathResource("/ngsild/observation.jsonld")
+        val jsonLdObservation = loadSampleData("observation.jsonld")
+        val parsedJsonLdObservation = JsonUtils.deserializeObject(jsonLdObservation)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
-        every { attributeInstanceService.addAttributeInstances(any(), any(), any()) } returns Mono.just(1)
+        every { attributeInstanceService.addAttributeInstances(any(), any(), any(), any()) } returns Mono.just(1)
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(jsonLdObservation.inputStream.readAllBytes()))
+            .body(BodyInserters.fromValue(jsonLdObservation))
             .exchange()
             .expectStatus().isNoContent
 
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("incoming")
+                eq("https://ontology.eglobalmark.com/apic#incoming")
             )
         }
         verify {
@@ -105,7 +106,8 @@ class TemporalEntityHandlerTests {
                 eq("incoming"),
                 match {
                     it.size == 4
-                }
+                },
+                parsedJsonLdObservation
             )
         }
         confirmVerified(temporalEntityAttributeService)
@@ -177,13 +179,8 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(parseSampleDataToJsonLd())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
-            JsonLdEntity::class,
-            relaxed = true
-        )
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
             .exchange()
@@ -329,13 +326,8 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(parseSampleDataToJsonLd())
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns mockkClass(
-            JsonLdEntity::class,
-            relaxed = true
-        )
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -352,27 +344,14 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
             )
         }
+
+        verify { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), false) }
+
         confirmVerified(attributeInstanceService)
-
-        verify { entityService.getEntityById(eq(entityUri), any()) }
-        confirmVerified(entityService)
-
-        verify { temporalEntityAttributeService.injectTemporalValues(any(), any(), false) }
-
-        verify(timeout = 1000) {
-            temporalEntityAttributeService.updateEntityPayload(
-                match {
-                    it == entityTemporalProperty.entityId
-                },
-                match {
-                    // TODO we need a way to compare payloads with struggling with indents and carriage returns and ....
-                    it.startsWith("{\"id\":\"$entityUri\",\"type\":\"BeeHive\"")
-                }
-            )
-        }
     }
 
     @Test
@@ -389,14 +368,12 @@ class TemporalEntityHandlerTests {
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
-        val rawEntity = parseSampleDataToJsonLd()
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty1,
             entityTemporalProperty2
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -413,7 +390,8 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
             )
         }
         confirmVerified(attributeInstanceService)
@@ -436,7 +414,29 @@ class TemporalEntityHandlerTests {
             .jsonPath("$.type").exists()
             .jsonPath("$.incoming.length()").isEqualTo(2)
             .jsonPath("$.outgoing.length()").isEqualTo(2)
-            .jsonPath("$.connectsTo").doesNotExist()
+            .jsonPath("$.@context").exists()
+    }
+
+    @Test
+    fun `it should return a json entity with two temporal properties evolution`() {
+        mockWithIncomingAndOutgoingTemporalProperties(false)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .header("Link", apicHeaderLink)
+            .header("Accept", MediaType.APPLICATION_JSON.toString())
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists("Link")
+            .expectBody().jsonPath("$").isMap
+            .jsonPath("$.id").exists()
+            .jsonPath("$.type").exists()
+            .jsonPath("$.incoming.length()").isEqualTo(2)
+            .jsonPath("$.outgoing.length()").isEqualTo(2)
+            .jsonPath("$.@context").doesNotExist()
     }
 
     @Test
@@ -455,8 +455,8 @@ class TemporalEntityHandlerTests {
             .jsonPath("$.id").exists()
             .jsonPath("$.type").exists()
             .jsonPath("$..observedAt").doesNotExist()
-            .jsonPath("$.incoming.values.length()").isEqualTo(2)
-            .jsonPath("$.outgoing.values.length()").isEqualTo(2)
+            .jsonPath("$.incoming[0].values.length()").isEqualTo(2)
+            .jsonPath("$.outgoing[0].values.length()").isEqualTo(2)
     }
 
     private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
@@ -471,19 +471,12 @@ class TemporalEntityHandlerTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
         }
-        val rawEntity = parseSampleDataToJsonLd()
         val entityFileName = if (withTemporalValues)
             "beehive_with_two_temporal_attributes_evolution_temporal_values.jsonld"
         else
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
-        val entityWith2temporalEvolutions = if (withTemporalValues) {
-            val entity = parseSampleDataToJsonLd(entityFileName)
-            injectTemporalValuesForIncomingAndOutgoing(entity)
-        } else {
-            parseSampleDataToJsonLd(entityFileName)
-        }
-
+        val entityWith2temporalEvolutions = deserializeObject(loadSampleData(entityFileName))
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperties[0],
             entityTemporalProperties[1]
@@ -494,10 +487,9 @@ class TemporalEntityHandlerTests {
             outgoingAttrExpandedName
         )
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
-        val attInstanceResults = attributes.flatMap { attributeName ->
+        val attInstanceResults = attributes.flatMap {
             values.map {
-                AttributeInstanceResult(
-                    attributeName = attributeName,
+                SimplifiedAttributeInstanceResult(
                     value = it.first,
                     observedAt = ZonedDateTime.parse(it.second)
                 )
@@ -506,28 +498,13 @@ class TemporalEntityHandlerTests {
 
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
             every {
-                attributeInstanceService.search(any(), it.second)
+                attributeInstanceService.search(any(), it.second, withTemporalValues)
             } returns Mono.just(listOf(attInstanceResults[it.first], attInstanceResults[it.first + 1]))
         }
 
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
         every {
-            temporalEntityAttributeService.injectTemporalValues(any(), any(), any())
+            temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any())
         } returns entityWith2temporalEvolutions
-    }
-
-    private fun injectTemporalValuesForIncomingAndOutgoing(entity: JsonLdEntity): JsonLdEntity {
-        listOf(incomingAttrExpandedName, outgoingAttrExpandedName).forEach {
-            val propList = entity.properties[it] as MutableList<MutableMap<String, *>>
-            val propHasValuesList =
-                propList[0][JsonLdUtils.NGSILD_PROPERTY_VALUES] as MutableList<MutableMap<String, *>>
-            val incomingHasValuesMap = propHasValuesList[0] as MutableMap<String, MutableList<*>>
-            incomingHasValuesMap["@list"] = mutableListOf(
-                TemporalValue(1543.toDouble(), "2020-01-24T13:01:22.066Z"),
-                TemporalValue(1600.toDouble(), "2020-01-24T14:01:22.066Z")
-            )
-        }
-        return entity
     }
 
     @Test
@@ -538,14 +515,12 @@ class TemporalEntityHandlerTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
-        val rawEntity = parseSampleDataToJsonLd()
 
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -562,7 +537,8 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
             )
         }
         confirmVerified(attributeInstanceService)
@@ -576,39 +552,247 @@ class TemporalEntityHandlerTests {
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
-        val rawEntity = parseSampleDataToJsonLd()
 
         every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
             entityTemporalProperty
         )
-        every { attributeInstanceService.search(any(), any()) } returns Mono.just(emptyList())
-        every { entityService.getEntityById(any(), any()) } returns Mono.just(rawEntity)
-        every { temporalEntityAttributeService.injectTemporalValues(any(), any(), any()) } returns rawEntity
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&attrs=incoming"
             )
-            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .exchange()
             .expectStatus().isOk
-            .expectBody()
-            .jsonPath("$.name").doesNotExist()
-            .jsonPath("$.connectsTo").doesNotExist()
-            .jsonPath("$.incoming").isMap
+            .expectBody().jsonPath("$").isMap
+
+        verify {
+            temporalEntityAttributeService.getForEntity(
+                entityUri,
+                setOf("https://uri.etsi.org/ngsi-ld/default-context/incoming")
+            )
+        }
 
         verify {
             attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z")) &&
-                        temporalQuery.expandedAttrs == setOf(incomingAttrExpandedName)
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri }
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
             )
         }
+
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
+    }
+
+    @Test
+    fun `it should raise a 400 for query temporal entities if timerel is present without time in query params`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"'timerel' and 'time' must be used in conjunction"
+                }
+                """
+            )
+    }
+
+    @Test
+    fun `it should raise a 400 for query temporal entities if neither type nor attrs is present in query params`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?timerel=after&time=2019-10-17T07:31:39Z")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Either type or attrs need to be present in request parameters"
+                }
+                """
+            )
+    }
+
+    @Test
+    fun `it should return a 200 with empty payload if no temporal attribute is found`() {
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&type=BeeHive"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        verify {
+            temporalEntityAttributeService.getForEntities(
+                emptySet(),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                emptySet()
+            )
+        }
+
         confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should return 200 with jsonld response body for query temporal entities`() {
+        val firstTemporalEntity = deserializeObject(
+            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        ).minus("@context")
+        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity, secondTemporalEntity)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(2)
+            .jsonPath("$[0].@context").exists()
+            .jsonPath("$[1].@context").exists()
+    }
+
+    @Test
+    fun `it should return 200 with json response body for query temporal entities`() {
+        val firstTemporalEntity = deserializeObject(
+            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        ).minus("@context")
+        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity, secondTemporalEntity)
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive"
+            )
+            .header("Accept", MediaType.APPLICATION_JSON.toString())
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists("Link")
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(2)
+            .jsonPath("$[0].@context").doesNotExist()
+            .jsonPath("$[1].@context").doesNotExist()
+    }
+
+    @Test
+    fun `it should return a 200 for query temporal entities if minimal required parameters are valid`() {
+        val entityTemporalProperty = TemporalEntityAttribute(
+            entityId = entityUri,
+            type = "BeeHive",
+            attributeName = "incoming",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+        )
+
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
+            Mono.just(mapOf(entityUri to listOf(entityTemporalProperty)))
+
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            temporalEntityAttributeService.getForEntities(
+                emptySet(),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                emptySet()
+            )
+        }
+        verify {
+            attributeInstanceService.search(
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                },
+                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
+                false
+            )
+        }
+
+        verify { temporalEntityService.buildTemporalEntities(any(), any(), any(), false) }
+
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
+        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
+        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
+        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?options=temporalValues&" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive,Apiary&id=$entityUri,$secondEntityUri&attrs=incoming,outgoing"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            temporalEntityAttributeService.getForEntities(
+                setOf(entityUri, secondEntityUri),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive", "https://ontology.eglobalmark.com/apic#Apiary"),
+                setOf(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                )
+            )
+        }
+
+        verify {
+            temporalEntityService.buildTemporalEntities(
+                emptyList(),
+                any(),
+                listOf(apicContext!!),
+                true
+            )
+        }
+
+        confirmVerified()
     }
 
     @Test

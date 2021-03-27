@@ -3,22 +3,6 @@
   "type" : "BeeHive",
   "incoming" : {
     "type" : "Property",
-    "observedBy" : {
-      "type" : "Relationship",
-      "object" : "urn:ngsi-ld:Sensor:IncomingSensor"
-    },
     "values" : [ [550.0,"2020-03-25T08:29:17.965206Z"], [650.0,"2020-03-25T08:33:17.965206Z"] ]
-  },
-  "connectsTo" : {
-    "type" : "Relationship",
-    "createdAt" : "2010-10-26T21:32:52.98601Z",
-    "object" : "urn:ngsi-ld:Beekeeper:Pascal"
-  },
-  "createdAt" : "2020-01-24T13:01:21.938Z",
-  "name" : {
-    "type" : "Property",
-    "createdAt" : "2020-01-24T13:01:22.066Z",
-    "value" : "ParisBeehive12"
-  },
-  "@context" : "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  }
 }

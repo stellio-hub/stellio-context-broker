@@ -5,6 +5,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -47,6 +48,29 @@ class Neo4jAuthorizationRepository(
         )
 
         return session.query(query, parameters).map {
+            (it["id"] as String).toUri()
+        }
+    }
+
+    fun filterEntitiesWithSpecificAccessPolicy(
+        entitiesId: List<URI>,
+        specificAccessPolicies: List<String>
+    ): List<URI> {
+        val query =
+            """
+            MATCH (entity:Entity)
+            WHERE entity.id IN ${'$'}entitiesId
+            MATCH (entity)-[:HAS_VALUE]->(p:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            WHERE p.value IN ${'$'}specificAccessPolicies
+            RETURN entity.id as id
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "entitiesId" to entitiesId.toListOfString(),
+            "specificAccessPolicies" to specificAccessPolicies
+        )
+
+        return session.query(query, parameters).queryResults().map {
             (it["id"] as String).toUri()
         }
     }

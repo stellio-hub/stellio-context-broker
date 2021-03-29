@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -50,24 +51,36 @@ fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
 fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
+    checkContext(httpHeaders, body)
     return if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
-        if (body.contains("@context"))
-            throw BadRequestDataException(
-                "Request payload must not contain @context term for a request having an application/json content type"
-            )
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         listOf(contextLink)
     } else {
-        if (getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) != null)
-            throw BadRequestDataException(
-                "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
-            )
         val contexts = extractContextFromInput(body)
+        // kind of duplicate what is checked in checkContext but a bit more sure
         if (contexts.isEmpty())
             throw BadRequestDataException(
                 "Request payload must contain @context term for a request having an application/ld+json content type"
             )
         contexts
+    }
+}
+
+fun checkContext(httpHeaders: HttpHeaders, body: String) {
+    if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+        if (body.contains(JSONLD_CONTEXT))
+            throw BadRequestDataException(
+                "Request payload must not contain @context term for a request having an application/json content type"
+            )
+    } else {
+        if (getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK)) != null)
+            throw BadRequestDataException(
+                "JSON-LD Link header must not be provided for a request having an application/ld+json content type"
+            )
+        if (!body.contains(JSONLD_CONTEXT))
+            throw BadRequestDataException(
+                "Request payload must contain @context term for a request having an application/ld+json content type"
+            )
     }
 }
 

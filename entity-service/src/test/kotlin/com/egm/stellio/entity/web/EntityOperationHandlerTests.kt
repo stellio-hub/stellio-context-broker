@@ -10,6 +10,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -18,6 +19,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -51,6 +53,16 @@ class EntityOperationHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
+
+    @BeforeAll
+    fun configureWebClientDefaults() {
+        webClient = webClient.mutate()
+            .defaultHeaders {
+                it.accept = listOf(JSON_LD_MEDIA_TYPE)
+                it.contentType = JSON_LD_MEDIA_TYPE
+            }
+            .build()
+    }
 
     private val batchSomeEntitiesExistsResponse =
         """
@@ -187,7 +199,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchCreateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isCreated
@@ -244,7 +255,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchCreateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -273,7 +283,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchCreateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden
@@ -295,6 +304,27 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         shouldReturn400WithBadPayload("create")
+    }
+
+    @Test
+    fun `create batch entity should return a 400 if one JSON-LD entity misses a context`() {
+        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_one_entity_missing_context.json")
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/create")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":
+                "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
+                }
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -330,7 +360,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile).exchange()
             .expectStatus().isCreated
             .expectBody()
@@ -388,7 +417,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -428,7 +456,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -469,7 +496,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -513,7 +539,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -567,7 +592,6 @@ class EntityOperationHandlerTests {
 
         webClient.post()
             .uri(batchUpsertEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
@@ -597,18 +621,17 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_missing_context.json")
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/$method")
-            .header(
-                "Link",
-                "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
-            )
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
                 """
-                {"type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                "title":"The request includes input data which does not meet the requirements of the operation",
-                "detail":"Unable to parse input payload"}
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":
+                "Request payload must contain @context term for a request having an application/ld+json content type"
+                }
                 """.trimIndent()
             )
     }
@@ -655,7 +678,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
             .uri(batchDeleteEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isNoContent
@@ -740,7 +762,6 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
             .uri(batchDeleteEndpoint)
-            .header("Link", "<$aquacContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)

@@ -113,6 +113,12 @@ object JsonLdUtils {
         }
     }
 
+    fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> {
+        return entities.map {
+            expandJsonLdEntity(mapper.writeValueAsString(it), contexts)
+        }
+    }
+
     fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
         val updatedPayload = deserializeListOfObjects(listOfElements)
             .map {

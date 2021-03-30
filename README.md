@@ -24,14 +24,6 @@ The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
 | ------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
 
-## Content
-
--   [Overview](#overview)
--   [Quick start](#quick-start)
--   [Development](#development)
--   [Usage](#usage)
--   [License](#license)
-
 ## Overview
 
 Stellio is composed of 3 business services:
@@ -156,7 +148,7 @@ docker load --input entity-service/build/jib-image.tar
 docker run stellio/stellio-entity-service:latest
 ```
 
-# Usage
+## Usage
 
 To start using Stellio, you can follow the [API quick start](API_Quick_Start.md).
 
@@ -179,4 +171,4 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 | Testcontainers      |	MIT             |
 | Neo4j OGM           |	APL v2          |
 
-© 2020 EGM
+© 2020 - 2021 EGM

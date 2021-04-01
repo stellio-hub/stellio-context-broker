@@ -108,6 +108,9 @@ class EntityHandler(
          * with the right parameters values
          */
         val entities = entityService.searchEntities(ids, type, q.decode(), contextLink, includeSysAttrs)
+        if (entities.isEmpty())
+            return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
+
         val userId = extractSubjectOrEmpty().awaitFirst()
         val entitiesUserCanRead =
             authorizationService.filterEntitiesUserCanRead(

@@ -10,6 +10,8 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -26,11 +28,30 @@ class EntityEventServiceTests {
     @MockkBean(relaxed = true)
     private lateinit var resolver: BinderAwareChannelResolver
 
+    private val specieType = "https://ontology.eglobalmark.com/aquac#Specie"
     private val entityUri = "urn:ngsi-ld:BreedingService:0214".toUri()
     private val fishNameAttribute = "https://ontology.eglobalmark.com/aquac#fishName"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val fishName1DatasetUri = "urn:ngsi-ld:Dataset:fishName:1".toUri()
     private val fishName2DatasetUri = "urn:ngsi-ld:Dataset:fishName:2".toUri()
+
+    @Test
+    fun `it should not validate a topic name with characters not supported by Kafka`() {
+        assertTrue(
+            entityEventService
+                .composeTopicName("https://some.host/type", listOf(AQUAC_COMPOUND_CONTEXT))
+                .isInvalid
+        )
+    }
+
+    @Test
+    fun `it should validate a topic name with characters not supported by Kafka`() {
+        assertTrue(
+            entityEventService
+                .composeTopicName(specieType, listOf(AQUAC_COMPOUND_CONTEXT))
+                .isValid
+        )
+    }
 
     @Test
     fun `it should publish an ENTITY_CREATE event`() {
@@ -41,9 +62,24 @@ class EntityEventServiceTests {
         )
         every { resolver.resolveDestination(any()).send(any()) } returns true
 
-        entityEventService.publishEntityEvent(event, "Vehicle")
+        entityEventService.publishEntityEvent(event, specieType)
 
-        verify { resolver.resolveDestination("cim.entity.Vehicle") }
+        verify { resolver.resolveDestination("cim.entity.Specie") }
+    }
+
+    @Test
+    fun `it should not publish an event if topic name is invalid`() {
+        val event = EntityCreateEvent(
+            entityUri,
+            "operationPayload",
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        val result =
+            entityEventService.publishEntityEvent(event, "https://some.host/type")
+
+        assertFalse(result as Boolean)
+        verify { resolver.resolveDestination(any()) wasNot Called }
     }
 
     @Test

@@ -69,7 +69,7 @@ class EntityOperationHandler(
                         removeContextFromInput(entityPayload),
                         extractContextFromInput(entityPayload)
                     ),
-                    it.type.extractShortTypeFromExpanded()
+                    it.type
                 )
             }
 
@@ -149,7 +149,7 @@ class EntityOperationHandler(
                         removeContextFromInput(entityPayload),
                         extractContextFromInput(entityPayload)
                     ),
-                    it.type.extractShortTypeFromExpanded()
+                    it.type
                 )
             }
         if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
@@ -191,7 +191,7 @@ class EntityOperationHandler(
             // FIXME The context is not supposed to be retrieved from DB
             entityEventService.publishEntityEvent(
                 EntityDeleteEvent(uri, entity.contexts),
-                entity.type[0].extractShortTypeFromExpanded()
+                entity.type[0]
             )
         }
 
@@ -234,7 +234,7 @@ class EntityOperationHandler(
                     removeContextFromInput(entityPayload),
                     extractContextFromInput(entityPayload)
                 ),
-                it.type.extractShortTypeFromExpanded()
+                it.type
             )
         }
 

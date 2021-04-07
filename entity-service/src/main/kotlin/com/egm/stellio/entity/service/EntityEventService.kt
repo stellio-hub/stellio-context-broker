@@ -1,5 +1,8 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Validated
+import arrow.core.invalid
+import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.shared.model.AttributeAppendEvent
@@ -8,10 +11,10 @@ import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.egm.stellio.shared.util.JsonUtils
+import org.apache.kafka.common.errors.InvalidTopicException
+import org.apache.kafka.common.internals.Topic
+import org.slf4j.LoggerFactory
 import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.http.MediaType
 import org.springframework.messaging.MessageHeaders
@@ -24,22 +27,37 @@ import java.net.URI
 class EntityEventService(
     private val resolver: BinderAwareChannelResolver
 ) {
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    internal fun composeTopicName(entityTpe: String, contexts: List<String>): Validated<Unit, String> {
+        val topicName = entityChannelName(compactTerm(entityTpe, contexts))
+        return try {
+            Topic.validate(topicName)
+            topicName.valid()
+        } catch (e: InvalidTopicException) {
+            logger.error("Invalid topic name generated for entity type $entityTpe in contexts $contexts", e)
+            return Unit.invalid()
+        }
+    }
 
     @Async
-    fun publishEntityEvent(event: EntityEvent, channelSuffix: String): java.lang.Boolean {
-        return resolver.resolveDestination(entityChannelName(channelSuffix))
-            .send(
-                MessageBuilder.createMessage(
-                    mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
-                )
-            ) as java.lang.Boolean
-    }
+    fun publishEntityEvent(event: EntityEvent, entityType: String): java.lang.Boolean =
+        composeTopicName(entityType, event.contexts)
+            .fold(
+                {
+                    false as java.lang.Boolean
+                },
+                {
+                    resolver.resolveDestination(it)
+                        .send(
+                            MessageBuilder.createMessage(
+                                JsonUtils.serializeObject(event),
+                                MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
+                            )
+                        ) as java.lang.Boolean
+                }
+            )
 
     private fun entityChannelName(channelSuffix: String) =
         "cim.entity.$channelSuffix"
@@ -73,7 +91,7 @@ class EntityEventService(
                         JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
             else
                 publishEntityEvent(
@@ -89,7 +107,7 @@ class EntityEventService(
                         JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                         contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
         }
     }
@@ -122,7 +140,7 @@ class EntityEventService(
                     JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
                     contexts
                 ),
-                compactTerm(updatedEntity.type, contexts)
+                updatedEntity.type
             )
         }
     }

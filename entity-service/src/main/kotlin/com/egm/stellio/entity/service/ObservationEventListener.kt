@@ -2,7 +2,6 @@ package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
@@ -57,7 +56,7 @@ class ObservationEventListener(
                 compactAndSerialize(updatedEntity!!, observationEvent.contexts, MediaType.APPLICATION_JSON),
                 observationEvent.contexts
             ),
-            compactTerm(updatedEntity.type, observationEvent.contexts)
+            updatedEntity.type
         )
     }
 }

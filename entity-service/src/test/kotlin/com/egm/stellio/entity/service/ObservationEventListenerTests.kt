@@ -31,6 +31,41 @@ class ObservationEventListenerTests {
     private lateinit var entityEventService: EntityEventService
 
     @Test
+    fun `it should parse and transmit an entity creation event`() {
+        val observationEvent = loadSampleData("observations/beehiveCreateEvent.jsonld")
+
+        observationEventListener.processMessage(observationEvent)
+
+        verify {
+            entityService.createEntity(
+                match {
+                    it.id == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
+                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                        it.relationships.size == 1 &&
+                        it.relationships[0].compactName == "belongs" &&
+                        it.relationships[0].name == "https://ontology.eglobalmark.com/egm#belongs" &&
+                        it.relationships[0].instances.size == 1 &&
+                        it.relationships[0].instances[0].objectId == "urn:ngsi-ld:Apiary:XYZ01".toUri()
+                }
+            )
+        }
+
+        verify {
+            entityEventService.publishEntityEvent(
+                match {
+                    it as EntityCreateEvent
+                    it.operationType == EventsType.ENTITY_CREATE &&
+                        it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
+                        it.contexts.contains(APIC_COMPOUND_CONTEXT)
+                },
+                "BeeHive"
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should parse and transmit an observation event`() {
         val observationEvent = loadSampleData("observations/temperatureUpdateEvent.jsonld")
 

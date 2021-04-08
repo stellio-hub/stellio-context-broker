@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -22,9 +23,29 @@ class ObservationEventListener(
     @KafkaListener(topicPattern = "cim.observation.*", groupId = "observations")
     fun processMessage(content: String) {
         when (val observationEvent = deserializeAs<EntityEvent>(content)) {
+            is EntityCreateEvent -> handleEntityCreate(observationEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(observationEvent)
             else -> logger.warn("Observation event ${observationEvent.operationType} not handled.")
         }
+    }
+
+    fun handleEntityCreate(observationEvent: EntityCreateEvent) {
+        val ngsiLdEntity = JsonLdUtils.expandJsonLdEntity(
+            observationEvent.operationPayload,
+            observationEvent.contexts
+        ).toNgsiLdEntity()
+
+        try {
+            entityService.createEntity(ngsiLdEntity)
+        } catch (e: AlreadyExistsException) {
+            logger.error("Entity ${ngsiLdEntity.id} already exists: ${e.message}")
+            return
+        }
+
+        entityEventService.publishEntityEvent(
+            observationEvent,
+            compactTerm(ngsiLdEntity.type, observationEvent.contexts)
+        )
     }
 
     fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent) {

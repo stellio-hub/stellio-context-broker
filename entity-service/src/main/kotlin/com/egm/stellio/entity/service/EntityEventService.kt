@@ -30,13 +30,13 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    internal fun composeTopicName(entityTpe: String, contexts: List<String>): Validated<Unit, String> {
-        val topicName = entityChannelName(compactTerm(entityTpe, contexts))
+    internal fun composeTopicName(entityType: String, contexts: List<String>): Validated<Unit, String> {
+        val topicName = entityChannelName(compactTerm(entityType, contexts))
         return try {
             Topic.validate(topicName)
             topicName.valid()
         } catch (e: InvalidTopicException) {
-            logger.error("Invalid topic name generated for entity type $entityTpe in contexts $contexts", e)
+            logger.error("Invalid topic name generated for entity type $entityType in contexts $contexts", e)
             return Unit.invalid()
         }
     }

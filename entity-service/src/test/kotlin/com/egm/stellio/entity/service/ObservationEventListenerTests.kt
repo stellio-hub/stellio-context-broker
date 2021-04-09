@@ -58,7 +58,7 @@ class ObservationEventListenerTests {
                         it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
                         it.contexts.contains(APIC_COMPOUND_CONTEXT)
                 },
-                "BeeHive"
+                "https://ontology.eglobalmark.com/apic#BeeHive"
             )
         }
 

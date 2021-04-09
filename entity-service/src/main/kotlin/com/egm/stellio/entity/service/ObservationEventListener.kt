@@ -38,13 +38,13 @@ class ObservationEventListener(
         try {
             entityService.createEntity(ngsiLdEntity)
         } catch (e: AlreadyExistsException) {
-            logger.error("Entity ${ngsiLdEntity.id} already exists: ${e.message}")
+            logger.warn("Entity ${ngsiLdEntity.id} already exists: ${e.message}")
             return
         }
 
         entityEventService.publishEntityEvent(
             observationEvent,
-            compactTerm(ngsiLdEntity.type, observationEvent.contexts)
+            ngsiLdEntity.type
         )
     }
 

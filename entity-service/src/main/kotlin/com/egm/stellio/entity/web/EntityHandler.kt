@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -68,7 +67,7 @@ class EntityHandler(
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            compactTerm(ngsiLdEntity.type, contexts)
+            ngsiLdEntity.type
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -202,7 +201,7 @@ class EntityHandler(
         entityService.deleteEntity(entityId.toUri())
 
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), contexts), compactTerm(entity.type[0], contexts)
+            EntityDeleteEvent(entityId.toUri(), contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -343,7 +342,7 @@ class EntityHandler(
                 updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
-            compactTerm(updatedEntity.type, contexts)
+            updatedEntity.type
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -389,7 +388,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
             else
                 entityEventService.publishEntityEvent(
@@ -400,7 +399,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
         }
 

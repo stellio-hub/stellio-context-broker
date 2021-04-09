@@ -120,6 +120,8 @@ class EntityOperationHandlerTests {
 
     private val deviceAquaBox1 = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
 
+    private val sensorType = "https://ontology.eglobalmark.com/egm#Sensor"
+    private val deviceType = "https://ontology.eglobalmark.com/egm#Device"
     private val deviceParameterAttribute = "https://ontology.eglobalmark.com/aquac#deviceParameter"
 
     private val batchCreateEndpoint = "/ngsi-ld/v1/entityOperations/create"
@@ -181,7 +183,7 @@ class EntityOperationHandlerTests {
         )
         val expandedEntities = slot<List<NgsiLdEntity>>()
         val events = mutableListOf<EntityEvent>()
-        val channelName = slot<String>()
+        val entityType = slot<String>()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
@@ -192,9 +194,9 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just runs
+        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just Runs
         every {
-            entityEventService.publishEntityEvent(capture(events), capture(channelName))
+            entityEventService.publishEntityEvent(capture(events), capture(entityType))
         } returns true as java.lang.Boolean
 
         webClient.post()
@@ -219,7 +221,7 @@ class EntityOperationHandlerTests {
                     it.contexts == hcmrContext
             )
         }
-        assertTrue(channelName.captured in listOf("Sensor", "Device"))
+        assertTrue(entityType.captured in listOf(sensorType, deviceType))
         confirmVerified()
     }
 
@@ -236,7 +238,7 @@ class EntityOperationHandlerTests {
         )
         val existingEntity = mockk<NgsiLdEntity>()
         val events = mutableListOf<EntityEvent>()
-        val channelName = slot<String>()
+        val entityType = slot<String>()
 
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
 
@@ -250,7 +252,7 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every {
-            entityEventService.publishEntityEvent(capture(events), capture(channelName))
+            entityEventService.publishEntityEvent(capture(events), capture(entityType))
         } returns true as java.lang.Boolean
 
         webClient.post()
@@ -271,7 +273,7 @@ class EntityOperationHandlerTests {
                     it.contexts == hcmrContext
             )
         }
-        assertTrue(channelName.captured in listOf("Sensor", "Device"))
+        assertTrue(entityType.captured in listOf(sensorType, deviceType))
         confirmVerified()
     }
 
@@ -375,7 +377,7 @@ class EntityOperationHandlerTests {
                         it.entityId in createdEntitiesIds &&
                         it.contexts == hcmrContext
                 },
-                "Sensor"
+                sensorType
             )
         }
         verify(timeout = 1000, exactly = 2) {
@@ -511,7 +513,7 @@ class EntityOperationHandlerTests {
                         it.entityId in entitiesIds &&
                         it.contexts == hcmrContext
                 },
-                "Sensor"
+                sensorType
             )
         }
         confirmVerified()
@@ -606,7 +608,7 @@ class EntityOperationHandlerTests {
                         it.entityId in entitiesIdToUpdate &&
                         it.contexts == hcmrContext
                 },
-                "Sensor"
+                sensorType
             )
         }
         confirmVerified()

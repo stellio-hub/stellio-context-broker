@@ -429,6 +429,28 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should create an attribute instance for a relationship for ATTRIBUTE_UPDATE event`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Relationship\",
+                \"object\":\"urn:ngsi-ld:Entity:01234\",
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
+    }
+
+    @Test
     fun `it should create an attribute instance with a datasetId for attributeUpdate events`() {
         val datasetId = "urn:ngsi-ld:Dataset:01234"
         val eventPayload =

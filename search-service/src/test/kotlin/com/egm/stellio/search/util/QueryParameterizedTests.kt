@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.Arguments
 import java.time.ZonedDateTime
 import java.util.stream.Stream
 
+@Suppress("unused")
 class QueryParameterizedTests {
 
     companion object {

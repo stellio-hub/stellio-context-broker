@@ -80,10 +80,15 @@ class TemporalEntityService {
     ): Map<TemporalEntityAttribute, SimplifiedTemporalAttribute> {
         return attributeAndResultsMap.mapValues {
             val attributeInstance = mutableMapOf<String, Any>(
-                "type" to "Property"
+                "type" to it.key.attributeType.toString()
             )
+            val valuesKey =
+                if (it.key.attributeType == TemporalEntityAttribute.AttributeType.Property)
+                    "values"
+                else
+                    "objects"
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
-            attributeInstance["values"] = it.value.map { attributeInstanceResult ->
+            attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
                 listOf(attributeInstanceResult.value, attributeInstanceResult.observedAt)
             }

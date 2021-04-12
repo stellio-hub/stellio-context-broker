@@ -107,14 +107,18 @@ class EntityEventListenerServiceTest {
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
         val result = entityEventListenerService.toAttributeMedata(jsonNode)
-        result.bimap({
-            assertEquals(
-                "Ignoring append event for {\"type\":\"Property\",\"value\":33869}, it has no observedAt information",
-                it
-            )
-        }, {
-            fail<String>("Expecting an invalid result, got a valid one: $it")
-        })
+        result.bimap(
+            {
+                assertEquals(
+                    "Ignoring append event for {\"type\":\"Property\",\"value\":33869}, " +
+                        "it has no observedAt information",
+                    it
+                )
+            },
+            {
+                fail<String>("Expecting an invalid result, got a valid one: $it")
+            }
+        )
     }
 
     @Test
@@ -132,14 +136,17 @@ class EntityEventListenerServiceTest {
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
         val result = entityEventListenerService.toAttributeMedata(jsonNode)
-        result.bimap({
-            assertEquals(
-                "Unsupported attribute type: GeoProperty",
-                it
-            )
-        }, {
-            fail<String>("Expecting an invalid result, got a valid one: $it")
-        })
+        result.bimap(
+            {
+                assertEquals(
+                    "Unsupported attribute type: GeoProperty",
+                    it
+                )
+            },
+            {
+                fail<String>("Expecting an invalid result, got a valid one: $it")
+            }
+        )
     }
 
     @Test
@@ -153,14 +160,18 @@ class EntityEventListenerServiceTest {
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
         val result = entityEventListenerService.toAttributeMedata(jsonNode)
-        result.bimap({
-            assertEquals(
-                "Unable to get a value from attribute: {\"type\":\"Property\",\"observedAt\":\"2021-04-12T09:00:00Z\"}",
-                it
-            )
-        }, {
-            fail<String>("Expecting an invalid result, got a valid one: $it")
-        })
+        result.bimap(
+            {
+                assertEquals(
+                    "Unable to get a value from attribute: " +
+                        "{\"type\":\"Property\",\"observedAt\":\"2021-04-12T09:00:00Z\"}",
+                    it
+                )
+            },
+            {
+                fail<String>("Expecting an invalid result, got a valid one: $it")
+            }
+        )
     }
 
     @Test
@@ -176,15 +187,18 @@ class EntityEventListenerServiceTest {
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
         val result = entityEventListenerService.toAttributeMedata(jsonNode)
-        result.bimap({
-            fail<String>("Expecting a valid result, got an invalid one: $it")
-        }, {
-            assertEquals(TemporalEntityAttribute.AttributeType.Relationship, it.type)
-            assertEquals("urn:ngsi-ld:Entity:1234", it.value)
-            assertEquals(TemporalEntityAttribute.AttributeValueType.ANY, it.valueType)
-            assertEquals("urn:ngsi-ld:Dataset:1234", it.datasetId.toString())
-            assertEquals("2021-04-12T09:00:00.123Z", it.observedAt.toString())
-        })
+        result.bimap(
+            {
+                fail<String>("Expecting a valid result, got an invalid one: $it")
+            },
+            {
+                assertEquals(TemporalEntityAttribute.AttributeType.Relationship, it.type)
+                assertEquals("urn:ngsi-ld:Entity:1234", it.value)
+                assertEquals(TemporalEntityAttribute.AttributeValueType.ANY, it.valueType)
+                assertEquals("urn:ngsi-ld:Dataset:1234", it.datasetId.toString())
+                assertEquals("2021-04-12T09:00:00.123Z", it.observedAt.toString())
+            }
+        )
     }
 
     @Test

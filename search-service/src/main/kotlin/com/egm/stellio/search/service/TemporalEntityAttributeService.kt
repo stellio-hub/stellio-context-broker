@@ -162,7 +162,7 @@ class TemporalEntityAttributeService(
             is NgsiLdGeoPropertyInstance -> Pair(null, null)
         }
         if (attributeValue == Pair(null, null)) {
-            return "Unable to get a value from attribute: $this".invalid()
+            return "Unable to get a value from attribute: $ngsiLdAttributeInstance".invalid()
         }
         val attributeValueType =
             if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE

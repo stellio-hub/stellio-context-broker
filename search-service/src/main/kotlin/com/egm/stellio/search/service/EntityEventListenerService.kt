@@ -231,19 +231,17 @@ class EntityEventListenerService(
         val attributeTypeAsText = jsonNode["type"].asText()
         val attributeType = kotlin.runCatching {
             TemporalEntityAttribute.AttributeType.valueOf(attributeTypeAsText)
-        }.getOrNull() ?: return "Incompatible attribute type $attributeTypeAsText".invalid()
+        }.getOrNull() ?: return "Unsupported attribute type: $attributeTypeAsText".invalid()
         val attributeValue = when (attributeType) {
             TemporalEntityAttribute.AttributeType.Relationship -> Pair(jsonNode["object"].asText(), null)
             TemporalEntityAttribute.AttributeType.Property -> {
                 val rawAttributeValue = jsonNode["value"]
-                if (rawAttributeValue.isNumber)
-                    Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
-                else
-                    Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
+                when {
+                    rawAttributeValue == null -> return "Unable to get a value from attribute: $jsonNode".invalid()
+                    rawAttributeValue.isNumber -> Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
+                    else -> Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
+                }
             }
-        }
-        if (attributeValue == Pair(null, null)) {
-            return "Unable to get a value from attribute: $this".invalid()
         }
         val attributeValueType =
             if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE

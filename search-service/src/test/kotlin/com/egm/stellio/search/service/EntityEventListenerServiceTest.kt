@@ -7,11 +7,14 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -94,7 +97,136 @@ class EntityEventListenerServiceTest {
         """.trimIndent()
 
     @Test
-    fun `it should create a temporal entity entry for entityCreate events`() {
+    fun `it should return an invalid result if the attribute does not have an observedAt information`() {
+        val operationPayload =
+            """
+            {
+                "type":"Property",
+                "value":33869
+            }                
+            """.trimIndent()
+        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        result.bimap({
+            assertEquals(
+                "Ignoring append event for {\"type\":\"Property\",\"value\":33869}, it has no observedAt information",
+                it
+            )
+        }, {
+            fail<String>("Expecting an invalid result, got a valid one: $it")
+        })
+    }
+
+    @Test
+    fun `it should return an invalid result if the attribute has an unsupported type`() {
+        val operationPayload =
+            """
+            {
+                "type":"GeoProperty",
+                "observedAt": "2021-04-12T09:00:00Z",
+                "value":{
+                    "type": "Point",
+                    "coordinates": [12.1234,21.4321]
+                }
+            }                
+            """.trimIndent()
+        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        result.bimap({
+            assertEquals(
+                "Unsupported attribute type: GeoProperty",
+                it
+            )
+        }, {
+            fail<String>("Expecting an invalid result, got a valid one: $it")
+        })
+    }
+
+    @Test
+    fun `it should return an invalid result if the attribute has no value`() {
+        val operationPayload =
+            """
+            {
+                "type":"Property",
+                "observedAt": "2021-04-12T09:00:00Z"
+            }                
+            """.trimIndent()
+        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        result.bimap({
+            assertEquals(
+                "Unable to get a value from attribute: {\"type\":\"Property\",\"observedAt\":\"2021-04-12T09:00:00Z\"}",
+                it
+            )
+        }, {
+            fail<String>("Expecting an invalid result, got a valid one: $it")
+        })
+    }
+
+    @Test
+    fun `it should return attribute metadata if the payload is valid`() {
+        val operationPayload =
+            """
+            {
+                "type":"Relationship",
+                "object": "urn:ngsi-ld:Entity:1234",
+                "observedAt": "2021-04-12T09:00:00.123Z",
+                "datasetId": "urn:ngsi-ld:Dataset:1234"
+            }                
+            """.trimIndent()
+        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        result.bimap({
+            fail<String>("Expecting a valid result, got an invalid one: $it")
+        }, {
+            assertEquals(TemporalEntityAttribute.AttributeType.Relationship, it.type)
+            assertEquals("urn:ngsi-ld:Entity:1234", it.value)
+            assertEquals(TemporalEntityAttribute.AttributeValueType.ANY, it.valueType)
+            assertEquals("urn:ngsi-ld:Dataset:1234", it.datasetId.toString())
+            assertEquals("2021-04-12T09:00:00.123Z", it.observedAt.toString())
+        })
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information for ATTRIBUTE_UPDATE events`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
+    }
+
+    @Test
+    fun `it should ignore an attribute instance without observedAt information for ATTRIBUTE_REPLACE events`() {
+        val eventPayload =
+            """
+            {
+                \"totalDissolvedSolids\":{
+                    \"type\":\"Property\",
+                    \"value\":33869
+                }
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
+        }
+    }
+
+    @Test
+    fun `it should create a temporal entity entry for ENTITY_CREATE events`() {
         val content =
             """
             {
@@ -121,7 +253,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create a temporal entry with one attribute instance for attributeAppend events`() {
+    fun `it should create a temporal entry with one attribute instance for ATTRIBUTE_APPEND events`() {
         val eventPayload =
             """
             {
@@ -185,7 +317,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create a temporal entry with attribute instance with a textual value for attributeAppend events`() {
+    fun `it should create a temporal entry with attribute instance with a textual value for ATTRIBUTE_APPEND events`() {
         val eventPayload =
             """
             {
@@ -238,7 +370,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance with a numeric value for attributeReplace events`() {
+    fun `it should create an attribute instance with a numeric value for ATTRIBUTE_REPLACE events`() {
         val eventPayload =
             """
             {
@@ -273,7 +405,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance with a textual value for attributeReplace events`() {
+    fun `it should create an attribute instance with a textual value for ATTRIBUTE_REPLACE events`() {
         val eventPayload =
             """
             {
@@ -309,7 +441,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance with a datasetId for attributeReplace events`() {
+    fun `it should create an attribute instance with a datasetId for ATTRIBUTE_REPLACE events`() {
         val datasetId = "urn:ngsi-ld:Dataset:01234"
         val eventPayload =
             """
@@ -352,26 +484,6 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should ignore an attribute instance without observedAt information for attributeReplace events`() {
-        val eventPayload =
-            """
-            {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869
-                }
-            }
-            """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
-        }
-    }
-
-    @Test
     fun `it should handle attributeReplace events with an operation payload containing expanded attribute`() {
         val eventPayload =
             """
@@ -407,7 +519,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance and update entity payload for attributeUpdate events`() {
+    fun `it should create an attribute instance and update entity payload for ATTRIBUTE_UPDATE events`() {
         val eventPayload =
             """
             {
@@ -451,7 +563,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should create an attribute instance with a datasetId for attributeUpdate events`() {
+    fun `it should create an attribute instance with a datasetId for ATTRIBUTE_UPDATE events`() {
         val datasetId = "urn:ngsi-ld:Dataset:01234"
         val eventPayload =
             """
@@ -485,24 +597,6 @@ class EntityEventListenerServiceTest {
         entityEventListenerService.processMessage(content)
 
         verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
-    }
-
-    @Test
-    fun `it should ignore an attribute instance without observedAt information for attributeUpdate events`() {
-        val eventPayload =
-            """
-            {
-                \"type\":\"Property\",
-                \"value\":33869
-            }
-            """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called
-        }
     }
 
     private fun verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid: UUID) {

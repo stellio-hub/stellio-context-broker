@@ -106,7 +106,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
         result.bimap(
             {
                 assertEquals(
@@ -135,7 +135,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
         result.bimap(
             {
                 assertEquals(
@@ -159,7 +159,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
         result.bimap(
             {
                 assertEquals(
@@ -186,7 +186,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
         result.bimap(
             {
                 fail<String>("Expecting a valid result, got an invalid one: $it")

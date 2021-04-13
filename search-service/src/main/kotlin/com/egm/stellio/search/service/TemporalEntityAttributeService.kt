@@ -88,17 +88,17 @@ class TemporalEntityAttributeService(
                 arrayListOf()
             ) {
                 it.getAttributeInstances().map { instance ->
-                    Pair(it.name, toAttributeMetadata(instance))
+                    Pair(it.name, toTemporalAttributeMetadata(instance))
                 }
             }.filter {
                 it.second.isValid
             }.map {
                 Pair(it.first, it.second.toEither().orNull()!!)
+            }.ifEmpty {
+                return Mono.just(0)
             }
 
         logger.debug("Found ${temporalAttributes.size} temporal attributes in entity: ${entity.id}")
-        if (temporalAttributes.isEmpty())
-            return Mono.just(0)
 
         return Flux.fromIterable(temporalAttributes.asIterable())
             .map {
@@ -139,7 +139,7 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
-    internal fun toAttributeMetadata(
+    internal fun toTemporalAttributeMetadata(
         ngsiLdAttributeInstance: NgsiLdAttributeInstance
     ): Validated<String, AttributeMetadata> {
         // for now, let's say that if the 1st instance is temporal, all instances are temporal

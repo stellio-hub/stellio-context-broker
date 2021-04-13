@@ -6,8 +6,8 @@
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt; )</ID>
     <ID>MaxLineLength:WebSecurityTestConfig.kt$WebSecurityTestConfig : WebSecurityConfig</ID>
-    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toAttributeMedata(jsonNode: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
-    <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>
+    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMedata(jsonNode: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
+    <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toTemporalAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, contextLink: String): TemporalQuery</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>

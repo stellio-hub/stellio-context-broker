@@ -130,7 +130,7 @@ class EntityEventListenerService(
     ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
-        when (val extractedAttributeMetadata = toAttributeMedata(attributeValuesNode)) {
+        when (val extractedAttributeMetadata = toTemporalAttributeMedata(attributeValuesNode)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)
                 return
@@ -177,7 +177,7 @@ class EntityEventListenerService(
         updatedEntity: String,
         contexts: List<String>
     ) {
-        when (val extractedAttributeMetadata = toAttributeMedata(attributeValuesNode)) {
+        when (val extractedAttributeMetadata = toTemporalAttributeMedata(attributeValuesNode)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)
                 return
@@ -224,7 +224,7 @@ class EntityEventListenerService(
         }
     }
 
-    internal fun toAttributeMedata(jsonNode: JsonNode): Validated<String, AttributeMetadata> {
+    internal fun toTemporalAttributeMedata(jsonNode: JsonNode): Validated<String, AttributeMetadata> {
         if (!jsonNode.has("observedAt")) {
             return "Ignoring append event for $jsonNode, it has no observedAt information".invalid()
         }

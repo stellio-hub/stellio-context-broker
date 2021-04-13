@@ -65,7 +65,7 @@ class TemporalEntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json"
+        apicHeaderLink = buildContextLinkHeader(apicContext!!)
 
         webClient = webClient.mutate()
             .defaultHeaders {
@@ -78,7 +78,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a 204 if temporal entity fragment is valid`() {
         val jsonLdObservation = loadSampleData("observation.jsonld")
-        val parsedJsonLdObservation = JsonUtils.deserializeObject(jsonLdObservation)
+        val parsedJsonLdObservation = deserializeObject(jsonLdObservation)
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
@@ -88,7 +88,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header("Link", buildContextLinkHeader(apicContext!!))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(jsonLdObservation))
             .exchange()
@@ -118,7 +118,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-            .header("Link", "<$apicContext>; rel=http://www.w3.org/ns/json-ld#context; type=application/ld+json")
+            .header("Link", buildContextLinkHeader(apicContext!!))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()

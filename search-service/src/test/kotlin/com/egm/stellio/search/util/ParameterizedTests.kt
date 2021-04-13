@@ -3,14 +3,13 @@ package com.egm.stellio.search.util
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.stream.Stream
 
+@Suppress("unused")
 class ParameterizedTests {
 
     companion object {
@@ -46,6 +45,39 @@ class ParameterizedTests {
                     ),
                     false,
                     loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
+                ),
+                Arguments.arguments(
+                    mapOf(
+                        TemporalEntityAttribute(
+                            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                            attributeType = TemporalEntityAttribute.AttributeType.Relationship,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                        ) to
+                            listOf(
+                                FullAttributeInstanceResult(
+                                    payload = buildAttributeInstancePayload(
+                                        "urn:ngsi-ld:Entity:1234",
+                                        ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                        null,
+                                        "urn:ngsi-ld:Instance:45678".toUri(),
+                                        TemporalEntityAttribute.AttributeType.Relationship
+                                    )
+                                ),
+                                FullAttributeInstanceResult(
+                                    payload = buildAttributeInstancePayload(
+                                        "urn:ngsi-ld:Entity:5678",
+                                        ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                        null,
+                                        "urn:ngsi-ld:Instance:45679".toUri(),
+                                        TemporalEntityAttribute.AttributeType.Relationship
+                                    )
+                                )
+                            )
+                    ),
+                    false,
+                    loadSampleData("expectations/beehive_relationship_multi_instances_without_datasetId.jsonld")
                 ),
                 Arguments.arguments(
                     mapOf(
@@ -140,6 +172,38 @@ class ParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             type = "https://ontology.eglobalmark.com/apic#BeeHive",
                             attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                        ) to
+                            listOf(
+                                FullAttributeInstanceResult(
+                                    payload = buildAttributeInstancePayload(
+                                        "Beehive_incoming_123",
+                                        ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                        null,
+                                        "urn:ngsi-ld:Instance:45678".toUri()
+                                    )
+                                ),
+                                FullAttributeInstanceResult(
+                                    payload = buildAttributeInstancePayload(
+                                        "Beehive_incoming_124",
+                                        ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                        null,
+                                        "urn:ngsi-ld:Instance:45679".toUri()
+                                    )
+                                )
+                            )
+                    ),
+                    false,
+                    loadSampleData(
+                        "expectations/beehive_incoming_multi_instances_without_datasetId_string_values.jsonld"
+                    )
+                ),
+                Arguments.arguments(
+                    mapOf(
+                        TemporalEntityAttribute(
+                            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            attributeName = "https://ontology.eglobalmark.com/apic#incoming",
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to
                             listOf(
@@ -220,23 +284,56 @@ class ParameterizedTests {
                     ),
                     true,
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_temporal_values.jsonld")
+                ),
+                Arguments.arguments(
+                    mapOf(
+                        TemporalEntityAttribute(
+                            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                        ) to
+                            listOf(
+                                SimplifiedAttributeInstanceResult(
+                                    value = "Beehive_incoming_123",
+                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                ),
+                                SimplifiedAttributeInstanceResult(
+                                    value = "Beehive_incoming_124",
+                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                )
+                            )
+                    ),
+                    true,
+                    loadSampleData(
+                        "expectations/beehive_incoming_multi_instances_without_datasetId_string_temporal_values.jsonld"
+                    )
+                ),
+                Arguments.arguments(
+                    mapOf(
+                        TemporalEntityAttribute(
+                            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
+                            attributeType = TemporalEntityAttribute.AttributeType.Relationship
+                        ) to
+                            listOf(
+                                SimplifiedAttributeInstanceResult(
+                                    value = "urn:ngsi-ld:Entity:1234",
+                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                ),
+                                SimplifiedAttributeInstanceResult(
+                                    value = "urn:ngsi-ld:Entity:5678",
+                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                )
+                            )
+                    ),
+                    true,
+                    loadSampleData("expectations/beehive_relationship_multi_instances_temporal_values.jsonld")
                 )
             )
         }
     }
 }
-
-fun buildAttributeInstancePayload(
-    value: Any,
-    observedAt: ZonedDateTime,
-    datasetId: URI? = null,
-    instanceId: URI? = null
-) = JsonUtils.serializeObject(
-    mapOf(
-        "type" to "Property",
-        "datasetId" to datasetId,
-        "value" to value,
-        "instanceId" to instanceId,
-        "observedAt" to observedAt
-    )
-)

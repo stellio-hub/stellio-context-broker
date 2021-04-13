@@ -1,14 +1,23 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.util.isAttributeOfMeasureType
+import arrow.core.Validated
+import arrow.core.invalid
+import arrow.core.orNull
+import arrow.core.valid
+import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.AttributeMetadata
+import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
+import com.egm.stellio.shared.model.NgsiLdAttributeInstance
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.toNgsiLdEntity
-import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
@@ -34,14 +43,16 @@ class TemporalEntityAttributeService(
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
         databaseClient.execute(
             """
-            INSERT INTO temporal_entity_attribute (id, entity_id, type, attribute_name, attribute_value_type, dataset_id)
-            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_value_type, :dataset_id)
+            INSERT INTO temporal_entity_attribute
+                (id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id)
+            VALUES (:id, :entity_id, :type, :attribute_name, :attribute_type, :attribute_value_type, :dataset_id)
             """
         )
             .bind("id", temporalEntityAttribute.id)
             .bind("entity_id", temporalEntityAttribute.entityId)
             .bind("type", temporalEntityAttribute.type)
             .bind("attribute_name", temporalEntityAttribute.attributeName)
+            .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
             .fetch()
@@ -72,50 +83,46 @@ class TemporalEntityAttributeService(
 
         logger.debug("Analyzing create event for entity ${entity.id}")
 
-        val temporalProperties = entity.properties
-            .filter {
-                // for now, let's say that if the 1st instance is temporal, all instances are temporal
-                // let's also consider that a temporal property is one having an observedAt property
-                it.instances[0].isTemporalAttribute()
-            }.flatMapTo(
-                arrayListOf(),
-                {
-                    it.instances.map { instance ->
-                        Pair(it.name, instance)
-                    }
+        val temporalAttributes = entity.attributes
+            .flatMapTo(
+                arrayListOf()
+            ) {
+                it.getAttributeInstances().map { instance ->
+                    Pair(it.name, toTemporalAttributeMetadata(instance))
                 }
-            )
+            }.filter {
+                it.second.isValid
+            }.map {
+                Pair(it.first, it.second.toEither().orNull()!!)
+            }.ifEmpty {
+                return Mono.just(0)
+            }
 
-        logger.debug("Found temporal properties for entity : $temporalProperties")
-        if (temporalProperties.isEmpty())
-            return Mono.just(0)
+        logger.debug("Found ${temporalAttributes.size} temporal attributes in entity: ${entity.id}")
 
-        return Flux.fromIterable(temporalProperties.asIterable())
+        return Flux.fromIterable(temporalAttributes.asIterable())
             .map {
-                val attributeValueType =
-                    if (isAttributeOfMeasureType(it.second.value))
-                        TemporalEntityAttribute.AttributeValueType.MEASURE
-                    else
-                        TemporalEntityAttribute.AttributeValueType.ANY
+                val (expandedAttributeName, attributeMetadata) = it
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = entity.id,
                     type = entity.type,
-                    attributeName = it.first,
-                    attributeValueType = attributeValueType,
-                    datasetId = it.second.datasetId,
+                    attributeName = expandedAttributeName,
+                    attributeType = attributeMetadata.type,
+                    attributeValueType = attributeMetadata.valueType,
+                    datasetId = attributeMetadata.datasetId,
                     entityPayload = payload
                 )
 
                 val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = temporalEntityAttribute.id,
-                    observedAt = it.second.observedAt!!,
-                    measuredValue = valueToDoubleOrNull(it.second.value),
-                    value = valueToStringOrNull(it.second.value),
+                    observedAt = attributeMetadata.observedAt,
+                    measuredValue = attributeMetadata.measuredValue,
+                    value = attributeMetadata.value,
                     payload =
                         extractAttributeInstanceFromCompactedEntity(
                             parsedPayload,
-                            compactTerm(it.first, contexts),
-                            it.second.datasetId
+                            compactTerm(expandedAttributeName, contexts),
+                            attributeMetadata.datasetId
                         )
                 )
 
@@ -132,19 +139,58 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
+    internal fun toTemporalAttributeMetadata(
+        ngsiLdAttributeInstance: NgsiLdAttributeInstance
+    ): Validated<String, AttributeMetadata> {
+        // for now, let's say that if the 1st instance is temporal, all instances are temporal
+        // let's also consider that a temporal property is one having an observedAt property
+        if (!ngsiLdAttributeInstance.isTemporalAttribute())
+            return "Ignoring attribute $ngsiLdAttributeInstance, it has no observedAt information".invalid()
+        val attributeType =
+            when (ngsiLdAttributeInstance) {
+                is NgsiLdPropertyInstance -> TemporalEntityAttribute.AttributeType.Property
+                is NgsiLdRelationshipInstance -> TemporalEntityAttribute.AttributeType.Relationship
+                else -> return "Unsupported attribute type ${ngsiLdAttributeInstance.javaClass}".invalid()
+            }
+        val attributeValue = when (ngsiLdAttributeInstance) {
+            is NgsiLdRelationshipInstance -> Pair(ngsiLdAttributeInstance.objectId.toString(), null)
+            is NgsiLdPropertyInstance ->
+                Pair(
+                    valueToStringOrNull(ngsiLdAttributeInstance.value),
+                    valueToDoubleOrNull(ngsiLdAttributeInstance.value)
+                )
+            is NgsiLdGeoPropertyInstance -> Pair(null, null)
+        }
+        if (attributeValue == Pair(null, null)) {
+            return "Unable to get a value from attribute: $ngsiLdAttributeInstance".invalid()
+        }
+        val attributeValueType =
+            if (attributeValue.second != null) TemporalEntityAttribute.AttributeValueType.MEASURE
+            else TemporalEntityAttribute.AttributeValueType.ANY
+
+        return AttributeMetadata(
+            measuredValue = attributeValue.second,
+            value = attributeValue.first,
+            valueType = attributeValueType,
+            datasetId = ngsiLdAttributeInstance.datasetId,
+            type = attributeType,
+            observedAt = ngsiLdAttributeInstance.observedAt!!
+        ).valid()
+    }
+
     fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
         Mono<Map<URI, List<TemporalEntityAttribute>>> {
             var selectQuery = if (withEntityPayload)
                 """
-                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_value_type,
-                payload::TEXT, dataset_id
+                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
+                    attribute_value_type, payload::TEXT, dataset_id
                 FROM temporal_entity_attribute
                 LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 WHERE
                 """.trimIndent()
             else
                 """
-                SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
+                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE
                 """.trimIndent()
@@ -169,15 +215,15 @@ class TemporalEntityAttributeService(
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
         val selectQuery = if (withEntityPayload)
             """
-                SELECT id, temporal_entity_attribute.entity_id as entity_id, type, attribute_name, attribute_value_type,
-                        payload::TEXT, dataset_id
+                SELECT id, temporal_entity_attribute.entity_id as entity_id, type, attribute_name, attribute_type,
+                    attribute_value_type, payload::TEXT, dataset_id
                 FROM temporal_entity_attribute
                 LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
         else
             """
-                SELECT id, entity_id, type, attribute_name, attribute_value_type, dataset_id
+                SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE temporal_entity_attribute.entity_id = :entity_id
             """.trimIndent()
@@ -241,6 +287,7 @@ class TemporalEntityAttributeService(
             entityId = (row["entity_id"] as String).toUri(),
             type = row["type"] as String,
             attributeName = row["attribute_name"] as String,
+            attributeType = TemporalEntityAttribute.AttributeType.valueOf(row["attribute_type"] as String),
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),

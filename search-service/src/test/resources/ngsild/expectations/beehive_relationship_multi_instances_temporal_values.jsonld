@@ -1,0 +1,9 @@
+{
+  "id" : "urn:ngsi-ld:BeeHive:TESTC",
+  "type" : "BeeHive",
+  "incoming" : {
+    "type" : "Relationship",
+    "datasetId" : "urn:ngsi-ld:Dataset:45678",
+    "objects" : [ ["urn:ngsi-ld:Entity:1234","2020-03-25T08:29:17.965206Z"], ["urn:ngsi-ld:Entity:5678","2020-03-25T08:33:17.965206Z"] ]
+  }
+}

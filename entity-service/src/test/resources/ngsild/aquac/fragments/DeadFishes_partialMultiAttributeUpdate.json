@@ -1,0 +1,11 @@
+[
+  {
+    "type":"Property",
+    "value":578
+  },
+  {
+    "type":"Property",
+    "datasetId": "urn:ngsi-ld:Dataset:1",
+    "value":600
+  }
+]

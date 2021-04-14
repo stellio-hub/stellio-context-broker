@@ -8,7 +8,6 @@ import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -17,6 +16,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -336,24 +336,27 @@ class EntityHandler(
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
 
-        val expandedBody = expandJsonLdFragment(body, contexts) as Map<String, List<Any>>
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
         checkAttributeIsAuthorized(expandedAttrId, entityUri, userId)
-        val expandedPayload = mapOf(expandedAttrId to expandedBody)
-        entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
 
-        val updatedEntity = entityService.getFullEntityById(entityUri, true)
-        entityEventService.publishEntityEvent(
-            AttributeUpdateEvent(
-                entityId = entityUri,
-                attributeName = attrId,
-                datasetId = getPropertyValueFromMapAsString(expandedBody, NGSILD_DATASET_ID_PROPERTY)?.toUri(),
-                operationPayload = removeContextFromInput(body),
-                updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                contexts = contexts
-            ),
-            updatedEntity.type
-        )
+        val expandedPayload = expandJsonLdFragment(
+            serializeObject(mapOf(attrId to deserializeAs<Any>(body))),
+            contexts
+        ) as Map<String, List<Map<String, List<Any>>>>
+
+        val updateResult = entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
+
+        if (updateResult.updated.isEmpty())
+            throw ResourceNotFoundException("Unknown attribute in entity $entityId")
+        else
+            entityEventService.publishPartialUpdateEntityAttributesEvents(
+                entityUri,
+                expandedPayload,
+                updateResult,
+                entityService.getFullEntityById(entityUri, true)!!,
+                contexts
+            )
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

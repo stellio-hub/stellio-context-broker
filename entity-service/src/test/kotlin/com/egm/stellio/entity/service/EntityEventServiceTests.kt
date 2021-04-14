@@ -6,6 +6,7 @@ import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -301,6 +302,121 @@ class EntityEventServiceTests {
                             (
                                 it.operationPayload.matchContent("{\"fishName\": $fishNamePayload1}") ||
                                     it.operationPayload.matchContent("{\"fishName\": $fishNamePayload2}")
+                                ) &&
+                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                    }
+                },
+                any<String>()
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish ATTRIBUTE_UPDATE event if a property is updated`() {
+        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val fishNamePayload =
+            """
+            {
+                "value":"Salmon",
+                "unitCode":"C1"
+            }
+            """.trimIndent()
+
+        val jsonLdAttributes = expandJsonLdFragment(
+            JsonUtils.serializeObject(mapOf("fishName" to JsonUtils.deserializeAs<Any>(fishNamePayload))),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        ) as Map<String, List<Map<String, List<Any>>>>
+
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(fishNameAttribute, null, UpdateOperationResult.UPDATED)
+            ),
+            notUpdated = arrayListOf()
+        )
+
+        entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityUri,
+            jsonLdAttributes,
+            updateResult,
+            mockkClass(JsonLdEntity::class, relaxed = true),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<EntityEvent> {
+                    it as AttributeUpdateEvent
+                    it.operationType == EventsType.ATTRIBUTE_UPDATE &&
+                        it.entityId == entityUri &&
+                        it.attributeName == "fishName" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(fishNamePayload) &&
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                },
+                any<String>()
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish ATTRIBUTE_UPDATE events if multi instance relationship is updated`() {
+        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val attributeName = "https://ontology.eglobalmark.com/egm#connectsTo"
+        val firstRelationshipPayload =
+            """
+            {"datasetId":"urn:ngsi-ld:Dataset:connectsTo:1","object":"urn:ngsi-ld:Feeder:018"}
+            """.trimIndent()
+        val secondRelationshipPayload =
+            """
+            {"name":{"value":"Salmon"},"object":"urn:ngsi-ld:Feeder:012"}
+            """.trimIndent()
+        val connectsToPayload =
+            """
+            [
+                $firstRelationshipPayload,
+                $secondRelationshipPayload
+            ]
+            """.trimIndent()
+        val jsonLdAttributes = expandJsonLdFragment(
+            JsonUtils.serializeObject(mapOf("connectsTo" to JsonUtils.deserializeAs<Any>(connectsToPayload))),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        ) as Map<String, List<Map<String, List<Any>>>>
+
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    attributeName,
+                    "urn:ngsi-ld:Dataset:connectsTo:1".toUri(), UpdateOperationResult.UPDATED
+                ),
+                UpdatedDetails(attributeName, null, UpdateOperationResult.UPDATED)
+            ),
+            notUpdated = arrayListOf()
+        )
+
+        entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityUri,
+            jsonLdAttributes,
+            updateResult,
+            mockkClass(JsonLdEntity::class, relaxed = true),
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<EntityEvent> {
+                    listOf(it).all {
+                        it as AttributeUpdateEvent
+                        it.operationType == EventsType.ATTRIBUTE_UPDATE &&
+                            it.entityId == entityUri &&
+                            it.attributeName == "connectsTo" &&
+                            (
+                                it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:connectsTo:1".toUri()
+                                ) &&
+                            (
+                                it.operationPayload.matchContent(firstRelationshipPayload) ||
+                                    it.operationPayload.matchContent(secondRelationshipPayload)
                                 ) &&
                             it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                     }

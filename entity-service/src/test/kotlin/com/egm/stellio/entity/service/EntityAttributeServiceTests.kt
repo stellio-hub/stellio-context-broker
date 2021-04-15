@@ -427,7 +427,6 @@ class EntityAttributeServiceTests {
     @Test
     fun `it should partially update a multi instances property`() {
         val propertyName = "fishAge"
-
         val payload =
             """
             [

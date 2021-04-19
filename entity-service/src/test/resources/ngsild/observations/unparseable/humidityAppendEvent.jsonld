@@ -1,0 +1,10 @@
+{
+   "operationType":"ATTRIBUTE_APPEND",
+   "entityId":"urn:ngsi-ld:BeeHive:TESTC",
+   "attributeName":"humidity",
+   "operationPayload":"{ \"value\":62, \"unitCode\": \"P1\", \"observedAt\": \"2019-11-26T22:35:52.98601Z\" }",
+   "updatedEntity":"",
+   "contexts":[
+      "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+   ]
+}

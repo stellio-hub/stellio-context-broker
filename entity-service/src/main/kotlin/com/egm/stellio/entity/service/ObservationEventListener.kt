@@ -5,6 +5,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -25,6 +26,7 @@ class ObservationEventListener(
         when (val observationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreate(observationEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(observationEvent)
+            is AttributeAppendEvent -> handleAttributeAppendEvent(observationEvent)
             else -> logger.warn("Observation event ${observationEvent.operationType} not handled.")
         }
     }
@@ -79,5 +81,38 @@ class ObservationEventListener(
             ),
             updatedEntity.type
         )
+    }
+
+    fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent) {
+        val expandedPayload = parseAndExpandAttributeFragment(
+            observationEvent.attributeName,
+            observationEvent.operationPayload,
+            observationEvent.contexts
+        )
+
+        try {
+            val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
+            entityService.appendEntityAttributes(
+                observationEvent.entityId,
+                ngsiLdAttributes,
+                !observationEvent.overwrite
+            )
+            val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
+            entityEventService.publishEntityEvent(
+                AttributeAppendEvent(
+                    observationEvent.entityId,
+                    observationEvent.attributeName,
+                    observationEvent.datasetId,
+                    observationEvent.operationPayload,
+                    compactAndSerialize(updatedEntity!!, observationEvent.contexts, MediaType.APPLICATION_JSON),
+                    observationEvent.contexts,
+                    observationEvent.overwrite
+                ),
+                updatedEntity.type
+            )
+        } catch (e: BadRequestDataException) {
+            logger.error(e.message)
+            return
+        }
     }
 }

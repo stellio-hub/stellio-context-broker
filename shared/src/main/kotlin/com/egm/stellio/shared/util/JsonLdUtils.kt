@@ -5,6 +5,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -435,6 +436,13 @@ object JsonLdUtils {
                 else it.toUri().right()
             }
     }
+
+    fun parseAndExpandAttributeFragment(attributeName: String, attributePayload: String, contexts: List<String>):
+        Map<String, List<Map<String, List<Any>>>> =
+            expandJsonLdFragment(
+                serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
+                contexts
+            ) as Map<String, List<Map<String, List<Any>>>>
 }
 
 fun String.extractShortTypeFromExpanded(): String =

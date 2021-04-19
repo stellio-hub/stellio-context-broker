@@ -68,7 +68,8 @@ data class AttributeAppendEvent(
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
-    override val contexts: List<String>
+    override val contexts: List<String>,
+    val overwrite: Boolean = true
 ) : EntityEvent(EventsType.ATTRIBUTE_APPEND, entityId, contexts) {
     override fun getEntity() = this.updatedEntity
 }

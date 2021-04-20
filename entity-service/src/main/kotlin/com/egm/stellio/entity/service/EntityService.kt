@@ -149,17 +149,15 @@ class EntityService(
     ): Int {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        return if (ngsiLdGeoPropertyInstance.geoPropertyType == "Point") {
-            neo4jRepository.addLocationPropertyToEntity(
+        return when (ngsiLdGeoPropertyInstance.geoPropertyType) {
+            GeoPropertyType.Point, GeoPropertyType.Polygon -> neo4jRepository.addLocationPropertyToEntity(
                 entityId,
-                Pair(
-                    ngsiLdGeoPropertyInstance.coordinates[0] as Double,
-                    ngsiLdGeoPropertyInstance.coordinates[1] as Double
-                )
+                ngsiLdGeoPropertyInstance
             )
-        } else {
-            logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
-            0
+            else -> {
+                logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
+                0
+            }
         }
     }
 
@@ -657,13 +655,10 @@ class EntityService(
     ) {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        if (ngsiLdGeoPropertyInstance.geoPropertyType == "Point") {
+        if (ngsiLdGeoPropertyInstance.geoPropertyType == GeoPropertyType.Point) {
             neo4jRepository.updateLocationPropertyOfEntity(
                 entityId,
-                Pair(
-                    ngsiLdGeoPropertyInstance.coordinates[0] as Double,
-                    ngsiLdGeoPropertyInstance.coordinates[1] as Double
-                )
+                ngsiLdGeoPropertyInstance
             )
         } else {
             throw BadRequestDataException("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")

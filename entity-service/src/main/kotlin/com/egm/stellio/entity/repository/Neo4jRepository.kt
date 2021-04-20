@@ -4,12 +4,9 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
-import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
-import com.egm.stellio.entity.util.isDate
-import com.egm.stellio.entity.util.isDateTime
-import com.egm.stellio.entity.util.isFloat
-import com.egm.stellio.entity.util.isRelationshipTarget
-import com.egm.stellio.entity.util.isTime
+import com.egm.stellio.entity.util.*
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
@@ -95,11 +92,11 @@ class Neo4jRepository(
     /**
      * Add a spatial property to an entity.
      */
-    fun addLocationPropertyToEntity(subjectId: URI, coordinates: Pair<Double, Double>): Int {
+    fun addLocationPropertyToEntity(subjectId: URI, geoProperty: NgsiLdGeoPropertyInstance): Int {
         val query =
             """
             MERGE (subject:Entity { id: ${'$'}subjectId })
-            ON MATCH SET subject.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
+            ON MATCH SET subject.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
             """
 
         val parameters = mapOf(
@@ -319,11 +316,11 @@ class Neo4jRepository(
         return session.query(relationshipTypeQuery, parameters).queryStatistics().nodesDeleted
     }
 
-    fun updateLocationPropertyOfEntity(entityId: URI, coordinates: Pair<Double, Double>): Int {
+    fun updateLocationPropertyOfEntity(entityId: URI, geoProperty: NgsiLdGeoPropertyInstance): Int {
         val query =
             """
             MERGE (entity:Entity { id: "$entityId" })
-            ON MATCH SET entity.location = point({x: ${coordinates.first}, y: ${coordinates.second}, crs: 'wgs-84'})
+            ON MATCH SET entity.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
             """
         return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
     }

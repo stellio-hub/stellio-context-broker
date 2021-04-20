@@ -243,7 +243,7 @@ class NgsiLdRelationshipInstance private constructor(
 class NgsiLdGeoPropertyInstance(
     observedAt: ZonedDateTime? = null,
     datasetId: URI? = null,
-    val geoPropertyType: String,
+    val geoPropertyType: GeoPropertyType,
     val coordinates: List<Any>,
     properties: List<NgsiLdProperty> = emptyList(),
     relationships: List<NgsiLdRelationship> = emptyList()
@@ -254,7 +254,9 @@ class NgsiLdGeoPropertyInstance(
             val datasetId = values.getDatasetId()
 
             val geoPropertyValue = expandValueAsMap(values[NGSILD_GEOPROPERTY_VALUE]!!)
-            val geoPropertyType = (geoPropertyValue["@type"]!![0] as String).extractShortTypeFromExpanded()
+            val geoPropertyType = GeoPropertyType.valueOf(
+                (geoPropertyValue["@type"]!![0] as String).extractShortTypeFromExpanded()
+            )
             val coordinates = extractCoordinates(geoPropertyType, geoPropertyValue)
 
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMEBERS)
@@ -274,24 +276,37 @@ class NgsiLdGeoPropertyInstance(
         }
 
         // TODO this lacks sanity checks
-        private fun extractCoordinates(geoPropertyType: String, geoPropertyValue: Map<String, List<Any>>): List<Any> {
-            val coordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
-            if (geoPropertyType == JsonLdUtils.NGSILD_POINT_PROPERTY) {
-                val longitude = (coordinates[0] as Map<String, Double>)["@value"]!!
-                val latitude = (coordinates[1] as Map<String, Double>)["@value"]!!
-                return listOf(longitude, latitude)
-            } else {
-                val res = arrayListOf<List<Double?>>()
-                var count = 1
-                coordinates.forEach {
-                    if (count % 2 != 0) {
-                        val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]
-                        val latitude = (coordinates[count] as Map<String, Double>)["@value"]
-                        res.add(listOf(longitude, latitude))
+        private fun extractCoordinates(geoPropertyType: GeoPropertyType, geoPropertyValue: Map<String, List<Any>>):
+            List<Any> {
+                val coordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
+                if (geoPropertyType == GeoPropertyType.Point) {
+                    val longitude = (coordinates[0] as Map<String, Double>)["@value"]!!
+                    val latitude = (coordinates[1] as Map<String, Double>)["@value"]!!
+                    return listOf(longitude, latitude)
+                } else {
+                    val res = arrayListOf<List<Double?>>()
+                    var count = 1
+                    coordinates.forEach {
+                        if (count % 2 != 0) {
+                            val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]
+                            val latitude = (coordinates[count] as Map<String, Double>)["@value"]
+                            res.add(listOf(longitude, latitude))
+                        }
+                        count++
                     }
-                    count++
+                    return res
                 }
-                return res
+            }
+
+        fun toWktFormat(geoPropertyType: GeoPropertyType, coordinates: List<Any>): String {
+            return if (geoPropertyType == GeoPropertyType.Point) {
+                "${geoPropertyType.value.toUpperCase()} (${coordinates.joinToString(" ")})"
+            } else {
+                val formattedCoordinates = coordinates.map {
+                    it as List<*>
+                    it.joinToString(" ")
+                }
+                "${geoPropertyType.value.toUpperCase()} ((${formattedCoordinates.joinToString(", ")}))"
             }
         }
     }
@@ -402,3 +417,8 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
 val NGSILD_GEOPROPERTIES_CORE_MEMEBERS = listOf(
     NGSILD_GEOPROPERTY_VALUE
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
+
+enum class GeoPropertyType(val value: String) {
+    Point("Point"),
+    Polygon("Polygon")
+}

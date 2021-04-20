@@ -66,6 +66,9 @@ subprojects {
 
         implementation("io.arrow-kt:arrow-fx:0.10.4")
         implementation("io.arrow-kt:arrow-syntax:0.10.4")
+
+        implementation("org.locationtech.jts.io:jts-io-common:1.18.1")
+
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
         "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.11.2")

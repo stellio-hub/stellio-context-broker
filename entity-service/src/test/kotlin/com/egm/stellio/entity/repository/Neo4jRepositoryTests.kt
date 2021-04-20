@@ -6,6 +6,8 @@ import com.egm.stellio.entity.model.PartialEntity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
+import com.egm.stellio.shared.model.GeoPropertyType
+import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -19,7 +21,6 @@ import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -1222,7 +1223,7 @@ class Neo4jRepositoryTests {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            GeographicPoint2d(24.30623, 60.07966)
+            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -1261,7 +1262,7 @@ class Neo4jRepositoryTests {
         id: URI,
         type: List<String>,
         properties: MutableList<Property> = mutableListOf(),
-        location: GeographicPoint2d? = null
+        location: String? = null
     ): Entity {
         val entity = Entity(id = id, type = type, properties = properties, location = location)
         return entityRepository.save(entity)

@@ -60,7 +60,6 @@ object JsonLdUtils {
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
-    const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 

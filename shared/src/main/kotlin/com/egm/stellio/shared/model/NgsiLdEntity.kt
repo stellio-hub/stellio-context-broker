@@ -288,8 +288,8 @@ class NgsiLdGeoPropertyInstance(
                     var count = 1
                     coordinates.forEach {
                         if (count % 2 != 0) {
-                            val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]
-                            val latitude = (coordinates[count] as Map<String, Double>)["@value"]
+                            val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]!!
+                            val latitude = (coordinates[count] as Map<String, Double>)["@value"]!!
                             res.add(listOf(longitude, latitude))
                         }
                         count++

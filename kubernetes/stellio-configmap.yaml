@@ -20,9 +20,6 @@ data:
   KAFKA_URL: stellio-kafka:9092
 kind: ConfigMap
 metadata:
-  creationTimestamp: "2020-07-16T07:25:07Z"
   name: stellio-conf
   namespace: default
-  resourceVersion: "6086"
   selfLink: /api/v1/namespaces/default/configmaps/stellio-conf
-  uid: 18bedabb-cc60-4fd3-9c1a-58efbed7da5c

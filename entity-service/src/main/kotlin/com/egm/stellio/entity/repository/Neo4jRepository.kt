@@ -519,7 +519,7 @@ class Neo4jRepository(
         return result.map {
             val entityWithLocationCount = (it["entityWithLocationCount"] as Long).toInt()
             mapOf(
-                "entityType" to (it["entityType"] as Array<Any>).filter { it != "Entity" }.toSet().first(),
+                "entityType" to (it["entityType"] as Array<String>).first { it != "Entity" },
                 "properties" to (it["propertyNames"] as Array<Any>).toSet(),
                 "relationships" to (it["relationshipNames"] as Array<Any>)
                     .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
@@ -533,12 +533,12 @@ class Neo4jRepository(
         val query =
             """
                 MATCH (entity:Entity)
-                RETURN labels(entity) as entityType
+                RETURN DISTINCT(labels(entity)) as entityType
             """.trimIndent()
 
         val result = session.query(query, emptyMap<String, Any>(), true).toList()
         return result.map {
-            (it["entityType"] as Array<String>).filter { it != "Entity" }.toSet().first()
+            (it["entityType"] as Array<String>).first { it != "Entity" }
         }
     }
 

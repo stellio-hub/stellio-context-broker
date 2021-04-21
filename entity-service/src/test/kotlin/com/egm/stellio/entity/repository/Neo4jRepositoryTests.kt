@@ -1276,6 +1276,15 @@ class Neo4jRepositoryTests {
                 Property(name = "isContainedIn", value = 61)
             )
         )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Sensor:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
+            mutableListOf(
+                Property(name = "deviceParameter", value = 30),
+                Property(name = "isContainedIn", value = 61)
+            )
+        )
+
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
         val entityTypesNames = neo4jRepository.getEntityTypesNames()
@@ -1287,6 +1296,7 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -1319,22 +1329,20 @@ class Neo4jRepositoryTests {
 
         val entityTypes = neo4jRepository.getEntityTypes()
 
-        assertEquals(entityTypes.size, 2)
-        assertTrue(
-            entityTypes.containsAll(
-                listOf(
-                    mapOf(
-                        "entityType" to "https://ontology.eglobalmark.com/apic#Beehive",
-                        "properties" to setOf("temperature", "humidity", "name"),
-                        "relationships" to setOf("observedBy"),
-                        "geoProperties" to setOf("https://uri.etsi.org/ngsi-ld/location")
-                    ),
-                    mapOf(
-                        "entityType" to "https://ontology.eglobalmark.com/apic#Sensor",
-                        "properties" to setOf("deviceParameter"),
-                        "relationships" to emptySet<String>(),
-                        "geoProperties" to emptySet<String>()
-                    )
+        assertEquals(
+            entityTypes,
+            listOf(
+                mapOf(
+                    "entityType" to "https://ontology.eglobalmark.com/apic#Beehive",
+                    "properties" to setOf("temperature", "humidity", "name"),
+                    "relationships" to setOf("observedBy"),
+                    "geoProperties" to setOf("https://uri.etsi.org/ngsi-ld/location")
+                ),
+                mapOf(
+                    "entityType" to "https://ontology.eglobalmark.com/apic#Sensor",
+                    "properties" to setOf("deviceParameter"),
+                    "relationships" to emptySet<String>(),
+                    "geoProperties" to emptySet<String>()
                 )
             )
         )

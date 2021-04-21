@@ -59,3 +59,24 @@ fun parseLocationFragmentToPointGeoProperty(
         JsonLdUtils.expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS)
     )[0] as NgsiLdGeoProperty
 }
+
+fun parseLocationFragmentToPolygonGeoProperty(
+    coordinates: List<List<Double>>
+): NgsiLdGeoProperty {
+    val locationFragment =
+        """
+            {
+                "location": {
+                    "type": "GeoProperty",
+                    "value": {
+                        "type": "Polygon",
+                        "coordinates": $coordinates
+                    }
+                }
+            }
+        """.trimIndent()
+
+    return parseToNgsiLdAttributes(
+        JsonLdUtils.expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS)
+    )[0] as NgsiLdGeoProperty
+}

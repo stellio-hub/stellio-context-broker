@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>LargeClass:NgsiLdEntityTests.kt$NgsiLdEntityTests</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$ fun getPropertyValueFromMap(value: Map&lt;String, List&lt;Any&gt;&gt;, propertyKey: String): Any?</ID>
     <ID>SpreadOperator:EntityEvent.kt$EntityEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityReplaceEvent::class), JsonSubTypes.Type(value = EntityUpdateEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class), JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class) ] )</ID>
     <ID>TooGenericExceptionCaught:HttpUtils.kt$HttpUtils$e: Exception</ID>

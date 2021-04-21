@@ -60,7 +60,6 @@ object JsonLdUtils {
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
-    const val NGSILD_POINT_PROPERTY = "Point"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
     const val NGSILD_DATASET_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/datasetId"
 
@@ -443,6 +442,31 @@ object JsonLdUtils {
                 serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
                 contexts
             ) as Map<String, List<Map<String, List<Any>>>>
+
+    fun reconstructPolygonCoordinates(compactedJsonLdEntity: MutableMap<String, Any>) =
+        compactedJsonLdEntity
+            .filterValues { it is Map<*, *> }
+            .filterValues {
+                it as Map<String, Any>
+                it["type"] == "GeoProperty"
+            }.filterValues {
+                it as Map<String, Any>
+                (it["value"] as Map<String, Any>)["type"] == GeoPropertyType.Polygon.value
+            }.forEach {
+                val geoPropertyValue = (it.value as Map<String, Any>)["value"] as Map<String, Any>
+                val geoPropertyCoordinates = geoPropertyValue["coordinates"] as List<Any>
+
+                compactedJsonLdEntity.replace(
+                    it.key,
+                    mapOf(
+                        "type" to "GeoProperty",
+                        "value" to mapOf(
+                            "type" to "Polygon",
+                            "coordinates" to geoPropertyCoordinates.chunked(2)
+                        )
+                    )
+                )
+            }
 }
 
 fun String.extractShortTypeFromExpanded(): String =

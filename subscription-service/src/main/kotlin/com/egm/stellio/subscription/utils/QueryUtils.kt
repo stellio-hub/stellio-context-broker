@@ -1,8 +1,8 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_POINT_PROPERTY
 import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -79,7 +79,7 @@ object QueryUtils {
         val locationInstance = location.instances[0]
         val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
         val targetGeometryStatement =
-            createSqlGeometry(locationInstance.geoPropertyType, locationInstance.coordinates.toString())
+            createSqlGeometry(locationInstance.geoPropertyType.value, locationInstance.coordinates.toString())
         val georelParams = extractGeorelParams(geoQuery.georel)
 
         return if (georelParams.first == DISTANCE_QUERY_CLAUSE)
@@ -99,7 +99,7 @@ object QueryUtils {
         val geometry = StringBuilder()
         val parsedCoordinates = parseCoordinates(geometryType, coordinates)
 
-        if (geometryType == NGSILD_POINT_PROPERTY)
+        if (geometryType == GeoPropertyType.Point.value)
             geometry.append("$geometryType(")
         else
             geometry.append("$geometryType((")
@@ -107,7 +107,7 @@ object QueryUtils {
             geometry.append(it[0]).append(" ").append(it[1]).append(", ")
         }
 
-        if (geometryType == NGSILD_POINT_PROPERTY)
+        if (geometryType == GeoPropertyType.Point.value)
             geometry.replace(geometry.length - 2, geometry.length, ")")
         else
             geometry.replace(geometry.length - 2, geometry.length, "))")
@@ -118,7 +118,7 @@ object QueryUtils {
     fun parseCoordinates(geometryType: String, initialCoordinates: String): List<List<Double>> {
         val mapper = jacksonObjectMapper()
         val coordinates = StringBuilder()
-        if (geometryType == NGSILD_POINT_PROPERTY)
+        if (geometryType == GeoPropertyType.Point.value)
             coordinates.append("[").append(initialCoordinates).append("]")
         else
             coordinates.append(initialCoordinates)

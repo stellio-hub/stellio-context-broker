@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
@@ -129,6 +130,10 @@ class EntityHandler(
                 }
 
         val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
+            .map { it.toMutableMap() }
+        // coordinates of Polygon GeoProperty are returned in a single list after being compacted
+        // so they should be reconstructed
+        compactedEntities.forEach { reconstructPolygonCoordinates(it) }
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(compactedEntities))
@@ -166,7 +171,12 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
-            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType)
+
+            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
+
+            // coordinates of Polygon GeoProperty are returned in a single list after being compacted
+            // so they should be reconstructed
+            reconstructPolygonCoordinates(compactedEntity)
 
             return buildGetSuccessResponse(mediaType, contextLink)
                 .let {

@@ -131,6 +131,8 @@ class EntityHandler(
 
         val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
             .map { it.toMutableMap() }
+        // coordinates of Polygon GeoProperty are returned in a single list after being compacted
+        // so they should be reconstructed
         compactedEntities.forEach { reconstructPolygonCoordinates(it) }
 
         return buildGetSuccessResponse(mediaType, contextLink)

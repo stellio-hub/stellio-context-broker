@@ -30,6 +30,22 @@ class EntityTypeService(
         )
     }
 
+    fun getEntityTypes(contexts: List<String>): List<EntityType> =
+        neo4jRepository.getEntityTypes().map {
+            val entityType = (it["entityType"] as String)
+            EntityType(
+                id = entityType.toUri(),
+                typeName = compactTerm(entityType, contexts),
+                attributeNames = (it["properties"] as Set<String>).plus((it["relationships"] as Set<String>))
+                    .plus((it["geoProperties"] as Set<String>)).toList()
+            )
+        }
+
+    fun getEntityTypeList(contexts: List<String>): EntityTypeList =
+        EntityTypeList(
+            typeList = neo4jRepository.getEntityTypesNames()
+        )
+
     private fun createAttributeDetails(
         attributesInformation: Map<String, Any>,
         key: String,

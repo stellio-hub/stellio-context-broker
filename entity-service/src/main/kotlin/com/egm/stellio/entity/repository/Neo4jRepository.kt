@@ -502,6 +502,46 @@ class Neo4jRepository(
         )
     }
 
+    fun getEntityTypes(): List<Map<String, Any>> {
+        // The match on geoProperties is specific since they are not fully supported
+        // (currently we only support location that is stored among the entity node attributes)
+        val query =
+            """
+                MATCH (entity:Entity)
+                OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
+                RETURN labels(entity) as entityType, collect(distinct property.name) as propertyNames, 
+                    reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames,
+                    count(entity.location) as entityWithLocationCount
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        return result.map {
+            val entityWithLocationCount = (it["entityWithLocationCount"] as Long).toInt()
+            mapOf(
+                "entityType" to (it["entityType"] as Array<Any>).filter { it != "Entity" }.toSet().first(),
+                "properties" to (it["propertyNames"] as Array<Any>).toSet(),
+                "relationships" to (it["relationshipNames"] as Array<Any>)
+                    .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
+                "geoProperties" to
+                    if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet()
+            )
+        }
+    }
+
+    fun getEntityTypesNames(): List<String> {
+        val query =
+            """
+                MATCH (entity:Entity)
+                RETURN labels(entity) as entityType
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        return result.map {
+            (it["entityType"] as Array<String>).filter { it != "Entity" }.toSet().first()
+        }
+    }
+
     fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")

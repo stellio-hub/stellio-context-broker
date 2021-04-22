@@ -39,8 +39,8 @@ class EntityTypeServiceTests {
             ),
             mapOf(
                 "entityType" to sensorType,
-                "properties" to setOf("https://ontology.eglobalmark.com/aquac#deviceParameter"),
-                "relationships" to setOf("https://ontology.eglobalmark.com/aquac#isContainedIn"),
+                "properties" to setOf("https://ontology.eglobalmark.com/egm#brandName"),
+                "relationships" to setOf("https://ontology.eglobalmark.com/egm#calibrationCertif"),
                 "geoProperties" to emptySet<String>()
             )
         )
@@ -56,8 +56,8 @@ class EntityTypeServiceTests {
                         "EntityType",
                         "DeadFishes",
                         listOf(
-                            "https://ontology.eglobalmark.com/aquac#fishNumber",
-                            "https://ontology.eglobalmark.com/aquac#removedFrom"
+                            "fishNumber",
+                            "removedFrom"
                         )
                     ),
                     EntityType(
@@ -65,8 +65,8 @@ class EntityTypeServiceTests {
                         "EntityType",
                         "Sensor",
                         listOf(
-                            "https://ontology.eglobalmark.com/aquac#deviceParameter",
-                            "https://ontology.eglobalmark.com/aquac#isContainedIn"
+                            "brandName",
+                            "calibrationCertif"
                         )
                     )
                 )
@@ -89,7 +89,7 @@ class EntityTypeServiceTests {
 
         val entityTypes = entityTypeService.getEntityTypeList(listOf(AQUAC_COMPOUND_CONTEXT))
 
-        assert(entityTypes.typeList == listOf(deadFishesType, sensorType))
+        assert(entityTypes.typeList == listOf("DeadFishes", "Sensor"))
     }
 
     @Test

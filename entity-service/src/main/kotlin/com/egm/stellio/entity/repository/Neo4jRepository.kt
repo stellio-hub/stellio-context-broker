@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -516,17 +517,21 @@ class Neo4jRepository(
             """.trimIndent()
 
         val result = session.query(query, emptyMap<String, Any>(), true).toList()
-        return result.map {
-            val entityWithLocationCount = (it["entityWithLocationCount"] as Long).toInt()
-            mapOf(
-                "entityType" to (it["entityType"] as Array<String>).first { it != "Entity" },
-                "properties" to (it["propertyNames"] as Array<Any>).toSet(),
-                "relationships" to (it["relationshipNames"] as Array<Any>)
-                    .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
-                "geoProperties" to
-                    if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet()
-            )
-        }
+        return result.map { rowResult ->
+            val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
+            val entityTypes = (rowResult["entityType"] as Array<String>)
+                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+            entityTypes.map { entityType ->
+                mapOf(
+                    "entityType" to entityType,
+                    "properties" to (rowResult["propertyNames"] as Array<Any>).toSet(),
+                    "relationships" to (rowResult["relationshipNames"] as Array<Any>)
+                        .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
+                    "geoProperties" to
+                        if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet()
+                )
+            }
+        }.flatten()
     }
 
     fun getEntityTypesNames(): List<String> {
@@ -538,8 +543,9 @@ class Neo4jRepository(
 
         val result = session.query(query, emptyMap<String, Any>(), true).toList()
         return result.map {
-            (it["entityType"] as Array<String>).first { it != "Entity" }
-        }
+            (it["entityType"] as Array<String>)
+                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+        }.flatten()
     }
 
     fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
@@ -666,6 +672,12 @@ class Neo4jRepository(
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
         """.trimIndent()
+
+    private val authorizationEntitiesTypes = listOf(
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "User",
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Client",
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Group"
+    )
 
     @PostConstruct
     fun addEventListenerToSessionFactory() {

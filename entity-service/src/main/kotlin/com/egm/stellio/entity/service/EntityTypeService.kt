@@ -37,13 +37,13 @@ class EntityTypeService(
                 id = entityType.toUri(),
                 typeName = compactTerm(entityType, contexts),
                 attributeNames = (it["properties"] as Set<String>).plus((it["relationships"] as Set<String>))
-                    .plus((it["geoProperties"] as Set<String>)).toList()
+                    .plus((it["geoProperties"] as Set<String>)).toList().map { compactTerm(it, contexts) }
             )
         }
 
     fun getEntityTypeList(contexts: List<String>): EntityTypeList =
         EntityTypeList(
-            typeList = neo4jRepository.getEntityTypesNames()
+            typeList = neo4jRepository.getEntityTypesNames().map { compactTerm(it, contexts) }
         )
 
     private fun createAttributeDetails(

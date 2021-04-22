@@ -9,6 +9,7 @@ import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -498,7 +499,7 @@ class Neo4jRepository(
             "relationships" to (result.first()["relationshipNames"] as Array<Any>)
                 .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
             "geoProperties" to
-                if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet(),
+                if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet(),
             "entityCount" to entityCount
         )
     }
@@ -528,7 +529,7 @@ class Neo4jRepository(
                     "relationships" to (rowResult["relationshipNames"] as Array<Any>)
                         .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
                     "geoProperties" to
-                        if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet()
+                        if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet()
                 )
             }
         }.flatten()

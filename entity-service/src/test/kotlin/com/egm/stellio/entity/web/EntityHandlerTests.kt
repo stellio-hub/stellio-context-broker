@@ -89,7 +89,6 @@ class EntityHandlerTests {
         "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
     )
 
-    // Relaunch tests
     @Test
     fun `create entity should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")

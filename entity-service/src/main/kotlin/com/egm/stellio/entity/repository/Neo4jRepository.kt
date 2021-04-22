@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -8,6 +9,7 @@ import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -497,9 +499,54 @@ class Neo4jRepository(
             "relationships" to (result.first()["relationshipNames"] as Array<Any>)
                 .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
             "geoProperties" to
-                if (entityWithLocationCount > 0) setOf("https://uri.etsi.org/ngsi-ld/location") else emptySet(),
+                if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet(),
             "entityCount" to entityCount
         )
+    }
+
+    fun getEntityTypes(): List<Map<String, Any>> {
+        // The match on geoProperties is specific since they are not fully supported
+        // (currently we only support location that is stored among the entity node attributes)
+        val query =
+            """
+                MATCH (entity:Entity)
+                OPTIONAL MATCH (entity)-[:HAS_VALUE]->(property:Property)
+                OPTIONAL MATCH (entity)-[:HAS_OBJECT]->(rel:Relationship)
+                RETURN labels(entity) as entityType, collect(distinct property.name) as propertyNames, 
+                    reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames,
+                    count(entity.location) as entityWithLocationCount
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        return result.map { rowResult ->
+            val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
+            val entityTypes = (rowResult["entityType"] as Array<String>)
+                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+            entityTypes.map { entityType ->
+                mapOf(
+                    "entityType" to entityType,
+                    "properties" to (rowResult["propertyNames"] as Array<Any>).toSet(),
+                    "relationships" to (rowResult["relationshipNames"] as Array<Any>)
+                        .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
+                    "geoProperties" to
+                        if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet()
+                )
+            }
+        }.flatten()
+    }
+
+    fun getEntityTypesNames(): List<String> {
+        val query =
+            """
+                MATCH (entity:Entity)
+                RETURN DISTINCT(labels(entity)) as entityType
+            """.trimIndent()
+
+        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        return result.map {
+            (it["entityType"] as Array<String>)
+                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+        }.flatten()
     }
 
     fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
@@ -626,6 +673,12 @@ class Neo4jRepository(
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
         """.trimIndent()
+
+    private val authorizationEntitiesTypes = listOf(
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "User",
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Client",
+        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Group"
+    )
 
     @PostConstruct
     fun addEventListenerToSessionFactory() {

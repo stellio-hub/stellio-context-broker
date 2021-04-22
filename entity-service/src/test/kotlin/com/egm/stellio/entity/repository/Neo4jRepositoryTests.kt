@@ -1289,9 +1289,11 @@ class Neo4jRepositoryTests {
 
         val entityTypesNames = neo4jRepository.getEntityTypesNames()
 
-        assertEquals(
-            entityTypesNames,
-            listOf("https://ontology.eglobalmark.com/apic#Beehive", "https://ontology.eglobalmark.com/apic#Sensor")
+        assertEquals(entityTypesNames.size, 2)
+        assertTrue(
+            entityTypesNames.containsAll(
+                listOf("https://ontology.eglobalmark.com/apic#Beehive", "https://ontology.eglobalmark.com/apic#Sensor")
+            )
         )
 
         neo4jRepository.deleteEntity(firstEntity.id)
@@ -1329,20 +1331,22 @@ class Neo4jRepositoryTests {
 
         val entityTypes = neo4jRepository.getEntityTypes()
 
-        assertEquals(
-            entityTypes,
-            listOf(
-                mapOf(
-                    "entityType" to "https://ontology.eglobalmark.com/apic#Beehive",
-                    "properties" to setOf("temperature", "humidity", "name"),
-                    "relationships" to setOf("observedBy"),
-                    "geoProperties" to setOf("https://uri.etsi.org/ngsi-ld/location")
-                ),
-                mapOf(
-                    "entityType" to "https://ontology.eglobalmark.com/apic#Sensor",
-                    "properties" to setOf("deviceParameter"),
-                    "relationships" to emptySet<String>(),
-                    "geoProperties" to emptySet<String>()
+        assertEquals(entityTypes.size, 2)
+        assertTrue(
+            entityTypes.containsAll(
+                listOf(
+                    mapOf(
+                        "entityType" to "https://ontology.eglobalmark.com/apic#Beehive",
+                        "properties" to setOf("temperature", "humidity", "name"),
+                        "relationships" to setOf("observedBy"),
+                        "geoProperties" to setOf("https://uri.etsi.org/ngsi-ld/location")
+                    ),
+                    mapOf(
+                        "entityType" to "https://ontology.eglobalmark.com/apic#Sensor",
+                        "properties" to setOf("deviceParameter"),
+                        "relationships" to emptySet<String>(),
+                        "geoProperties" to emptySet<String>()
+                    )
                 )
             )
         )

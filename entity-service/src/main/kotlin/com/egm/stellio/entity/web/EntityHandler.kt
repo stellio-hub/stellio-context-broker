@@ -86,6 +86,7 @@ class EntityHandler(
     ): ResponseEntity<*> {
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
+        val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
         val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
@@ -107,7 +108,7 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(ids, type, q.decode(), contextLink, includeSysAttrs)
+        val entities = entityService.searchEntities(ids, type, idPattern, q.decode(), contextLink, includeSysAttrs)
         if (entities.isEmpty())
             return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
 

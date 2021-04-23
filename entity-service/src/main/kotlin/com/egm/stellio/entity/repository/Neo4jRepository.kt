@@ -549,7 +549,7 @@ class Neo4jRepository(
         }.flatten()
     }
 
-    fun getEntities(ids: List<String>?, type: String, rawQuery: String): List<URI> {
+    fun getEntities(ids: List<String>?, type: String, idPattern: String?, rawQuery: String): List<URI> {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
@@ -593,12 +593,20 @@ class Neo4jRepository(
             if (ids != null)
                 """
                     n.id in $formattedIds
+                    ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}
+                """
+            else ""
+
+        val idPatternClause =
+            if (idPattern != null)
+                """
+                    n.id =~ '$idPattern'
                     ${if (innerQuery.isNotEmpty()) " AND " else ""}
                 """
             else ""
 
         val whereClause =
-            if (innerQuery.isNotEmpty() || ids != null) " WHERE "
+            if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
             else ""
 
         val finalQuery =
@@ -606,6 +614,7 @@ class Neo4jRepository(
             $matchClause
             $whereClause
                 $idClause
+                $idPatternClause
                 $innerQuery
             RETURN n.id as id
             """

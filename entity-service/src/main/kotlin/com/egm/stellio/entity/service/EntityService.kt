@@ -300,11 +300,12 @@ class EntityService(
     fun searchEntities(
         ids: List<String>?,
         type: String,
+        idPattern: String?,
         query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(ids, type, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(ids, type, idPattern, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -319,6 +320,7 @@ class EntityService(
     fun searchEntities(
         ids: List<String>?,
         type: String,
+        idPattern: String?,
         query: String,
         contexts: List<String>,
         includeSysAttrs: Boolean
@@ -345,7 +347,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(ids, expandedType, expandedQuery)
+        return neo4jRepository.getEntities(ids, expandedType, idPattern, expandedQuery)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 

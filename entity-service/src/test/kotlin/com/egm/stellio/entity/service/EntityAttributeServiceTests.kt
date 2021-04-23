@@ -9,8 +9,7 @@ import com.egm.stellio.entity.repository.PropertyRepository
 import com.egm.stellio.entity.repository.RelationshipRepository
 import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
@@ -58,7 +57,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "years", 0)
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
@@ -84,7 +83,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "years", 0)
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
@@ -116,7 +115,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "months", 0)
         val depthProperty = Property("depth", null, 0)
 
@@ -173,7 +172,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "years", 0)
         val relationship = Relationship(listOf("measuredBy"))
 
@@ -213,7 +212,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "months", 0)
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
@@ -247,7 +246,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val relationship = Relationship(listOf("isContainedIn"))
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
@@ -281,7 +280,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val relationship = Relationship(listOf("isContainedIn"))
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
@@ -320,7 +319,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val relationship = Relationship(listOf("isContainedIn"))
         val property = Property("depth", null, 0)
 
@@ -365,7 +364,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val relationship = Relationship(listOf("isContainedIn"))
         val measuredByRelationship = Relationship(listOf("measuredBy"))
 
@@ -410,7 +409,7 @@ class EntityAttributeServiceTests {
             }
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         every { neo4jRepository.hasRelationshipOfType(any(), any()) } returns false
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns false
 
@@ -442,7 +441,7 @@ class EntityAttributeServiceTests {
             ]
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(propertyName, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(propertyName, "years", 0)
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns false
@@ -495,7 +494,7 @@ class EntityAttributeServiceTests {
             ]
             """.trimIndent()
 
-        val expandedPayload = parseAndExpandAttributeFragmentPayload(relationshipType, payload)
+        val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val relationship = Relationship(listOf("isContainedIn"))
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns relationship
@@ -540,10 +539,4 @@ class EntityAttributeServiceTests {
 
         confirmVerified()
     }
-
-    private fun parseAndExpandAttributeFragmentPayload(attributeName: String, attributePayload: String):
-        Map<String, List<Map<String, List<Any>>>> = expandJsonLdFragment(
-            JsonUtils.serializeObject(mapOf(attributeName to JsonUtils.deserializeAs<Any>(attributePayload))),
-            AQUAC_COMPOUND_CONTEXT
-        ) as Map<String, List<Map<String, List<Any>>>>
 }

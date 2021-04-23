@@ -13,10 +13,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
-import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
@@ -339,10 +338,7 @@ class EntityHandler(
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
         checkAttributeIsAuthorized(expandedAttrId, entityUri, userId)
 
-        val expandedPayload = expandJsonLdFragment(
-            serializeObject(mapOf(attrId to deserializeAs<Any>(body))),
-            contexts
-        ) as Map<String, List<Map<String, List<Any>>>>
+        val expandedPayload = parseAndExpandAttributeFragment(attrId, body, contexts)
 
         val updateResult = entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
 

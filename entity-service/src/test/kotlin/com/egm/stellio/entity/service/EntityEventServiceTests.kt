@@ -6,7 +6,7 @@ import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -323,10 +323,11 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
 
-        val jsonLdAttributes = expandJsonLdFragment(
-            JsonUtils.serializeObject(mapOf("fishName" to JsonUtils.deserializeAs<Any>(fishNamePayload))),
+        val jsonLdAttributes = parseAndExpandAttributeFragment(
+            "fishName",
+            fishNamePayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
-        ) as Map<String, List<Map<String, List<Any>>>>
+        )
 
         val updateResult = UpdateResult(
             updated = arrayListOf(
@@ -379,11 +380,11 @@ class EntityEventServiceTests {
                 $secondRelationshipPayload
             ]
             """.trimIndent()
-        val jsonLdAttributes = expandJsonLdFragment(
-            JsonUtils.serializeObject(mapOf("connectsTo" to JsonUtils.deserializeAs<Any>(connectsToPayload))),
+        val jsonLdAttributes = parseAndExpandAttributeFragment(
+            "connectsTo",
+            connectsToPayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
-        ) as Map<String, List<Map<String, List<Any>>>>
-
+        )
         val updateResult = UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(

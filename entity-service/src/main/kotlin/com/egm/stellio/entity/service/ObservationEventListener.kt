@@ -3,9 +3,7 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
@@ -51,12 +49,11 @@ class ObservationEventListener(
     }
 
     fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent) {
-        val expandedPayload = expandJsonLdFragment(
-            JsonUtils.serializeObject(
-                mapOf(observationEvent.attributeName to deserializeAs<Any>(observationEvent.operationPayload))
-            ),
+        val expandedPayload = parseAndExpandAttributeFragment(
+            observationEvent.attributeName,
+            observationEvent.operationPayload,
             observationEvent.contexts
-        ) as Map<String, List<Map<String, List<Any>>>>
+        )
 
         try {
             entityAttributeService.partialUpdateEntityAttribute(

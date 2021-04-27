@@ -33,6 +33,9 @@ class EntityTypeHandlerTests {
 
     private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
+    private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
+    private val sensorType = "https://ontology.eglobalmark.com/egm#Sensor"
+
     private val expectedEntityTypeInfo =
         """
             {
@@ -68,6 +71,130 @@ class EntityTypeHandlerTests {
                ]
             }
         """.trimIndent()
+
+    private val expectedEntityTypes =
+        """
+            [
+               {
+                  "id":"https://ontology.eglobalmark.com/aquac#DeadFishes",
+                  "type":"EntityType",
+                  "typeName":"DeadFishes",
+                  "attributeNames":[
+                     "https://ontology.eglobalmark.com/aquac#fishNumber",
+                     "https://ontology.eglobalmark.com/aquac#removedFrom"
+                  ]
+               },
+               {
+                  "id":"https://ontology.eglobalmark.com/egm#Sensor",
+                  "type":"EntityType",
+                  "typeName":"Sensor",
+                  "attributeNames":[
+                     "https://ontology.eglobalmark.com/aquac#isContainedIn",
+                     "https://ontology.eglobalmark.com/aquac#deviceParameter"
+                  ]
+               }
+            ]
+        """.trimIndent()
+
+    @Test
+    fun `get entity types should return a 200 and an EntityTypeList`() {
+        every { entityTypeService.getEntityTypeList(any()) } returns EntityTypeList(
+            typeList = listOf(
+                deadFishesType, sensorType
+            )
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.id").isNotEmpty
+            .jsonPath("$.type").isNotEmpty
+            .jsonPath("$.typeList").isNotEmpty
+
+        verify {
+            entityTypeService.getEntityTypeList(
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `get entity types should return a 200 and an EntityTypeList with empty typeList if no entity was found`() {
+        every { entityTypeService.getEntityTypeList(any()) } returns EntityTypeList(typeList = emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.id").isNotEmpty
+            .jsonPath("$.type").isNotEmpty
+            .jsonPath("$.typeList").isEmpty
+
+        verify {
+            entityTypeService.getEntityTypeList(
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `get entity types should return a 200 and a list of EntityType if details param is true`() {
+        every { entityTypeService.getEntityTypes(any()) } returns listOf(
+            EntityType(
+                id = deadFishesType.toUri(),
+                typeName = "DeadFishes",
+                attributeNames = listOf(
+                    "https://ontology.eglobalmark.com/aquac#fishNumber",
+                    "https://ontology.eglobalmark.com/aquac#removedFrom"
+                )
+            ),
+            EntityType(
+                id = sensorType.toUri(),
+                typeName = "Sensor",
+                attributeNames = listOf(
+                    "https://ontology.eglobalmark.com/aquac#isContainedIn",
+                    "https://ontology.eglobalmark.com/aquac#deviceParameter"
+                )
+            )
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types?details=true")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(expectedEntityTypes)
+
+        verify {
+            entityTypeService.getEntityTypes(
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
+    @Test
+    fun `get entity types should return a 200 and an empty payload if no entity was found and details param is true`() {
+        every { entityTypeService.getEntityTypes(any()) } returns emptyList()
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/types?details=true")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+
+        verify {
+            entityTypeService.getEntityTypes(
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+    }
+
     @Test
     fun `get entity type information should return a 200 if entities of that type exists`() {
         every { entityTypeService.getEntityTypeInfo(any(), any()) } returns

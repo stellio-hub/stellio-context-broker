@@ -122,7 +122,7 @@ class EntityHandlerTests {
                         it.entityId == breedingServiceId &&
                         it.contexts == hcmrContext
                 },
-                "BreedingService"
+                "https://ontology.eglobalmark.com/aquac#BreedingService"
             )
         }
 
@@ -458,7 +458,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>(), false) } returns listOf(
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns listOf(
             JsonLdEntity(
                 mapOf(
                     "@id" to "urn:ngsi-ld:Beehive:TESTC",
@@ -495,7 +495,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any<String>(), true) } returns listOf(
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), true) } returns listOf(
             JsonLdEntity(
                 mapOf(
                     NGSILD_CREATED_AT_PROPERTY to
@@ -1192,7 +1192,7 @@ class EntityHandlerTests {
                         it.operationPayload.matchContent(jsonLdFile) &&
                         it.updatedEntity.removeNoise() == expectedUpdatedEntity.removeNoise()
                 },
-                "DeadFishes"
+                "https://ontology.eglobalmark.com/aquac#DeadFishes"
             )
         }
         confirmVerified(entityService, entityEventService)
@@ -1561,7 +1561,7 @@ class EntityHandlerTests {
                     it.operationType == EventsType.ENTITY_DELETE &&
                         it.entityId == entityId
                 },
-                "Sensor"
+                "https://ontology.eglobalmark.com/egm#Sensor"
             )
         }
 
@@ -1669,7 +1669,7 @@ class EntityHandlerTests {
                         it.datasetId == null &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
-                "DeadFishes"
+                "https://ontology.eglobalmark.com/aquac#DeadFishes"
             )
         }
         confirmVerified(entityService)
@@ -1713,7 +1713,7 @@ class EntityHandlerTests {
                         it.attributeName == "fishNumber" &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
-                "DeadFishes"
+                "https://ontology.eglobalmark.com/aquac#DeadFishes"
             )
         }
         confirmVerified(entityService)
@@ -1759,7 +1759,7 @@ class EntityHandlerTests {
                         it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri() &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                 },
-                "DeadFishes"
+                "https://ontology.eglobalmark.com/aquac#DeadFishes"
             )
         }
         confirmVerified(entityService)

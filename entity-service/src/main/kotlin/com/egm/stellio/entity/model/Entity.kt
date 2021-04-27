@@ -13,12 +13,12 @@ import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.locationtech.jts.io.WKTReader
 import org.neo4j.ogm.annotation.Id
 import org.neo4j.ogm.annotation.Labels
 import org.neo4j.ogm.annotation.NodeEntity
 import org.neo4j.ogm.annotation.Relationship
 import org.neo4j.ogm.annotation.typeconversion.Convert
-import org.neo4j.ogm.types.spatial.GeographicPoint2d
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -43,7 +43,7 @@ class Entity(
     var modifiedAt: ZonedDateTime? = null,
 
     @JsonIgnore
-    var location: GeographicPoint2d? = null,
+    var location: String? = null,
 
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
@@ -74,15 +74,15 @@ class Entity(
             }
         }
         location?.run {
+            val geometry = WKTReader().read(this)
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
                 JSONLD_TYPE to "GeoProperty",
                 NGSILD_GEOPROPERTY_VALUE to mapOf(
-                    JSONLD_TYPE to "Point",
-                    NGSILD_COORDINATES_PROPERTY to listOf(this.longitude, this.latitude)
+                    JSONLD_TYPE to geometry.geometryType,
+                    NGSILD_COORDINATES_PROPERTY to geometry.coordinates.map { listOf(it.x, it.y) }
                 )
             )
         }
-
         return resultEntity
     }
 }

@@ -149,17 +149,15 @@ class EntityService(
     ): Int {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        return if (ngsiLdGeoPropertyInstance.geoPropertyType == "Point") {
-            neo4jRepository.addLocationPropertyToEntity(
+        return when (ngsiLdGeoPropertyInstance.geoPropertyType) {
+            GeoPropertyType.Point, GeoPropertyType.Polygon -> neo4jRepository.addLocationPropertyToEntity(
                 entityId,
-                Pair(
-                    ngsiLdGeoPropertyInstance.coordinates[0] as Double,
-                    ngsiLdGeoPropertyInstance.coordinates[1] as Double
-                )
+                ngsiLdGeoPropertyInstance
             )
-        } else {
-            logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
-            0
+            else -> {
+                logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
+                0
+            }
         }
     }
 
@@ -302,11 +300,12 @@ class EntityService(
     fun searchEntities(
         ids: List<String>?,
         type: String,
+        idPattern: String?,
         query: String,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(ids, type, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(ids, type, idPattern, query, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -321,6 +320,7 @@ class EntityService(
     fun searchEntities(
         ids: List<String>?,
         type: String,
+        idPattern: String?,
         query: String,
         contexts: List<String>,
         includeSysAttrs: Boolean
@@ -347,7 +347,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(ids, expandedType, expandedQuery)
+        return neo4jRepository.getEntities(ids, expandedType, idPattern, expandedQuery)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 
@@ -657,16 +657,14 @@ class EntityService(
     ) {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
         // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        if (ngsiLdGeoPropertyInstance.geoPropertyType == "Point") {
-            neo4jRepository.updateLocationPropertyOfEntity(
+        when (ngsiLdGeoPropertyInstance.geoPropertyType) {
+            GeoPropertyType.Point, GeoPropertyType.Polygon -> neo4jRepository.updateLocationPropertyOfEntity(
                 entityId,
-                Pair(
-                    ngsiLdGeoPropertyInstance.coordinates[0] as Double,
-                    ngsiLdGeoPropertyInstance.coordinates[1] as Double
-                )
+                ngsiLdGeoPropertyInstance
             )
-        } else {
-            throw BadRequestDataException("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
+            else -> throw BadRequestDataException(
+                "Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}"
+            )
         }
     }
 

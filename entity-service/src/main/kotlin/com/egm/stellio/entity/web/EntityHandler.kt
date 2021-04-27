@@ -11,11 +11,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
@@ -68,7 +68,7 @@ class EntityHandler(
 
         entityEventService.publishEntityEvent(
             EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            compactTerm(ngsiLdEntity.type, contexts)
+            ngsiLdEntity.type
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -86,6 +86,7 @@ class EntityHandler(
     ): ResponseEntity<*> {
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
+        val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
         val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
@@ -107,7 +108,10 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(ids, type, q.decode(), contextLink, includeSysAttrs)
+        val entities = entityService.searchEntities(ids, type, idPattern, q.decode(), contextLink, includeSysAttrs)
+        if (entities.isEmpty())
+            return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
+
         val userId = extractSubjectOrEmpty().awaitFirst()
         val entitiesUserCanRead =
             authorizationService.filterEntitiesUserCanRead(
@@ -127,6 +131,10 @@ class EntityHandler(
                 }
 
         val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
+            .map { it.toMutableMap() }
+        // coordinates of Polygon GeoProperty are returned in a single list after being compacted
+        // so they should be reconstructed
+        compactedEntities.forEach { reconstructPolygonCoordinates(it) }
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(compactedEntities))
@@ -164,7 +172,12 @@ class EntityHandler(
                 JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
-            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType)
+
+            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
+
+            // coordinates of Polygon GeoProperty are returned in a single list after being compacted
+            // so they should be reconstructed
+            reconstructPolygonCoordinates(compactedEntity)
 
             return buildGetSuccessResponse(mediaType, contextLink)
                 .let {
@@ -199,7 +212,7 @@ class EntityHandler(
         entityService.deleteEntity(entityId.toUri())
 
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), contexts), compactTerm(entity.type[0], contexts)
+            EntityDeleteEvent(entityId.toUri(), contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -340,7 +353,7 @@ class EntityHandler(
                 updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                 contexts = contexts
             ),
-            compactTerm(updatedEntity.type, contexts)
+            updatedEntity.type
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -386,7 +399,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
             else
                 entityEventService.publishEntityEvent(
@@ -397,7 +410,7 @@ class EntityHandler(
                         updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
                         contexts = contexts
                     ),
-                    compactTerm(updatedEntity.type, contexts)
+                    updatedEntity.type
                 )
         }
 

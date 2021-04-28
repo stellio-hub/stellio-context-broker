@@ -30,11 +30,27 @@ data class UpdateAttributeResult(
     val errorMessage: String? = null
 ) {
     fun isSuccessfullyUpdated() =
-        this.updateOperationResult in listOf(UpdateOperationResult.APPENDED, UpdateOperationResult.REPLACED)
+        this.updateOperationResult in listOf(
+            UpdateOperationResult.APPENDED,
+            UpdateOperationResult.REPLACED,
+            UpdateOperationResult.UPDATED
+        )
 }
 
 enum class UpdateOperationResult {
     APPENDED,
     REPLACED,
-    IGNORED
+    UPDATED,
+    IGNORED,
+    FAILED,
+}
+
+fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
+    val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }
+        .map { UpdatedDetails(it.attributeName, it.datasetId, it.updateOperationResult) }
+
+    val notUpdated = updateStatuses.filter { !it.isSuccessfullyUpdated() }
+        .map { NotUpdatedDetails(it.attributeName, it.errorMessage!!) }
+
+    return UpdateResult(updated, notUpdated)
 }

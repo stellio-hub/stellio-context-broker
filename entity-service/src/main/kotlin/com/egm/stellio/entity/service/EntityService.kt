@@ -640,16 +640,6 @@ class EntityService(
                 "GeoProperty does not exist"
             )
 
-    private fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {
-        val updated = updateStatuses.filter { it.isSuccessfullyUpdated() }
-            .map { UpdatedDetails(it.attributeName, it.datasetId, it.updateOperationResult) }
-
-        val notUpdated = updateStatuses.filter { !it.isSuccessfullyUpdated() }
-            .map { NotUpdatedDetails(it.attributeName, it.errorMessage!!) }
-
-        return UpdateResult(updated, notUpdated)
-    }
-
     internal fun updateLocationPropertyOfEntity(
         entityId: URI,
         propertyKey: String,

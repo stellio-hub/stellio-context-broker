@@ -1152,20 +1152,23 @@ class EntityHandlerTests {
                     "@context": ["$AQUAC_COMPOUND_CONTEXT"]
                 }
             """.trimIndent()
-        val expectedUpdatedEntity =
-            """
-                {
-                    "id": "$entityId",
-                    "type": "DeadFishes"
-                }
-            """.trimIndent()
         val attrId = "fishNumber"
-
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    "urn:ngsi-ld:Dataset:1".toUri(),
+                    UpdateOperationResult.UPDATED
+                )
+            ),
+            notUpdated = arrayListOf()
+        )
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
         every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just
+            Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1181,20 +1184,76 @@ class EntityHandlerTests {
         }
         verify { entityService.getFullEntityById(entityId, true) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeUpdateEvent
-                    it.operationType == EventsType.ATTRIBUTE_UPDATE &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT) &&
-                        it.operationPayload.matchContent(jsonLdFile) &&
-                        it.updatedEntity.removeNoise() == expectedUpdatedEntity.removeNoise()
-                },
-                "https://ontology.eglobalmark.com/aquac#DeadFishes"
+            entityEventService.publishPartialUpdateEntityAttributesEvents(
+                eq(entityId),
+                any(),
+                eq(updateResult.updated),
+                any(),
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
+
+        confirmVerified(entityService, entityEventService)
+    }
+
+    @Test
+    fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
+        val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
+        val deadFish =
+            """
+                {
+                    "id": "$entityId",
+                    "type": "DeadFishes",
+                    "@context": ["$AQUAC_COMPOUND_CONTEXT"]
+                }
+            """.trimIndent()
+        val attrId = "fishNumber"
+        val updateResult = UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    null,
+                    UpdateOperationResult.UPDATED
+                ),
+                UpdatedDetails(
+                    fishNumberAttribute,
+                    "urn:ngsi-ld:Dataset:1".toUri(),
+                    UpdateOperationResult.UPDATED
+                )
+            ),
+            notUpdated = arrayListOf()
+        )
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
+        every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
+        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just
+            Runs
+
+        webClient.patch()
+            .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
+            .header("Link", aquacHeaderLink)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify { entityService.exists(entityId) }
+        verify {
+            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
+        }
+        verify { entityService.getFullEntityById(entityId, true) }
+        verify {
+            entityEventService.publishPartialUpdateEntityAttributesEvents(
+                eq(entityId),
+                any(),
+                eq(updateResult.updated),
+                any(),
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
+            )
+        }
+
         confirmVerified(entityService, entityEventService)
     }
 
@@ -1226,8 +1285,15 @@ class EntityHandlerTests {
 
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } throws
-            ResourceNotFoundException("Unknown attribute $attrId in entity $entityId")
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns UpdateResult(
+            updated = arrayListOf(),
+            notUpdated = arrayListOf(
+                NotUpdatedDetails(
+                    fishNumberAttribute,
+                    "Unknown attribute $fishNumberAttribute with datasetId urn:ngsi-ld:Dataset:1 in entity $entityId"
+                )
+            )
+        )
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")

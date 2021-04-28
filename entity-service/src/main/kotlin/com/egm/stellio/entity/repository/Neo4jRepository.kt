@@ -275,20 +275,30 @@ class Neo4jRepository(
     fun updateRelationshipTargetOfSubject(
         subjectId: URI,
         relationshipType: String,
-        newRelationshipObjectId: URI
+        newRelationshipObjectId: URI,
+        datasetId: URI? = null
     ): Boolean {
-        val relationshipTypeQuery =
+        val matchQuery = if (datasetId == null)
             """
             MATCH ({ id: ${'$'}subjectId })-[:HAS_OBJECT]->(r:Relationship)-[v:$relationshipType]->()
+            """.trimIndent()
+        else
+            """
+            MATCH ({ id: ${'$'}subjectId })-[:HAS_OBJECT]->(r:Relationship { datasetId: ${'$'}datasetId })
+            -[v:$relationshipType]->()
+            """.trimIndent()
+
+        val relationshipTypeQuery = matchQuery + """
             MERGE (target { id: ${'$'}newRelationshipObjectId })
             ON CREATE SET target:PartialEntity
             DETACH DELETE v
             MERGE (r)-[:$relationshipType]->(target)
-            """.trimIndent()
+        """.trimIndent()
 
         val parameters = mapOf(
             "subjectId" to subjectId,
-            "newRelationshipObjectId" to newRelationshipObjectId
+            "newRelationshipObjectId" to newRelationshipObjectId,
+            "datasetId" to datasetId?.toString()
         )
 
         return session.query(relationshipTypeQuery, parameters).queryStatistics().containsUpdates()
@@ -652,10 +662,16 @@ class Neo4jRepository(
             .first()
     }
 
-    fun getRelationshipOfSubject(subjectId: URI, relationshipType: String): Relationship {
-        val query =
+    fun getRelationshipOfSubject(subjectId: URI, relationshipType: String, datasetId: URI? = null): Relationship {
+        val query = if (datasetId == null)
             """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
+            RETURN r
+            """.trimIndent()
+        else
+            """
+            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship { datasetId: "$datasetId" })
+            -[:$relationshipType]->()
             RETURN r
             """.trimIndent()
 
@@ -664,12 +680,19 @@ class Neo4jRepository(
             .first()
     }
 
-    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String): Entity? {
-        val query =
+    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String, datasetId: URI? = null): Entity? {
+        val query = if (datasetId == null)
             """
             MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
             RETURN e
             """.trimIndent()
+        else
+            """
+            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship { datasetId: "$datasetId" })
+          -[:$relationshipType]->(e: Entity)
+            RETURN e
+            """.trimIndent()
+
         return session.query(query, emptyMap<String, Any>(), true).toMutableList()
             .map { it["e"] as Entity }
             .firstOrNull()

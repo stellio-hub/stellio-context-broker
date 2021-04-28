@@ -1253,7 +1253,7 @@ class Neo4jRepositoryTests {
     }
 
     @Test
-    fun `it should update the relationship target of an entity`() {
+    fun `it should update the target of the default relationship instance of an entity`() {
         val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
         val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
         val newDevice = createEntity("urn:ngsi-ld:Device:9978".toUri(), listOf("Device"), mutableListOf())
@@ -1271,6 +1271,37 @@ class Neo4jRepositoryTests {
 
         assertEquals(
             neo4jRepository.getRelationshipTargetOfSubject(sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName())!!.id,
+            newDevice.id
+        )
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
+        neo4jRepository.deleteEntity(newDevice.id)
+    }
+
+    @Test
+    fun `it should update the target of a relationship instance with datasetId of an entity`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        val newDevice = createEntity("urn:ngsi-ld:Device:9978".toUri(), listOf("Device"), mutableListOf())
+        val datasetId = "urn:ngsi-ld:Dataset:observedBy:device1".toUri()
+        createRelationship(
+            EntitySubjectNode(sensor.id),
+            EGM_OBSERVED_BY,
+            device.id,
+            datasetId
+        )
+
+        neo4jRepository.updateRelationshipTargetOfSubject(
+            sensor.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            newDevice.id,
+            datasetId
+        )
+
+        assertEquals(
+            neo4jRepository.getRelationshipTargetOfSubject(
+                sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName(), datasetId
+            )!!.id,
             newDevice.id
         )
         neo4jRepository.deleteEntity(sensor.id)
@@ -1506,6 +1537,31 @@ class Neo4jRepositoryTests {
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
         neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
+    @Test
+    fun `it should return the relationship instance with datasetId of an entity`() {
+        val sensor = createEntity("urn:ngsi-ld:Sensor:1233".toUri(), listOf("Sensor"), mutableListOf())
+        val device = createEntity("urn:ngsi-ld:Device:1233".toUri(), listOf("Device"), mutableListOf())
+        createRelationship(
+            EntitySubjectNode(sensor.id),
+            EGM_OBSERVED_BY,
+            device.id,
+            "urn:ngsi-ld:Dataset:observedBy:01".toUri()
+        )
+
+        val relationship = neo4jRepository.getRelationshipOfSubject(
+            sensor.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            "urn:ngsi-ld:Dataset:observedBy:01".toUri()
+        )
+
+        assertEquals(
+            relationship.type, listOf(EGM_OBSERVED_BY)
+        )
+
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
     }
 
     fun createEntity(

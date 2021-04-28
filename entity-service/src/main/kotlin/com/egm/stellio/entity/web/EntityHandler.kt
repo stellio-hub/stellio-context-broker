@@ -348,7 +348,7 @@ class EntityHandler(
             entityEventService.publishPartialUpdateEntityAttributesEvents(
                 entityUri,
                 expandedPayload,
-                updateResult,
+                updateResult.updated,
                 entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )

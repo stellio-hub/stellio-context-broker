@@ -5,6 +5,7 @@ import arrow.core.invalid
 import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -145,23 +146,23 @@ class EntityEventService(
     fun publishPartialUpdateEntityAttributesEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
-        updateResult: UpdateResult,
+        updatedDetails: List<UpdatedDetails>,
         updatedEntity: JsonLdEntity,
         contexts: List<String>
     ) {
-        updateResult.updated.forEach { updatedDetails ->
-            val attributeName = updatedDetails.attributeName
+        updatedDetails.forEach { updatedDetail ->
+            val attributeName = updatedDetail.attributeName
             val attributePayload =
                 JsonLdUtils.getAttributeFromExpandedAttributes(
                     jsonLdAttributes,
                     attributeName,
-                    updatedDetails.datasetId
+                    updatedDetail.datasetId
                 ) as Map<String, Any>
             publishEntityEvent(
                 AttributeUpdateEvent(
                     entityId,
                     compactTerm(attributeName, contexts),
-                    updatedDetails.datasetId,
+                    updatedDetail.datasetId,
                     JsonLdUtils.compactAndStringifyFragment(
                         attributePayload,
                         contexts

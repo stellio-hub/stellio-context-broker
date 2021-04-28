@@ -1157,7 +1157,7 @@ class EntityHandlerTests {
             updated = arrayListOf(
                 UpdatedDetails(
                     fishNumberAttribute,
-                    null,
+                    "urn:ngsi-ld:Dataset:1".toUri(),
                     UpdateOperationResult.UPDATED
                 )
             ),
@@ -1187,7 +1187,7 @@ class EntityHandlerTests {
             entityEventService.publishPartialUpdateEntityAttributesEvents(
                 eq(entityId),
                 any(),
-                eq(updateResult),
+                eq(updateResult.updated),
                 any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
@@ -1198,7 +1198,7 @@ class EntityHandlerTests {
 
     @Test
     fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
-        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
+        val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
         val deadFish =
             """
@@ -1248,7 +1248,7 @@ class EntityHandlerTests {
             entityEventService.publishPartialUpdateEntityAttributesEvents(
                 eq(entityId),
                 any(),
-                eq(updateResult),
+                eq(updateResult.updated),
                 any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )

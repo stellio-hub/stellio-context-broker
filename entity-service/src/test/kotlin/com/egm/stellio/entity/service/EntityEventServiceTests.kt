@@ -329,17 +329,12 @@ class EntityEventServiceTests {
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(fishNameAttribute, null, UpdateOperationResult.UPDATED)
-            ),
-            notUpdated = arrayListOf()
-        )
+        val updatedDetails = listOf(UpdatedDetails(fishNameAttribute, null, UpdateOperationResult.UPDATED))
 
         entityEventService.publishPartialUpdateEntityAttributesEvents(
             entityUri,
             jsonLdAttributes,
-            updateResult,
+            updatedDetails,
             mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
@@ -385,21 +380,15 @@ class EntityEventServiceTests {
             connectsToPayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
-        val updateResult = UpdateResult(
-            updated = arrayListOf(
-                UpdatedDetails(
-                    attributeName,
-                    "urn:ngsi-ld:Dataset:connectsTo:1".toUri(), UpdateOperationResult.UPDATED
-                ),
-                UpdatedDetails(attributeName, null, UpdateOperationResult.UPDATED)
-            ),
-            notUpdated = arrayListOf()
+        val updatedDetails = listOf(
+            UpdatedDetails(attributeName, "urn:ngsi-ld:Dataset:connectsTo:1".toUri(), UpdateOperationResult.UPDATED),
+            UpdatedDetails(attributeName, null, UpdateOperationResult.UPDATED)
         )
 
         entityEventService.publishPartialUpdateEntityAttributesEvents(
             entityUri,
             jsonLdAttributes,
-            updateResult,
+            updatedDetails,
             mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )

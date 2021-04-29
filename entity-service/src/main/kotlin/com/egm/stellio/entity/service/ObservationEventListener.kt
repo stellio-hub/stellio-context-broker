@@ -95,6 +95,10 @@ class ObservationEventListener(
                 !observationEvent.overwrite
             )
             val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
+            if (updatedEntity!!.type.isEmpty()) {
+                logger.warn("Retrieved entity ${observationEvent.entityId} but it has no type!")
+                return
+            }
             entityEventService.publishEntityEvent(
                 AttributeAppendEvent(
                     observationEvent.entityId,

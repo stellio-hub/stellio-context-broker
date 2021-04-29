@@ -129,7 +129,9 @@ class ObservationEventListenerTests {
             ),
             emptyList()
         )
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
+        every { entityService.getFullEntityById(any(), any()) } returns mockedJsonLdEntity
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         observationEventListener.processMessage(observationEvent)

@@ -81,6 +81,11 @@ class EntityEventListenerService(
         val attributeNode = operationPayloadNode[attributeAppendEvent.attributeName]
             ?: operationPayloadNode[expandedAttributeName]
 
+        if (attributeNode == null) {
+            logger.warn("Unable to extract values from $attributeAppendEvent")
+            return
+        }
+
         handleAttributeAppend(
             attributeAppendEvent.entityId,
             expandedAttributeName,

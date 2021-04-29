@@ -8,9 +8,11 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Runs
 import io.mockk.called
 import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockkClass
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -131,8 +133,7 @@ class ObservationEventListenerTests {
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
-        every { entityService.getFullEntityById(any(), any()) } returns mockedJsonLdEntity
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAttributeAppend(any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -147,17 +148,15 @@ class ObservationEventListenerTests {
                 true
             )
         }
-        verify { entityService.getFullEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), true) }
         verify {
-            entityEventService.publishEntityEvent(
+            entityEventService.publishAttributeAppend(
                 match {
-                    it as AttributeAppendEvent
                     it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
                         it.attributeName == "humidity" &&
                         it.datasetId == "urn:ngsi-ld:Dataset:humidity:1".toUri() &&
                         it.contexts == listOf(APIC_COMPOUND_CONTEXT) && !it.overwrite
                 },
-                any()
+                eq(UpdateOperationResult.APPENDED)
             )
         }
 

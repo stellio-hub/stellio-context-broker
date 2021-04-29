@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(classes = [SubscriptionEventListenerService::class])
+@SpringBootTest(classes = [SubscriptionEventListener::class])
 @ActiveProfiles("test")
-class SubscriptionEventListenerServiceTests {
+class SubscriptionEventListenerTests {
 
     @Autowired
-    private lateinit var subscriptionEventListenerService: SubscriptionEventListenerService
+    private lateinit var subscriptionEventListenerService: SubscriptionEventListener
 
     @MockkBean
     private lateinit var subscriptionHandlerService: SubscriptionHandlerService

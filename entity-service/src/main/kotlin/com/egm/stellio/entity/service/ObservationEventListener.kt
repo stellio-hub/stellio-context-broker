@@ -1,6 +1,15 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
@@ -101,27 +110,18 @@ class ObservationEventListener(
 
         try {
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-            entityService.appendEntityAttributes(
+            val updateResult = entityService.appendEntityAttributes(
                 observationEvent.entityId,
                 ngsiLdAttributes,
                 !observationEvent.overwrite
             )
-            val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
-            if (updatedEntity!!.type.isEmpty()) {
-                logger.warn("Retrieved entity ${observationEvent.entityId} but it has no type!")
+            if (updateResult.notUpdated.isNotEmpty()) {
+                logger.warn("Attribute could not be appended: ${updateResult.notUpdated}")
                 return
             }
-            entityEventService.publishEntityEvent(
-                AttributeAppendEvent(
-                    observationEvent.entityId,
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    observationEvent.operationPayload,
-                    compactAndSerialize(updatedEntity, observationEvent.contexts, MediaType.APPLICATION_JSON),
-                    observationEvent.contexts,
-                    observationEvent.overwrite
-                ),
-                updatedEntity.type
+
+            entityEventService.publishAttributeAppend(
+                observationEvent, updateResult.updated[0].updateOperationResult
             )
         } catch (e: BadRequestDataException) {
             logger.error(e.message)

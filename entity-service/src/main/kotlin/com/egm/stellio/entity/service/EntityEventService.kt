@@ -25,7 +25,8 @@ import java.net.URI
 
 @Component
 class EntityEventService(
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val entityService: EntityService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -56,6 +57,53 @@ class EntityEventService(
 
     private fun entityChannelName(channelSuffix: String) =
         "cim.entity.$channelSuffix"
+
+    @Async
+    fun publishAttributeAppend(
+        observationEvent: AttributeAppendEvent,
+        updateOperationResult: UpdateOperationResult
+    ) {
+        logger.debug("Sending append event for entity ${observationEvent.entityId}")
+        val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
+        if (updatedEntity!!.type.isEmpty()) {
+            logger.warn("Retrieved entity ${observationEvent.entityId} but it has no type!")
+            return
+        }
+        if (updateOperationResult == UpdateOperationResult.APPENDED)
+            publishEntityEvent(
+                AttributeAppendEvent(
+                    observationEvent.entityId,
+                    observationEvent.attributeName,
+                    observationEvent.datasetId,
+                    observationEvent.operationPayload,
+                    JsonLdUtils.compactAndSerialize(
+                        updatedEntity,
+                        observationEvent.contexts,
+                        MediaType.APPLICATION_JSON
+                    ),
+                    observationEvent.contexts,
+                    null,
+                    observationEvent.overwrite
+                ),
+                updatedEntity.type
+            )
+        else
+            publishEntityEvent(
+                AttributeReplaceEvent(
+                    observationEvent.entityId,
+                    observationEvent.attributeName,
+                    observationEvent.datasetId,
+                    observationEvent.operationPayload,
+                    JsonLdUtils.compactAndSerialize(
+                        updatedEntity,
+                        observationEvent.contexts,
+                        MediaType.APPLICATION_JSON
+                    ),
+                    observationEvent.contexts
+                ),
+                updatedEntity.type
+            )
+    }
 
     fun publishAppendEntityAttributesEvents(
         entityId: URI,
@@ -140,13 +188,14 @@ class EntityEventService(
         }
     }
 
+    @Async
     fun publishPartialUpdateEntityAttributesEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updatedDetails: List<UpdatedDetails>,
-        updatedEntity: JsonLdEntity,
         contexts: List<String>
     ) {
+        val updatedEntity = entityService.getFullEntityById(entityId, true)!!
         updatedDetails.forEach { updatedDetail ->
             val attributeName = updatedDetail.attributeName
             val attributePayload =

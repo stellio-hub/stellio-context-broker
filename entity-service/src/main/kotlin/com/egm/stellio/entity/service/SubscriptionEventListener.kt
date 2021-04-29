@@ -12,7 +12,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-class SubscriptionEventListenerService(
+class SubscriptionEventListener(
     private val subscriptionHandlerService: SubscriptionHandlerService
 ) {
 

@@ -376,7 +376,6 @@ class EntityHandler(
                 entityUri,
                 expandedPayload,
                 updateResult.updated,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
 
@@ -410,9 +409,7 @@ class EntityHandler(
         val result = if (deleteAll)
             entityService.deleteEntityAttribute(entityUri, expandedAttrId)
         else
-            entityService.deleteEntityAttributeInstance(
-                entityUri, expandedAttrId, datasetId
-            )
+            entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
 
         if (result) {
             val updatedEntity = entityService.getFullEntityById(entityUri, true)

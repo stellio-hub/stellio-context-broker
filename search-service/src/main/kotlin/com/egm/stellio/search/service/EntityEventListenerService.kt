@@ -145,7 +145,7 @@ class EntityEventListenerService(
             compactTerm(expandedAttributeName, contexts),
             datasetId
         )
-        // Add attribute type to attributeNode since it may not be present in the attribute update events payload
+        // Since ATTRIBUTE_UPDATE events payload may not contain the attribute type
         if (attributeValuesNode.findValue("type") == null)
         (attributeValuesNode as ObjectNode).put("type", attributeInstancePayload["type"] as String)
         when (val extractedAttributeMetadata = toTemporalAttributeMetadata(attributeValuesNode)) {

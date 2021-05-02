@@ -181,9 +181,12 @@ class EntityEventListenerService(
                             )
                         )
                 }.doOnError {
-                    logger.error("Failed to persist new attribute instance, ignoring it", it)
+                    logger.error(
+                        "Failed to persist new attribute instance $expandedAttributeName " +
+                            "for $entityId, ignoring it (${it.message})"
+                    )
                 }.doOnNext {
-                    logger.debug("Created new attribute instance for temporal entity attribute (${it.t1})")
+                    logger.debug("Created new attribute instance of $expandedAttributeName for $entityId")
                 }.subscribe()
             }
         }
@@ -235,9 +238,15 @@ class EntityEventListenerService(
                     )
                 }
                     .doOnError {
-                        logger.error("Failed to persist new temporal entity attribute, ignoring it", it)
+                        logger.error(
+                            "Failed to persist new temporal entity attribute for $entityId " +
+                                "with attribute instance $expandedAttributeName, ignoring it (${it.message})"
+                        )
                     }.doOnNext {
-                        logger.debug("Created new temporal entity attribute with one attribute instance")
+                        logger.debug(
+                            "Created new temporal entity attribute for $entityId " +
+                                "with attribute instance $expandedAttributeName"
+                        )
                     }.subscribe()
             }
         }

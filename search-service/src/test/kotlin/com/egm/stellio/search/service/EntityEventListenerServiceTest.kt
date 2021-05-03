@@ -97,31 +97,6 @@ class EntityEventListenerServiceTest {
         """.trimIndent()
 
     @Test
-    fun `it should return an invalid result if the attribute does not have an observedAt information`() {
-        val operationPayload =
-            """
-            {
-                "type":"Property",
-                "value":33869
-            }                
-            """.trimIndent()
-        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
-        result.bimap(
-            {
-                assertEquals(
-                    "Ignoring append event for {\"type\":\"Property\",\"value\":33869}, " +
-                        "it has no observedAt information",
-                    it
-                )
-            },
-            {
-                fail<String>("Expecting an invalid result, got a valid one: $it")
-            }
-        )
-    }
-
-    @Test
     fun `it should return an invalid result if the attribute has an unsupported type`() {
         val operationPayload =
             """

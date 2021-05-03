@@ -139,6 +139,10 @@ class EntityEventListenerService(
     ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
+        if (!attributeValuesNode.has("observedAt")) {
+            logger.info("Ignoring append event for $attributeValuesNode, it has no observedAt information")
+            return
+        }
         val compactedJsonLdEntity = addContextsToEntity(JsonUtils.deserializeObject(updatedEntity), contexts)
         val attributeInstancePayload = extractAttributeInstanceFromCompactedEntity(
             compactedJsonLdEntity,
@@ -236,9 +240,6 @@ class EntityEventListenerService(
     }
 
     internal fun toTemporalAttributeMetadata(jsonNode: JsonNode): Validated<String, AttributeMetadata> {
-        if (!jsonNode.has("observedAt")) {
-            return "Ignoring append event for $jsonNode, it has no observedAt information".invalid()
-        }
         val attributeTypeAsText = jsonNode["type"].asText()
         val attributeType = kotlin.runCatching {
             TemporalEntityAttribute.AttributeType.valueOf(attributeTypeAsText)

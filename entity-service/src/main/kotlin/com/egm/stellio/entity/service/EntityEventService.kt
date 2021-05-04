@@ -5,10 +5,8 @@ import arrow.core.invalid
 import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
@@ -135,6 +133,38 @@ class EntityEventService(
                     JsonLdUtils.compactAndStringifyFragment(
                         attributeName,
                         attributePayload!!,
+                        contexts
+                    ),
+                    JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
+                    contexts
+                ),
+                updatedEntity.type
+            )
+        }
+    }
+
+    fun publishPartialUpdateEntityAttributesEvents(
+        entityId: URI,
+        jsonLdAttributes: Map<String, Any>,
+        updatedDetails: List<UpdatedDetails>,
+        updatedEntity: JsonLdEntity,
+        contexts: List<String>
+    ) {
+        updatedDetails.forEach { updatedDetail ->
+            val attributeName = updatedDetail.attributeName
+            val attributePayload =
+                JsonLdUtils.getAttributeFromExpandedAttributes(
+                    jsonLdAttributes,
+                    attributeName,
+                    updatedDetail.datasetId
+                ) as Map<String, Any>
+            publishEntityEvent(
+                AttributeUpdateEvent(
+                    entityId,
+                    compactTerm(attributeName, contexts),
+                    updatedDetail.datasetId,
+                    JsonLdUtils.compactAndStringifyFragment(
+                        attributePayload,
                         contexts
                     ),
                     JsonLdUtils.compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),

@@ -73,7 +73,17 @@ class ObservationEventListenerTests {
     fun `it should parse and transmit an ATTRIBUTE_UPDATE event`() {
         val observationEvent = loadSampleData("observations/temperatureUpdateEvent.jsonld")
 
-        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns true
+        every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns UpdateResult(
+            updated = arrayListOf(
+                UpdatedDetails(
+                    "https://ontology.eglobalmark.com/apic#temperature",
+                    "urn:ngsi-ld:Dataset:temperature:1".toUri(),
+                    UpdateOperationResult.UPDATED
+                )
+            ),
+            notUpdated = arrayListOf()
+        )
+
         every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
@@ -119,7 +129,9 @@ class ObservationEventListenerTests {
             ),
             emptyList()
         )
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
+        val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
+        every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
+        every { entityService.getFullEntityById(any(), any()) } returns mockedJsonLdEntity
         every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
 
         observationEventListener.processMessage(observationEvent)

@@ -28,12 +28,11 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
-    <logger name="com.github.jsonldjava" level="DEBUG"/>
     <logger name="org.neo4j.ogm" level="INFO"/>
     <logger name="org.apache.kafka" level="WARN"/>
     <logger name="org.springframework.security" level="DEBUG"/>
 <!--    <logger name="org.springframework.web" level="TRACE"/>-->
-    <logger name="org.neo4j.ogm.drivers.bolt.request.BoltRequest" level="DEBUG"/>
+<!--    <logger name="org.neo4j.ogm.drivers.bolt.request.BoltRequest" level="DEBUG"/>-->
 
     <root level="INFO">
         <appender-ref ref="console" />

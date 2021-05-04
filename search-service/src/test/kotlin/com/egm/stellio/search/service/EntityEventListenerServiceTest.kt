@@ -97,31 +97,6 @@ class EntityEventListenerServiceTest {
         """.trimIndent()
 
     @Test
-    fun `it should return an invalid result if the attribute does not have an observedAt information`() {
-        val operationPayload =
-            """
-            {
-                "type":"Property",
-                "value":33869
-            }                
-            """.trimIndent()
-        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
-        result.bimap(
-            {
-                assertEquals(
-                    "Ignoring append event for {\"type\":\"Property\",\"value\":33869}, " +
-                        "it has no observedAt information",
-                    it
-                )
-            },
-            {
-                fail<String>("Expecting an invalid result, got a valid one: $it")
-            }
-        )
-    }
-
-    @Test
     fun `it should return an invalid result if the attribute has an unsupported type`() {
         val operationPayload =
             """
@@ -135,7 +110,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {
                 assertEquals(
@@ -159,7 +134,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {
                 assertEquals(
@@ -186,7 +161,7 @@ class EntityEventListenerServiceTest {
             }                
             """.trimIndent()
         val jsonNode = jacksonObjectMapper().readTree(operationPayload)
-        val result = entityEventListenerService.toTemporalAttributeMedata(jsonNode)
+        val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {
                 fail<String>("Expecting a valid result, got an invalid one: $it")
@@ -543,6 +518,31 @@ class EntityEventListenerServiceTest {
             }
             """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+
+        entityEventListenerService.processMessage(content)
+
+        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
+    }
+
+    @Test
+    fun `it should create an attribute instance for ATTRIBUTE_UPDATE events with minimal fragment`() {
+        val eventPayload =
+            """
+            {
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(
+            EventsType.ATTRIBUTE_UPDATE,
+            eventPayload,
+            updatedEntityNumericValue
+        )
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(

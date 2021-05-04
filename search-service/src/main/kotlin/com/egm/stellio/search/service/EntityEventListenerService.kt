@@ -139,6 +139,8 @@ class EntityEventListenerService(
     ) {
         // TODO add missing checks:
         //  - existence of temporal entity attribute
+
+        // return early to avoid extra processing if the attribute is not a temporal one
         if (!attributeValuesNode.has("observedAt")) {
             logger.info("Ignoring append event for $attributeValuesNode, it has no observedAt information")
             return
@@ -150,8 +152,10 @@ class EntityEventListenerService(
             datasetId
         )
         // Since ATTRIBUTE_UPDATE events payload may not contain the attribute type
-        if (attributeValuesNode.findValue("type") == null)
-        (attributeValuesNode as ObjectNode).put("type", attributeInstancePayload["type"] as String)
+        if (!attributeValuesNode.has("type")) {
+            (attributeValuesNode as ObjectNode).put("type", attributeInstancePayload["type"] as String)
+        }
+
         when (val extractedAttributeMetadata = toTemporalAttributeMetadata(attributeValuesNode)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)

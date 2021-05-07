@@ -5,6 +5,7 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
@@ -71,7 +72,7 @@ object JsonLdUtils {
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
     const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
-    private val logger = LoggerFactory.getLogger(javaClass)
+    val logger = LoggerFactory.getLogger(javaClass)
 
     private val mapper: ObjectMapper =
         jacksonObjectMapper()
@@ -525,10 +526,17 @@ fun extractAttributeInstanceFromCompactedEntity(
     attributeName: String,
     datasetId: URI?
 ): CompactedJsonLdAttribute {
-    // Since some attributes cannot be well compacted, to be improved later
-    val compactedAttributeName = attributeName.extractShortTypeFromExpanded()
-    return if (compactedJsonLdEntity[compactedAttributeName] is List<*>) {
-        val attributePayload = compactedJsonLdEntity[compactedAttributeName] as List<CompactedJsonLdAttribute>
+    return if (compactedJsonLdEntity[attributeName] is List<*>) {
+        val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
         attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
-    } else compactedJsonLdEntity[compactedAttributeName]!! as CompactedJsonLdAttribute
+    } else if (compactedJsonLdEntity[attributeName] != null)
+        compactedJsonLdEntity[attributeName] as CompactedJsonLdAttribute
+    else {
+        // Since some attributes cannot be well compacted, to be improved later
+        logger.warn(
+            "Received expanded attribute $attributeName, " +
+                "extracting instance for ${attributeName.extractShortTypeFromExpanded()}"
+        )
+        compactedJsonLdEntity[attributeName.extractShortTypeFromExpanded()] as CompactedJsonLdAttribute
+    }
 }

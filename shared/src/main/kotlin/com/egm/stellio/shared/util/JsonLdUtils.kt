@@ -525,8 +525,10 @@ fun extractAttributeInstanceFromCompactedEntity(
     attributeName: String,
     datasetId: URI?
 ): CompactedJsonLdAttribute {
-    return if (compactedJsonLdEntity[attributeName] is List<*>) {
-        val attributePayload = compactedJsonLdEntity[attributeName] as List<CompactedJsonLdAttribute>
+    // Since some attributes cannot be well compacted, to be improved later
+    val compactedAttributeName = attributeName.extractShortTypeFromExpanded()
+    return if (compactedJsonLdEntity[compactedAttributeName] is List<*>) {
+        val attributePayload = compactedJsonLdEntity[compactedAttributeName] as List<CompactedJsonLdAttribute>
         attributePayload.first { it["datasetId"] as String? == datasetId?.toString() }
-    } else compactedJsonLdEntity[attributeName]!! as CompactedJsonLdAttribute
+    } else compactedJsonLdEntity[compactedAttributeName]!! as CompactedJsonLdAttribute
 }

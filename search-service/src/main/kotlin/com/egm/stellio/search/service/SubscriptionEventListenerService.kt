@@ -57,7 +57,7 @@ class SubscriptionEventListenerService(
     private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
         logger.debug("Received notification event payload: ${notificationCreateEvent.operationPayload}")
         val notification = deserializeAs<Notification>(notificationCreateEvent.operationPayload)
-        val entitiesIds = mergeEntitesIdsFromNotificationData(notification.data)
+        val entitiesIds = mergeEntitiesIdsFromNotificationData(notification.data)
         temporalEntityAttributeService.getFirstForEntity(notification.subscriptionId)
             .flatMap {
                 val attributeInstance = AttributeInstance(
@@ -73,12 +73,19 @@ class SubscriptionEventListenerService(
                 )
                 attributeInstanceService.create(attributeInstance)
             }
-            .subscribe {
-                logger.debug("Created a new instance for notification ${notification.id}")
+            .doOnError {
+                logger.error(
+                    "Failed to persist new notification instance ${notification.id} " +
+                        "for subscription ${notification.subscriptionId}, ignoring it (${it.message})"
+                )
             }
+            .doOnNext {
+                logger.debug("Created new notification instance ${notification.id} for ${notification.subscriptionId}")
+            }
+            .subscribe()
     }
 
-    fun mergeEntitesIdsFromNotificationData(data: List<Map<String, Any>>): String =
+    fun mergeEntitiesIdsFromNotificationData(data: List<Map<String, Any>>): String =
         data.joinToString(",") {
             it["id"] as String
         }

@@ -36,6 +36,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -179,7 +180,13 @@ class EntityEventListenerService(
                                 entityId,
                                 serializeObject(compactedJsonLdEntity)
                             )
-                        )
+                        ).doOnError {
+                            logger.error(
+                                "Failed to persist new attribute instance $expandedAttributeName " +
+                                    "for $entityId, ignoring it (${it.message})"
+                            )
+                            Mono.just(-1)
+                        }
                 }.doOnError {
                     logger.error(
                         "Failed to persist new attribute instance $expandedAttributeName " +

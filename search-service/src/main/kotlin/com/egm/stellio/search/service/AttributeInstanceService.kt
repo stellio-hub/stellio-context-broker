@@ -10,6 +10,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import io.r2dbc.postgresql.codec.Json
+import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
@@ -23,6 +24,8 @@ import java.util.UUID
 class AttributeInstanceService(
     private val databaseClient: DatabaseClient
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     fun create(attributeInstance: AttributeInstance): Mono<Int> =
@@ -41,6 +44,13 @@ class AttributeInstanceService(
             .bind("payload", Json.of(attributeInstance.payload))
             .fetch()
             .rowsUpdated()
+            .doOnError {
+                logger.error(
+                    "Failed to persist new attribute instance for temporal entity attribute " +
+                        "${attributeInstance.temporalEntityAttribute} (${it.message})"
+                )
+                Mono.just(-1)
+            }
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances

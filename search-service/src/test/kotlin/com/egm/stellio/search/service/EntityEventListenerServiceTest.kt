@@ -376,6 +376,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -490,6 +491,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -523,6 +525,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -548,6 +551,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -570,6 +574,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 

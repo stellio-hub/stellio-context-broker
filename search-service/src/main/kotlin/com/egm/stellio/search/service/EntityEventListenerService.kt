@@ -49,7 +49,6 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {

@@ -1,23 +1,24 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityDeleteEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EntityUpdateEvent
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.stream.annotation.EnableBinding
-import org.springframework.cloud.stream.annotation.StreamListener
+import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-@EnableBinding(SubscriptionSink::class)
 class SubscriptionEventListenerService(
     private val subscriptionHandlerService: SubscriptionHandlerService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @StreamListener("cim.subscription")
+    @KafkaListener(topics = ["cim.subscription"], groupId = "entity_service_subscription")
     fun processSubscription(content: String) {
         when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
@@ -26,7 +27,7 @@ class SubscriptionEventListenerService(
         }
     }
 
-    @StreamListener("cim.notification")
+    @KafkaListener(topics = ["cim.notification"], groupId = "entity_service_notification")
     fun processNotification(content: String) {
         when (val notificationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)

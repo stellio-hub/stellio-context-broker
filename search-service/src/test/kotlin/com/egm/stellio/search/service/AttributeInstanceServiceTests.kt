@@ -251,6 +251,20 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should not allow to create two attribute instances with same observation date`() {
+        val attributeInstance = gimmeAttributeInstance()
+
+        attributeInstanceService.create(attributeInstance).block()
+
+        StepVerifier.create(attributeInstanceService.create(attributeInstance))
+            .expectNextMatches {
+                it == -1
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
         val observationPayload =

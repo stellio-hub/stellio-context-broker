@@ -533,6 +533,29 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should not update entity payload if the creation of the attribute instance has failed`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(-1) }
+
+        entityEventListenerService.processMessage(content)
+
+        verify { temporalEntityAttributeService.updateEntityPayload(any(), any()) wasNot Called }
+    }
+
+    @Test
     fun `it should create an attribute instance for ATTRIBUTE_UPDATE events with minimal fragment`() {
         val eventPayload =
             """

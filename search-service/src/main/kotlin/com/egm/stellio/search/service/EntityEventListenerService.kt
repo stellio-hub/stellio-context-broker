@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import reactor.util.function.Tuples
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -175,29 +174,22 @@ class EntityEventListenerService(
                         payload = attributeInstancePayload
                     )
                     attributeInstanceService.create(attributeInstance)
-                        .zipWhen { insertStatus ->
-                            if (insertStatus != -1)
-                                temporalEntityAttributeService.updateEntityPayload(
-                                    entityId,
-                                    serializeObject(compactedJsonLdEntity)
-                                )
-                            else Mono.just(-1)
-                        }
-                        .onErrorReturn(Tuples.of(-1, -1))
-                }.doOnError {
-                    logger.error(
-                        "Failed to persist new attribute instance $expandedAttributeName " +
-                            "for $entityId, ignoring it (${it.message})"
-                    )
-                }.doOnNext {
-                    if (it.t2.t1 != -1 && it.t2.t2 != -1)
+                }.zipWhen {
+                    if (it.t2 != -1)
+                        temporalEntityAttributeService.updateEntityPayload(
+                            entityId,
+                            serializeObject(compactedJsonLdEntity)
+                        ).onErrorReturn(-1)
+                    else Mono.just(-1)
+                }.subscribe {
+                    if (it.t1.t2 != -1 && it.t2 != -1)
                         logger.debug("Created new attribute instance of $expandedAttributeName for $entityId")
                     else
-                        logger.error(
+                        logger.warn(
                             "Failed to persist new attribute instance $expandedAttributeName " +
-                                "for $entityId, ignoring it (insert results: ${it.t2.t1} / ${it.t2.t2}))"
+                                "for $entityId, ignoring it (insert results: ${it.t1.t2} / ${it.t2}))"
                         )
-                }.subscribe()
+                }
             }
         }
     }

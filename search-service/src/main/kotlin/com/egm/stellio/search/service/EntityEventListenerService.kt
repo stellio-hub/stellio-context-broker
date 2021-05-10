@@ -36,6 +36,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -47,7 +48,6 @@ class EntityEventListenerService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
@@ -174,17 +174,22 @@ class EntityEventListenerService(
                         payload = attributeInstancePayload
                     )
                     attributeInstanceService.create(attributeInstance)
-                        .then(
-                            temporalEntityAttributeService.updateEntityPayload(
-                                entityId,
-                                serializeObject(compactedJsonLdEntity)
-                            )
+                }.zipWhen {
+                    if (it.t2 != -1)
+                        temporalEntityAttributeService.updateEntityPayload(
+                            entityId,
+                            serializeObject(compactedJsonLdEntity)
+                        ).onErrorReturn(-1)
+                    else Mono.just(-1)
+                }.subscribe {
+                    if (it.t1.t2 != -1 && it.t2 != -1)
+                        logger.debug("Created new attribute instance of $expandedAttributeName for $entityId")
+                    else
+                        logger.warn(
+                            "Failed to persist new attribute instance $expandedAttributeName " +
+                                "for $entityId, ignoring it (insert results: ${it.t1.t2} / ${it.t2}))"
                         )
-                }.doOnError {
-                    logger.error("Failed to persist new attribute instance, ignoring it", it)
-                }.doOnNext {
-                    logger.debug("Created new attribute instance for temporal entity attribute (${it.t1})")
-                }.subscribe()
+                }
             }
         }
     }
@@ -235,9 +240,15 @@ class EntityEventListenerService(
                     )
                 }
                     .doOnError {
-                        logger.error("Failed to persist new temporal entity attribute, ignoring it", it)
+                        logger.error(
+                            "Failed to persist new temporal entity attribute for $entityId " +
+                                "with attribute instance $expandedAttributeName, ignoring it (${it.message})"
+                        )
                     }.doOnNext {
-                        logger.debug("Created new temporal entity attribute with one attribute instance")
+                        logger.debug(
+                            "Created new temporal entity attribute for $entityId " +
+                                "with attribute instance $expandedAttributeName"
+                        )
                     }.subscribe()
             }
         }

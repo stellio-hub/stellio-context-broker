@@ -41,6 +41,7 @@ class AttributeInstanceService(
             .bind("payload", Json.of(attributeInstance.payload))
             .fetch()
             .rowsUpdated()
+            .onErrorReturn(-1)
 
     // TODO not totally compatible with the specification
     // it should accept an array of attribute instances

@@ -359,7 +359,7 @@ class EntityService(
     ): UpdateResult {
         val updateStatuses = attributes
             .flatMap { ngsiLdAttribute ->
-                logger.debug("Fragment is of type $ngsiLdAttribute")
+                logger.debug("Fragment is of type $ngsiLdAttribute (${ngsiLdAttribute.compactName})")
                 when (ngsiLdAttribute) {
                     is NgsiLdRelationship -> ngsiLdAttribute.instances.map { ngsiLdRelationshipInstance ->
                         appendEntityRelationship(

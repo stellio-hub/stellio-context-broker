@@ -376,6 +376,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -490,6 +491,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -523,10 +525,34 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
         verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
+    }
+
+    @Test
+    fun `it should not update entity payload if the creation of the attribute instance has failed`() {
+        val eventPayload =
+            """
+            {
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
+            }
+            """.trimIndent()
+        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_UPDATE, eventPayload)
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
+            temporalEntityAttributeUuid
+        )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(-1) }
+
+        entityEventListenerService.processMessage(content)
+
+        verify { temporalEntityAttributeService.updateEntityPayload(any(), any()) wasNot Called }
     }
 
     @Test
@@ -548,6 +574,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 
@@ -570,6 +597,7 @@ class EntityEventListenerServiceTest {
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
             temporalEntityAttributeUuid
         )
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(content)
 

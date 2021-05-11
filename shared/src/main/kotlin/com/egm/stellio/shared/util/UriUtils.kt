@@ -4,7 +4,6 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import java.net.URI
 import java.net.URISyntaxException
 
-// Launch tests
 fun String.toUri(): URI =
     try {
         val uri = URI(this)

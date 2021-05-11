@@ -454,7 +454,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         every {
-            attributeInstanceService.deleteAttributeInstancesOfTemporalAttributeAllInstances(any(), any())
+            attributeInstanceService.deleteAttributeInstancesOfAllInstancesOfTemporalAttribute(any(), any())
         } returns Mono.just(2)
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(

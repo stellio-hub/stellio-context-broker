@@ -174,7 +174,7 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
 
     fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
-        attributeInstanceService.deleteAttributeInstancesOfTemporalAttributeAllInstances(entityId, attributeName)
+        attributeInstanceService.deleteAttributeInstancesOfAllInstancesOfTemporalAttribute(entityId, attributeName)
             .zipWith(
                 databaseClient.execute(
                     """

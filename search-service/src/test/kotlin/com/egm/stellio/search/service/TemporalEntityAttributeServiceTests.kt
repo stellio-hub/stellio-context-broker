@@ -389,4 +389,58 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectComplete()
             .verify()
     }
+
+    @Test
+    fun `it should delete the two temporal entity attributes`() {
+        val entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri()
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+
+        val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId).block()
+
+        assert(deletedRecords == 2)
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
+            entityId, incomingAttrExpandedName
+        )
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should delete a temporal attribute references`() {
+        val entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri()
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+
+        every {
+            attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(any(), any(), any())
+        } returns Mono.just(1)
+
+        val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeReferences(
+            entityId,
+            incomingAttrExpandedName,
+            null
+        ).block()
+
+        assert(deletedRecords == 2)
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
+            entityId, incomingAttrExpandedName
+        )
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
+    }
 }

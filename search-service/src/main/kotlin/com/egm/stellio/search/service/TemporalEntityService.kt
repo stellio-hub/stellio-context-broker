@@ -4,13 +4,17 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
 import java.net.URI
 
 typealias SimplifiedTemporalAttribute = Map<String, Any>
 typealias TemporalEntityAttributeInstancesResult = Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
 
 @Service
-class TemporalEntityService {
+class TemporalEntityService(
+    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val attributeInstanceService: AttributeInstanceService
+) {
 
     fun buildTemporalEntities(
         queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
@@ -133,4 +137,11 @@ class TemporalEntityService {
                     simplifiedTemporalAttribute
                 }
             }
+
+    fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
+        attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
+            .zipWith(temporalEntityAttributeService.deleteEntityPayload(entityId))
+            .map { it.t1 + it.t2 }
+            .zipWith(temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId))
+            .map { it.t1 + it.t2 }
 }

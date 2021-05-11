@@ -10,16 +10,7 @@ import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
-import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityDeleteEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.InvalidRequestException
-import com.egm.stellio.shared.model.getType
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
@@ -42,6 +33,7 @@ import java.time.ZonedDateTime
 
 @Component
 class EntityEventListenerService(
+    private val temporalEntityService: TemporalEntityService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val attributeInstanceService: AttributeInstanceService
 ) {
@@ -52,11 +44,14 @@ class EntityEventListenerService(
     fun processMessage(content: String) {
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
-            is EntityDeleteEvent -> logger.warn("Entity delete operation is not yet implemented")
+            is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
             is AttributeAppendEvent -> handleAttributeAppendEvent(entityEvent)
             is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
-            is AttributeDeleteEvent -> logger.warn("Attribute delete operation is not yet implemented")
+            is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
+            is AttributeDeleteAllInstancesEvent -> logger.warn(
+                "Attribute delete all instances operation is not yet implemented"
+            )
         }
     }
 
@@ -75,6 +70,33 @@ class EntityEventListenerService(
         } catch (e: InvalidRequestException) {
             logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
         }
+
+    private fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent) =
+        temporalEntityService.deleteTemporalEntityReferences(
+            entityDeleteEvent.entityId
+        ).subscribe {
+            logger.debug("Deleted entity (records deleted: $it)")
+        }
+
+    private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
+        val expandedAttributeName = expandJsonLdKey(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
+        val compactedJsonLdEntity = addContextsToEntity(
+            JsonUtils.deserializeObject(attributeDeleteEvent.updatedEntity), attributeDeleteEvent.contexts
+        )
+
+        temporalEntityAttributeService.deleteTemporalAttributeReferences(
+            attributeDeleteEvent.entityId,
+            expandedAttributeName,
+            attributeDeleteEvent.datasetId
+        ).zipWith(
+            temporalEntityAttributeService.updateEntityPayload(
+                attributeDeleteEvent.entityId,
+                serializeObject(compactedJsonLdEntity)
+            )
+        ).subscribe {
+            logger.debug("Deleted temporal attribute (records deleted: ${it.t1})")
+        }
+    }
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
         val expandedAttributeName = expandJsonLdKey(attributeAppendEvent.attributeName, attributeAppendEvent.contexts)!!

@@ -7,6 +7,8 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -26,6 +29,12 @@ class TemporalEntityServiceTests {
 
     @Autowired
     private lateinit var temporalEntityService: TemporalEntityService
+
+    @MockkBean
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
+
+    @MockkBean
+    private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
@@ -126,5 +135,17 @@ class TemporalEntityServiceTests {
             withTemporalValues
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
+    }
+
+    @Test
+    fun `it should delete temporal entity references`() {
+        every { temporalEntityAttributeService.deleteEntityPayload(any()) } returns Mono.just(1)
+        every { attributeInstanceService.deleteAttributeInstancesOfEntity(any()) } returns Mono.just(2)
+        every { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(any()) } returns Mono.just(2)
+
+        val deletedRecords = temporalEntityService.deleteTemporalEntityReferences("urn:ngsi-ld:BeeHive:TESTD".toUri())
+            .block()
+
+        assert(deletedRecords == 5)
     }
 }

@@ -77,6 +77,12 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
+    fun deleteEntityPayload(entityId: URI): Mono<Int> =
+        databaseClient.execute("DELETE FROM entity_payload WHERE entity_id = :entity_id")
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+
     fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
         val entity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         val parsedPayload = JsonUtils.deserializeObject(payload)
@@ -138,6 +144,34 @@ class TemporalEntityAttributeService(
             .zipWith(createEntityPayload(entity.id, payload))
             .map { it.t1 + it.t2 }
     }
+
+    fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
+        databaseClient.execute("DELETE FROM temporal_entity_attribute WHERE entity_id = :entity_id")
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+
+    fun deleteTemporalAttributeReferences(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
+        attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(entityId, attributeName, datasetId)
+            .zipWith(
+                databaseClient.execute(
+                    """
+                    delete FROM temporal_entity_attribute WHERE 
+                        entity_id = :entity_id
+                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else ""}
+                        AND attribute_name = :attribute_name
+                    """.trimIndent()
+                )
+                    .bind("entity_id", entityId)
+                    .bind("attribute_name", attributeName)
+                    .let {
+                        if (datasetId != null) it.bind("dataset_id", datasetId)
+                        else it
+                    }
+                    .fetch()
+                    .rowsUpdated()
+            )
+            .map { it.t1 + it.t2 }
 
     internal fun toTemporalAttributeMetadata(
         ngsiLdAttributeInstance: NgsiLdAttributeInstance

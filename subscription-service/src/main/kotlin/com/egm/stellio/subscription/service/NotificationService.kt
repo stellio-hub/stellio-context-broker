@@ -14,6 +14,7 @@ import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
@@ -68,6 +69,8 @@ class NotificationService(
             subscription.notification.endpoint.info?.forEach {
                 request = request.header(it.key, it.value)
             }
+            // FIXME hardcoding a JSON content type for now
+            request = request.contentType(MediaType.APPLICATION_JSON)
             return request
                 .bodyValue(serializeObject(notification))
                 .exchange()

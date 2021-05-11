@@ -145,9 +145,9 @@ class AttributeInstanceService(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE 
-                    entity_id = :entity_id AND
-                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else ""}
-                    attribute_name = :attribute_name
+                    entity_id = :entity_id
+                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                    AND attribute_name = :attribute_name
             )
             """.trimIndent()
         )
@@ -157,6 +157,21 @@ class AttributeInstanceService(
                 if (datasetId != null) it.bind("dataset_id", datasetId)
                 else it
             }
+            .fetch()
+            .rowsUpdated()
+
+    fun deleteAttributeInstancesOfTemporalAttributeAllInstances(entityId: URI, attributeName: String): Mono<Int> =
+        databaseClient.execute(
+            """
+            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
+                SELECT id FROM temporal_entity_attribute WHERE 
+                    entity_id = :entity_id AND
+                    attribute_name = :attribute_name
+            )
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
             .fetch()
             .rowsUpdated()
 

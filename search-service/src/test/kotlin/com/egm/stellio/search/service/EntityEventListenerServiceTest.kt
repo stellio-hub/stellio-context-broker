@@ -267,7 +267,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should delete temporal attribute references for ATTRIBUTE_DELETE events`() {
+    fun `it should delete temporal attribute references and update entity payload for ATTRIBUTE_DELETE events`() {
         val content =
             """
             {
@@ -292,6 +292,42 @@ class EntityEventListenerServiceTest {
                 eq(fishContainmentId.toUri()),
                 eq("https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids"),
                 null
+            )
+        }
+        verify {
+            temporalEntityAttributeService.updateEntityPayload(
+                eq(fishContainmentId.toUri()),
+                match { it.contains(fishContainmentId) }
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+    }
+
+    @Test
+    fun `it should delete temporal attribute all instances references for ATTRIBUTE_DELETE_ALL_INSTANCES events`() {
+        val content =
+            """
+            {
+                "operationType": "ATTRIBUTE_DELETE_ALL_INSTANCES",
+                "entityId": "$fishContainmentId",
+                "attributeName": "totalDissolvedSolids",
+                "updatedEntity": "$updatedEntityTextualValue",
+                "contexts": ["$NGSILD_CORE_CONTEXT"]
+            }
+            """.trimIndent().replace("\n", "")
+
+        every {
+            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
+        } returns Mono.just(8)
+
+        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } returns Mono.just(1)
+
+        entityEventListenerService.processMessage(content)
+
+        verify {
+            temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+                eq(fishContainmentId.toUri()),
+                eq("https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids")
             )
         }
         verify {

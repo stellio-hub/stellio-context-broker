@@ -443,4 +443,34 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             .expectComplete()
             .verify()
     }
+
+    @Test
+    fun `it should delete references of all temporal attribute instances`() {
+        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+        val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+
+        every {
+            attributeInstanceService.deleteAttributeInstancesOfTemporalAttributeAllInstances(any(), any())
+        } returns Mono.just(2)
+
+        val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+            entityId,
+            incomingAttrExpandedName
+        ).block()
+
+        assert(deletedRecords == 4)
+
+        val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
+            entityId, incomingAttrExpandedName
+        )
+
+        StepVerifier.create(temporalEntityAttributeId)
+            .expectNextCount(0)
+            .expectComplete()
+            .verify()
+    }
 }

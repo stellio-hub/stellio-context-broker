@@ -49,9 +49,7 @@ class EntityEventListenerService(
             is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(entityEvent)
             is AttributeDeleteEvent -> handleAttributeDeleteEvent(entityEvent)
-            is AttributeDeleteAllInstancesEvent -> logger.warn(
-                "Attribute delete all instances operation is not yet implemented"
-            )
+            is AttributeDeleteAllInstancesEvent -> handleAttributeDeleteAllInstancesEvent(entityEvent)
         }
     }
 
@@ -95,6 +93,32 @@ class EntityEventListenerService(
             )
         ).subscribe {
             logger.debug("Deleted temporal attribute (records deleted: ${it.t1})")
+        }
+    }
+
+    private fun handleAttributeDeleteAllInstancesEvent(
+        attributeDeleteAllInstancesEvent: AttributeDeleteAllInstancesEvent
+    ) {
+        val expandedAttributeName = expandJsonLdKey(
+            attributeDeleteAllInstancesEvent.attributeName, attributeDeleteAllInstancesEvent.contexts
+        )!!
+        val compactedJsonLdEntity = addContextsToEntity(
+            JsonUtils.deserializeObject(
+                attributeDeleteAllInstancesEvent.updatedEntity
+            ),
+            attributeDeleteAllInstancesEvent.contexts
+        )
+
+        temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
+            attributeDeleteAllInstancesEvent.entityId,
+            expandedAttributeName
+        ).zipWith(
+            temporalEntityAttributeService.updateEntityPayload(
+                attributeDeleteAllInstancesEvent.entityId,
+                serializeObject(compactedJsonLdEntity)
+            )
+        ).subscribe {
+            logger.debug("Deleted temporal attributes (records deleted: ${it.t1})")
         }
     }
 

@@ -158,7 +158,7 @@ class TemporalEntityAttributeService(
                     """
                     delete FROM temporal_entity_attribute WHERE 
                         entity_id = :entity_id
-                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else ""}
+                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
                         AND attribute_name = :attribute_name
                     """.trimIndent()
                 )
@@ -168,6 +168,23 @@ class TemporalEntityAttributeService(
                         if (datasetId != null) it.bind("dataset_id", datasetId)
                         else it
                     }
+                    .fetch()
+                    .rowsUpdated()
+            )
+            .map { it.t1 + it.t2 }
+
+    fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
+        attributeInstanceService.deleteAttributeInstancesOfTemporalAttributeAllInstances(entityId, attributeName)
+            .zipWith(
+                databaseClient.execute(
+                    """
+                    delete FROM temporal_entity_attribute WHERE 
+                        entity_id = :entity_id
+                        AND attribute_name = :attribute_name
+                    """.trimIndent()
+                )
+                    .bind("entity_id", entityId)
+                    .bind("attribute_name", attributeName)
                     .fetch()
                     .rowsUpdated()
             )

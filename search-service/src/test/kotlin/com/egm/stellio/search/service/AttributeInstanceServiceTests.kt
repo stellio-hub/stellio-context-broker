@@ -41,10 +41,12 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     private lateinit var temporalEntityAttribute: TemporalEntityAttribute
 
+    val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
     @BeforeAll
     fun createTemporalEntityAttribute() {
         temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            entityId = entityId,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -196,7 +198,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            entityId = entityId,
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -340,6 +342,28 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                 parsedObservationPayload
             )
         }
+    }
+
+    @Test
+    fun `it should delete all temporal attribute instances of an entity`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfEntity(entityId).block()
+
+        assert(deletedRecords == 10)
+    }
+
+    @Test
+    fun `it should delete all temporal attribute instances of a temporal attribute`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(
+            entityId,
+            "incoming",
+            null
+        ).block()
+
+        assert(deletedRecords == 10)
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {

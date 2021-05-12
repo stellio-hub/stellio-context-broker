@@ -160,7 +160,7 @@ class AttributeInstanceService(
             .fetch()
             .rowsUpdated()
 
-    fun deleteAttributeInstancesOfAllInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
+    fun deleteAllAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
         databaseClient.execute(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (

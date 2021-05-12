@@ -31,9 +31,6 @@ class EntityEventListenerServiceTest {
     private lateinit var entityEventListenerService: EntityEventListenerService
 
     @MockkBean(relaxed = true)
-    private lateinit var temporalEntityService: TemporalEntityService
-
-    @MockkBean(relaxed = true)
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean(relaxed = true)
@@ -255,12 +252,12 @@ class EntityEventListenerServiceTest {
             }
             """.trimIndent().replace("\n", "")
 
-        every { temporalEntityService.deleteTemporalEntityReferences(any()) } returns Mono.just(10)
+        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Mono.just(10)
 
         entityEventListenerService.processMessage(content)
 
         verify {
-            temporalEntityService.deleteTemporalEntityReferences(eq(fishContainmentId.toUri()))
+            temporalEntityAttributeService.deleteTemporalEntityReferences(eq(fishContainmentId.toUri()))
         }
 
         confirmVerified(temporalEntityAttributeService)

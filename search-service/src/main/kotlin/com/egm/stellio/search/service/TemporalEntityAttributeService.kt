@@ -145,6 +145,13 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
     }
 
+    fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
+        attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
+            .zipWith(deleteEntityPayload(entityId))
+            .map { it.t1 + it.t2 }
+            .zipWith(deleteTemporalAttributesOfEntity(entityId))
+            .map { it.t1 + it.t2 }
+
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
         databaseClient.execute("DELETE FROM temporal_entity_attribute WHERE entity_id = :entity_id")
             .bind("entity_id", entityId)
@@ -174,7 +181,7 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
 
     fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
-        attributeInstanceService.deleteAttributeInstancesOfAllInstancesOfTemporalAttribute(entityId, attributeName)
+        attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(entityId, attributeName)
             .zipWith(
                 databaseClient.execute(
                     """

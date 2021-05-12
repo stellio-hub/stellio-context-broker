@@ -391,6 +391,19 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should delete temporal entity references`() {
+        val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
+
+        every { temporalEntityAttributeService.deleteEntityPayload(entityId) } returns Mono.just(1)
+        every { attributeInstanceService.deleteAttributeInstancesOfEntity(entityId) } returns Mono.just(2)
+        every { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } returns Mono.just(2)
+
+        val deletedRecords = temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).block()
+
+        assert(deletedRecords == 5)
+    }
+
+    @Test
     fun `it should delete the two temporal entity attributes`() {
         val entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri()
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
@@ -454,7 +467,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
 
         every {
-            attributeInstanceService.deleteAttributeInstancesOfAllInstancesOfTemporalAttribute(any(), any())
+            attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(any(), any())
         } returns Mono.just(2)
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(

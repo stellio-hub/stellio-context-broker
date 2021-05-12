@@ -33,7 +33,6 @@ import java.time.ZonedDateTime
 
 @Component
 class EntityEventListenerService(
-    private val temporalEntityService: TemporalEntityService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val attributeInstanceService: AttributeInstanceService
 ) {
@@ -70,10 +69,10 @@ class EntityEventListenerService(
         }
 
     private fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent) =
-        temporalEntityService.deleteTemporalEntityReferences(
+        temporalEntityAttributeService.deleteTemporalEntityReferences(
             entityDeleteEvent.entityId
         ).subscribe {
-            logger.debug("Deleted entity (records deleted: $it)")
+            logger.debug("Deleted entity ${entityDeleteEvent.entityId} (records deleted: $it)")
         }
 
     private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
@@ -92,7 +91,11 @@ class EntityEventListenerService(
                 serializeObject(compactedJsonLdEntity)
             )
         ).subscribe {
-            logger.debug("Deleted temporal attribute (records deleted: ${it.t1})")
+            logger.debug(
+                "Deleted temporal attribute $expandedAttributeName with datasetId " +
+                    "${attributeDeleteEvent.datasetId} from entity ${attributeDeleteEvent.entityId} " +
+                    "(records deleted: ${it.t1})"
+            )
         }
     }
 
@@ -118,7 +121,10 @@ class EntityEventListenerService(
                 serializeObject(compactedJsonLdEntity)
             )
         ).subscribe {
-            logger.debug("Deleted temporal attributes (records deleted: ${it.t1})")
+            logger.debug(
+                "Deleted all temporal attributes of $expandedAttributeName " +
+                    "from entity ${attributeDeleteAllInstancesEvent.entityId} (records deleted: ${it.t1})"
+            )
         }
     }
 

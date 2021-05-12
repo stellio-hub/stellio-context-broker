@@ -7,7 +7,6 @@ import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import com.ninjasquad.springmockk.MockkBean
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -27,12 +26,6 @@ class TemporalEntityServiceTests {
 
     @Autowired
     private lateinit var temporalEntityService: TemporalEntityService
-
-    @MockkBean
-    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
-
-    @MockkBean
-    private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null

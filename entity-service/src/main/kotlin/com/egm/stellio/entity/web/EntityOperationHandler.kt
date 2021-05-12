@@ -212,7 +212,16 @@ class EntityOperationHandler(
                 "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
             )
 
-        return rawEntities.let {
+        val jsonldRawEntities =
+            if (contentType == JSON_LD_MEDIA_TYPE) rawEntities
+            else
+                rawEntities.map { rawEntity ->
+                    val jsonldRawEntity = rawEntity.toMutableMap()
+                    jsonldRawEntity.putIfAbsent(JSONLD_CONTEXT, listOf(context))
+                    jsonldRawEntity
+                }
+
+        return jsonldRawEntities.let {
             if (contentType == JSON_LD_MEDIA_TYPE)
                 Pair(it, expandJsonLdEntities(it))
             else

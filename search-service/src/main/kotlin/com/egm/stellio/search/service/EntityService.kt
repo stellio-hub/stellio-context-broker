@@ -1,6 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.EntityServiceProperties
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
 import org.springframework.http.codec.ClientCodecConfigurer
@@ -12,15 +12,15 @@ import java.net.URI
 
 @Component
 class EntityService(
-    entityServiceProperties: EntityServiceProperties
+    applicationProperties: ApplicationProperties
 ) {
 
-    private final val consumer: (ClientCodecConfigurer) -> Unit =
+    private val consumer: (ClientCodecConfigurer) -> Unit =
         { configurer -> configurer.defaultCodecs().enableLoggingRequestDetails(true) }
 
     private var webClient = WebClient.builder()
         .exchangeStrategies(ExchangeStrategies.builder().codecs(consumer).build())
-        .baseUrl(entityServiceProperties.url)
+        .baseUrl(applicationProperties.entity.serviceUrl.toString())
         .build()
 
     fun getEntityById(entityId: URI, bearerToken: String): Mono<JsonLdEntity> =

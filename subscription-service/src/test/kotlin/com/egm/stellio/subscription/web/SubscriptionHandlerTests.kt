@@ -27,6 +27,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.util.concurrent.SettableListenableFuture
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -150,7 +151,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -416,7 +417,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
         every { subscriptionService.getById(any()) } returns Mono.just(updatedSubscription)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -559,7 +560,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")

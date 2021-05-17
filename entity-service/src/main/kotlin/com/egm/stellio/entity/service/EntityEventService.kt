@@ -6,24 +6,26 @@ import arrow.core.valid
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeReplaceEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import org.apache.kafka.common.errors.InvalidTopicException
 import org.apache.kafka.common.internals.Topic
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
 import org.springframework.http.MediaType
-import org.springframework.messaging.MessageHeaders
-import org.springframework.messaging.support.MessageBuilder
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 import java.net.URI
 
 @Component
 class EntityEventService(
-    private val resolver: BinderAwareChannelResolver
+    private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -46,14 +48,9 @@ class EntityEventService(
                 {
                     false as java.lang.Boolean
                 },
-                {
-                    resolver.resolveDestination(it)
-                        .send(
-                            MessageBuilder.createMessage(
-                                JsonUtils.serializeObject(event),
-                                MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
-                            )
-                        ) as java.lang.Boolean
+                { topic ->
+                    kafkaTemplate.send(topic, event.entityId.toString(), JsonUtils.serializeObject(event))
+                    return true as java.lang.Boolean
                 }
             )
 

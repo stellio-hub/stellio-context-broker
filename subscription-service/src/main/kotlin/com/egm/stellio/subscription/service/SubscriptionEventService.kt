@@ -5,15 +5,12 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
-import org.springframework.messaging.MessageHeaders
-import org.springframework.messaging.support.MessageBuilder
-import org.springframework.scheduling.annotation.Async
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 
 @Component
 class SubscriptionEventService(
-    private val resolver: BinderAwareChannelResolver
+    private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
     private val mapper: ObjectMapper =
         jacksonObjectMapper()
@@ -24,25 +21,9 @@ class SubscriptionEventService(
     private val subscriptionChannelName = "cim.subscription"
     private val notificationChannelName = "cim.notification"
 
-    @Async
-    fun publishSubscriptionEvent(event: EntityEvent): java.lang.Boolean {
-        return resolver.resolveDestination(subscriptionChannelName)
-            .send(
-                MessageBuilder.createMessage(
-                    mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
-                )
-            ) as java.lang.Boolean
-    }
+    fun publishSubscriptionEvent(event: EntityEvent) =
+        kafkaTemplate.send(subscriptionChannelName, event.entityId.toString(), mapper.writeValueAsString(event))
 
-    @Async
-    fun publishNotificationEvent(event: EntityEvent): java.lang.Boolean {
-        return resolver.resolveDestination(notificationChannelName)
-            .send(
-                MessageBuilder.createMessage(
-                    mapper.writeValueAsString(event),
-                    MessageHeaders(mapOf(MessageHeaders.ID to event.entityId))
-                )
-            ) as java.lang.Boolean
-    }
+    fun publishNotificationEvent(event: EntityEvent) =
+        kafkaTemplate.send(notificationChannelName, event.entityId.toString(), mapper.writeValueAsString(event))
 }

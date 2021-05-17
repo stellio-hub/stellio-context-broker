@@ -9,8 +9,9 @@ import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.concurrent.SettableListenableFuture
 
 @SpringBootTest(classes = [SubscriptionEventService::class])
 @ActiveProfiles("test")
@@ -20,37 +21,35 @@ class SubscriptionEventServiceTests {
     private lateinit var subscriptionEventService: SubscriptionEventService
 
     @MockkBean(relaxed = true)
-    private lateinit var resolver: BinderAwareChannelResolver
+    private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     @Test
     fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
+        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
         val event = EntityCreateEvent(
-            "urn:ngsi-ld:Subscription:1".toUri(),
+            subscriptionUri,
             "operationPayload",
             listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
-        every {
-            resolver.resolveDestination(any()).send(any())
-        } returns true
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishSubscriptionEvent(event)
 
-        verify { resolver.resolveDestination("cim.subscription") }
+        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
     }
 
     @Test
     fun `it should publish an event of type NOTIFICATION_CREATE`() {
+        val notificationUri = "urn:ngsi-ld:Notification:1".toUri()
         val event = EntityCreateEvent(
-            "urn:ngsi-ld:Notification:1".toUri(),
+            notificationUri,
             "operationPayload",
             listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
-        every {
-            resolver.resolveDestination(any()).send(any())
-        } returns true
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishNotificationEvent(event)
 
-        verify { resolver.resolveDestination("cim.notification") }
+        verify { kafkaTemplate.send("cim.notification", notificationUri.toString(), any()) }
     }
 }

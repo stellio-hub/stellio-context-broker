@@ -18,7 +18,6 @@ class ObservationEventListener(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    // using @KafkaListener instead of @StreamListener, couldn't find way to specify topic patterns with @StreamListener
     @KafkaListener(topicPattern = "cim.observation.*", groupId = "observations")
     fun processMessage(content: String) {
         when (val observationEvent = deserializeAs<EntityEvent>(content)) {

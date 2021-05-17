@@ -59,7 +59,7 @@ subprojects {
         // it provides support for JWT decoding and verification
         implementation("org.springframework.security:spring-security-oauth2-jose")
 
-        implementation("org.springframework.cloud:spring-cloud-starter-stream-kafka")
+        implementation("org.springframework.kafka:spring-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.2")

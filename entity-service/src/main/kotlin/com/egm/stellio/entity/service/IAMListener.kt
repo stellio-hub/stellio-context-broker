@@ -6,18 +6,16 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.stream.annotation.EnableBinding
-import org.springframework.cloud.stream.annotation.StreamListener
+import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-@EnableBinding(IAMEventSink::class)
 class IAMListener(
     private val entityService: EntityService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @StreamListener("cim.iam")
+    @KafkaListener(topics = ["cim.iam"], groupId = "entity-iam")
     fun processMessage(content: String) {
         when (val authorizationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> create(authorizationEvent)

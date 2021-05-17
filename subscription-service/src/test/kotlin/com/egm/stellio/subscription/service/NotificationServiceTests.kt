@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.concurrent.SettableListenableFuture
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -124,7 +125,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -183,7 +184,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -216,7 +217,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -275,7 +276,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -320,7 +321,7 @@ class NotificationServiceTests {
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -359,7 +360,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         stubFor(
             post(urlMatching("/notification"))
@@ -406,7 +407,7 @@ class NotificationServiceTests {
 
         every { fcmService.sendMessage(any(), any(), any()) } returns "Notification sent successfully"
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
-        every { subscriptionEventService.publishNotificationEvent(any()) } returns true as java.lang.Boolean
+        every { subscriptionEventService.publishNotificationEvent(any()) } returns SettableListenableFuture()
 
         StepVerifier.create(
             notificationService.callSubscriber(

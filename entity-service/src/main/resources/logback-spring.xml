@@ -24,6 +24,8 @@
 
     <!-- Use AsyncAppender to prevent slowdowns -->
     <appender name="async_gelf" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- do not block the queue if Graylog is unavailable -->
+        <neverBlock>true</neverBlock>
         <appender-ref ref="gelf" />
     </appender>
 

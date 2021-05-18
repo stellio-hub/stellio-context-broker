@@ -6,6 +6,7 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -23,7 +24,8 @@ import java.net.URI
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val partialEntityRepository: PartialEntityRepository
+    private val partialEntityRepository: PartialEntityRepository,
+    private val searchRepository: SearchRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -301,7 +303,7 @@ class EntityService(
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> =
+    ): Pair<Int, List<JsonLdEntity>> =
         searchEntities(params, userId, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
@@ -321,20 +323,21 @@ class EntityService(
         limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> {
+    ): Pair<Int, List<JsonLdEntity>> {
         val expandedType = expandJsonLdKey(params["type"] as String, contexts)!!
 
-        return neo4jRepository.getEntities(
+        val result = searchRepository.getEntities(
             mapOf(
                 "id" to params["id"] as List<String>?,
                 "type" to expandedType,
                 "idPattern" to params["idPattern"] as String?,
-                "q" to expandedQuery
+                "q" to params["q"]
             ),
             userId,
             page,
             limit
-        ).mapNotNull { getFullEntityById(it, includeSysAttrs) }
+        )
+        return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
     }
 
     @Transactional

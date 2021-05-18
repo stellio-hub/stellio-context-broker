@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 
 sealed class SubjectNodeInfo(val id: URI, val label: String)
@@ -557,87 +556,6 @@ class Neo4jRepository(
             (it["entityType"] as Array<String>)
                 .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
         }.flatten()
-    }
-
-    fun getEntities(params: Map<String, Any?>, userId: String, page: Int, limit: Int): List<URI> {
-        val ids = params["id"] as List<String>?
-        val type = params["type"] as String
-        val idPattern = params["idPattern"] as String?
-        val rawQuery = params["q"] as String
-        val formattedIds = ids?.map { "'$it'" }
-        val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = rawQuery.replace(
-            pattern.toRegex()
-        ) { matchResult ->
-            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-            if (parsedQueryTerm.third.isRelationshipTarget()) {
-                """
-                    EXISTS {
-                        MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
-                    }
-                """.trimIndent()
-            } else {
-                val comparableValue = when {
-                    parsedQueryTerm.third.isFloat() -> "toFloat('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
-                    else -> parsedQueryTerm.third
-                }
-                """
-                   EXISTS {
-                       MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${parsedQueryTerm.first}'
-                       AND p.value ${parsedQueryTerm.second} $comparableValue
-                   }
-                """.trimIndent()
-            }
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
-
-        val matchClause =
-            if (type.isEmpty())
-                "MATCH (n:Entity), (userEntity:Entity)"
-            else
-                "MATCH (n:`$type`), (userEntity:Entity)"
-
-        val idClause =
-            if (ids != null)
-                """
-                    n.id in $formattedIds
-                    ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
-
-        val idPatternClause =
-            if (idPattern != null)
-                """
-                    n.id =~ '$idPattern'
-                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
-
-        val whereClause =
-            """
-            WHERE userEntity.id = $userId 
-                OR (userEntity)-[:HAS_VALUE]->(:Property { name: \"https://ontology.eglobalmark.com/authorization#serviceAccountId\", value: \"test\" })
-    
-            """.trimIndent()
-
-        val finalQuery =
-            """
-            $matchClause
-            $whereClause
-                $idClause
-                $idPatternClause
-                $innerQuery
-            RETURN n.id as id
-            """
-
-        return session.query(finalQuery, emptyMap<String, Any>(), true)
-            .map { (it["id"] as String).toUri() }
     }
 
     fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {

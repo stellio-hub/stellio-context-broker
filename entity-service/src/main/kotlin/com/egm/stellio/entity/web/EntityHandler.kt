@@ -98,6 +98,10 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
+        if (limit <= 0 || page <= 0)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
+
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
@@ -111,7 +115,7 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(
+        val countAndEntities = entityService.searchEntities(
             mapOf("id" to ids, "type" to type, "idPattern" to idPattern, "q" to q.decode()) as Map<String, Any>,
             userId,
             page,
@@ -120,12 +124,12 @@ class EntityHandler(
             includeSysAttrs
         )
 
-        if (entities.isEmpty())
+        if (countAndEntities.second.isEmpty())
             return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
 
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         val filteredEntities =
-            entities.filter { it.containsAnyOf(expandedAttrs) }
+            countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {
                     JsonLdEntity(
                         JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
@@ -142,7 +146,7 @@ class EntityHandler(
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/entities",
             params,
-            20,
+            countAndEntities.first,
             page,
             limit
         )

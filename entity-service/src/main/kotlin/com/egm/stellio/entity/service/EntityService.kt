@@ -1,11 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.*
-import com.egm.stellio.entity.repository.AttributeSubjectNode
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.EntitySubjectNode
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PartialEntityRepository
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
@@ -26,7 +22,8 @@ import java.util.regex.Pattern
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val partialEntityRepository: PartialEntityRepository
+    private val partialEntityRepository: PartialEntityRepository,
+    private val searchRepository: SearchRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -304,7 +301,7 @@ class EntityService(
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> =
+    ): Pair<Int, List<JsonLdEntity>> =
         searchEntities(params, userId, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
@@ -324,7 +321,7 @@ class EntityService(
         limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> {
+    ): Pair<Int, List<JsonLdEntity>> {
         val expandedType = expandJsonLdKey(params["type"] as String, contexts)!!
 
         // use this pattern to extract query terms (probably to be completed)
@@ -347,7 +344,7 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(
+        val result = searchRepository.getEntities(
             mapOf(
                 "id" to params["id"] as List<String>?,
                 "type" to expandedType,
@@ -357,7 +354,8 @@ class EntityService(
             userId,
             page,
             limit
-        ).mapNotNull { getFullEntityById(it, includeSysAttrs) }
+        )
+        return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
     }
 
     @Transactional

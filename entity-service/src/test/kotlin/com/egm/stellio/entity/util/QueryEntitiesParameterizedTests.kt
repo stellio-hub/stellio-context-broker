@@ -54,6 +54,12 @@ class QueryEntitiesParameterizedTests private constructor() {
                     2,
                     1,
                     listOf("urn:ngsi-ld:Beekeeper:03432".toUri())
+                ),
+                Arguments.arguments(
+                    null,
+                    1,
+                    0,
+                    emptyList<URI>()
                 )
             )
         }

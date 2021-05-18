@@ -98,16 +98,23 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)
             .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
-
+        val subscriptionsCount = subscriptionService.getSubscriptionsCount(userId).awaitFirst()
         val prevAndNextLinks = getPagingLinks(
             "/ngsi-ld/v1/subscriptions",
             params,
-            subscriptionService.getSubscriptionsCount(userId).awaitFirst(),
+            subscriptionsCount,
             page,
             limit
         )
 
-        return PagingUtils.buildPaginationResponse(subscriptions, prevAndNextLinks, mediaType, contextLink)
+        return PagingUtils.buildPaginationResponse(
+            subscriptions,
+            subscriptionsCount,
+            false,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
     }
 
     /**

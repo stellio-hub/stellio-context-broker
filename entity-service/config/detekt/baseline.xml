@@ -2,19 +2,20 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ComplexMethod:Neo4jRepository.kt$Neo4jRepository$fun getEntities(ids: List&lt;String&gt;?, type: String, idPattern: String?, rawQuery: String): List&lt;URI&gt;</ID>
+    <ID>ComplexMethod:Neo4jRepository.kt$Neo4jRepository$fun getEntities(params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int): List&lt;URI&gt;</ID>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
     <ID>LargeClass:EntityOperationHandlerTests.kt$EntityOperationHandlerTests</ID>
+    <ID>LargeClass:EntityService.kt$EntityService</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests</ID>
-    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_UPDATE events if multi instance relationship is updated`()</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
-    <ID>LongMethod:Neo4jRepository.kt$Neo4jRepository$fun getEntities(ids: List&lt;String&gt;?, type: String, idPattern: String?, rawQuery: String): List&lt;URI&gt;</ID>
+    <ID>LongMethod:Neo4jRepository.kt$Neo4jRepository$fun getEntities(params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int): List&lt;URI&gt;</ID>
     <ID>LongParameterList:Attribute.kt$Attribute$( @Transient val attributeType: String, var observedAt: ZonedDateTime? = null, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @Convert(UriConverter::class) var datasetId: URI? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf() )</ID>
     <ID>LongParameterList:Entity.kt$Entity$( @Id @JsonProperty("@id") @Convert(UriConverter::class) val id: URI, @Labels @JsonProperty("@type") val type: List&lt;String&gt;, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @JsonIgnore var location: String? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf(), var contexts: List&lt;String&gt; = mutableListOf() )</ID>
-    <ID>LongParameterList:EntityService.kt$EntityService$( ids: List&lt;String&gt;?, type: String, idPattern: String?, query: String, contextLink: String, includeSysAttrs: Boolean )</ID>
-    <ID>LongParameterList:EntityService.kt$EntityService$( ids: List&lt;String&gt;?, type: String, idPattern: String?, query: String, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>
+    <ID>LongParameterList:EntityService.kt$EntityService$( params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>
+    <ID>LongParameterList:EntityService.kt$EntityService$( params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>
+    <ID>MagicNumber:EntityHandler.kt$EntityHandler$20</ID>
     <ID>MaxLineLength:EntityHandlerTests.kt$EntityHandlerTests$ </ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>

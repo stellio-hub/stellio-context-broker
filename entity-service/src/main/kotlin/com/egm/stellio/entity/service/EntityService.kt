@@ -298,14 +298,14 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
-        ids: List<String>?,
-        type: String,
-        idPattern: String?,
-        query: String,
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> =
-        searchEntities(ids, type, idPattern, query, listOf(contextLink), includeSysAttrs)
+        searchEntities(params, userId, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -318,18 +318,18 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
-        ids: List<String>?,
-        type: String,
-        idPattern: String?,
-        query: String,
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
     ): List<JsonLdEntity> {
-        val expandedType = expandJsonLdKey(type, contexts)!!
+        val expandedType = expandJsonLdKey(params["type"] as String, contexts)!!
 
         // use this pattern to extract query terms (probably to be completed)
         val pattern = Pattern.compile("([^();|]+)")
-        val expandedQuery = query.replace(
+        val expandedQuery = (params["q"] as String).replace(
             pattern.toRegex()
         ) { matchResult ->
             // for each query term, we retrieve the attribute and replace it by its persisted form (if different)
@@ -347,8 +347,17 @@ class EntityService(
             "$expandedParam$operator${splitted[1]}"
         }
 
-        return neo4jRepository.getEntities(ids, expandedType, idPattern, expandedQuery)
-            .mapNotNull { getFullEntityById(it, includeSysAttrs) }
+        return neo4jRepository.getEntities(
+            mapOf(
+                "id" to params["id"] as List<String>?,
+                "type" to expandedType,
+                "idPattern" to params["idPattern"] as String?,
+                "q" to expandedQuery
+            ),
+            userId,
+            page,
+            limit
+        ).mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 
     @Transactional

@@ -559,7 +559,11 @@ class Neo4jRepository(
         }.flatten()
     }
 
-    fun getEntities(ids: List<String>?, type: String, idPattern: String?, rawQuery: String): List<URI> {
+    fun getEntities(params: Map<String, Any?>, userId: String, page: Int, limit: Int): List<URI> {
+        val ids = params["id"] as List<String>?
+        val type = params["type"] as String
+        val idPattern = params["idPattern"] as String?
+        val rawQuery = params["q"] as String
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
@@ -595,9 +599,9 @@ class Neo4jRepository(
 
         val matchClause =
             if (type.isEmpty())
-                "MATCH (n:Entity)"
+                "MATCH (n:Entity), (userEntity:Entity)"
             else
-                "MATCH (n:`$type`)"
+                "MATCH (n:`$type`), (userEntity:Entity)"
 
         val idClause =
             if (ids != null)
@@ -616,8 +620,11 @@ class Neo4jRepository(
             else ""
 
         val whereClause =
-            if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
-            else ""
+            """
+            WHERE userEntity.id = $userId 
+                OR (userEntity)-[:HAS_VALUE]->(:Property { name: \"https://ontology.eglobalmark.com/authorization#serviceAccountId\", value: \"test\" })
+    
+            """.trimIndent()
 
         val finalQuery =
             """

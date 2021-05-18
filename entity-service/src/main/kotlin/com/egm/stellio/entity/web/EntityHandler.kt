@@ -17,6 +17,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.PagingUtils.ENTITY_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -83,6 +84,8 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
+        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: ENTITY_QUERY_PAGING_LIMIT
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
@@ -93,6 +96,7 @@ class EntityHandler(
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
+        val userId = extractSubjectOrEmpty().awaitFirst()
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())
@@ -107,21 +111,21 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(ids, type, idPattern, q.decode(), contextLink, includeSysAttrs)
+        val entities = entityService.searchEntities(
+            mapOf("id" to ids, "type" to type, "idPattern" to idPattern, "q" to q.decode()) as Map<String, Any>,
+            userId,
+            page,
+            limit,
+            contextLink,
+            includeSysAttrs
+        )
+
         if (entities.isEmpty())
             return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        val entitiesUserCanRead =
-            authorizationService.filterEntitiesUserCanRead(
-                entities.map { it.id.toUri() },
-                userId
-            ).toListOfString()
-
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         val filteredEntities =
-            entities.filter { entitiesUserCanRead.contains(it.id) }
-                .filter { it.containsAnyOf(expandedAttrs) }
+            entities.filter { it.containsAnyOf(expandedAttrs) }
                 .map {
                     JsonLdEntity(
                         JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
@@ -135,8 +139,18 @@ class EntityHandler(
         // so they should be reconstructed
         compactedEntities.forEach { reconstructPolygonCoordinates(it) }
 
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(compactedEntities))
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entities",
+            params,
+            20,
+            page,
+            limit
+        )
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedEntities),
+            prevAndNextLinks,
+            mediaType, contextLink
+        )
     }
 
     /**

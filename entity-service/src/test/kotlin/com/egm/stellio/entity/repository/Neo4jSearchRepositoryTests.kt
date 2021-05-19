@@ -1,11 +1,14 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_ADMIN
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_READ
+import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_WRITE
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.toUri
+import junit.framework.TestCase
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import org.junit.jupiter.api.Test
@@ -40,14 +43,26 @@ class Neo4jSearchRepositoryTests {
     private val limit = 20
 
     @Test
-    fun `it should return a matching entity if user has read access on it`() {
+    fun `it should return matching entities that user can access`() {
         val userEntity = createEntity(userId.toUri(), listOf("User"), mutableListOf())
-        val entity = createEntity(
+        val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, entity.id)
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
@@ -55,12 +70,17 @@ class Neo4jSearchRepositoryTests {
             page,
             limit
         ).second
-        assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
+
+        assertTrue(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        assertTrue(entities.contains(thirdEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
-    fun `it should not return a matching entity if user has not access on it`() {
+    fun `it should not return a matching entity that user cannot access`() {
         createEntity(userId.toUri(), listOf("User"), mutableListOf())
         val entity = createEntity(
             beekeeperUri,
@@ -73,8 +93,49 @@ class Neo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
+    fun `it should return matching entities count`() {
+        val userEntity = createEntity(userId.toUri(), listOf("User"), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:03432".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
+
+        val entitiesCount = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
+                "q" to ""
+            ),
+            userId,
+            page,
+            limit
+        ).first
+
+        TestCase.assertEquals(entitiesCount, 2)
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     fun createEntity(

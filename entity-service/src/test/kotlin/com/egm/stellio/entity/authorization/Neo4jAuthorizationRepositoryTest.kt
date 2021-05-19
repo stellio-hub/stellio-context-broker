@@ -45,6 +45,7 @@ class Neo4jAuthorizationRepositoryTest {
     companion object {
         const val EGM_CAN_READ = "https://ontology.eglobalmark.com/authorization#rCanRead"
         const val EGM_CAN_WRITE = "https://ontology.eglobalmark.com/authorization#rCanWrite"
+        const val EGM_CAN_ADMIN = "https://ontology.eglobalmark.com/authorization#rCanAdmin"
         const val EGM_IS_MEMBER_OF = "https://ontology.eglobalmark.com/authorization#isMemberOf"
     }
 

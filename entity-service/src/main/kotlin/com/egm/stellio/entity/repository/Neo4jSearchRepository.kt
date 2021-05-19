@@ -84,12 +84,12 @@ class Neo4jSearchRepository(
             """
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
             WHERE any(r IN labels(right) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
-            return entity.id as id
+            return entity
             UNION
             MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:isMemberOf]
                 ->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
             WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
-            return entity.id as id
+            return entity
             """.trimIndent()
 
         val finalQuery =
@@ -102,8 +102,9 @@ class Neo4jSearchRepository(
                     $innerQuery
                 $filterPermissionsClause
             }
-            With id 
-            return id, count(id) as count
+            WITH collect(entity) as entities, count(entity) as count
+            UNWIND entities as entity
+            RETURN entity.id as id, count
             """
 
         val result = session.query(finalQuery, mapOf("userId" to userId), true)

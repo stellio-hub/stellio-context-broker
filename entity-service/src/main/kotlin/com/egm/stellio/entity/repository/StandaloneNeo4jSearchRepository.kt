@@ -85,8 +85,9 @@ class StandaloneNeo4jSearchRepository(
                 $idClause
                 $idPatternClause
                 $innerQuery
-            WITH n.id as id
-            return id, count(id) as count
+            WITH collect(n) as entities, count(n) as count
+            UNWIND entities as n
+            RETURN n.id as id, count
             """
 
         val result = session.query(finalQuery, emptyMap<String, Any>(), true)

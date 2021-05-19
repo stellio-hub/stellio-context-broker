@@ -5,8 +5,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.toUri
-import junit.framework.TestCase.assertFalse
-import junit.framework.TestCase.assertTrue
+import junit.framework.TestCase.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -57,6 +56,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -75,6 +75,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -93,6 +94,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -111,6 +113,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -129,6 +132,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -147,6 +151,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -164,6 +169,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -181,6 +187,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -198,6 +205,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -215,6 +223,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -232,6 +241,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -249,6 +259,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -266,6 +277,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -283,6 +295,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -308,6 +321,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
@@ -334,6 +348,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(entity.id))
 
         entities = searchRepository.getEntities(
@@ -414,8 +429,8 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
-        assertTrue(entities.contains(entity.id))
 
+        assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
     }
 
@@ -442,6 +457,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
         neo4jRepository.deleteEntity(firstEntity.id)
@@ -476,6 +492,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
         assertTrue(entities.contains(thirdEntity.id))
@@ -512,6 +529,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
         assertFalse(entities.contains(thirdEntity.id))
@@ -548,7 +566,43 @@ class StandaloneNeo4jSearchRepositoryTests {
             page,
             limit
         ).second
+
         assertTrue(entities.isEmpty())
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
+    @Test
+    fun `it should return matching entities count`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:03432".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        val entitiesCount = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
+                "q" to ""
+            ),
+            userId,
+            page,
+            limit
+        ).first
+
+        assertEquals(entitiesCount, 2)
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
         neo4jRepository.deleteEntity(thirdEntity.id)

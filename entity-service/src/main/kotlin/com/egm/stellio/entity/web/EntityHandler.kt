@@ -17,9 +17,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.PagingUtils.ENTITY_QUERY_PAGING_LIMIT
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -47,6 +47,12 @@ class EntityHandler(
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
 ) {
+
+    @Value("\${pagination.limit.default:}")
+    private val paginationDefaultLimit: Int = 30
+
+    @Value("\${pagination.limit.max:}")
+    private val paginationMaxLimit: Int = 100
 
     /**
      * Implements 6.4.3.1 - Create Entity
@@ -85,7 +91,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: ENTITY_QUERY_PAGING_LIMIT
+        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: paginationDefaultLimit
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
@@ -101,6 +107,10 @@ class EntityHandler(
         if (limit <= 0 || page <= 0)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
+
+        if (limit > paginationMaxLimit)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("Maximum limit is $paginationMaxLimit"))
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())

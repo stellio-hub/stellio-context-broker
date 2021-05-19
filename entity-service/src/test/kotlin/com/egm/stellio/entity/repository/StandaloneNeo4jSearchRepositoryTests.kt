@@ -7,6 +7,8 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.toUri
 import junit.framework.TestCase.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -608,8 +610,14 @@ class StandaloneNeo4jSearchRepositoryTests {
         neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
-    @Test
-    fun `it should only return matching entities requested by pagination`() {
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
+    fun `it should only return matching entities requested by pagination`(
+        idPattern: String?,
+        page: Int,
+        limit: Int,
+        expectedEntitiesIds: List<URI>
+    ) {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -630,17 +638,15 @@ class StandaloneNeo4jSearchRepositoryTests {
             mapOf(
                 "id" to null,
                 "type" to "Beekeeper",
-                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
+                "idPattern" to idPattern,
                 "q" to ""
             ),
             userId,
-            1,
-            1
+            page,
+            limit
         ).second
 
-        assertFalse(entities.contains(firstEntity.id))
-        assertTrue(entities.contains(secondEntity.id))
-        assertFalse(entities.contains(thirdEntity.id))
+        assertTrue(entities.containsAll(expectedEntitiesIds))
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
         neo4jRepository.deleteEntity(thirdEntity.id)

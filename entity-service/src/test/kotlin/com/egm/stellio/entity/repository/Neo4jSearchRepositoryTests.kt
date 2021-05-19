@@ -8,10 +8,10 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.toUri
-import junit.framework.TestCase
-import junit.framework.TestCase.assertFalse
-import junit.framework.TestCase.assertTrue
+import junit.framework.TestCase.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
@@ -132,7 +132,53 @@ class Neo4jSearchRepositoryTests {
             limit
         ).first
 
-        TestCase.assertEquals(entitiesCount, 2)
+        assertEquals(entitiesCount, 2)
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
+    fun `it should only return matching entities requested by pagination`(
+        idPattern: String?,
+        page: Int,
+        limit: Int,
+        expectedEntitiesIds: List<URI>
+    ) {
+        val userEntity = createEntity(userId.toUri(), listOf("User"), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:03432".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
+
+        val entities = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to idPattern,
+                "q" to ""
+            ),
+            userId,
+            page,
+            limit
+        ).second
+
+        assertTrue(entities.containsAll(expectedEntitiesIds))
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)
         neo4jRepository.deleteEntity(thirdEntity.id)

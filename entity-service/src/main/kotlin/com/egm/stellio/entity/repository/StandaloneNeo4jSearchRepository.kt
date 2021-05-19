@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.util.*
+import com.egm.stellio.entity.util.QueryUtils.buildCypherQueryToQueryEntities
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -21,36 +22,7 @@ class StandaloneNeo4jSearchRepository(
         val rawQuery = params["q"] as String
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = rawQuery.replace(
-            pattern.toRegex()
-        ) { matchResult ->
-            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-            if (parsedQueryTerm.third.isRelationshipTarget()) {
-                """
-                    EXISTS {
-                        MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
-                    }
-                """.trimIndent()
-            } else {
-                val comparableValue = when {
-                    parsedQueryTerm.third.isFloat() -> "toFloat('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
-                    else -> parsedQueryTerm.third
-                }
-                """
-                   EXISTS {
-                       MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${parsedQueryTerm.first}'
-                       AND p.value ${parsedQueryTerm.second} $comparableValue
-                   }
-                """.trimIndent()
-            }
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
+        val innerQuery = buildCypherQueryToQueryEntities(rawQuery, pattern)
 
         val matchClause =
             if (type.isEmpty())

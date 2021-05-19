@@ -48,11 +48,13 @@ class EntityHandler(
     private val entityEventService: EntityEventService
 ) {
 
-    @Value("\${pagination.limit.default:}")
-    private val paginationDefaultLimit: Int = 30
+    companion object {
+        @Value("\${pagination.limit.default:}")
+        private const val paginationDefaultLimit: Int = 30
 
-    @Value("\${pagination.limit.max:}")
-    private val paginationMaxLimit: Int = 100
+        @Value("\${pagination.limit.max:}")
+        private const val paginationMaxLimit: Int = 100
+    }
 
     /**
      * Implements 6.4.3.1 - Create Entity

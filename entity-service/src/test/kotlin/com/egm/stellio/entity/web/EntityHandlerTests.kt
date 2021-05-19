@@ -610,6 +610,23 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities should return 400 if limit is greater than the maximum authorized limit`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&page=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Maximum limit is 100"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(

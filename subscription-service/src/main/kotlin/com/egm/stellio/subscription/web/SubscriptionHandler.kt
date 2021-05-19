@@ -13,6 +13,7 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import kotlinx.coroutines.reactive.awaitFirst
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -38,6 +39,12 @@ class SubscriptionHandler(
     private val subscriptionService: SubscriptionService,
     private val subscriptionEventService: SubscriptionEventService
 ) {
+
+    @Value("\${pagination.limit.default:}")
+    private val paginationDefaultLimit: Int = 30
+
+    @Value("\${pagination.limit.max:}")
+    private val paginationMaxLimit: Int = 100
 
     /**
      * Implements 6.10.3.1 - Create Subscription
@@ -76,13 +83,17 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
         val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
+        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: paginationDefaultLimit
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         if (limit <= 0 || page <= 0)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
+
+        if (limit > paginationMaxLimit)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("Maximum limit is $paginationMaxLimit"))
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)

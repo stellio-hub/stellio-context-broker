@@ -50,9 +50,7 @@ class Neo4jRepositoryTests {
     @Autowired
     private lateinit var partialEntityRepository: PartialEntityRepository
 
-    private val userUri = "urn:ngsi-ld:User:01".toUri()
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
-    private val deadFishUri = "urn:ngsi-ld:DeadFishes:019BN".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
 
     @Test

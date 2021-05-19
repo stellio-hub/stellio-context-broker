@@ -21,8 +21,6 @@
     <ID>LongParameterList:Entity.kt$Entity$( @Id @JsonProperty("@id") @Convert(UriConverter::class) val id: URI, @Labels @JsonProperty("@type") val type: List&lt;String&gt;, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @JsonIgnore var location: String? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf(), var contexts: List&lt;String&gt; = mutableListOf() )</ID>
     <ID>LongParameterList:EntityService.kt$EntityService$( params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>
     <ID>LongParameterList:EntityService.kt$EntityService$( params: Map&lt;String, Any?&gt;, userId: String, page: Int, limit: Int, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>
-    <ID>MagicNumber:EntityHandler.kt$EntityHandler$100</ID>
-    <ID>MagicNumber:EntityHandler.kt$EntityHandler$30</ID>
     <ID>MaxLineLength:EntityHandlerTests.kt$EntityHandlerTests$ </ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>

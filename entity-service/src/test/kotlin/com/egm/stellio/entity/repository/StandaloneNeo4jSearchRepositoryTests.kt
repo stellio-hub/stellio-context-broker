@@ -608,6 +608,44 @@ class StandaloneNeo4jSearchRepositoryTests {
         neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
+    @Test
+    fun `it should only return matching entities requested by pagination`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa2"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:03432".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = "name", value = "Scalpa3"))
+        )
+
+        val entities = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
+                "q" to ""
+            ),
+            userId,
+            1,
+            1
+        ).second
+
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+        assertFalse(entities.contains(thirdEntity.id))
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+        neo4jRepository.deleteEntity(thirdEntity.id)
+    }
+
     fun createEntity(
         id: URI,
         type: List<String>,

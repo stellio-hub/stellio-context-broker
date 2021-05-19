@@ -92,6 +92,15 @@ class Neo4jSearchRepository(
             return entity
             """.trimIndent()
 
+        val pagingClause =
+            """
+            WITH collect(entity) as entities, count(entity) as count
+            UNWIND entities as entity
+            RETURN entity.id as id, count
+            ORDER BY id
+            SKIP ${(page - 1) * limit} LIMIT $limit
+            """.trimIndent()
+
         val finalQuery =
             """
             CALL {
@@ -102,9 +111,7 @@ class Neo4jSearchRepository(
                     $innerQuery
                 $filterPermissionsClause
             }
-            WITH collect(entity) as entities, count(entity) as count
-            UNWIND entities as entity
-            RETURN entity.id as id, count
+            $pagingClause
             """
 
         val result = session.query(finalQuery, mapOf("userId" to userId), true)

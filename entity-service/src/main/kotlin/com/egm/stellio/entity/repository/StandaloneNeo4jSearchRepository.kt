@@ -78,6 +78,15 @@ class StandaloneNeo4jSearchRepository(
             if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
             else ""
 
+        val pagingClause =
+            """
+            WITH collect(n) as entities, count(n) as count
+            UNWIND entities as n
+            RETURN n.id as id, count
+            ORDER BY id
+            SKIP ${(page - 1) * limit} LIMIT $limit
+            """.trimIndent()
+
         val finalQuery =
             """
             $matchClause
@@ -85,9 +94,7 @@ class StandaloneNeo4jSearchRepository(
                 $idClause
                 $idPatternClause
                 $innerQuery
-            WITH collect(n) as entities, count(n) as count
-            UNWIND entities as n
-            RETURN n.id as id, count
+            $pagingClause
             """
 
         val result = session.query(finalQuery, emptyMap<String, Any>(), true)

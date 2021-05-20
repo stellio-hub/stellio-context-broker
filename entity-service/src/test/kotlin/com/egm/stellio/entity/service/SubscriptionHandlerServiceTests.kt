@@ -88,10 +88,43 @@ class SubscriptionHandlerServiceTests {
     fun `it should delete a subscription`() {
         val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
 
+        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
         every { entityService.deleteEntity(any()) } returns Pair(2, 1)
 
         subscriptionHandlerService.deleteSubscriptionEntity(subscriptionId)
 
+        verify {
+            neo4jRepository.getRelationshipTargetOfSubject(
+                eq(subscriptionId),
+                JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
+            )
+        }
+        verify { entityService.deleteEntity(eq(subscriptionId)) }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should delete a subscription and the last notification if found`() {
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+        val notificationId = "urn:ngsi-ld:Notification:01".toUri()
+
+        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } answers {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns notificationId
+            }
+        }
+        every { entityService.deleteEntity(any()) } returns Pair(2, 1)
+
+        subscriptionHandlerService.deleteSubscriptionEntity(subscriptionId)
+
+        verify {
+            neo4jRepository.getRelationshipTargetOfSubject(
+                eq(subscriptionId),
+                JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
+            )
+        }
+        verify { entityService.deleteEntity(eq(notificationId)) }
         verify { entityService.deleteEntity(eq(subscriptionId)) }
 
         confirmVerified()

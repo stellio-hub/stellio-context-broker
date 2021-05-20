@@ -51,7 +51,16 @@ class SubscriptionHandlerService(
         entityRepository.save(subscription)
     }
 
-    fun deleteSubscriptionEntity(id: URI) = entityService.deleteEntity(id)
+    fun deleteSubscriptionEntity(id: URI) {
+        // Delete the last notification of the subscription
+        val lastNotification = neo4jRepository.getRelationshipTargetOfSubject(
+            id,
+            JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
+        )
+        if (lastNotification != null) entityService.deleteEntity(lastNotification.id)
+
+        entityService.deleteEntity(id)
+    }
 
     @Transactional
     fun createNotificationEntity(id: URI, type: String, subscriptionId: URI, properties: Map<String, Any>) {

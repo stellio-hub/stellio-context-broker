@@ -47,7 +47,7 @@ class SubscriptionEventListenerServiceTests {
         val subscriptionEvent =
             loadSampleData("events/listened/subscriptionDeleteEvent.jsonld")
 
-        every { subscriptionHandlerService.deleteSubscriptionEntity(any()) } returns Pair(2, 1)
+        every { subscriptionHandlerService.deleteSubscriptionEntity(any()) } just Runs
 
         subscriptionEventListenerService.processSubscription(subscriptionEvent)
 

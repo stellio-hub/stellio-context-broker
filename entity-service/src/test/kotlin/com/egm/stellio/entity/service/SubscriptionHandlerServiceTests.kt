@@ -101,7 +101,7 @@ class SubscriptionHandlerServiceTests {
         }
         verify { entityService.deleteEntity(eq(subscriptionId)) }
 
-        confirmVerified()
+        confirmVerified(neo4jRepository, entityService)
     }
 
     @Test
@@ -127,7 +127,7 @@ class SubscriptionHandlerServiceTests {
         verify { entityService.deleteEntity(eq(notificationId)) }
         verify { entityService.deleteEntity(eq(subscriptionId)) }
 
-        confirmVerified()
+        confirmVerified(neo4jRepository, entityService)
     }
 
     @Test

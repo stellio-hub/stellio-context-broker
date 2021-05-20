@@ -51,6 +51,8 @@ class SubscriptionHandlerService(
         entityRepository.save(subscription)
     }
 
+    fun deleteSubscriptionEntity(id: URI) = entityService.deleteEntity(id)
+
     @Transactional
     fun createNotificationEntity(id: URI, type: String, subscriptionId: URI, properties: Map<String, Any>) {
         val subscription = entityRepository.getEntityCoreById(subscriptionId.toString())

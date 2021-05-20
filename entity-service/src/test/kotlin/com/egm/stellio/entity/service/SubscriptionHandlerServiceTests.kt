@@ -85,6 +85,19 @@ class SubscriptionHandlerServiceTests {
     }
 
     @Test
+    fun `it should delete a subscription`() {
+        val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
+
+        every { entityService.deleteEntity(any()) } returns Pair(2, 1)
+
+        subscriptionHandlerService.deleteSubscriptionEntity(subscriptionId)
+
+        verify { entityService.deleteEntity(eq(subscriptionId)) }
+
+        confirmVerified()
+    }
+
+    @Test
     fun `it should create a new notification and add a relationship to the subscription`() {
         val subscriptionId = "urn:ngsi-ld:Subscription:1234".toUri()
         val notificationId = "urn:ngsi-ld:Notification:1234".toUri()

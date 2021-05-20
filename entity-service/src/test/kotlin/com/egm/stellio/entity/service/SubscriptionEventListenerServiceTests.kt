@@ -43,6 +43,24 @@ class SubscriptionEventListenerServiceTests {
     }
 
     @Test
+    fun `it should delete a subscription entity`() {
+        val subscriptionEvent =
+            loadSampleData("events/listened/subscriptionDeleteEvent.jsonld")
+
+        every { subscriptionHandlerService.deleteSubscriptionEntity(any()) } returns Pair(2, 1)
+
+        subscriptionEventListenerService.processSubscription(subscriptionEvent)
+
+        verify {
+            subscriptionHandlerService.deleteSubscriptionEntity(
+                "urn:ngsi-ld:Subscription:04".toUri()
+            )
+        }
+
+        confirmVerified(subscriptionHandlerService)
+    }
+
+    @Test
     fun `it should parse and create notification entity`() {
         val notification =
             loadSampleData("events/listened/notificationCreateEvent.jsonld")

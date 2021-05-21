@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.util.QueryUtils.buildCypherQueryToQueryEntities
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -41,7 +42,7 @@ class Neo4jSearchRepository(
             """
             MATCH (userEntity:User) WHERE (
                 userEntity.id = ${'$'}userId OR 
-                (userEntity)-[:HAS_VALUE]->(:Property { name: "https://ontology.eglobalmark.com/authorization#serviceAccountId", value: ${'$'}userId})
+                (userEntity)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId})
             )
             with userEntity
             """.trimIndent()

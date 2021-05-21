@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.util.QueryUtils.buildCypherQueryToQueryEntities
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -24,13 +23,6 @@ class Neo4jSearchRepository(
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = buildCypherQueryToQueryEntities(rawQuery, pattern)
-
-        val matchClause =
-            if (type.isEmpty())
-                "MATCH (entity:Entity), (userEntity:Entity)"
-            else
-                "MATCH (entity:`$type`), (userEntity:Entity)"
-
         val idClause =
             if (ids != null) "AND entity.id in $formattedIds"
             else ""
@@ -45,29 +37,46 @@ class Neo4jSearchRepository(
                 else -> ""
             }
 
-        val whereClause =
+        val matchUserClause =
             """
-            WHERE (userEntity.id = ${'$'}userId 
-            OR (userEntity)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId }))
+            MATCH (userEntity:User) WHERE (
+                userEntity.id = ${'$'}userId OR 
+                (userEntity)-[:HAS_VALUE]->(:Property { name: "https://ontology.eglobalmark.com/authorization#serviceAccountId", value: ${'$'}userId})
+            )
+            with userEntity
             """.trimIndent()
 
-        val filterPermissionsClause =
+        val entityClause =
+            if (type.isEmpty())
+                "(entity:Entity)"
+            else
+                "(entity:Entity:`$type`)"
+
+        val matchEntitiesClause =
             """
-            MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
+            MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->$entityClause
             WHERE any(r IN labels(right) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
-            return entity
-            UNION
-            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:isMemberOf]
-                ->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
-            WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
-            return entity
+            $idClause
+            $idPatternClause
+            $innerQuery
+            return entity.id as entityId
             """.trimIndent()
+
+        val matchEntitiesFromGroupClause =
+            """
+            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$entityClause
+	        WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
+            $idClause
+            $idPatternClause
+            $innerQuery
+            return entity.id as entityId
+        """.trimIndent()
 
         val pagingClause =
             """
-            WITH collect(entity) as entities, count(entity) as count
-            UNWIND entities as entity
-            RETURN entity.id as id, count
+            WITH collect(entityId) as entityIds, count(entityId) as count
+            UNWIND entityIds as id
+            RETURN id, count
             ORDER BY id
             SKIP ${(page - 1) * limit} LIMIT $limit
             """.trimIndent()
@@ -75,12 +84,11 @@ class Neo4jSearchRepository(
         val finalQuery =
             """
             CALL {
-                $matchClause
-                $whereClause
-                    $idClause
-                    $idPatternClause
-                    $innerQuery
-                $filterPermissionsClause
+                $matchUserClause
+                $matchEntitiesClause
+                UNION
+                $matchUserClause
+                $matchEntitiesFromGroupClause
             }
             $pagingClause
             """

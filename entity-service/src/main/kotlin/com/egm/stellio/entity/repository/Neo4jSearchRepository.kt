@@ -65,7 +65,8 @@ class Neo4jSearchRepository(
 
         val matchEntitiesFromGroupClause =
             """
-            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$entityClause
+            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)
+            -[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$entityClause
 	        WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHT.map { "'$it'" }})
             $idClause
             $idPatternClause

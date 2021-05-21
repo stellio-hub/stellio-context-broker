@@ -161,13 +161,22 @@ object QueryUtils {
                     parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
                     else -> parsedQueryTerm.third
                 }
-                """
+                if (parsedQueryTerm.first.endsWith(".observedAt"))
+                    """
+                   EXISTS {
+                       MATCH (n)-[:HAS_VALUE]->(p:Property)
+                       WHERE p.name = '${parsedQueryTerm.first.removeSuffix(".observedAt")}'
+                       AND p.observedAt ${parsedQueryTerm.second} $comparableValue
+                   }
+                    """.trimIndent()
+                else
+                    """
                        EXISTS {
                            MATCH (entity)-[:HAS_VALUE]->(p:Property)
                            WHERE p.name = '${parsedQueryTerm.first}'
                            AND p.value ${parsedQueryTerm.second} $comparableValue
                        }
-                """.trimIndent()
+                    """.trimIndent()
             }
         }
             .replace(";", " AND ")

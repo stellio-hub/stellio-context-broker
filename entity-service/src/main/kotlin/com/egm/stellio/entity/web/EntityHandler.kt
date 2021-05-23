@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -19,7 +20,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -42,19 +42,12 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
+    private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val entityAttributeService: EntityAttributeService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService
 ) {
-
-    companion object {
-        @Value("\${pagination.limit.default:}")
-        private const val paginationDefaultLimit: Int = 30
-
-        @Value("\${pagination.limit.max:}")
-        private const val paginationMaxLimit: Int = 100
-    }
 
     /**
      * Implements 6.4.3.1 - Create Entity
@@ -93,7 +86,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: paginationDefaultLimit
+        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
@@ -110,9 +103,14 @@ class EntityHandler(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
 
-        if (limit > paginationMaxLimit)
+        if (limit > applicationProperties.pagination.limitMax)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Maximum limit is $paginationMaxLimit"))
+                .body(
+                    BadRequestDataResponse(
+                        "You asked for $limit results, " +
+                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
+                    )
+                )
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())

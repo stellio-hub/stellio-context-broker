@@ -88,7 +88,12 @@ class SubscriptionHandler(
 
         if (limit > applicationProperties.pagination.limitMax)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Maximum limit is ${applicationProperties.pagination.limitMax}"))
+                .body(
+                    BadRequestDataResponse(
+                        "You asked for $limit results, " +
+                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
+                    )
+                )
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)

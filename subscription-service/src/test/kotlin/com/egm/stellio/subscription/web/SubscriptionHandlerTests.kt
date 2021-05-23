@@ -399,7 +399,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Maximum limit is 100"
+                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()
             )

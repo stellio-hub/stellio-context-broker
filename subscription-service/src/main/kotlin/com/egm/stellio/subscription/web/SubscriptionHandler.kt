@@ -6,6 +6,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
 import com.egm.stellio.subscription.service.SubscriptionEventService
@@ -13,7 +14,6 @@ import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import kotlinx.coroutines.reactive.awaitFirst
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -36,17 +36,10 @@ import java.util.*
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
+    private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService,
     private val subscriptionEventService: SubscriptionEventService
 ) {
-
-    companion object {
-        @Value("\${pagination.limit.default:}")
-        private const val paginationDefaultLimit: Int = 30
-
-        @Value("\${pagination.limit.max:}")
-        private const val paginationMaxLimit: Int = 100
-    }
 
     /**
      * Implements 6.10.3.1 - Create Subscription
@@ -85,7 +78,7 @@ class SubscriptionHandler(
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
         val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: paginationDefaultLimit
+        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
@@ -93,9 +86,9 @@ class SubscriptionHandler(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
 
-        if (limit > paginationMaxLimit)
+        if (limit > applicationProperties.pagination.limitMax)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Maximum limit is $paginationMaxLimit"))
+                .body(BadRequestDataResponse("Maximum limit is ${applicationProperties.pagination.limitMax}"))
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)

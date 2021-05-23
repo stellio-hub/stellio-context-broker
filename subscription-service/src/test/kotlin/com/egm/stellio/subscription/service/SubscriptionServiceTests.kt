@@ -5,6 +5,7 @@ import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.*
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.data.r2dbc.core.DatabaseClient
@@ -27,6 +29,7 @@ import java.time.ZoneOffset
 
 @SpringBootTest
 @ActiveProfiles("test")
+@EnableConfigurationProperties(ApplicationProperties::class)
 class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Value("\${application.jsonld.apic_context}")

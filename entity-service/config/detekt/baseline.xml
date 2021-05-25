@@ -11,6 +11,7 @@
     <ID>LargeClass:EntityService.kt$EntityService</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests</ID>
+    <ID>LargeClass:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests</ID>
     <ID>LongMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
     <ID>LongMethod:Neo4jRepository.kt$Neo4jRepository$fun getEntities( ids: List&lt;String&gt;?, type: String, idPattern: String?, rawQuery: String, contexts: List&lt;String&gt; ): List&lt;URI&gt;</ID>

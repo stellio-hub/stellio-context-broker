@@ -234,6 +234,34 @@ class StandaloneNeo4jSearchRepositoryTests {
     }
 
     @Test
+    fun `it should return an entity if observedAt of property is correct`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(
+                    name = "testedAt",
+                    value = "measure",
+                    observedAt = ZonedDateTime.parse("2018-12-04T12:00:00Z")
+                )
+            )
+        )
+        val entities = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to null,
+                "q" to "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
+            ),
+            userId,
+            page,
+            limit
+        ).second
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
     fun `it should return an entity if type and dateTime properties are correct`() {
         val entity = createEntity(
             beekeeperUri,

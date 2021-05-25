@@ -5,7 +5,6 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
-import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 
 sealed class SubjectNodeInfo(val id: URI, val label: String)

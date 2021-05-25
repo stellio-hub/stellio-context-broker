@@ -255,6 +255,29 @@ class Neo4jRepositoryTests {
     }
 
     @Test
+    fun `it should return an entity if observedAt of property is correct`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(
+                    name = "testedAt",
+                    value = "measure",
+                    observedAt = ZonedDateTime.parse("2018-12-04T12:00:00Z")
+                )
+            )
+        )
+        val entities = neo4jRepository.getEntities(
+            null,
+            "Beekeeper",
+            null,
+            "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
+        )
+        assertTrue(entities.contains(entity.id))
+        neo4jRepository.deleteEntity(entity.id)
+    }
+
+    @Test
     fun `it should return an entity if type and dateTime properties are correct`() {
         val entity = createEntity(
             beekeeperUri,

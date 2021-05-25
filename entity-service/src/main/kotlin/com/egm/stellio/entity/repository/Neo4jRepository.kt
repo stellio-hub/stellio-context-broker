@@ -588,7 +588,7 @@ class Neo4jRepository(
                     "value"
                 """
                    EXISTS {
-                       MATCH (entity)-[:HAS_VALUE]->(p:Property)
+                       MATCH (n)-[:HAS_VALUE]->(p:Property)
                        WHERE p.name = '${comparablePropertyPath[0]}'
                        AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                    }

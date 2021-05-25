@@ -6,8 +6,6 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
-import com.egm.stellio.entity.util.isRelationshipTarget
-import com.egm.stellio.entity.util.splitQueryTermOnOperator
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -20,7 +18,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.util.regex.Pattern
 
 @Component
 class EntityService(
@@ -327,27 +324,7 @@ class EntityService(
     ): List<JsonLdEntity> {
         val expandedType = expandJsonLdKey(type, contexts)!!
 
-        // use this pattern to extract query terms (probably to be completed)
-        val pattern = Pattern.compile("([^();|]+)")
-        val expandedQuery = query.replace(
-            pattern.toRegex()
-        ) { matchResult ->
-            // for each query term, we retrieve the attribute and replace it by its persisted form (if different)
-            // it will have to be modified when we support "dotted paths" (cf 4.9)
-            val splitted = splitQueryTermOnOperator(matchResult.value)
-            val expandedParam =
-                if (splitted[1].isRelationshipTarget())
-                    splitted[0]
-                else
-                    expandJsonLdKey(splitted[0], contexts)!!
-            // retrieve the operator from the initial query term ... (yes, not so nice)
-            val operator = matchResult.value
-                .replace(splitted[0], "")
-                .replace(splitted[1], "")
-            "$expandedParam$operator${splitted[1]}"
-        }
-
-        return neo4jRepository.getEntities(ids, expandedType, idPattern, expandedQuery)
+        return neo4jRepository.getEntities(ids, expandedType, idPattern, query, contexts)
             .mapNotNull { getFullEntityById(it, includeSysAttrs) }
     }
 

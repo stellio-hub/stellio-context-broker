@@ -10,8 +10,10 @@ import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
@@ -92,13 +94,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "name==\"Scalpa\""
+            "name==\"Scalpa\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -109,10 +112,10 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val entities = neo4jRepository.getEntities(
-            null, "Beekeeper", null, "name==\"ScalpaXYZ\""
+            null, "Beekeeper", null, "name==\"ScalpaXYZ\"", DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -123,13 +126,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishNumber", value = 500))
+            mutableListOf(Property(name = expandJsonLdKey("fishNumber", DEFAULT_CONTEXTS)!!, value = 500))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishNumber==500"
+            "fishNumber==500",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -140,13 +144,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishNumber", value = 500))
+            mutableListOf(Property(name = expandJsonLdKey("fishNumber", DEFAULT_CONTEXTS)!!, value = 500))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishNumber==499"
+            "fishNumber==499",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -157,13 +162,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishWeight", value = 120.50))
+            mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = 120.50))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishWeight==120.50"
+            "fishWeight==120.50",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -174,13 +180,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishWeight", value = -120.50))
+            mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = -120.50))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishWeight==-120"
+            "fishWeight==-120",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -191,13 +198,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishWeight", value = 180.9))
+            mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = 180.9))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishWeight>180.9"
+            "fishWeight>180.9",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -208,13 +216,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             deadFishUri,
             listOf("DeadFishes"),
-            mutableListOf(Property(name = "fishWeight", value = 255))
+            mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = 255))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "DeadFishes",
             null,
-            "fishWeight>=255"
+            "fishWeight>=255",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -225,13 +234,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "ScalpaXYZ"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "ScalpaXYZ"))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "name!=\"ScalpaXYZ\""
+            "name!=\"ScalpaXYZ\"",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -242,13 +252,14 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "name!=\"ScalpaXYZ\""
+            "name!=\"ScalpaXYZ\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -261,7 +272,7 @@ class Neo4jRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = "testedAt",
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
                     value = "measure",
                     observedAt = ZonedDateTime.parse("2018-12-04T12:00:00Z")
                 )
@@ -271,7 +282,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
+            "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -282,13 +294,19 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "testedAt", value = ZonedDateTime.parse("2018-12-04T12:00:00Z")))
+            mutableListOf(
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = ZonedDateTime.parse("2018-12-04T12:00:00Z")
+                )
+            )
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "testedAt==2018-12-04T12:00:00Z"
+            "testedAt==2018-12-04T12:00:00Z",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -299,13 +317,19 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
+            mutableListOf(
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalDate.parse("2018-12-04")
+                )
+            )
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "testedAt==2018-12-04"
+            "testedAt==2018-12-04",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -316,13 +340,19 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "testedAt", value = LocalDate.parse("2018-12-04")))
+            mutableListOf(
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalDate.parse("2018-12-04")
+                )
+            )
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "testedAt==2018-12-07"
+            "testedAt==2018-12-07",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -333,13 +363,19 @@ class Neo4jRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "testedAt", value = LocalTime.parse("12:00:00")))
+            mutableListOf(
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalTime.parse("12:00:00")
+                )
+            )
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "testedAt==12:00:00"
+            "testedAt==12:00:00",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -351,15 +387,19 @@ class Neo4jRepositoryTests {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "testedAt", value = LocalTime.parse("12:00:00")),
-                Property(name = "name", value = "beekeeper")
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalTime.parse("12:00:00")
+                ),
+                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
             )
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             null,
-            "testedAt==12:00:00;name==\"beekeeper\""
+            "testedAt==12:00:00;name==\"beekeeper\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
         neo4jRepository.deleteEntity(entity.id)
@@ -371,8 +411,11 @@ class Neo4jRepositoryTests {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "testedAt", value = LocalTime.parse("12:00:00")),
-                Property(name = "name", value = "beekeeper")
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalTime.parse("12:00:00")
+                ),
+                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
             )
         )
 
@@ -380,7 +423,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "testedAt==13:00:00;name==\"beekeeper\""
+            "testedAt==13:00:00;name==\"beekeeper\"",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
 
@@ -388,7 +432,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "testedAt==12:00:00;name==\"beekeeperx\""
+            "testedAt==12:00:00;name==\"beekeeperx\"",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(entity.id))
 
@@ -401,8 +446,11 @@ class Neo4jRepositoryTests {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "testedAt", value = LocalTime.parse("12:00:00")),
-                Property(name = "name", value = "beekeeper")
+                Property(
+                    name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
+                    value = LocalTime.parse("12:00:00")
+                ),
+                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
             )
         )
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
@@ -411,7 +459,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""
+            "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
 
@@ -419,7 +468,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
 
@@ -427,7 +477,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
+            "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
 
@@ -435,7 +486,8 @@ class Neo4jRepositoryTests {
             null,
             "Beekeeper",
             null,
-            "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
+            "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\"",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.contains(entity.id))
 
@@ -447,18 +499,19 @@ class Neo4jRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
         val entities = neo4jRepository.getEntities(
             listOf("urn:ngsi-ld:Beekeeper:1231"),
             "Beekeeper",
             null,
-            ""
+            "",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
@@ -471,23 +524,24 @@ class Neo4jRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa3"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = neo4jRepository.getEntities(
             listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
             "Beekeeper",
             null,
-            ""
+            "",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
@@ -502,23 +556,24 @@ class Neo4jRepositoryTests {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:11232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa3"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             "^urn:ngsi-ld:Beekeeper:0.*2$",
-            ""
+            "",
+            DEFAULT_CONTEXTS
         )
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
@@ -533,23 +588,24 @@ class Neo4jRepositoryTests {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:11232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = "name", value = "Scalpa3"))
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = neo4jRepository.getEntities(
             null,
             "Beekeeper",
             "^urn:ngsi-ld:BeeHive:.*",
-            ""
+            "",
+            DEFAULT_CONTEXTS
         )
         assertTrue(entities.isEmpty())
         neo4jRepository.deleteEntity(firstEntity.id)

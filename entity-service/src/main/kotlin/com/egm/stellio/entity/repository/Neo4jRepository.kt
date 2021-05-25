@@ -10,6 +10,7 @@ import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -559,7 +560,13 @@ class Neo4jRepository(
         }.flatten()
     }
 
-    fun getEntities(ids: List<String>?, type: String, idPattern: String?, rawQuery: String): List<URI> {
+    fun getEntities(
+        ids: List<String>?,
+        type: String,
+        idPattern: String?,
+        rawQuery: String,
+        contexts: List<String>
+    ): List<URI> {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = rawQuery.replace(
@@ -589,7 +596,7 @@ class Neo4jRepository(
                 """
                    EXISTS {
                        MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${comparablePropertyPath[0]}'
+                       WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
                        AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                    }
                 """.trimIndent()

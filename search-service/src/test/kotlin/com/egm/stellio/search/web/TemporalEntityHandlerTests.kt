@@ -48,6 +48,9 @@ class TemporalEntityHandlerTests {
     @Autowired
     private lateinit var webClient: WebTestClient
 
+    @MockkBean(relaxed = true)
+    private lateinit var handlerUtils: HandlerUtils
+
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 

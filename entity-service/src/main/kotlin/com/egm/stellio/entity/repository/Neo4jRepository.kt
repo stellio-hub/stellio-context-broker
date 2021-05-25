@@ -581,11 +581,16 @@ class Neo4jRepository(
                     parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
                     else -> parsedQueryTerm.third
                 }
+                val comparablePropertyPath = parsedQueryTerm.first.split(".")
+                val comparablePropertyName = if (comparablePropertyPath.size > 1)
+                    comparablePropertyPath[1]
+                else
+                    "value"
                 """
                    EXISTS {
-                       MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${parsedQueryTerm.first}'
-                       AND p.value ${parsedQueryTerm.second} $comparableValue
+                       MATCH (entity)-[:HAS_VALUE]->(p:Property)
+                       WHERE p.name = '${comparablePropertyPath[0]}'
+                       AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                    }
                 """.trimIndent()
             }

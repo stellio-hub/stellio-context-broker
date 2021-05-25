@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.FullAttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -141,6 +142,28 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
                 it.size == 1
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should count all observations for a day and return the filled entity`() {
+        (1..9).forEach { _ ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            null, "1 day", TemporalQuery.Aggregate.COUNT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it as List<SimplifiedAttributeInstanceResult>
+                it.size == 1 && (it.first().value as Long).toInt() == 9
             }
             .expectComplete()
             .verify()

@@ -8,6 +8,7 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
+import com.egm.stellio.search.util.QueryUtils
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -49,7 +50,7 @@ class TemporalEntityHandlerTests {
     private lateinit var webClient: WebTestClient
 
     @MockkBean(relaxed = true)
-    private lateinit var handlerUtils: HandlerUtils
+    private lateinit var queryUtils: QueryUtils
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -628,9 +629,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
-        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
 
         webClient.get()
             .uri(
@@ -643,10 +642,14 @@ class TemporalEntityHandlerTests {
             .expectBody().json("[]")
 
         verify {
-            temporalEntityAttributeService.getForEntities(
+            queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
-                emptySet()
+                match {
+                    it.expandedAttrs == emptySet<String>()
+                },
+                false,
+                listOf(apicContext!!)
             )
         }
 
@@ -660,10 +663,8 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
-        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            Mono.just(listOf(firstTemporalEntity, secondTemporalEntity))
 
         webClient.get()
             .uri(
@@ -688,10 +689,8 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
-        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            Mono.just(listOf(firstTemporalEntity, secondTemporalEntity))
 
         webClient.get()
             .uri(
@@ -720,11 +719,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
-            Mono.just(mapOf(entityUri to listOf(entityTemporalProperty)))
-
-        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
 
         webClient.get()
             .uri(
@@ -737,33 +732,24 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         verify {
-            temporalEntityAttributeService.getForEntities(
+            queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
-                emptySet()
-            )
-        }
-        verify {
-            attributeInstanceService.search(
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                match { entityTemporalProperty -> entityTemporalProperty.entityId == entityUri },
-                false
+                false,
+                listOf(apicContext!!)
             )
         }
 
-        verify { temporalEntityService.buildTemporalEntities(any(), any(), any(), false) }
-
-        confirmVerified(attributeInstanceService)
+        confirmVerified(queryUtils)
     }
 
     @Test
     fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
-        every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(emptyMap())
-        every { attributeInstanceService.search(any(), any(), any()) } returns Mono.just(emptyList())
-        every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
 
         webClient.get()
             .uri(
@@ -776,26 +762,20 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         verify {
-            temporalEntityAttributeService.getForEntities(
+            queryUtils.queryTemporalEntities(
                 setOf(entityUri, secondEntityUri),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive", "https://ontology.eglobalmark.com/apic#Apiary"),
-                setOf(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
-                )
+                match {
+                    it.expandedAttrs == setOf(
+                        "https://ontology.eglobalmark.com/apic#incoming",
+                        "https://ontology.eglobalmark.com/apic#outgoing"
+                    )
+                },
+                true,
+                listOf(apicContext!!)
             )
         }
-
-        verify {
-            temporalEntityService.buildTemporalEntities(
-                emptyList(),
-                any(),
-                listOf(apicContext!!),
-                true
-            )
-        }
-
-        confirmVerified()
+        confirmVerified(queryUtils)
     }
 
     @Test

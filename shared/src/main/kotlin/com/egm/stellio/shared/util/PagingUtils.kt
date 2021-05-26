@@ -7,9 +7,6 @@ import org.springframework.util.MultiValueMap
 
 object PagingUtils {
 
-    const val ENTITY_QUERY_PAGING_LIMIT = 30
-    const val SUBSCRIPTION_QUERY_PAGING_LIMIT = 30
-
     fun getPagingLinks(
         resourceUrl: String,
         requestParams: MultiValueMap<String, String>,

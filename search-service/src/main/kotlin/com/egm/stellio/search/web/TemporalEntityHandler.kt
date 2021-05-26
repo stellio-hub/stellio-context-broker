@@ -86,7 +86,12 @@ class TemporalEntityHandler(
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val ids = parseRequestParameter(params.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
         val types = parseAndExpandRequestParameter(params.getFirst(QUERY_PARAM_TYPE), contextLink)
-        val temporalQuery = buildTemporalQuery(params, contextLink)
+        val temporalQuery = try {
+            buildTemporalQuery(params, contextLink)
+        } catch (e: BadRequestDataException) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse(e.message))
+        }
         if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
             throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 

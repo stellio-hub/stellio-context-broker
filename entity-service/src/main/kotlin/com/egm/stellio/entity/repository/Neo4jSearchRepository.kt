@@ -15,11 +15,17 @@ class Neo4jSearchRepository(
     private val neo4jAuthorizationService: Neo4jAuthorizationService
 ) : SearchRepository {
 
-    override fun getEntities(params: Map<String, Any?>, userId: String, page: Int, limit: Int): Pair<Int, List<URI>> {
+    override fun getEntities(
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<URI>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(userId))
-            QueryUtils.queryEntities(params, page, limit)
+            QueryUtils.queryEntities(params, page, limit, contexts)
         else
-            QueryUtils.queryAuthorizedEntities(params, page, limit)
+            QueryUtils.queryAuthorizedEntities(params, page, limit, contexts)
 
         val result = session.query(query, mapOf("userId" to userId), true)
         return Pair(

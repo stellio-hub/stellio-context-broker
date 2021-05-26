@@ -1,12 +1,12 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.*
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
-import com.egm.stellio.entity.repository.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -331,11 +331,12 @@ class EntityService(
                 "id" to params["id"] as List<String>?,
                 "type" to expandedType,
                 "idPattern" to params["idPattern"] as String?,
-                "q" to params["q"]
+                "q" to params["q"] as String
             ),
             userId,
             page,
-            limit
+            limit,
+            contexts
         )
         return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
     }

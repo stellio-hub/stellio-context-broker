@@ -13,8 +13,14 @@ class StandaloneNeo4jSearchRepository(
     private val session: Session
 ) : SearchRepository {
 
-    override fun getEntities(params: Map<String, Any?>, userId: String, page: Int, limit: Int): Pair<Int, List<URI>> {
-        val query = QueryUtils.queryEntities(params, page, limit)
+    override fun getEntities(
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<URI>> {
+        val query = QueryUtils.queryEntities(params, page, limit, contexts)
         val result = session.query(query, emptyMap<String, Any>(), true)
 
         return Pair(

@@ -1,18 +1,19 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
 
 object QueryUtils {
 
-    fun queryAuthorizedEntities(params: Map<String, Any?>, page: Int, limit: Int): String {
+    fun queryAuthorizedEntities(params: Map<String, Any?>, page: Int, limit: Int, contexts: List<String>): String {
         val ids = params["id"] as List<String>?
         val type = params["type"] as String
         val idPattern = params["idPattern"] as String?
         val rawQuery = params["q"] as String
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = buildInnerQuery(rawQuery, pattern)
+        val innerQuery = buildInnerQuery(rawQuery, pattern, contexts)
         val matchUserClause =
             """
             CALL {
@@ -88,14 +89,14 @@ object QueryUtils {
             """
     }
 
-    fun queryEntities(params: Map<String, Any?>, page: Int, limit: Int): String {
+    fun queryEntities(params: Map<String, Any?>, page: Int, limit: Int, contexts: List<String>): String {
         val ids = params["id"] as List<String>?
         val type = params["type"] as String
         val idPattern = params["idPattern"] as String?
         val rawQuery = params["q"] as String
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = buildInnerQuery(rawQuery, pattern)
+        val innerQuery = buildInnerQuery(rawQuery, pattern, contexts)
 
         val matchClause =
             if (type.isEmpty())
@@ -142,7 +143,7 @@ object QueryUtils {
             """
     }
 
-    private fun buildInnerQuery(rawQuery: String, pattern: Pattern): String =
+    private fun buildInnerQuery(rawQuery: String, pattern: Pattern, contexts: List<String>): String =
 
         rawQuery.replace(pattern.toRegex()) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
@@ -169,7 +170,7 @@ object QueryUtils {
                 """
                    EXISTS {
                        MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${comparablePropertyPath[0]}'
+                       WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
                        AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                    }
                 """.trimIndent()

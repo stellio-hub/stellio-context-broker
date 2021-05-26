@@ -9,7 +9,6 @@ import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session

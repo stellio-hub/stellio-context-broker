@@ -18,7 +18,6 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.web.reactive.function.BodyInserters
-import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
@@ -99,7 +98,7 @@ class TemporalEntityOperationsHandlerTests {
             "endTime" to "2019-10-18T07:31:39Z",
             "type" to "BeeHive"
         )
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
@@ -109,7 +108,7 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
             .expectBody().json("[]")
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
@@ -137,8 +136,8 @@ class TemporalEntityOperationsHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
-            Mono.just(listOf(firstTemporalEntity, secondTemporalEntity))
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
@@ -152,7 +151,7 @@ class TemporalEntityOperationsHandlerTests {
             .jsonPath("$[0].@context").exists()
             .jsonPath("$[1].@context").exists()
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
@@ -180,7 +179,7 @@ class TemporalEntityOperationsHandlerTests {
             "attrs" to "incoming,outgoing"
         )
 
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
@@ -189,7 +188,7 @@ class TemporalEntityOperationsHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 setOf(entityUri, secondEntityUri),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive", "https://ontology.eglobalmark.com/apic#Apiary"),

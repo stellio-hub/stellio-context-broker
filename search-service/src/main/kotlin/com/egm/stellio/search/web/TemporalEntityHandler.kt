@@ -97,7 +97,7 @@ class TemporalEntityHandler(
 
         val temporalEntities = queryUtils.queryTemporalEntities(
             ids, types, temporalQuery, withTemporalValues, listOf(contextLink)
-        ).awaitFirst()
+        )
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))

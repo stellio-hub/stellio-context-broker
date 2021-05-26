@@ -629,7 +629,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -641,7 +641,7 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
             .expectBody().json("[]")
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
@@ -663,8 +663,8 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
-            Mono.just(listOf(firstTemporalEntity, secondTemporalEntity))
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri(
@@ -689,8 +689,8 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
-            Mono.just(listOf(firstTemporalEntity, secondTemporalEntity))
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri(
@@ -719,7 +719,7 @@ class TemporalEntityHandlerTests {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -731,7 +731,7 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 emptySet(),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
@@ -749,7 +749,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
-        every { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns Mono.just(emptyList())
+        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -761,7 +761,7 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        verify {
+        coVerify {
             queryUtils.queryTemporalEntities(
                 setOf(entityUri, secondEntityUri),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive", "https://ontology.eglobalmark.com/apic#Apiary"),

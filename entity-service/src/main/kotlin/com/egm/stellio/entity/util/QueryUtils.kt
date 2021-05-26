@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
 
@@ -68,9 +69,22 @@ object QueryUtils {
             return entity.id as entityId
         """.trimIndent()
 
+        val matchAuthorizedPerAccessPolicyClause =
+            """
+            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            WHERE prop.value IN [
+                '${AuthorizationService.SpecificAccessPolicy.AUTH_WRITE.name}',
+                '${AuthorizationService.SpecificAccessPolicy.AUTH_READ.name}'
+            ]
+            $idClause
+            $idPatternClause
+            $innerQuery
+            return entity.id as entityId
+            """.trimIndent()
+
         val pagingClause =
             """
-            WITH collect(entityId) as entityIds, count(entityId) as count
+            WITH collect(distinct entityId) as entityIds, count(entityId) as count
             UNWIND entityIds as id
             RETURN id, count
             ORDER BY id
@@ -79,6 +93,8 @@ object QueryUtils {
 
         return """
             CALL {
+                $matchAuthorizedPerAccessPolicyClause
+                UNION
                 $matchUserClause
                 $matchEntitiesClause
                 UNION
@@ -100,9 +116,9 @@ object QueryUtils {
 
         val matchClause =
             if (type.isEmpty())
-                "MATCH (n:Entity)"
+                "MATCH (entity:Entity)"
             else
-                "MATCH (n:`$type`)"
+                "MATCH (entity:`$type`)"
 
         val whereClause =
             if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
@@ -111,7 +127,7 @@ object QueryUtils {
         val idClause =
             if (ids != null)
                 """
-                    n.id in $formattedIds
+                    entity.id in $formattedIds
                     ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}
                 """
             else ""
@@ -119,16 +135,16 @@ object QueryUtils {
         val idPatternClause =
             if (idPattern != null)
                 """
-                    n.id =~ '$idPattern'
+                    entity.id =~ '$idPattern'
                     ${if (innerQuery.isNotEmpty()) " AND " else ""}
                 """
             else ""
 
         val pagingClause =
             """
-            WITH collect(n) as entities, count(n) as count
-            UNWIND entities as n
-            RETURN n.id as id, count
+            WITH collect(entity) as entities, count(entity) as count
+            UNWIND entities as entity
+            RETURN entity.id as id, count
             ORDER BY id
             SKIP ${(page - 1) * limit} LIMIT $limit
             """.trimIndent()
@@ -169,7 +185,7 @@ object QueryUtils {
                     "value"
                 """
                    EXISTS {
-                       MATCH (n)-[:HAS_VALUE]->(p:Property)
+                       MATCH (entity)-[:HAS_VALUE]->(p:Property)
                        WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
                        AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                    }

@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_ADMIN
@@ -13,6 +14,7 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -223,6 +225,41 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
+        neo4jRepository.deleteEntity(userEntity.id)
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return matching entities as the specific access policy`() {
+        val userEntity = createEntity(userId.toUri(), listOf("User"), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"),
+                Property(
+                    name = JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY,
+                    value = AuthorizationService.SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+        )
+
+        val entities = searchRepository.getEntities(
+            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.contains(firstEntity.id))
+        assertFalse(entities.contains(secondEntity.id))
         neo4jRepository.deleteEntity(userEntity.id)
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)

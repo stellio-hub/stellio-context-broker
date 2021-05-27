@@ -1,6 +1,7 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
@@ -18,6 +19,8 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
+import java.net.URI
+import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityOperationsHandler::class)
@@ -47,9 +50,25 @@ class TemporalEntityOperationsHandlerTests {
             }
             .build()
     }
+    private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
     @Test
     fun `it should return a 200 and retrieve requested temporal attributes`() {
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BETWEEN,
+            time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+            expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+        )
+        coEvery { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to setOf("BeeHive", "Apiary"),
+            "temporalQuery" to temporalQuery,
+            "withTemporalValues" to true
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")
@@ -57,8 +76,6 @@ class TemporalEntityOperationsHandlerTests {
         queryParams.add("endTime", "2019-10-18T07:31:39Z")
         queryParams.add("type", "BeeHive,Apiary")
         queryParams.add("attrs", "incoming,outgoing")
-
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
@@ -68,8 +85,17 @@ class TemporalEntityOperationsHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            queryService.queryTemporalEntities(
+            queryService.parseAndCheckQueryParams(
                 queryParams,
+                apicContext!!
+            )
+        }
+        coVerify {
+            queryService.queryTemporalEntities(
+                emptySet(),
+                setOf("BeeHive", "Apiary"),
+                temporalQuery,
+                true,
                 apicContext!!
             )
         }
@@ -81,7 +107,7 @@ class TemporalEntityOperationsHandlerTests {
     fun `it should raise a 400 if required parameters are missing`() {
         val queryParams = mapOf("timerel" to "before")
 
-        coEvery { queryService.queryTemporalEntities(any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.parseAndCheckQueryParams(any(), any()) } throws BadRequestDataException(
             "'timerel' and 'time' must be used in conjunction"
         )
 

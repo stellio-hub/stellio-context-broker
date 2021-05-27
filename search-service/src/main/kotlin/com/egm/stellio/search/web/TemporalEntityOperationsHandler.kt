@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
@@ -38,7 +40,14 @@ class TemporalEntityOperationsHandler(
                 queryParams.add(it.key, it.value.toString())
         }
 
-        val temporalEntities = queryService.queryTemporalEntities(queryParams, contextLink)
+        val parsedParams = queryService.parseAndCheckQueryParams(queryParams, contextLink)
+        val temporalEntities = queryService.queryTemporalEntities(
+            parsedParams["ids"] as Set<URI>,
+            parsedParams["types"] as Set<String>,
+            parsedParams["temporalQuery"] as TemporalQuery,
+            parsedParams["withTemporalValues"] as Boolean,
+            contextLink
+        )
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))

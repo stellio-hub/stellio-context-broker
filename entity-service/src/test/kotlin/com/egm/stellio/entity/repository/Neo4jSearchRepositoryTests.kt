@@ -8,7 +8,6 @@ import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Com
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_WRITE
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
-import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -33,7 +31,6 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
 @Import(TestContainersConfiguration::class)
 class Neo4jSearchRepositoryTests {

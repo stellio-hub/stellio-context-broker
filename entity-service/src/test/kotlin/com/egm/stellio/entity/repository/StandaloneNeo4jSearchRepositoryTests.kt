@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -13,7 +12,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -25,7 +23,6 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
 @Import(TestContainersConfiguration::class)
 class StandaloneNeo4jSearchRepositoryTests {

@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.PartialEntity
@@ -23,7 +22,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -31,7 +29,6 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @Import(TestContainersConfiguration::class)
 class Neo4jRepositoryTests {
 

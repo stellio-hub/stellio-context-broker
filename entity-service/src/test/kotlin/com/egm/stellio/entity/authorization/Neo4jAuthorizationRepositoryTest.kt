@@ -4,7 +4,6 @@ import com.egm.stellio.entity.authorization.AuthorizationService.*
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
-import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -17,7 +16,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
@@ -25,7 +23,6 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @Import(TestContainersConfiguration::class)
 class Neo4jAuthorizationRepositoryTest {
 

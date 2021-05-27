@@ -7,7 +7,6 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.removeNoise
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
@@ -33,7 +31,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @AutoConfigureWebTestClient(timeout = "30000")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @ActiveProfiles("test")
 @WebFluxTest(SubscriptionHandler::class)
 @Import(WebSecurityTestConfig::class)

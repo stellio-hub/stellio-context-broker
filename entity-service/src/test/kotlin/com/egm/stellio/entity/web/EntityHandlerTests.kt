@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.service.EntityAttributeService
@@ -31,7 +30,6 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
@@ -49,7 +47,6 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 
 @ActiveProfiles("test")
-@EnableConfigurationProperties(ApplicationProperties::class)
 @WebFluxTest(EntityHandler::class)
 @Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", username = "mock-user")

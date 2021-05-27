@@ -1,29 +1,36 @@
-package com.egm.stellio.search.util
+package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.service.TemporalEntityService
+import com.egm.stellio.search.web.buildTemporalQuery
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.util.*
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.stereotype.Service
-import java.net.URI
+import org.springframework.util.MultiValueMap
+import java.util.*
 
 @Service
-class QueryUtils(
+class QueryService(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val temporalEntityService: TemporalEntityService
 ) {
 
     suspend fun queryTemporalEntities(
-        ids: Set<URI>,
-        types: Set<String>,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean,
-        contexts: List<String>
+        queryParams: MultiValueMap<String, String>,
+        contextLink: String
     ): List<CompactedJsonLdEntity> {
+        val withTemporalValues = hasValueInOptionsParam(
+            Optional.ofNullable(queryParams.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES
+        )
+        val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
+        val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+        val temporalQuery = buildTemporalQuery(queryParams, contextLink)
+
+        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
+            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+
         val temporalEntityAttributesResult = temporalEntityAttributeService.getForEntities(
             ids,
             types,
@@ -42,7 +49,7 @@ class QueryUtils(
         return temporalEntityService.buildTemporalEntities(
             queryResult,
             temporalQuery,
-            contexts,
+            listOf(contextLink),
             withTemporalValues
         )
     }

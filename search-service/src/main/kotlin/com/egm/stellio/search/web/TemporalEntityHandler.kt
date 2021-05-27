@@ -5,9 +5,9 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
+import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
-import com.egm.stellio.search.util.QueryUtils
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -35,7 +35,7 @@ class TemporalEntityHandler(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val entityService: EntityService,
     private val temporalEntityService: TemporalEntityService,
-    private val queryUtils: QueryUtils
+    private val queryService: QueryService
 ) {
 
     /**
@@ -82,22 +82,8 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val withTemporalValues =
-            hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
-        val ids = parseRequestParameter(params.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
-        val types = parseAndExpandRequestParameter(params.getFirst(QUERY_PARAM_TYPE), contextLink)
-        val temporalQuery = try {
-            buildTemporalQuery(params, contextLink)
-        } catch (e: BadRequestDataException) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse(e.message))
-        }
-        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
-            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
-        val temporalEntities = queryUtils.queryTemporalEntities(
-            ids, types, temporalQuery, withTemporalValues, listOf(contextLink)
-        )
+        val temporalEntities = queryService.queryTemporalEntities(params, contextLink)
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))

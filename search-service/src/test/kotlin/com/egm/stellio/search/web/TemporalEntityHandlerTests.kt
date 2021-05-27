@@ -6,9 +6,10 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
+import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
-import com.egm.stellio.search.util.QueryUtils
+import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
@@ -50,7 +51,7 @@ class TemporalEntityHandlerTests {
     private lateinit var webClient: WebTestClient
 
     @MockkBean(relaxed = true)
-    private lateinit var queryUtils: QueryUtils
+    private lateinit var queryService: QueryService
 
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
@@ -595,6 +596,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 for query temporal entities if timerel is present without time in query params`() {
+        coEvery { queryService.queryTemporalEntities(any(), any()) } throws BadRequestDataException(
+            "'timerel' and 'time' must be used in conjunction"
+        )
+
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
             .exchange()
@@ -612,6 +617,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 for query temporal entities if neither type nor attrs is present in query params`() {
+        coEvery { queryService.queryTemporalEntities(any(), any()) } throws BadRequestDataException(
+            "Either type or attrs need to be present in request parameters"
+        )
+
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?timerel=after&time=2019-10-17T07:31:39Z")
             .exchange()
@@ -629,7 +638,13 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
-        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "between")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("type", "BeeHive")
+
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -642,14 +657,9 @@ class TemporalEntityHandlerTests {
             .expectBody().json("[]")
 
         coVerify {
-            queryUtils.queryTemporalEntities(
-                emptySet(),
-                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
-                match {
-                    it.expandedAttrs == emptySet<String>()
-                },
-                false,
-                listOf(apicContext!!)
+            queryService.queryTemporalEntities(
+                queryParams,
+                apicContext!!
             )
         }
 
@@ -663,7 +673,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -689,7 +699,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -712,14 +722,13 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 for query temporal entities if minimal required parameters are valid`() {
-        val entityTemporalProperty = TemporalEntityAttribute(
-            entityId = entityUri,
-            type = "BeeHive",
-            attributeName = "incoming",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-        )
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timerel", "between")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("type", "BeeHive")
 
-        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -732,24 +741,27 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            queryUtils.queryTemporalEntities(
-                emptySet(),
-                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-                },
-                false,
-                listOf(apicContext!!)
+            queryService.queryTemporalEntities(
+                queryParams,
+                apicContext!!
             )
         }
 
-        confirmVerified(queryUtils)
+        confirmVerified(queryService)
     }
 
     @Test
     fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
-        coEvery { queryUtils.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("options", "temporalValues")
+        queryParams.add("timerel", "between")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("type", "BeeHive,Apiary")
+        queryParams.add("id", "$entityUri,$secondEntityUri")
+        queryParams.add("attrs", "incoming,outgoing")
+
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -762,20 +774,12 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            queryUtils.queryTemporalEntities(
-                setOf(entityUri, secondEntityUri),
-                setOf("https://ontology.eglobalmark.com/apic#BeeHive", "https://ontology.eglobalmark.com/apic#Apiary"),
-                match {
-                    it.expandedAttrs == setOf(
-                        "https://ontology.eglobalmark.com/apic#incoming",
-                        "https://ontology.eglobalmark.com/apic#outgoing"
-                    )
-                },
-                true,
-                listOf(apicContext!!)
+            queryService.queryTemporalEntities(
+                queryParams,
+                apicContext!!
             )
         }
-        confirmVerified(queryUtils)
+        confirmVerified(queryService)
     }
 
     @Test

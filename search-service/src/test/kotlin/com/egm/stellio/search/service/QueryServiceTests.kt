@@ -19,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -41,6 +40,12 @@ class QueryServiceTests {
 
     @MockkBean
     private lateinit var temporalEntityService: TemporalEntityService
+
+    private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+    private val secondEntityUri = "urn:ngsi-ld:BeeHive:TESTB".toUri()
+
+    private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
+    private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
     @Test
     fun `it should throw a BadRequestData exception if timerel is present without time`() {
@@ -74,26 +79,31 @@ class QueryServiceTests {
     @Test
     fun `it should parse query parameters`() {
         val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "before")
+        queryParams.add("timerel", "between")
         queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("endTime", "2019-10-18T07:31:39Z")
         queryParams.add("type", "BeeHive,Apiary")
+        queryParams.add("attrs", "incoming,outgoing")
+        queryParams.add("id", "$entityUri,$secondEntityUri")
+        queryParams.add("options", "temporalValues")
 
         val parsedParams = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
 
         Assertions.assertEquals(
             parsedParams,
             mapOf(
-                "ids" to emptySet<URI>(),
+                "ids" to setOf(entityUri, secondEntityUri),
                 "types" to setOf(
                     "https://ontology.eglobalmark.com/apic#BeeHive",
                     "https://ontology.eglobalmark.com/apic#Apiary"
                 ),
                 "temporalQuery" to TemporalQuery(
-                    expandedAttrs = emptySet(),
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    timerel = TemporalQuery.Timerel.BETWEEN,
+                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                    endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+                    expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
                 ),
-                "withTemporalValues" to false
+                "withTemporalValues" to true
             )
         )
     }

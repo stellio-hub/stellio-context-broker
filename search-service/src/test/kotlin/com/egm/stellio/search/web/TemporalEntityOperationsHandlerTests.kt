@@ -61,7 +61,7 @@ class TemporalEntityOperationsHandlerTests {
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
         )
-        coEvery { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to setOf("BeeHive", "Apiary"),
             "temporalQuery" to temporalQuery,
@@ -84,7 +84,7 @@ class TemporalEntityOperationsHandlerTests {
             .exchange()
             .expectStatus().isOk
 
-        coVerify {
+        verify {
             queryService.parseAndCheckQueryParams(
                 queryParams,
                 apicContext!!
@@ -107,7 +107,7 @@ class TemporalEntityOperationsHandlerTests {
     fun `it should raise a 400 if required parameters are missing`() {
         val queryParams = mapOf("timerel" to "before")
 
-        coEvery { queryService.parseAndCheckQueryParams(any(), any()) } throws BadRequestDataException(
+        every { queryService.parseAndCheckQueryParams(any(), any()) } throws BadRequestDataException(
             "'timerel' and 'time' must be used in conjunction"
         )
 

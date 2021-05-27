@@ -49,7 +49,7 @@ class TemporalEntityOperationsHandlerTests {
     }
 
     @Test
-    fun `it should return a 200 and retrieve temporal attributes requested by the query parameters`() {
+    fun `it should return a 200 and retrieve requested temporal attributes`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")

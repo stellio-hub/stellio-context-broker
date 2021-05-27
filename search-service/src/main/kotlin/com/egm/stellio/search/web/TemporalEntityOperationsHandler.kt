@@ -1,7 +1,6 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -12,7 +11,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")

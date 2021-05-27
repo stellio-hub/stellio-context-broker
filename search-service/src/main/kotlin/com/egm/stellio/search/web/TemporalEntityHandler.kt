@@ -5,12 +5,10 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
+import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.service.TemporalEntityService
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compact
@@ -20,7 +18,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
-import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -28,6 +25,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -37,7 +35,8 @@ class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val entityService: EntityService,
-    private val temporalEntityService: TemporalEntityService
+    private val temporalEntityService: TemporalEntityService,
+    private val queryService: QueryService
 ) {
 
     /**
@@ -82,41 +81,16 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val withTemporalValues =
-            hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val ids = parseRequestParameter(params.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
-        val types = parseAndExpandRequestParameter(params.getFirst(QUERY_PARAM_TYPE), contextLink)
-        val temporalQuery = try {
-            buildTemporalQuery(params, contextLink)
-        } catch (e: BadRequestDataException) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse(e.message))
-        }
-        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
-            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
+        val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
 
-        val temporalEntityAttributesResult = temporalEntityAttributeService.getForEntities(
-            ids,
-            types,
-            temporalQuery.expandedAttrs
-        ).awaitFirstOrDefault(emptyMap())
-
-        val queryResult = temporalEntityAttributesResult.toList().map {
-            Pair(
-                it.first,
-                it.second.map {
-                    it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
-                }.toMap()
-            )
-        }
-
-        val temporalEntities = temporalEntityService.buildTemporalEntities(
-            queryResult,
-            temporalQuery,
-            listOf(contextLink),
-            withTemporalValues
+        val temporalEntities = queryService.queryTemporalEntities(
+            parsedParams["ids"] as Set<URI>,
+            parsedParams["types"] as Set<String>,
+            parsedParams["temporalQuery"] as TemporalQuery,
+            parsedParams["withTemporalValues"] as Boolean,
+            contextLink
         )
 
         return buildGetSuccessResponse(mediaType, contextLink)

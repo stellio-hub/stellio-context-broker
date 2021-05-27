@@ -88,6 +88,7 @@ subprojects {
         testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")
+        testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
     tasks.withType<KotlinCompile> {

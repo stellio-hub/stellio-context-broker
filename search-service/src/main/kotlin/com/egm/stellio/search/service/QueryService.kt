@@ -16,7 +16,7 @@ class QueryService(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val temporalEntityService: TemporalEntityService
 ) {
-
+    fun parseAndCheckQueryParams(queryParams: MultiValueMap<String, String>, contextLink: String):
     suspend fun queryTemporalEntities(
         queryParams: MultiValueMap<String, String>,
         contextLink: String

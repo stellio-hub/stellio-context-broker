@@ -31,9 +31,6 @@ class StandaloneNeo4jSearchRepositoryTests {
     private lateinit var searchRepository: SearchRepository
 
     @Autowired
-    private lateinit var standaloneNeo4jSearchRepository: StandaloneNeo4jSearchRepository
-
-    @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
 
     @Autowired

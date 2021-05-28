@@ -77,8 +77,8 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
-        val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
+        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)

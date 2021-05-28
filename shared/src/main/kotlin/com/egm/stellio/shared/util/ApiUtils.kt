@@ -24,8 +24,8 @@ fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
 
 const val JSON_LD_CONTENT_TYPE = "application/ld+json"
 const val JSON_MERGE_PATCH_CONTENT_TYPE = "application/merge-patch+json"
-const val PAGE_PARAM_ID: String = "page"
-const val LIMIT_PARAM_ID: String = "limit"
+const val QUERY_PARAM_PAGE: String = "page"
+const val QUERY_PARAM_LIMIT: String = "limit"
 const val QUERY_PARAM_ID: String = "id"
 const val QUERY_PARAM_TYPE: String = "type"
 const val QUERY_PARAM_ID_PATTERN: String = "idPattern"

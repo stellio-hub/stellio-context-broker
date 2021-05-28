@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.util.QueryUtils
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -20,7 +19,7 @@ class StandaloneNeo4jSearchRepository(
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
-        val query = QueryUtils.queryEntities(params, page, limit, contexts)
+        val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(params, page, limit, contexts)
         val result = session.query(query, emptyMap<String, Any>(), true)
 
         return Pair(

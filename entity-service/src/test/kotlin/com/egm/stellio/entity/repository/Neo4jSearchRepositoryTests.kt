@@ -2,11 +2,11 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
-import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_ADMIN
-import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_READ
-import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_CAN_WRITE
-import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepositoryTest.Companion.EGM_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
@@ -37,9 +37,6 @@ class Neo4jSearchRepositoryTests {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository
-
-    @Autowired
-    private lateinit var neo4jSearchRepository: Neo4jSearchRepository
 
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
@@ -76,9 +73,9 @@ class Neo4jSearchRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_ADMIN, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
@@ -99,7 +96,7 @@ class Neo4jSearchRepositoryTests {
     fun `it should return matching entities that user can access by it's group`() {
         val userEntity = createEntity(userId.toUri(), listOf("User"), mutableListOf())
         val groupEntity = createEntity(groupId.toUri(), listOf("Group"), mutableListOf())
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -110,8 +107,8 @@ class Neo4jSearchRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(groupEntity.id), EGM_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(groupEntity.id), EGM_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, secondEntity.id)
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
@@ -171,8 +168,8 @@ class Neo4jSearchRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(clientEntity.id), EGM_CAN_READ, firstEntity.id)
-        createRelationship(EntitySubjectNode(clientEntity.id), EGM_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, secondEntity.id)
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
@@ -280,9 +277,9 @@ class Neo4jSearchRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
 
         val entitiesCount = searchRepository.getEntities(
             mapOf(
@@ -328,9 +325,9 @@ class Neo4jSearchRepositoryTests {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
             mapOf(

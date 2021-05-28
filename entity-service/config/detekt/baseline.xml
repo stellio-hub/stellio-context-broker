@@ -10,7 +10,7 @@
     <ID>LargeClass:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests</ID>
     <ID>LongMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
-    <ID>LongMethod:QueryUtils.kt$QueryUtils$fun queryAuthorizedEntities(params: Map&lt;String, Any?&gt;, page: Int, limit: Int, contexts: List&lt;String&gt;): String</ID>
+    <ID>LongMethod:QueryUtils.kt$QueryUtils$fun prepareQueryForEntitiesWithAuthentication( params: Map&lt;String, Any?&gt;, page: Int, limit: Int, contexts: List&lt;String&gt; ): String</ID>
     <ID>LongMethod:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests$@Test fun `it should return an entity if type and combinations of time, string and relationship are correct`()</ID>
     <ID>LongParameterList:Attribute.kt$Attribute$( @Transient val attributeType: String, var observedAt: ZonedDateTime? = null, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @Convert(UriConverter::class) var datasetId: URI? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf() )</ID>
     <ID>LongParameterList:Entity.kt$Entity$( @Id @JsonProperty("@id") @Convert(UriConverter::class) val id: URI, @Labels @JsonProperty("@type") val type: List&lt;String&gt;, @JsonIgnore val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC), @JsonIgnore var modifiedAt: ZonedDateTime? = null, @JsonIgnore var location: String? = null, @Relationship(type = "HAS_VALUE") val properties: MutableList&lt;Property&gt; = mutableListOf(), @Relationship(type = "HAS_OBJECT") val relationships: MutableList&lt;com.egm.stellio.entity.model.Relationship&gt; = mutableListOf(), var contexts: List&lt;String&gt; = mutableListOf() )</ID>
@@ -24,6 +24,5 @@
     <ID>TooGenericExceptionCaught:ParsingUtils.kt$e: Exception</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService$EntityService</ID>
     <ID>TooManyFunctions:Neo4jRepository.kt$Neo4jRepository$Neo4jRepository</ID>
-    <ID>UtilityClassWithPublicConstructor:QueryEntitiesParameterizedTests.kt$QueryEntitiesParameterizedTests</ID>
   </CurrentIssues>
 </SmellBaseline>

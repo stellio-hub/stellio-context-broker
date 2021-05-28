@@ -6,7 +6,7 @@ import java.net.URI
 import java.util.stream.Stream
 
 @Suppress("unused")
-class QueryEntitiesParameterizedTests {
+class QueryEntitiesParameterizedTests private constructor() {
 
     companion object {
         @JvmStatic

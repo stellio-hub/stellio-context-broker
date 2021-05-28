@@ -1,13 +1,24 @@
-package com.egm.stellio.entity.util
+package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
+import com.egm.stellio.entity.util.isDate
+import com.egm.stellio.entity.util.isDateTime
+import com.egm.stellio.entity.util.isFloat
+import com.egm.stellio.entity.util.isRelationshipTarget
+import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
 
 object QueryUtils {
 
-    fun queryAuthorizedEntities(params: Map<String, Any?>, page: Int, limit: Int, contexts: List<String>): String {
+    fun prepareQueryForEntitiesWithAuthentication(
+        params: Map<String, Any?>,
+        page: Int,
+        limit: Int,
+        contexts: List<String>
+    ): String {
         val ids = params["id"] as List<String>?
         val type = params["type"] as String
         val idPattern = params["idPattern"] as String?
@@ -15,12 +26,13 @@ object QueryUtils {
         val formattedIds = ids?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = buildInnerQuery(rawQuery, pattern, contexts)
+
         val matchUserClause =
             """
             CALL {
-                MATCH (userEntity:User) WHERE userEntity.id = ${'$'}userId RETURN userEntity
+                MATCH (userEntity:Entity:User) WHERE userEntity.id = ${'$'}userId RETURN userEntity
                 UNION 
-                MATCH (userEntity:Client) WHERE 
+                MATCH (userEntity:Entity:Client) WHERE 
                     (userEntity)-[:HAS_VALUE]
                     ->(:Property { name: "${AuthorizationService.SERVICE_ACCOUNT_ID}", value: ${'$'}userId})
                 RETURN userEntity
@@ -105,7 +117,12 @@ object QueryUtils {
             """
     }
 
-    fun queryEntities(params: Map<String, Any?>, page: Int, limit: Int, contexts: List<String>): String {
+    fun prepareQueryForEntitiesWithoutAuthentication(
+        params: Map<String, Any?>,
+        page: Int,
+        limit: Int,
+        contexts: List<String>
+    ): String {
         val ids = params["id"] as List<String>?
         val type = params["type"] as String
         val idPattern = params["idPattern"] as String?
@@ -165,10 +182,10 @@ object QueryUtils {
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
-                        EXISTS {
-                            MATCH (entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                            WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
-                        }
+                    EXISTS {
+                        MATCH (entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
+                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
+                    }
                 """.trimIndent()
             } else {
                 val comparableValue = when {

@@ -85,8 +85,8 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val page = params.getFirst(PAGE_PARAM_ID)?.toIntOrNull() ?: 1
-        val limit = params.getFirst(LIMIT_PARAM_ID)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
+        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)

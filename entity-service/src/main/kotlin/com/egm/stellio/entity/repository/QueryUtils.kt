@@ -30,11 +30,12 @@ object QueryUtils {
         val matchUserClause =
             """
             CALL {
-                MATCH (userEntity:Entity:User) WHERE userEntity.id = ${'$'}userId RETURN userEntity
+                MATCH (userEntity:Entity:`${AuthorizationService.USER_LABEL}`)
+                    WHERE userEntity.id = ${'$'}userId RETURN userEntity
                 UNION 
-                MATCH (userEntity:Entity:Client) WHERE 
-                    (userEntity)-[:HAS_VALUE]
-                    ->(:Property { name: "${AuthorizationService.SERVICE_ACCOUNT_ID}", value: ${'$'}userId})
+                MATCH (userEntity:Entity:`${AuthorizationService.CLIENT_LABEL}`)
+                    WHERE (userEntity)-[:HAS_VALUE]
+                        ->(:Property { name: "${AuthorizationService.SERVICE_ACCOUNT_ID}", value: ${'$'}userId})
                 RETURN userEntity
             }
             with userEntity

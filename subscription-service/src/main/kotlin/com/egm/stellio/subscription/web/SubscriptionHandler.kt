@@ -4,9 +4,9 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.PagingUtils.SUBSCRIPTION_QUERY_PAGING_LIMIT
-import com.egm.stellio.shared.util.PagingUtils.getSubscriptionsPagingLinks
+import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
 import com.egm.stellio.subscription.service.SubscriptionEventService
@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -35,6 +36,7 @@ import java.util.*
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
 class SubscriptionHandler(
+    private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService,
     private val subscriptionEventService: SubscriptionEventService
 ) {
@@ -72,10 +74,11 @@ class SubscriptionHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getSubscriptions(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam(required = false, defaultValue = "1") page: Int,
-        @RequestParam(required = false, defaultValue = SUBSCRIPTION_QUERY_PAGING_LIMIT.toString()) limit: Int,
+        @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
+        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
@@ -83,32 +86,28 @@ class SubscriptionHandler(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
 
+        if (limit > applicationProperties.pagination.limitMax)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "You asked for $limit results, " +
+                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
+                    )
+                )
+
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)
             .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
 
-        val prevAndNextLinks = getSubscriptionsPagingLinks(
+        val prevAndNextLinks = getPagingLinks(
+            "/ngsi-ld/v1/subscriptions",
+            params,
             subscriptionService.getSubscriptionsCount(userId).awaitFirst(),
             page,
             limit
         )
 
-        return if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.first)
-                .header(HttpHeaders.LINK, prevAndNextLinks.second)
-                .body(subscriptions)
-        else if (prevAndNextLinks.first != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.first)
-                .body(subscriptions)
-        else if (prevAndNextLinks.second != null)
-            buildGetSuccessResponse(mediaType, contextLink)
-                .header(HttpHeaders.LINK, prevAndNextLinks.second)
-                .body(subscriptions)
-        else
-            buildGetSuccessResponse(mediaType, contextLink)
-                .body(subscriptions)
+        return PagingUtils.buildPaginationResponse(subscriptions, prevAndNextLinks, mediaType, contextLink)
     }
 
     /**

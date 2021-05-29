@@ -39,6 +39,9 @@ class EntityServiceTests {
     private lateinit var neo4jRepository: Neo4jRepository
 
     @MockkBean(relaxed = true)
+    private lateinit var neo4jSearchRepository: Neo4jSearchRepository
+
+    @MockkBean(relaxed = true)
     private lateinit var entityRepository: EntityRepository
 
     @MockkBean

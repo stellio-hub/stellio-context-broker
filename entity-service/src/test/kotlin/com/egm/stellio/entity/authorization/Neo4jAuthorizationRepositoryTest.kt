@@ -3,6 +3,9 @@ package com.egm.stellio.entity.authorization
 import com.egm.stellio.entity.authorization.AuthorizationService.*
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
@@ -42,24 +45,18 @@ class Neo4jAuthorizationRepositoryTest {
     private val apiaryUri = "urn:ngsi-ld:Apiary:01".toUri()
     private val apiary02Uri = "urn:ngsi-ld:Apiary:02".toUri()
 
-    companion object {
-        const val EGM_CAN_READ = "https://ontology.eglobalmark.com/authorization#rCanRead"
-        const val EGM_CAN_WRITE = "https://ontology.eglobalmark.com/authorization#rCanWrite"
-        const val EGM_IS_MEMBER_OF = "https://ontology.eglobalmark.com/authorization#isMemberOf"
-    }
-
     @Test
     fun `it should filter entities authorized for user with given rights`() {
         val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_READ, apiaryEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 userUri,
                 listOf(apiaryUri),
-                setOf(EGM_CAN_READ, EGM_CAN_WRITE)
+                setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
         assert(availableRightsForEntities == listOf(apiaryUri))
@@ -73,13 +70,13 @@ class Neo4jAuthorizationRepositoryTest {
         val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 userUri,
                 listOf(apiaryUri),
-                setOf(EGM_CAN_READ)
+                setOf(R_CAN_READ)
             )
 
         assert(availableRightsForEntities.isEmpty())
@@ -93,19 +90,19 @@ class Neo4jAuthorizationRepositoryTest {
         val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
         val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
 
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
         val apiaryEntity2 = createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
-        createRelationship(EntitySubjectNode(groupEntity.id), EGM_CAN_READ, apiaryEntity2.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, apiaryEntity.id)
+        createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_READ, apiaryEntity2.id)
 
         val authorizedEntitiesId =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 userUri,
                 listOf(apiaryUri, apiary02Uri),
-                setOf(EGM_CAN_READ, EGM_CAN_WRITE)
+                setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
         assert(authorizedEntitiesId == listOf(apiaryUri, apiary02Uri))
@@ -128,13 +125,13 @@ class Neo4jAuthorizationRepositoryTest {
         )
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(clientEntity.id), EGM_CAN_WRITE, apiaryEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_WRITE, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 serviceAccountUri,
                 listOf(apiaryUri),
-                setOf(EGM_CAN_READ)
+                setOf(R_CAN_READ)
             )
 
         assert(availableRightsForEntities.isEmpty())
@@ -156,13 +153,13 @@ class Neo4jAuthorizationRepositoryTest {
         )
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
-        createRelationship(EntitySubjectNode(clientEntity.id), EGM_CAN_READ, apiaryEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 serviceAccountUri,
                 listOf(apiaryUri),
-                setOf(EGM_CAN_READ, EGM_CAN_WRITE)
+                setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
         assert(availableRightsForEntities == listOf(apiaryUri))
@@ -331,7 +328,7 @@ class Neo4jAuthorizationRepositoryTest {
             )
         )
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
@@ -356,7 +353,7 @@ class Neo4jAuthorizationRepositoryTest {
             )
         )
 
-        createRelationship(EntitySubjectNode(userEntity.id), EGM_IS_MEMBER_OF, groupEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 

@@ -11,6 +11,7 @@ interface AuthorizationService {
         const val R_CAN_READ = AUTHORIZATION_ONTOLOGY + "rCanRead"
         const val R_CAN_WRITE = AUTHORIZATION_ONTOLOGY + "rCanWrite"
         const val R_CAN_ADMIN = AUTHORIZATION_ONTOLOGY + "rCanAdmin"
+        const val R_IS_MEMBER_OF = AUTHORIZATION_ONTOLOGY + "isMemberOf"
         const val SERVICE_ACCOUNT_ID = AUTHORIZATION_ONTOLOGY + "serviceAccountId"
         const val ADMIN_ROLE_LABEL = "stellio-admin"
         const val CREATION_ROLE_LABEL = "stellio-creator"

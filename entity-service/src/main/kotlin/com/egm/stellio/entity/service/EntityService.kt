@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.*
+import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.repository.AttributeSubjectNode
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
@@ -23,7 +24,8 @@ import java.net.URI
 class EntityService(
     private val neo4jRepository: Neo4jRepository,
     private val entityRepository: EntityRepository,
-    private val partialEntityRepository: PartialEntityRepository
+    private val partialEntityRepository: PartialEntityRepository,
+    private val searchRepository: SearchRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -295,14 +297,14 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
-        ids: List<String>?,
-        type: String,
-        idPattern: String?,
-        query: String,
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> =
-        searchEntities(ids, type, idPattern, query, listOf(contextLink), includeSysAttrs)
+    ): Pair<Int, List<JsonLdEntity>> =
+        searchEntities(params, userId, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -315,17 +317,28 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
-        ids: List<String>?,
-        type: String,
-        idPattern: String?,
-        query: String,
+        params: Map<String, Any?>,
+        userId: String,
+        page: Int,
+        limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
-    ): List<JsonLdEntity> {
-        val expandedType = expandJsonLdKey(type, contexts)!!
+    ): Pair<Int, List<JsonLdEntity>> {
+        val expandedType = expandJsonLdKey(params["type"] as String, contexts)!!
 
-        return neo4jRepository.getEntities(ids, expandedType, idPattern, query, contexts)
-            .mapNotNull { getFullEntityById(it, includeSysAttrs) }
+        val result = searchRepository.getEntities(
+            mapOf(
+                "id" to params["id"] as List<String>?,
+                "type" to expandedType,
+                "idPattern" to params["idPattern"] as String?,
+                "q" to params["q"] as String
+            ),
+            userId,
+            page,
+            limit,
+            contexts
+        )
+        return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
     }
 
     @Transactional

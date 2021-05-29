@@ -1,24 +1,62 @@
 package com.egm.stellio.shared.util
 
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
+
 object PagingUtils {
 
-    const val SUBSCRIPTION_QUERY_PAGING_LIMIT = 30
-
-    fun getSubscriptionsPagingLinks(subscriptionsCount: Int, pageNumber: Int, limit: Int): Pair<String?, String?> {
+    fun getPagingLinks(
+        resourceUrl: String,
+        requestParams: MultiValueMap<String, String>,
+        resourcesCount: Int,
+        pageNumber: Int,
+        limit: Int
+    ): Pair<String?, String?> {
         var prevLink: String? = null
         var nextLink: String? = null
 
-        if (pageNumber > 1 && (subscriptionsCount > (pageNumber - 1) * limit))
+        if (pageNumber > 1 && (resourcesCount > (pageNumber - 1) * limit))
             prevLink =
-                """
-                </ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber - 1}>;rel="prev";type="application/ld+json"
-                """.trimIndent()
-        if (subscriptionsCount > pageNumber * limit)
+                "<$resourceUrl?${requestParams.toEncodedUrl(page = pageNumber - 1, limit = limit)}>;" +
+                "rel=\"prev\";type=\"application/ld+json\""
+
+        if (resourcesCount > pageNumber * limit)
             nextLink =
-                """
-                </ngsi-ld/v1/subscriptions?limit=$limit&page=${pageNumber + 1}>;rel="next";type="application/ld+json"
-                """.trimIndent()
+                "<$resourceUrl?${requestParams.toEncodedUrl(page = pageNumber + 1, limit = limit)}>;" +
+                "rel=\"next\";type=\"application/ld+json\""
 
         return Pair(prevLink, nextLink)
+    }
+
+    fun buildPaginationResponse(
+        body: String,
+        prevAndNextLinks: Pair<String?, String?>,
+        mediaType: MediaType,
+        contextLink: String
+    ): ResponseEntity<String> =
+        if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.first)
+                .header(HttpHeaders.LINK, prevAndNextLinks.second)
+                .body(body)
+        else if (prevAndNextLinks.first != null)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.first)
+                .body(body)
+        else if (prevAndNextLinks.second != null)
+            buildGetSuccessResponse(mediaType, contextLink)
+                .header(HttpHeaders.LINK, prevAndNextLinks.second)
+                .body(body)
+        else
+            buildGetSuccessResponse(mediaType, contextLink)
+                .body(body)
+
+    private fun MultiValueMap<String, String>.toEncodedUrl(page: Int, limit: Int): String {
+        val requestParams = this.entries.filter { !listOf("page", "limit").contains(it.key) }.toMutableList()
+        requestParams.addAll(mutableMapOf("limit" to listOf(limit.toString())).entries)
+        requestParams.addAll(mutableMapOf("page" to listOf(page.toString())).entries)
+        return requestParams.joinToString("&") { it.key + "=" + it.value.joinToString(",") }
     }
 }

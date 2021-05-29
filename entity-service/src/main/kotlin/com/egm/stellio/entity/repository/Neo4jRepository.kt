@@ -5,12 +5,10 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
-import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -21,7 +19,6 @@ import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.regex.Pattern
 import javax.annotation.PostConstruct
 
 sealed class SubjectNodeInfo(val id: URI, val label: String)
@@ -558,91 +555,6 @@ class Neo4jRepository(
             (it["entityType"] as Array<String>)
                 .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
         }.flatten()
-    }
-
-    fun getEntities(
-        ids: List<String>?,
-        type: String,
-        idPattern: String?,
-        rawQuery: String,
-        contexts: List<String>
-    ): List<URI> {
-        val formattedIds = ids?.map { "'$it'" }
-        val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = rawQuery.replace(
-            pattern.toRegex()
-        ) { matchResult ->
-            val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
-            if (parsedQueryTerm.third.isRelationshipTarget()) {
-                """
-                    EXISTS {
-                        MATCH (n)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
-                        WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
-                    }
-                """.trimIndent()
-            } else {
-                val comparableValue = when {
-                    parsedQueryTerm.third.isFloat() -> "toFloat('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDateTime() -> "datetime('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isDate() -> "date('${parsedQueryTerm.third}')"
-                    parsedQueryTerm.third.isTime() -> "localtime('${parsedQueryTerm.third}')"
-                    else -> parsedQueryTerm.third
-                }
-                val comparablePropertyPath = parsedQueryTerm.first.split(".")
-                val comparablePropertyName = if (comparablePropertyPath.size > 1)
-                    comparablePropertyPath[1]
-                else
-                    "value"
-                """
-                   EXISTS {
-                       MATCH (n)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
-                       AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
-                   }
-                """.trimIndent()
-            }
-        }
-            .replace(";", " AND ")
-            .replace("|", " OR ")
-
-        val matchClause =
-            if (type.isEmpty())
-                "MATCH (n:Entity)"
-            else
-                "MATCH (n:`$type`)"
-
-        val idClause =
-            if (ids != null)
-                """
-                    n.id in $formattedIds
-                    ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
-
-        val idPatternClause =
-            if (idPattern != null)
-                """
-                    n.id =~ '$idPattern'
-                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
-
-        val whereClause =
-            if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
-            else ""
-
-        val finalQuery =
-            """
-            $matchClause
-            $whereClause
-                $idClause
-                $idPatternClause
-                $innerQuery
-            RETURN n.id as id
-            """
-
-        return session.query(finalQuery, emptyMap<String, Any>(), true)
-            .map { (it["id"] as String).toUri() }
     }
 
     fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {

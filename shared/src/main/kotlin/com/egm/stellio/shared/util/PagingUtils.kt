@@ -32,26 +32,29 @@ object PagingUtils {
 
     fun buildPaginationResponse(
         body: String,
+        resourcesCount: Int,
+        count: Boolean,
         prevAndNextLinks: Pair<String?, String?>,
         mediaType: MediaType,
         contextLink: String
-    ): ResponseEntity<String> =
-        if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
+    ): ResponseEntity<String> {
+        val responseHeaders = if (prevAndNextLinks.first != null && prevAndNextLinks.second != null)
             buildGetSuccessResponse(mediaType, contextLink)
                 .header(HttpHeaders.LINK, prevAndNextLinks.first)
                 .header(HttpHeaders.LINK, prevAndNextLinks.second)
-                .body(body)
+
         else if (prevAndNextLinks.first != null)
             buildGetSuccessResponse(mediaType, contextLink)
                 .header(HttpHeaders.LINK, prevAndNextLinks.first)
-                .body(body)
         else if (prevAndNextLinks.second != null)
             buildGetSuccessResponse(mediaType, contextLink)
                 .header(HttpHeaders.LINK, prevAndNextLinks.second)
-                .body(body)
         else
             buildGetSuccessResponse(mediaType, contextLink)
-                .body(body)
+
+        return if (count) responseHeaders.header(RESULTS_COUNT_HEADER, resourcesCount.toString()).body(body)
+        else responseHeaders.body(body)
+    }
 
     private fun MultiValueMap<String, String>.toEncodedUrl(page: Int, limit: Int): String {
         val requestParams = this.entries.filter { !listOf("page", "limit").contains(it.key) }.toMutableList()

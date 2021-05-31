@@ -85,6 +85,7 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
@@ -99,9 +100,17 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
-        if (limit <= 0 || page <= 0)
+        if (!count && (limit <= 0 || page <= 0))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
+
+        if (count && (limit < 0 || page <= 0))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "Page number must be strictly greater than zero and Limit must be greater than zero"
+                    )
+                )
 
         if (limit > applicationProperties.pagination.limitMax)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
@@ -135,7 +144,13 @@ class EntityHandler(
         )
 
         if (countAndEntities.second.isEmpty())
-            return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndEntities.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
 
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         val filteredEntities =
@@ -162,6 +177,8 @@ class EntityHandler(
         )
         return PagingUtils.buildPaginationResponse(
             serializeObject(compactedEntities),
+            countAndEntities.first,
+            count,
             prevAndNextLinks,
             mediaType, contextLink
         )

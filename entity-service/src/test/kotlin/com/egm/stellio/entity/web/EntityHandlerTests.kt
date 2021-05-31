@@ -627,6 +627,39 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities should return 200 and the number of results`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+            3,
+            emptyList()
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&page=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get entities should return 400 if the number of results is requested with a limit less than zero`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&page=1&count=true")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Page number must be strictly greater than zero and Limit must be greater than zero"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(

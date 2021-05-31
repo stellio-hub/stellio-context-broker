@@ -298,13 +298,13 @@ class EntityService(
      */
     fun searchEntities(
         params: Map<String, Any?>,
-        userId: String,
+        userSub: String,
         page: Int,
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(params, userId, page, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(params, userSub, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -318,7 +318,7 @@ class EntityService(
     @Transactional
     fun searchEntities(
         params: Map<String, Any?>,
-        userId: String,
+        userSub: String,
         page: Int,
         limit: Int,
         contexts: List<String>,
@@ -333,7 +333,7 @@ class EntityService(
                 "idPattern" to params["idPattern"] as String?,
                 "q" to params["q"] as String
             ),
-            userId,
+            userSub,
             page,
             limit,
             contexts

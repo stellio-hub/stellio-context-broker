@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
@@ -16,17 +17,17 @@ class Neo4jSearchRepository(
 
     override fun getEntities(
         params: Map<String, Any?>,
-        userId: String,
+        userSub: String,
         page: Int,
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
-        val query = if (neo4jAuthorizationService.userIsAdmin(userId))
+        val query = if (neo4jAuthorizationService.userIsAdmin(userSub))
             QueryUtils.prepareQueryForEntitiesWithoutAuthentication(params, page, limit, contexts)
         else
             QueryUtils.prepareQueryForEntitiesWithAuthentication(params, page, limit, contexts)
 
-        val result = session.query(query, mapOf("userId" to userId), true)
+        val result = session.query(query, mapOf("userId" to USER_PREFIX + userSub), true)
         return Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
             result.map { (it["id"] as String).toUri() }

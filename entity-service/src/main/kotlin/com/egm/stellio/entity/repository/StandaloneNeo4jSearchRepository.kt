@@ -14,7 +14,7 @@ class StandaloneNeo4jSearchRepository(
 
     override fun getEntities(
         params: Map<String, Any?>,
-        userId: String,
+        userSub: String,
         page: Int,
         limit: Int,
         contexts: List<String>

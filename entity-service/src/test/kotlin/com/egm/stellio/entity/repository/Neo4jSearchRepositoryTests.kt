@@ -48,16 +48,17 @@ class Neo4jSearchRepositoryTests {
     private lateinit var neo4jAuthorizationService: Neo4jAuthorizationService
 
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
-    private val userId = "urn:ngsi-ld:User:01"
-    private val clientId = "urn:ngsi-ld:Client:01"
-    private val serviceAccountId = "urn:ngsi-ld:ServiceAccount:01"
-    private val groupId = "urn:ngsi-ld:Group:01"
+    private val groupUri = "urn:ngsi-ld:Group:01".toUri()
+    private val userUri = "urn:ngsi-ld:User:01".toUri()
+    private val clientUri = "urn:ngsi-ld:Client:01".toUri()
+    private val serviceAccountUri = "urn:ngsi-ld:User:01".toUri()
+    private val sub = "01"
     private val page = 1
     private val limit = 20
 
     @Test
     fun `it should return matching entities that user can access`() {
-        val userEntity = createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -79,7 +80,7 @@ class Neo4jSearchRepositoryTests {
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -94,8 +95,8 @@ class Neo4jSearchRepositoryTests {
 
     @Test
     fun `it should return matching entities that user can access by it's group`() {
-        val userEntity = createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
-        val groupEntity = createEntity(groupId.toUri(), listOf("Group"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
         createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
         val firstEntity = createEntity(
             beekeeperUri,
@@ -112,7 +113,7 @@ class Neo4jSearchRepositoryTests {
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -127,7 +128,7 @@ class Neo4jSearchRepositoryTests {
 
     @Test
     fun `it should not return a matching entity that user cannot access`() {
-        createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -135,26 +136,26 @@ class Neo4jSearchRepositoryTests {
         )
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(userId.toUri())
+        neo4jRepository.deleteEntity(userUri)
         neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should return matching entities that client can access`() {
         val clientEntity = createEntity(
-            clientId.toUri(),
+            clientUri,
             listOf(AuthorizationService.CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
-                    value = serviceAccountId.toUri()
+                    value = serviceAccountUri
                 )
             )
         )
@@ -173,7 +174,7 @@ class Neo4jSearchRepositoryTests {
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            serviceAccountId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -188,7 +189,7 @@ class Neo4jSearchRepositoryTests {
     @Test
     fun `it should return all matching entities for admin users`() {
         val userEntity = createEntity(
-            userId.toUri(),
+            userUri,
             listOf(AuthorizationService.USER_LABEL),
             mutableListOf(
                 Property(
@@ -212,7 +213,7 @@ class Neo4jSearchRepositoryTests {
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -226,7 +227,7 @@ class Neo4jSearchRepositoryTests {
 
     @Test
     fun `it should return matching entities as the specific access policy`() {
-        val userEntity = createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -246,7 +247,7 @@ class Neo4jSearchRepositoryTests {
 
         val entities = searchRepository.getEntities(
             mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -261,7 +262,7 @@ class Neo4jSearchRepositoryTests {
 
     @Test
     fun `it should return matching entities count`() {
-        val userEntity = createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -288,7 +289,7 @@ class Neo4jSearchRepositoryTests {
                 "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
                 "q" to ""
             ),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS
@@ -309,7 +310,7 @@ class Neo4jSearchRepositoryTests {
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
-        val userEntity = createEntity(userId.toUri(), listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -336,7 +337,7 @@ class Neo4jSearchRepositoryTests {
                 "idPattern" to idPattern,
                 "q" to ""
             ),
-            userId,
+            sub,
             page,
             limit,
             DEFAULT_CONTEXTS

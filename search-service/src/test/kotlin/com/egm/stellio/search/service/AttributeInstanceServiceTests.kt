@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.FullAttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -41,10 +42,12 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     private lateinit var temporalEntityAttribute: TemporalEntityAttribute
 
+    val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
+
     @BeforeAll
     fun createTemporalEntityAttribute() {
         temporalEntityAttribute = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            entityId = entityId,
             type = "BeeHive",
             attributeName = "incoming",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -145,6 +148,28 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should count all observations for a day and return the filled entity`() {
+        (1..9).forEach { _ ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            null, "1 day", TemporalQuery.Aggregate.COUNT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it as List<SimplifiedAttributeInstanceResult>
+                it.size == 1 && (it.first().value as Long).toInt() == 9
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should only return the last n aggregates asked in the temporal query`() {
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =
@@ -196,7 +221,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
-            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+            entityId = entityId,
             type = "BeeHive",
             attributeName = "outgoing",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
@@ -340,6 +365,28 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                 parsedObservationPayload
             )
         }
+    }
+
+    @Test
+    fun `it should delete all temporal attribute instances of an entity`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfEntity(entityId).block()
+
+        assert(deletedRecords == 10)
+    }
+
+    @Test
+    fun `it should delete all temporal attribute instances of a temporal attribute`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(
+            entityId,
+            "incoming",
+            null
+        ).block()
+
+        assert(deletedRecords == 10)
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {

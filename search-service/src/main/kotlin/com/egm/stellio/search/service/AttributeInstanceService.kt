@@ -15,6 +15,7 @@ import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -126,6 +127,53 @@ class AttributeInstanceService(
             }
             .collectList()
     }
+
+    fun deleteAttributeInstancesOfEntity(entityId: URI): Mono<Int> =
+        databaseClient.execute(
+            """
+            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
+                SELECT id FROM temporal_entity_attribute WHERE entity_id = :entity_id
+            )
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+
+    fun deleteAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
+        databaseClient.execute(
+            """
+            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
+                SELECT id FROM temporal_entity_attribute WHERE 
+                    entity_id = :entity_id
+                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                    AND attribute_name = :attribute_name
+            )
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .let {
+                if (datasetId != null) it.bind("dataset_id", datasetId)
+                else it
+            }
+            .fetch()
+            .rowsUpdated()
+
+    fun deleteAllAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
+        databaseClient.execute(
+            """
+            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
+                SELECT id FROM temporal_entity_attribute WHERE 
+                    entity_id = :entity_id AND
+                    attribute_name = :attribute_name
+            )
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .fetch()
+            .rowsUpdated()
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,

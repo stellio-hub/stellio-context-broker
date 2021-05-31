@@ -458,13 +458,16 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should not include temporal properties if query param sysAttrs is not present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns listOf(
-            JsonLdEntity(
-                mapOf(
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-                ),
-                listOf(NGSILD_CORE_CONTEXT)
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@type" to listOf("Beehive")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
             )
         )
 
@@ -495,18 +498,21 @@ class EntityHandlerTests {
     @Test
     fun `get entities by type should include temporal properties if optional query param sysAttrs is present`() {
         every { entityService.exists(any()) } returns true
-        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), true) } returns listOf(
-            JsonLdEntity(
-                mapOf(
-                    NGSILD_CREATED_AT_PROPERTY to
-                        mapOf(
-                            "@type" to NGSILD_DATE_TIME_TYPE,
-                            "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
-                        ),
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-                ),
-                listOf(NGSILD_CORE_CONTEXT)
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), true) } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        NGSILD_CREATED_AT_PROPERTY to
+                            mapOf(
+                                "@type" to NGSILD_DATE_TIME_TYPE,
+                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                            ),
+                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@type" to listOf("Beehive")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
             )
         )
 
@@ -530,6 +536,126 @@ class EntityHandlerTests {
                         }
                     ]
                 """.trimMargin()
+            )
+    }
+
+    @Test
+    fun `get entities should return 200 with prev and next link header if exists`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+            3,
+            listOf(
+                JsonLdEntity(
+                    mapOf("@id" to "urn:ngsi-ld:Beehive:TESTC", "@type" to listOf("Beehive")),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        )
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/entities/?type=Beehive" +
+                    "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&page=2"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(
+                "Link",
+                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&page=3>;rel=\"next\";type=\"application/ld+json\""
+            )
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+    }
+
+    @Test
+    fun `get entities should return 200 and empty response if requested page does not exists`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.searchEntities(any(), any(), any(), any(), any<String>(), any())
+        } returns Pair(0, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&page=9")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get entities should return 400 if limit is equal or less than zero`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&page=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Page number and Limit must be strictly greater than zero"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entities should return 400 if limit is greater than the maximum authorized limit`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&page=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `get entities should return 200 and the number of results`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+            3,
+            emptyList()
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&page=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get entities should return 400 if the number of results is requested with a limit less than zero`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&page=1&count=true")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Page number must be strictly greater than zero and Limit must be greater than zero"
+                }
+                """.trimIndent()
             )
     }
 

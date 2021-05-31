@@ -23,7 +23,7 @@ class SubscriptionEventListenerService(
         when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
             is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
-            is EntityDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
+            is EntityDeleteEvent -> handleSubscriptionDeleteEvent(subscriptionEvent)
         }
     }
 
@@ -45,6 +45,9 @@ class SubscriptionEventListenerService(
             subscriptionCreateEvent.entityId, "Subscription", parsedSubscription
         )
     }
+
+    private fun handleSubscriptionDeleteEvent(subscriptionDeleteEvent: EntityDeleteEvent) =
+        subscriptionHandlerService.deleteSubscriptionEntity(subscriptionDeleteEvent.entityId)
 
     private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
         var parsedNotification = deserializeObject(notificationCreateEvent.operationPayload)

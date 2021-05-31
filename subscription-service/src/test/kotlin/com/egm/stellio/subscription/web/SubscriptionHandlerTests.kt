@@ -386,6 +386,23 @@ class SubscriptionHandlerTests {
     }
 
     @Test
+    fun `query subscriptions should return 400 if limit is greater than the maximum authorized limit`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/?limit=200&page=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `update subscription should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val expectedOperationPayload = ClassPathResource("/ngsild/events/sent/subscription_update_event_payload.json")

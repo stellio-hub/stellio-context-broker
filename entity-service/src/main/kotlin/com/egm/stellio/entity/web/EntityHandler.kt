@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
@@ -41,6 +42,7 @@ import java.util.Optional
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
 class EntityHandler(
+    private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val entityAttributeService: EntityAttributeService,
     private val authorizationService: AuthorizationService,
@@ -83,6 +85,9 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
@@ -93,6 +98,28 @@ class EntityHandler(
             .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
+        val userId = extractSubjectOrEmpty().awaitFirst()
+
+        if (!count && (limit <= 0 || page <= 0))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
+
+        if (count && (limit < 0 || page <= 0))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "Page number must be strictly greater than zero and Limit must be greater than zero"
+                    )
+                )
+
+        if (limit > applicationProperties.pagination.limitMax)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "You asked for $limit results, " +
+                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
+                    )
+                )
 
         // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
         if (q.isEmpty() && type.isEmpty())
@@ -107,21 +134,27 @@ class EntityHandler(
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
-        val entities = entityService.searchEntities(ids, type, idPattern, q.decode(), contextLink, includeSysAttrs)
-        if (entities.isEmpty())
-            return buildGetSuccessResponse(mediaType, contextLink).body(serializeObject(emptyList<JsonLdEntity>()))
+        val countAndEntities = entityService.searchEntities(
+            mapOf("id" to ids, "type" to type, "idPattern" to idPattern, "q" to q.decode()) as Map<String, Any>,
+            userId,
+            page,
+            limit,
+            contextLink,
+            includeSysAttrs
+        )
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        val entitiesUserCanRead =
-            authorizationService.filterEntitiesUserCanRead(
-                entities.map { it.id.toUri() },
-                userId
-            ).toListOfString()
+        if (countAndEntities.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndEntities.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
 
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         val filteredEntities =
-            entities.filter { entitiesUserCanRead.contains(it.id) }
-                .filter { it.containsAnyOf(expandedAttrs) }
+            countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {
                     JsonLdEntity(
                         JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
@@ -135,8 +168,20 @@ class EntityHandler(
         // so they should be reconstructed
         compactedEntities.forEach { reconstructPolygonCoordinates(it) }
 
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(compactedEntities))
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entities",
+            params,
+            countAndEntities.first,
+            page,
+            limit
+        )
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedEntities),
+            countAndEntities.first,
+            count,
+            prevAndNextLinks,
+            mediaType, contextLink
+        )
     }
 
     /**

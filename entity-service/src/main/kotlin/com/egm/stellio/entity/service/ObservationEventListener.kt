@@ -67,17 +67,20 @@ class ObservationEventListener(
         }
 
         val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
-        entityEventService.publishEntityEvent(
-            AttributeUpdateEvent(
-                observationEvent.entityId,
-                observationEvent.attributeName,
-                observationEvent.datasetId,
-                observationEvent.operationPayload,
-                compactAndSerialize(updatedEntity!!, observationEvent.contexts, MediaType.APPLICATION_JSON),
-                observationEvent.contexts
-            ),
-            updatedEntity.type
-        )
+        if (updatedEntity == null)
+            logger.warn("Unable to retrieve entity ${observationEvent.entityId} from DB, not sending to Kafka")
+        else
+            entityEventService.publishEntityEvent(
+                AttributeUpdateEvent(
+                    observationEvent.entityId,
+                    observationEvent.attributeName,
+                    observationEvent.datasetId,
+                    observationEvent.operationPayload,
+                    compactAndSerialize(updatedEntity, observationEvent.contexts, MediaType.APPLICATION_JSON),
+                    observationEvent.contexts
+                ),
+                updatedEntity.type
+            )
     }
 
     fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent) {

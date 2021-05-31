@@ -27,7 +27,7 @@ class SubscriptionEventListenerService(
         when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
             is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
-            is EntityDeleteEvent -> logger.warn("Subscription delete operation is not yet implemented")
+            is EntityDeleteEvent -> handleSubscriptionDeleteEvent(subscriptionEvent)
         }
     }
 
@@ -54,6 +54,13 @@ class SubscriptionEventListenerService(
         temporalEntityAttributeService.create(entityTemporalProperty)
             .subscribe {
                 logger.debug("Created reference for subscription ${subscription.id}")
+            }
+    }
+
+    private fun handleSubscriptionDeleteEvent(subscriptionDeleteEvent: EntityDeleteEvent) {
+        temporalEntityAttributeService.deleteTemporalEntityReferences(subscriptionDeleteEvent.entityId)
+            .subscribe {
+                logger.debug("Deleted subscription ${subscriptionDeleteEvent.entityId} (records deleted: $it)")
             }
     }
 

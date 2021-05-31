@@ -7,10 +7,13 @@ interface AuthorizationService {
     companion object {
         const val USER_PREFIX: String = "urn:ngsi-ld:User:"
         const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
+        const val USER_LABEL = AUTHORIZATION_ONTOLOGY + "User"
+        const val CLIENT_LABEL = AUTHORIZATION_ONTOLOGY + "Client"
         const val EGM_ROLES = AUTHORIZATION_ONTOLOGY + "roles"
         const val R_CAN_READ = AUTHORIZATION_ONTOLOGY + "rCanRead"
         const val R_CAN_WRITE = AUTHORIZATION_ONTOLOGY + "rCanWrite"
         const val R_CAN_ADMIN = AUTHORIZATION_ONTOLOGY + "rCanAdmin"
+        const val R_IS_MEMBER_OF = AUTHORIZATION_ONTOLOGY + "isMemberOf"
         const val SERVICE_ACCOUNT_ID = AUTHORIZATION_ONTOLOGY + "serviceAccountId"
         const val ADMIN_ROLE_LABEL = "stellio-admin"
         const val CREATION_ROLE_LABEL = "stellio-creator"

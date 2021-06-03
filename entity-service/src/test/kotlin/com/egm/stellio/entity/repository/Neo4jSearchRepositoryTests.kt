@@ -302,6 +302,41 @@ class Neo4jSearchRepositoryTests {
         neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
+    @Test
+    fun `it should return matching entities count when only the count is requested`() {
+        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
+
+        val entitiesCount = searchRepository.getEntities(
+            mapOf(
+                "id" to null,
+                "type" to "Beekeeper",
+                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
+                "q" to ""
+            ),
+            sub,
+            page,
+            0,
+            DEFAULT_CONTEXTS
+        ).first
+
+        assertEquals(entitiesCount, 1)
+        neo4jRepository.deleteEntity(userEntity.id)
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
     @ParameterizedTest
     @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
     fun `it should only return matching entities requested by pagination`(

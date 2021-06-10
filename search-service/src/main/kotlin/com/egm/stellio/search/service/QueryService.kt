@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.web.buildTemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
@@ -38,6 +39,45 @@ class QueryService(
         )
     }
 
+    suspend fun queryTemporalEntity(
+        entityId: URI,
+        temporalQuery: TemporalQuery,
+        withTemporalValues: Boolean,
+        contextLink: String
+    ): CompactedJsonLdEntity {
+        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
+            entityId,
+            temporalQuery.expandedAttrs
+        ).collectList()
+            .awaitFirst()
+            .ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
+
+        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+        // then do one search for each type of attribute
+        val allAttributesInstancesPerAttribute = temporalEntityAttributes
+            .groupBy {
+                it.attributeValueType
+            }.mapValues {
+                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
+            }
+            .values
+            .flatten()
+            .groupBy { attributeInstanceResult ->
+                // group them by temporal entity attribute
+                temporalEntityAttributes.find { tea ->
+                    tea.id == attributeInstanceResult.temporalEntityAttribute
+                }!!
+            }
+
+        return temporalEntityService.buildTemporalEntity(
+            entityId,
+            allAttributesInstancesPerAttribute,
+            temporalQuery,
+            listOf(contextLink),
+            withTemporalValues
+        )
+    }
+
     suspend fun queryTemporalEntities(
         ids: Set<URI>,
         types: Set<String>,
@@ -45,23 +85,41 @@ class QueryService(
         withTemporalValues: Boolean,
         contextLink: String
     ): List<CompactedJsonLdEntity> {
-        val temporalEntityAttributesResult = temporalEntityAttributeService.getForEntities(
+        val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             ids,
             types,
             temporalQuery.expandedAttrs
-        ).awaitFirstOrDefault(emptyMap())
+        ).awaitFirstOrDefault(emptyList())
 
-        val queryResult = temporalEntityAttributesResult.toList().map {
-            Pair(
-                it.first,
-                it.second.map {
-                    it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
-                }.toMap()
-            )
-        }
+        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+        // then do one search for each type of attribute
+        val allAttributesInstances =
+            temporalEntityAttributes.groupBy {
+                it.attributeValueType
+            }.mapValues {
+                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
+            }.values.flatten()
+
+        val attributeInstancesPerEntityAndAttribute =
+            allAttributesInstances
+                .groupBy {
+                    // first, group them by temporal entity attribute
+                    temporalEntityAttributes.find { tea ->
+                        tea.id == it.temporalEntityAttribute
+                    }!!
+                }
+                .toList()
+                .groupBy {
+                    // then, group them by entity
+                    it.first.entityId
+                }
+                .mapValues {
+                    it.value.toMap()
+                }
+                .toList()
 
         return temporalEntityService.buildTemporalEntities(
-            queryResult,
+            attributeInstancesPerEntityAndAttribute,
             temporalQuery,
             listOf(contextLink),
             withTemporalValues

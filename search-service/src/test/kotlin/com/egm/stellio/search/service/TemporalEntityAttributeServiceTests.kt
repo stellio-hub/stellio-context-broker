@@ -325,16 +325,10 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
-                it.size == 2 &&
-                    it["urn:ngsi-ld:BeeHive:TESTC".toUri()]!!.size == 1 &&
-                    it["urn:ngsi-ld:BeeHive:TESTC".toUri()]!!.all {
-                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                            it.attributeName in setOf(incomingAttrExpandedName)
-                    } &&
-                    it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.size == 2 &&
-                    it["urn:ngsi-ld:BeeHive:TESTD".toUri()]!!.all {
-                        it.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
-                            it.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+                it.size == 3 &&
+                    it.all { tea ->
+                        tea.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                            tea.attributeName in setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
                     }
             }
             .expectComplete()
@@ -362,7 +356,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
 
         StepVerifier.create(temporalEntityAttributes)
-            .expectNext(emptyMap())
+            .expectNext(emptyList())
             .expectComplete()
             .verify()
     }
@@ -385,7 +379,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
             )
 
         StepVerifier.create(temporalEntityAttributes)
-            .expectNext(emptyMap())
+            .expectNext(emptyList())
             .expectComplete()
             .verify()
     }

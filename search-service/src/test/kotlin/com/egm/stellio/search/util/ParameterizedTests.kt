@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
 import java.time.ZonedDateTime
+import java.util.UUID
 import java.util.stream.Stream
 
 @Suppress("unused")
@@ -26,6 +27,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         550.0,
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -34,6 +36,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         650.0,
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -57,6 +60,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "urn:ngsi-ld:Entity:1234",
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -66,6 +70,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "urn:ngsi-ld:Entity:5678",
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -90,6 +95,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         550.0,
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -98,6 +104,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         650.0,
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -115,6 +122,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         487.0,
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -123,6 +131,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         698.0,
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -146,6 +155,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "Beehive_incoming_123",
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -154,6 +164,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "Beehive_incoming_124",
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -176,6 +187,7 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "Beehive_incoming_123",
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
@@ -184,6 +196,7 @@ class ParameterizedTests {
                                     )
                                 ),
                                 FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     payload = buildAttributeInstancePayload(
                                         "Beehive_incoming_124",
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -208,10 +221,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 550.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 650.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
@@ -233,10 +248,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 550.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 650.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
@@ -250,10 +267,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 487.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = 698.0,
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
@@ -273,10 +292,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_123",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_124",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
@@ -295,10 +316,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_123",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_124",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
@@ -321,10 +344,12 @@ class ParameterizedTests {
                         ) to
                             listOf(
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "urn:ngsi-ld:Entity:1234",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
                                     value = "urn:ngsi-ld:Entity:5678",
                                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )

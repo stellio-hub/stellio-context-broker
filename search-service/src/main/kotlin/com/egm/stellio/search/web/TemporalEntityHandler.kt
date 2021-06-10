@@ -7,7 +7,6 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -35,7 +34,6 @@ class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val entityService: EntityService,
-    private val temporalEntityService: TemporalEntityService,
     private val queryService: QueryService
 ) {
 
@@ -118,22 +116,8 @@ class TemporalEntityHandler(
                 .body(BadRequestDataResponse(e.message))
         }
 
-        val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
-            entityId.toUri(),
-            temporalQuery.expandedAttrs
-        ).collectList().awaitFirst().ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId)) }
-
-        val attributeAndResultsMap = temporalEntityAttributes.map {
-            it to attributeInstanceService.search(temporalQuery, it, withTemporalValues).awaitFirst()
-        }.toMap()
-
-        val temporalEntity = temporalEntityService.buildTemporalEntity(
-            entityId.toUri(),
-            attributeAndResultsMap,
-            temporalQuery,
-            listOf(contextLink),
-            withTemporalValues
-        )
+        val temporalEntity =
+            queryService.queryTemporalEntity(entityId.toUri(), temporalQuery, withTemporalValues, contextLink)
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))

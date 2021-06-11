@@ -21,8 +21,12 @@ class StandaloneNeo4jSearchRepository(
     ): Pair<Int, List<URI>> {
         val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(params, page, limit, contexts)
         val result = session.query(query, emptyMap<String, Any>(), true)
-
-        return Pair(
+        return if (limit == 0)
+            Pair(
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                emptyList()
+            )
+        else Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
             result.map { (it["id"] as String).toUri() }
         )

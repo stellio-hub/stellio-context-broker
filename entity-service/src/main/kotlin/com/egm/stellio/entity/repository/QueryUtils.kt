@@ -95,13 +95,17 @@ object QueryUtils {
             return entity.id as entityId
             """.trimIndent()
 
-        val pagingClause =
+        val pagingClause = if (limit == 0)
             """
-            WITH collect(distinct entityId) as entityIds, count(entityId) as count
-            UNWIND entityIds as id
-            RETURN id, count
-            ORDER BY id
-            SKIP ${(page - 1) * limit} LIMIT $limit
+            RETURN count(entityId) as count
+            """.trimIndent()
+        else
+            """
+                WITH collect(distinct entityId) as entityIds, count(entityId) as count
+                UNWIND entityIds as id
+                RETURN id, count
+                ORDER BY id
+                SKIP ${(page - 1) * limit} LIMIT $limit
             """.trimIndent()
 
         return """
@@ -158,7 +162,11 @@ object QueryUtils {
                 """
             else ""
 
-        val pagingClause =
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(entity) as count
+            """.trimIndent()
+        else
             """
             WITH collect(entity) as entities, count(entity) as count
             UNWIND entities as entity

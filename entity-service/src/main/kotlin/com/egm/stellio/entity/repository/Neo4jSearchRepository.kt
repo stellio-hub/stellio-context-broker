@@ -28,9 +28,15 @@ class Neo4jSearchRepository(
             QueryUtils.prepareQueryForEntitiesWithAuthentication(params, page, limit, contexts)
 
         val result = session.query(query, mapOf("userId" to USER_PREFIX + userSub), true)
-        return Pair(
-            (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            result.map { (it["id"] as String).toUri() }
-        )
+        return if (limit == 0)
+            Pair(
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                emptyList()
+            )
+        else
+            Pair(
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                result.map { (it["id"] as String).toUri() }
+            )
     }
 }

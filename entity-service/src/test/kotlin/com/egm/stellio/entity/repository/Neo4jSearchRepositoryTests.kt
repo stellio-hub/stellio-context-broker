@@ -318,7 +318,7 @@ class Neo4jSearchRepositoryTests {
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
 
-        val entitiesCount = searchRepository.getEntities(
+        val countAndEntities = searchRepository.getEntities(
             mapOf(
                 "id" to null,
                 "type" to "Beekeeper",
@@ -329,9 +329,10 @@ class Neo4jSearchRepositoryTests {
             page,
             0,
             DEFAULT_CONTEXTS
-        ).first
+        )
 
-        assertEquals(entitiesCount, 1)
+        assertEquals(countAndEntities.first, 1)
+        assertEquals(countAndEntities.second, emptyList<URI>())
         neo4jRepository.deleteEntity(userEntity.id)
         neo4jRepository.deleteEntity(firstEntity.id)
         neo4jRepository.deleteEntity(secondEntity.id)

@@ -16,8 +16,9 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.cloud.stream.binding.BinderAwareChannelResolver
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.util.concurrent.SettableListenableFuture
 
 @SpringBootTest(classes = [EntityEventService::class])
 @ActiveProfiles("test")
@@ -27,7 +28,7 @@ class EntityEventServiceTests {
     private lateinit var entityEventService: EntityEventService
 
     @MockkBean(relaxed = true)
-    private lateinit var resolver: BinderAwareChannelResolver
+    private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     private val specieType = "https://ontology.eglobalmark.com/aquac#Specie"
     private val entityUri = "urn:ngsi-ld:BreedingService:0214".toUri()
@@ -61,11 +62,11 @@ class EntityEventServiceTests {
             "operationPayload",
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
-        every { resolver.resolveDestination(any()).send(any()) } returns true
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityEvent(event, specieType)
 
-        verify { resolver.resolveDestination("cim.entity.Specie") }
+        verify { kafkaTemplate.send("cim.entity.Specie", entityUri.toString(), any()) }
     }
 
     @Test
@@ -80,12 +81,12 @@ class EntityEventServiceTests {
             entityEventService.publishEntityEvent(event, "https://some.host/type")
 
         assertFalse(result as Boolean)
-        verify { resolver.resolveDestination(any()) wasNot Called }
+        verify { kafkaTemplate.send(any(), any(), any()) wasNot Called }
     }
 
     @Test
     fun `it should publish an ATTRIBUTE_APPEND event if an attribute were appended`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val fishNumberAttributeFragment =
             """
             {
@@ -129,7 +130,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val fishNumberAttributeFragment =
             """
             "fishNumber": {
@@ -192,7 +193,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val fishNumberPayload =
             """
             "fishNumber":{
@@ -251,7 +252,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val fishNamePayload1 =
             """
             {
@@ -314,7 +315,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE event if a property is updated`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val fishNamePayload =
             """
             {
@@ -358,7 +359,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE events if multi instance relationship is updated`() {
-        val entityEventService = spyk(EntityEventService(resolver), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
         val attributeName = "https://ontology.eglobalmark.com/egm#connectsTo"
         val firstRelationshipPayload =
             """

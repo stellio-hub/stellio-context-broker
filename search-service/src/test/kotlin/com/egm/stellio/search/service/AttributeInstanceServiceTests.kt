@@ -38,7 +38,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
-    private val observationDateTime = Instant.now().atZone(ZoneOffset.UTC)
+    private val now = Instant.now().atZone(ZoneOffset.UTC)
 
     private lateinit var temporalEntityAttribute: TemporalEntityAttribute
 
@@ -70,37 +70,36 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should retrieve an observation and return the filled entity`() {
+    fun `it should retrieve a full instance if temporalValues are not asked for`() {
         val observation = gimmeAttributeInstance().copy(
-            observedAt = observationDateTime,
+            observedAt = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation).block()
 
         val temporalQuery = TemporalQuery(
-            emptySet(),
-            TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                it as List<FullAttributeInstanceResult>
-                it.size == 1
+                it.size == 1 &&
+                    it[0] is FullAttributeInstanceResult &&
+                    it[0].temporalEntityAttribute == temporalEntityAttribute.id
             }
             .expectComplete()
             .verify()
     }
 
     @Test
-    fun `it should retrieve all known observations and return the filled entity`() {
+    fun `it should retrieve all full instances if temporalValues are not asked for`() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
-            emptySet(),
-            TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -113,7 +112,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should retrieve all known observations and return the filled entity without timerel and time parameters`() {
+    fun `it should retrieve all instances when no timerel and time parameters are provided`() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute, false)
@@ -127,43 +126,93 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should aggregate all observations for a day and return the filled entity`() {
+    fun `it should retrieve instances of a temporal entity attribute whose value type is Any`() {
+        val temporalEntityAttribute2 = TemporalEntityAttribute(
+            entityId = entityId,
+            type = "BeeHive",
+            attributeName = "propWithStringValue",
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+        )
+        databaseClient.insert()
+            .into(TemporalEntityAttribute::class.java)
+            .using(temporalEntityAttribute2)
+            .then()
+            .block()
+
         (1..10).forEach { _ ->
-            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            val observedAt = Instant.now().atZone(ZoneOffset.UTC)
+            val attributeInstance = AttributeInstance(
+                temporalEntityAttribute = temporalEntityAttribute2.id,
+                value = "some value",
+                observedAt = observedAt,
+                payload = mapOf(
+                    "type" to "Property",
+                    "value" to "some value",
+                    "observedAt" to observedAt
+                )
+            )
             attributeInstanceService.create(attributeInstance).block()
         }
 
-        val temporalQuery = TemporalQuery(
-            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null, "1 day", TemporalQuery.Aggregate.SUM
-        )
-        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+        val enrichedEntity = attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute2, true)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                it.size == 1
+                it.size == 10 &&
+                    it.all { attributeInstanceResult ->
+                        attributeInstanceResult.temporalEntityAttribute == temporalEntityAttribute2.id &&
+                            (attributeInstanceResult as SimplifiedAttributeInstanceResult).value == "some value"
+                    }
             }
             .expectComplete()
             .verify()
     }
 
     @Test
-    fun `it should count all observations for a day and return the filled entity`() {
+    fun `it should sum all instances for a day`() {
+        (1..10).forEach { _ ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeBucket = "1 day",
+            aggregate = TemporalQuery.Aggregate.SUM
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0] is SimplifiedAttributeInstanceResult &&
+                    (it[0] as SimplifiedAttributeInstanceResult).value as Double == 10.0
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should count all instances for a day`() {
         (1..9).forEach { _ ->
             val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance).block()
         }
 
         val temporalQuery = TemporalQuery(
-            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
-            null, "1 day", TemporalQuery.Aggregate.COUNT
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeBucket = "1 day",
+            aggregate = TemporalQuery.Aggregate.COUNT
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                it as List<SimplifiedAttributeInstanceResult>
-                it.size == 1 && (it.first().value as Long).toInt() == 9
+                it.size == 1 &&
+                    it[0] is SimplifiedAttributeInstanceResult &&
+                    (it[0] as SimplifiedAttributeInstanceResult).value as Long == 9L
             }
             .expectComplete()
             .verify()
@@ -176,14 +225,17 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = 1.0,
-                        observedAt = Instant.now().atZone(ZoneOffset.UTC).minusHours(index.toLong())
+                        observedAt = now.minusHours(index.toLong())
                     )
             attributeInstanceService.create(attributeInstance).block()
         }
 
         val temporalQuery = TemporalQuery(
-            emptySet(), TemporalQuery.Timerel.AFTER, Instant.now().atZone(ZoneOffset.UTC).minusHours(12),
-            null, "2 hours", TemporalQuery.Aggregate.SUM, 3
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(12),
+            timeBucket = "2 hours",
+            aggregate = TemporalQuery.Aggregate.SUM,
+            lastN = 3
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -196,16 +248,15 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should only return the last n observations asked in the temporal query`() {
+    fun `it should only return the last n instances asked in the temporal query`() {
         (1..10).forEach { _ ->
             val attributeInstance = gimmeAttributeInstance().copy(measuredValue = 1.0)
             attributeInstanceService.create(attributeInstance).block()
         }
 
         val temporalQuery = TemporalQuery(
-            emptySet(),
-            TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1),
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
             lastN = 5
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -241,28 +292,29 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
         }
 
         val temporalQuery = TemporalQuery(
-            emptySet(),
-            TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
         StepVerifier.create(enrichedEntity)
             .expectNextMatches {
-                it.size == 10
+                it.size == 10 &&
+                    it.all { attributeInstanceResult ->
+                        attributeInstanceResult.temporalEntityAttribute == temporalEntityAttribute.id
+                    }
             }
             .expectComplete()
             .verify()
     }
 
     @Test
-    fun `it should not retrieve temporal data if temporal entity does not match`() {
+    fun `it should not retrieve any instance if temporal entity does not match`() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 
         val temporalQuery = TemporalQuery(
-            emptySet(),
-            TemporalQuery.Timerel.AFTER,
-            Instant.now().atZone(ZoneOffset.UTC).minusHours(1)
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1)
         )
         val enrichedEntity =
             attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()), false)
@@ -290,7 +342,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create an AttributeInstance if it has a non null value or measuredValue`() {
+    fun `it should create an attribute instance if it has a non null value or measuredValue`() {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
         val observationPayload =
             """
@@ -337,15 +389,15 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should not create an AttributeInstance if it has a null value and null measuredValue`() {
+    fun `it should not create an attribute instance if it has a null value and null measuredValue`() {
         val observationPayload =
             """
-        {
-          "outgoing": {
-            "type": "Property",
-            "observedBy": "2015-10-18T11:20:30.000001Z"
-          }
-        }
+            {
+              "outgoing": {
+                "type": "Property",
+                "observedBy": "2015-10-18T11:20:30.000001Z"
+              }
+            }
             """.trimIndent()
         val parsedObservationPayload = JsonUtils.deserializeObject(observationPayload)
 

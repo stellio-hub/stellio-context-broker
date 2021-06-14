@@ -74,31 +74,43 @@ class AttributeInstanceService(
         temporalQuery: TemporalQuery,
         temporalEntityAttribute: TemporalEntityAttribute,
         withTemporalValues: Boolean
+    ): Mono<List<AttributeInstanceResult>> =
+        search(temporalQuery, listOf(temporalEntityAttribute), withTemporalValues)
+
+    fun search(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        withTemporalValues: Boolean
     ): Mono<List<AttributeInstanceResult>> {
         var selectQuery =
             when {
                 temporalQuery.timeBucket != null ->
                     """
-                        SELECT time_bucket('${temporalQuery.timeBucket}', observed_at) as time_bucket, 
+                        SELECT temporal_entity_attribute,
+                               time_bucket('${temporalQuery.timeBucket}', observed_at) as time_bucket,
                                ${temporalQuery.aggregate}(measured_value) as value
                     """.trimIndent()
-                temporalEntityAttribute.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
+                // temporal entity attributes are grouped by attribute type by calling services
+                temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
                     """
-                        SELECT observed_at, value, instance_id
+                        SELECT temporal_entity_attribute, observed_at, value
                     """.trimIndent()
                 else ->
                     """
-                        SELECT observed_at, measured_value as value, instance_id
+                        SELECT temporal_entity_attribute, observed_at, measured_value as value
                     """.trimIndent()
             }
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)
             selectQuery = selectQuery.plus(", payload::TEXT")
 
+        val temporalEntityAttributesIds =
+            temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
+
         selectQuery = selectQuery.plus(
             """
                 FROM attribute_instance
-                WHERE temporal_entity_attribute = '${temporalEntityAttribute.id}' 
+                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
             """
         )
 
@@ -112,7 +124,7 @@ class AttributeInstanceService(
         }
 
         selectQuery = if (temporalQuery.timeBucket != null)
-            selectQuery.plus(" GROUP BY time_bucket ORDER BY time_bucket DESC")
+            selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
         else
             selectQuery.plus(" ORDER BY observed_at DESC")
 
@@ -182,12 +194,16 @@ class AttributeInstanceService(
     ): AttributeInstanceResult {
         return if (withTemporalValues || temporalQuery.timeBucket != null)
             SimplifiedAttributeInstanceResult(
+                temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,
                 observedAt =
                     row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
                         ?: row["observed_at"]
                             .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
-        else FullAttributeInstanceResult(row["payload"].let { it as String })
+        else FullAttributeInstanceResult(
+            temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
+            payload = row["payload"].let { it as String }
+        )
     }
 }

@@ -14,7 +14,7 @@ class QueryEntitiesParameterizedTests private constructor() {
             return Stream.of(
                 Arguments.arguments(
                     null,
-                    1,
+                    0,
                     50,
                     listOf(
                         "urn:ngsi-ld:Beekeeper:01231".toUri(),
@@ -24,7 +24,7 @@ class QueryEntitiesParameterizedTests private constructor() {
                 ),
                 Arguments.arguments(
                     null,
-                    1,
+                    0,
                     2,
                     listOf(
                         "urn:ngsi-ld:Beekeeper:01231".toUri(),
@@ -45,13 +45,13 @@ class QueryEntitiesParameterizedTests private constructor() {
                 ),
                 Arguments.arguments(
                     "^urn:ngsi-ld:Beekeeper:0.*2$",
-                    1,
+                    0,
                     1,
                     listOf("urn:ngsi-ld:Beekeeper:01232".toUri())
                 ),
                 Arguments.arguments(
                     "^urn:ngsi-ld:Beekeeper:0.*2$",
-                    2,
+                    1,
                     1,
                     listOf("urn:ngsi-ld:Beekeeper:03432".toUri())
                 ),

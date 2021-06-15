@@ -291,11 +291,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=2")
             .exchange()
             .expectStatus().isOk
             .expectHeader()
-            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
+            )
     }
 
     @Test
@@ -306,11 +309,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=1")
             .exchange()
             .expectStatus().isOk
             .expectHeader()
-            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+            )
     }
 
     @Test
@@ -321,37 +327,37 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=2")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
-                "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\""
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=3>;rel=\"next\";type=\"application/ld+json\""
             )
     }
 
     @Test
-    fun `query subscriptions should return 200 and empty response if requested page does not exists`() {
+    fun `query subscriptions should return 200 and empty response if requested offset does not exists`() {
         every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.empty()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=9")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
     }
 
     @Test
-    fun `query subscriptions should return 400 if requested page is equal or less than zero`() {
+    fun `query subscriptions should return 400 if requested offset is less than zero`() {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=-1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -359,7 +365,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number and Limit must be greater than zero"
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
                 } 
                 """.trimIndent()
             )
@@ -373,7 +379,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=-1&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -381,7 +387,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number and Limit must be greater than zero"
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -390,7 +396,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `query subscriptions should return 400 if limit is greater than the maximum authorized limit`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=200&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=200&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

@@ -45,7 +45,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val userId = ""
-    private val page = 1
+    private val offset = 0
     private val limit = 20
 
     @AfterEach
@@ -64,7 +64,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -83,7 +83,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"ScalpaXYZ\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -102,7 +102,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishNumber==500"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -121,7 +121,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishNumber==499"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -140,7 +140,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight==120.50"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -159,7 +159,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight==-120"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -177,7 +177,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight>180.9"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -195,7 +195,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight>=255"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -213,7 +213,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "name!=\"ScalpaXYZ\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -231,7 +231,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name!=\"ScalpaXYZ\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -258,7 +258,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
             ),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -280,7 +280,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04T12:00:00Z"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -303,7 +303,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -326,7 +326,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-07"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -349,7 +349,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -373,7 +373,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeper\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -398,7 +398,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         var entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==13:00:00;name==\"beekeeper\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -408,7 +408,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeperx\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -433,7 +433,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         var entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -445,7 +445,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
             ),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -457,7 +457,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -469,7 +469,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 q = "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -492,7 +492,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), expandedType = "Beekeeper"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -598,7 +598,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                 expandedType = "Beekeeper"
             ),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -628,7 +628,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -658,7 +658,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:BeeHive:*"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -769,7 +769,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).first
@@ -781,7 +781,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
     fun `it should only return matching entities requested by pagination`(
         idPattern: String?,
-        page: Int,
+        offset: Int,
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
@@ -804,7 +804,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
             userId,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second

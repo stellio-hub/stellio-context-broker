@@ -85,7 +85,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 1
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE)
@@ -100,16 +100,18 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
-        if (!count && (limit <= 0 || page <= 0))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
-
-        if (count && (limit < 0 || page <= 0))
+        if (!count && (limit <= 0 || offset < 0))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
-                        "Page number must be strictly greater than zero and Limit must be greater than zero"
+                        "Offset must be greater than zero and limit must be strictly greater than zero"
                     )
+                )
+
+        if (count && (limit < 0 || offset < 0))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse("Offset and limit must be greater than zero")
                 )
 
         if (limit > applicationProperties.pagination.limitMax)
@@ -138,7 +140,7 @@ class EntityHandler(
         val countAndEntities = entityService.searchEntities(
             QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
             userId,
-            page,
+            offset,
             limit,
             contextLink,
             includeSysAttrs
@@ -172,7 +174,7 @@ class EntityHandler(
             "/ngsi-ld/v1/entities",
             params,
             countAndEntities.first,
-            page,
+            offset,
             limit
         )
         return PagingUtils.buildPaginationResponse(

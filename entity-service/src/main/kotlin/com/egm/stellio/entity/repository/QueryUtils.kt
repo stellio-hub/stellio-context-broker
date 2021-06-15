@@ -18,7 +18,7 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>
     ): String {
@@ -87,7 +87,7 @@ object QueryUtils {
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                SKIP ${(page - 1) * limit} LIMIT $limit
+                SKIP $offset LIMIT $limit
             """.trimIndent()
 
         return """
@@ -106,7 +106,7 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithoutAuthentication(
         queryParams: QueryParams,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>
     ): String {
@@ -133,7 +133,7 @@ object QueryUtils {
             UNWIND entities as entity
             RETURN entity.id as id, count
             ORDER BY id
-            SKIP ${(page - 1) * limit} LIMIT $limit
+            SKIP $offset LIMIT $limit
             """.trimIndent()
 
         return """

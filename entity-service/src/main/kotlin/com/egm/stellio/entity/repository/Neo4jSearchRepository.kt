@@ -19,14 +19,14 @@ class Neo4jSearchRepository(
     override fun getEntities(
         queryParams: QueryParams,
         userSub: String,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(userSub))
-            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, page, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, offset, limit, contexts)
         else
-            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, page, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, offset, limit, contexts)
 
         val result = neo4jClient.query(query).bind(USER_PREFIX + userSub).to("userId").fetch().all()
         return if (limit == 0)

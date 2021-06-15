@@ -559,16 +559,16 @@ class EntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/entities/?type=Beehive" +
-                    "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&page=2"
+                    "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2"
             )
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
                 "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"",
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\"",
                 "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&page=3>;rel=\"next\";type=\"application/ld+json\""
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=3>;rel=\"next\";type=\"application/ld+json\""
             )
             .expectBody().json(
                 """[
@@ -583,14 +583,14 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `get entities should return 200 and empty response if requested page does not exists`() {
+    fun `get entities should return 200 and empty response if requested offset does not exists`() {
         every { entityService.exists(any()) } returns true
         every {
             entityService.searchEntities(any(), any(), any(), any(), any<String>(), any())
         } returns Pair(0, emptyList())
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&page=9")
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -599,7 +599,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if limit is equal or less than zero`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&page=1")
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -607,7 +607,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number and Limit must be strictly greater than zero"
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -616,7 +616,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if limit is greater than the maximum authorized limit`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&page=1")
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=200&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -639,7 +639,7 @@ class EntityHandlerTests {
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&page=1&count=true")
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=0&offset=1&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
@@ -649,7 +649,7 @@ class EntityHandlerTests {
     @Test
     fun `get entities should return 400 if the number of results is requested with a limit less than zero`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&page=1&count=true")
+            .uri("/ngsi-ld/v1/entities/?type=Beehive&limit=-1&offset=1&count=true")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -657,7 +657,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number must be strictly greater than zero and Limit must be greater than zero"
+                    "detail":"Offset and limit must be greater than zero"
                 }
                 """.trimIndent()
             )

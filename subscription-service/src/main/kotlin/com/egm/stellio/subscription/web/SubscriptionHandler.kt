@@ -77,7 +77,7 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
-        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 1
+        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)

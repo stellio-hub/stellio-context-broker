@@ -559,16 +559,16 @@ class EntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/entities/?type=Beehive" +
-                    "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2"
+                    "&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB,urn:ngsi-ld:Beehive:TESTD&limit=1&offset=1"
             )
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
                 "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\"",
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
                 "</ngsi-ld/v1/entities?type=Beehive&id=urn:ngsi-ld:Beehive:TESTC,urn:ngsi-ld:Beehive:TESTB," +
-                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=3>;rel=\"next\";type=\"application/ld+json\""
+                    "urn:ngsi-ld:Beehive:TESTD&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
             .expectBody().json(
                 """[

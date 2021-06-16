@@ -23,7 +23,7 @@ services:
     depends_on:
       - zookeeper
   neo4j:
-    image: neo4j:4.0
+    image: neo4j:4.2
     volumes:
       - stellio-entity-neo4j-storage:/data
     environment:
@@ -31,7 +31,7 @@ services:
       - NEO4J_dbms_default__database=${NEO4J_DEFAULT_DATABASE}
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
       - "NEO4J_dbms_security_procedures_unrestricted=apoc.*"
-      - "NEO4J_dbms_security_procedures_whitelist=apoc.*"
+      - "NEO4J_dbms_security_procedures_allowlist=apoc.*"
       - NEO4JLABS_PLUGINS=["apoc"]
     ports:
       - 7474:7474

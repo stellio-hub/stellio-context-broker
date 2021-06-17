@@ -2,6 +2,7 @@ package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.ogm.session.Session
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -16,16 +17,16 @@ class Neo4jSearchRepository(
 ) : SearchRepository {
 
     override fun getEntities(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         userSub: String,
         page: Int,
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(userSub))
-            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(params, page, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, page, limit, contexts)
         else
-            QueryUtils.prepareQueryForEntitiesWithAuthentication(params, page, limit, contexts)
+            QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, page, limit, contexts)
 
         val result = session.query(query, mapOf("userId" to USER_PREFIX + userSub), true)
         return if (limit == 0)

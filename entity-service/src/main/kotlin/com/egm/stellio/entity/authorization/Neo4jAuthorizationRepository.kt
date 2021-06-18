@@ -1,8 +1,10 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CLIENT_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
@@ -127,10 +129,18 @@ class Neo4jAuthorizationRepository(
     fun createAdminLinks(userId: URI, relationships: List<Relationship>, entitiesId: List<URI>): List<URI> {
         val query =
             """
+            CALL {
+                MATCH (user:Entity:`$USER_LABEL`)
+                WHERE user.id = ${'$'}userId
+                RETURN user
+                UNION
+                MATCH (user:Entity:`$CLIENT_LABEL`)
+                WHERE (user)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
+                RETURN user
+            }
+            WITH user
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
-            MATCH (user:Entity), (target:Entity { id: relPropAndTarget.second })
-            WHERE (user.id = ${'$'}userId 
-                OR (user)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId }))
+            MATCH (target:Entity { id: relPropAndTarget.second })
             CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:rCanAdmin]->(target)
             SET r = relPropAndTarget.first
             RETURN r.id as id

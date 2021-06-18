@@ -1,12 +1,14 @@
 package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.authorization.AuthorizationService.*
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CLIENT_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
 import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -17,6 +19,7 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -47,7 +50,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should filter entities authorized for user with given rights`() {
-        val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, apiaryEntity.id)
@@ -67,7 +70,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should find no entities are authorized by user`() {
-        val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
         val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
 
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, apiaryEntity.id)
@@ -87,7 +90,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should filter entities that are authorized by user's group`() {
-        val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
         val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
 
         createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
@@ -115,7 +118,7 @@ class Neo4jAuthorizationRepositoryTest {
     @Test
     fun `it should find no entities are authorized for client`() {
         val clientEntity = createEntity(
-            clientUri, listOf("Client"),
+            clientUri, listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -143,7 +146,7 @@ class Neo4jAuthorizationRepositoryTest {
     @Test
     fun `it should filter entities authorized for client with given rights`() {
         val clientEntity = createEntity(
-            clientUri, listOf("Client"),
+            clientUri, listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -253,7 +256,7 @@ class Neo4jAuthorizationRepositoryTest {
     fun `it should get all user's roles`() {
         createEntity(
             userUri,
-            listOf("User"),
+            listOf(USER_LABEL),
             mutableListOf(
                 Property(
                     name = EGM_ROLES,
@@ -273,7 +276,7 @@ class Neo4jAuthorizationRepositoryTest {
     fun `it should get all client's roles`() {
         createEntity(
             clientUri,
-            listOf("Client"),
+            listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = EGM_ROLES,
@@ -297,7 +300,7 @@ class Neo4jAuthorizationRepositoryTest {
     fun `it should get a user's single role`() {
         createEntity(
             userUri,
-            listOf("User"),
+            listOf(USER_LABEL),
             mutableListOf(
                 Property(
                     name = EGM_ROLES,
@@ -315,7 +318,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should get all user's roles from group`() {
-        val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
 
         val groupEntity = createEntity(
             groupUri,
@@ -340,7 +343,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should get a user's single role from group`() {
-        val userEntity = createEntity(userUri, listOf("User"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
 
         val groupEntity = createEntity(
             groupUri,
@@ -365,7 +368,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should find no user roles`() {
-        createEntity(userUri, listOf("User"), mutableListOf())
+        createEntity(userUri, listOf(USER_LABEL), mutableListOf())
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
@@ -378,7 +381,7 @@ class Neo4jAuthorizationRepositoryTest {
     fun `it should find no client roles`() {
         createEntity(
             clientUri,
-            listOf("Client"),
+            listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -398,7 +401,7 @@ class Neo4jAuthorizationRepositoryTest {
     fun `it should find no client roles if the service account is not known`() {
         createEntity(
             clientUri,
-            listOf("Client"),
+            listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -420,7 +423,7 @@ class Neo4jAuthorizationRepositoryTest {
 
     @Test
     fun `it should create admin links to entities`() {
-        createEntity(userUri, listOf("User"), mutableListOf())
+        createEntity(userUri, listOf(USER_LABEL), mutableListOf())
         createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
         createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
 
@@ -437,7 +440,7 @@ class Neo4jAuthorizationRepositoryTest {
             targetIds
         )
 
-        assert(createdRelations.size == 2)
+        assertEquals(2, createdRelations.size)
 
         neo4jRepository.deleteEntity(userUri)
         neo4jRepository.deleteEntity(apiaryUri)
@@ -447,7 +450,7 @@ class Neo4jAuthorizationRepositoryTest {
     @Test
     fun `it should create admin links to entities for a client`() {
         createEntity(
-            clientUri, listOf("Client"),
+            clientUri, listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -471,7 +474,7 @@ class Neo4jAuthorizationRepositoryTest {
             targetIds
         )
 
-        assert(createdRelations.size == 2)
+        assertEquals(2, createdRelations.size)
 
         neo4jRepository.deleteEntity(clientUri)
         neo4jRepository.deleteEntity(apiaryUri)

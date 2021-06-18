@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import com.egm.stellio.shared.model.QueryParams
 import java.net.URI
 
 interface SearchRepository {
@@ -7,7 +8,7 @@ interface SearchRepository {
     /**
      * Searches the requested entities and applies permissions checks in authentication enabled mode.
      *
-     * @param params query parameters.
+     * @param queryParams query parameters.
      * @param userSub to be used in authentication enabled mode to apply permissions checks.
      * @param page page number for pagination.
      * @param limit limit number for pagination.
@@ -17,7 +18,7 @@ interface SearchRepository {
      *  @property second list of matching entities ids as requested by pagination sorted by entity id.
      */
     fun getEntities(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         userSub: String,
         page: Int,
         limit: Int,

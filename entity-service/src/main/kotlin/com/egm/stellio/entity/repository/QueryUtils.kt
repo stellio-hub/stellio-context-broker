@@ -7,6 +7,7 @@ import com.egm.stellio.entity.util.isDateTime
 import com.egm.stellio.entity.util.isFloat
 import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.isTime
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
@@ -14,18 +15,15 @@ import java.util.regex.Pattern
 object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         page: Int,
         limit: Int,
         contexts: List<String>
     ): String {
-        val ids = params["id"] as List<String>?
-        val type = params["type"] as String
-        val idPattern = params["idPattern"] as String?
-        val rawQuery = params["q"] as String
-        val formattedIds = ids?.map { "'$it'" }
+        val (id, expandedType, idPattern, q) = queryParams
+        val formattedIds = id?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = buildInnerQuery(rawQuery, pattern, contexts)
+        val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
 
         val matchUserClause =
             """
@@ -42,7 +40,7 @@ object QueryUtils {
             """.trimIndent()
 
         val idClause =
-            if (ids != null) "AND entity.id in $formattedIds"
+            if (id != null) "AND entity.id in $formattedIds"
             else ""
 
         val idPatternClause =
@@ -56,10 +54,10 @@ object QueryUtils {
             }
 
         val matchEntityClause =
-            if (type.isEmpty())
+            if (expandedType == null)
                 "(entity:Entity)"
             else
-                "(entity:Entity:`$type`)"
+                "(entity:Entity:`$expandedType`)"
 
         val matchEntitiesClause =
             """
@@ -123,31 +121,28 @@ object QueryUtils {
     }
 
     fun prepareQueryForEntitiesWithoutAuthentication(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         page: Int,
         limit: Int,
         contexts: List<String>
     ): String {
-        val ids = params["id"] as List<String>?
-        val type = params["type"] as String
-        val idPattern = params["idPattern"] as String?
-        val rawQuery = params["q"] as String
-        val formattedIds = ids?.map { "'$it'" }
+        val (id, expandedType, idPattern, q) = queryParams
+        val formattedIds = id?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = buildInnerQuery(rawQuery, pattern, contexts)
+        val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
 
         val matchClause =
-            if (type.isEmpty())
+            if (expandedType == null)
                 "MATCH (entity:Entity)"
             else
-                "MATCH (entity:`$type`)"
+                "MATCH (entity:`$expandedType`)"
 
         val whereClause =
-            if (innerQuery.isNotEmpty() || ids != null || idPattern != null) " WHERE "
+            if (innerQuery.isNotEmpty() || id != null || idPattern != null) " WHERE "
             else ""
 
         val idClause =
-            if (ids != null)
+            if (id != null)
                 """
                     entity.id in $formattedIds
                     ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}

@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
@@ -297,14 +296,14 @@ class EntityService(
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun searchEntities(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         userSub: String,
         page: Int,
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(params, userSub, page, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(queryParams, userSub, page, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -317,22 +316,15 @@ class EntityService(
      */
     @Transactional
     fun searchEntities(
-        params: Map<String, Any?>,
+        queryParams: QueryParams,
         userSub: String,
         page: Int,
         limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> {
-        val expandedType = expandJsonLdKey(params["type"] as String, contexts)!!
-
         val result = searchRepository.getEntities(
-            mapOf(
-                "id" to params["id"] as List<String>?,
-                "type" to expandedType,
-                "idPattern" to params["idPattern"] as String?,
-                "q" to params["q"] as String
-            ),
+            queryParams,
             userSub,
             page,
             limit,

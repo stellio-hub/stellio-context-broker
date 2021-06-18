@@ -4,6 +4,7 @@ import com.egm.stellio.entity.config.TestContainersConfiguration
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
@@ -52,7 +53,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"Scalpa\""),
+            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             userId,
             page,
             limit,
@@ -72,7 +73,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name==\"ScalpaXYZ\""),
+            QueryParams(expandedType = "Beekeeper", q = "name==\"ScalpaXYZ\""),
             userId,
             page,
             limit,
@@ -92,7 +93,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishNumber==500"),
+            QueryParams(expandedType = "DeadFishes", q = "fishNumber==500"),
             userId,
             page,
             limit,
@@ -112,7 +113,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishNumber==499"),
+            QueryParams(expandedType = "DeadFishes", q = "fishNumber==499"),
             userId,
             page,
             limit,
@@ -132,7 +133,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishWeight==120.50"),
+            QueryParams(expandedType = "DeadFishes", q = "fishWeight==120.50"),
             userId,
             page,
             limit,
@@ -152,7 +153,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishWeight==-120"),
+            QueryParams(expandedType = "DeadFishes", q = "fishWeight==-120"),
             userId,
             page,
             limit,
@@ -171,7 +172,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = 180.9))
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishWeight>180.9"),
+            QueryParams(expandedType = "DeadFishes", q = "fishWeight>180.9"),
             userId,
             page,
             limit,
@@ -190,7 +191,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("fishWeight", DEFAULT_CONTEXTS)!!, value = 255))
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "fishWeight>=255"),
+            QueryParams(expandedType = "DeadFishes", q = "fishWeight>=255"),
             userId,
             page,
             limit,
@@ -209,7 +210,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "ScalpaXYZ"))
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "DeadFishes", "idPattern" to null, "q" to "name!=\"ScalpaXYZ\""),
+            QueryParams(expandedType = "DeadFishes", q = "name!=\"ScalpaXYZ\""),
             userId,
             page,
             limit,
@@ -228,7 +229,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "name!=\"ScalpaXYZ\""),
+            QueryParams(expandedType = "Beekeeper", q = "name!=\"ScalpaXYZ\""),
             userId,
             page,
             limit,
@@ -253,11 +254,9 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
+            QueryParams(
+                expandedType = "Beekeeper",
+                q = "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
             ),
             userId,
             page,
@@ -281,7 +280,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "testedAt==2018-12-04T12:00:00Z"),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04T12:00:00Z"),
             userId,
             page,
             limit,
@@ -305,7 +304,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "testedAt==2018-12-04"),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04"),
             userId,
             page,
             limit,
@@ -329,7 +328,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "testedAt==2018-12-07"),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-07"),
             userId,
             page,
             limit,
@@ -353,7 +352,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf("id" to null, "type" to "Beekeeper", "idPattern" to null, "q" to "testedAt==12:00:00"),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00"),
             userId,
             page,
             limit,
@@ -378,12 +377,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             )
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "testedAt==12:00:00;name==\"beekeeper\""
-            ),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeper\""),
             userId,
             page,
             limit,
@@ -409,12 +403,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         var entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "testedAt==13:00:00;name==\"beekeeper\""
-            ),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==13:00:00;name==\"beekeeper\""),
             userId,
             page,
             limit,
@@ -424,12 +413,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         assertFalse(entities.contains(entity.id))
 
         entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "testedAt==12:00:00;name==\"beekeeperx\""
-            ),
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeperx\""),
             userId,
             page,
             limit,
@@ -456,11 +440,18 @@ class StandaloneNeo4jSearchRepositoryTests {
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
 
         var entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""
+            QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+        assertTrue(entities.contains(entity.id))
+
+        entities = searchRepository.getEntities(
+            QueryParams(
+                expandedType = "Beekeeper",
+                q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
             ),
             userId,
             page,
@@ -470,11 +461,9 @@ class StandaloneNeo4jSearchRepositoryTests {
         assertTrue(entities.contains(entity.id))
 
         entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
+            QueryParams(
+                expandedType = "Beekeeper",
+                q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
             userId,
             page,
@@ -484,25 +473,9 @@ class StandaloneNeo4jSearchRepositoryTests {
         assertTrue(entities.contains(entity.id))
 
         entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
-            ),
-            userId,
-            page,
-            limit,
-            DEFAULT_CONTEXTS
-        ).second
-        assertTrue(entities.contains(entity.id))
-
-        entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
+            QueryParams(
+                expandedType = "Beekeeper",
+                q = "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
             userId,
             page,
@@ -527,12 +500,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to listOf("urn:ngsi-ld:Beekeeper:1231"),
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to ""
-            ),
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), expandedType = "Beekeeper"),
             userId,
             page,
             limit,
@@ -563,11 +531,9 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
-                "type" to "Beekeeper",
-                "idPattern" to null,
-                "q" to ""
+            QueryParams(
+                id = listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
+                expandedType = "Beekeeper"
             ),
             userId,
             page,
@@ -601,12 +567,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
-                "q" to ""
-            ),
+            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             userId,
             page,
             limit,
@@ -639,12 +600,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to "^urn:ngsi-ld:BeeHive:.*",
-                "q" to ""
-            ),
+            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:BeeHive:*"),
             userId,
             page,
             limit,
@@ -675,12 +631,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
         )
         val entitiesCount = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to "^urn:ngsi-ld:Beekeeper:0.*2$",
-                "q" to ""
-            ),
+            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             userId,
             page,
             limit,
@@ -718,12 +669,7 @@ class StandaloneNeo4jSearchRepositoryTests {
         )
 
         val entities = searchRepository.getEntities(
-            mapOf(
-                "id" to null,
-                "type" to "Beekeeper",
-                "idPattern" to idPattern,
-                "q" to ""
-            ),
+            QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
             userId,
             page,
             limit,

@@ -1092,7 +1092,7 @@ class EntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2)"
+                    "detail":"one of 'q', 'type' and 'attrs' request parameters have to be specified"
                 }
                 """.trimIndent()
             )

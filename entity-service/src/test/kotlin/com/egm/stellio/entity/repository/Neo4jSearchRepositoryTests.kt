@@ -284,7 +284,7 @@ class Neo4jSearchRepositoryTests {
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
 
         val entitiesCount = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$", q = "name==\"Scalpa\""),
+            QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             sub,
             page,
             limit,

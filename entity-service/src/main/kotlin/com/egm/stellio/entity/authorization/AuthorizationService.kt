@@ -40,4 +40,5 @@ interface AuthorizationService {
     fun userIsAdminOfEntity(entityId: URI, userSub: String): Boolean
     fun createAdminLink(entityId: URI, userSub: String)
     fun createAdminLinks(entitiesId: List<URI>, userSub: String)
+    fun removeUserRightsOnEntity(entityId: URI, subjectId: URI): Int
 }

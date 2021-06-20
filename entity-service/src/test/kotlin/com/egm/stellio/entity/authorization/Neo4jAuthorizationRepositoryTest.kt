@@ -469,6 +469,20 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(2, createdRelations.size)
     }
 
+    @Test
+    fun `it should remove an user's rights on an entity`() {
+        val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
+        val targetEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, targetEntity.id)
+
+        val result = neo4jAuthorizationRepository.removeUserRightsOnEntity(userEntity.id, targetEntity.id)
+
+        assertEquals(1, result)
+
+        neo4jRepository.deleteEntity(userUri)
+        neo4jRepository.deleteEntity(apiaryUri)
+    }
+
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property>): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)

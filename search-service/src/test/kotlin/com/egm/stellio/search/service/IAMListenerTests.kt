@@ -120,4 +120,34 @@ class IAMListenerTests {
         }
         confirmVerified()
     }
+
+    @Test
+    fun `it should handle an append event adding a right on an entity`() {
+        val rightAppendEvent = loadSampleData("authorization/RightAddOnEntity.json")
+
+        iamListener.processIamRights(rightAppendEvent)
+
+        verify {
+            subjectAccessRightsService.addReadRoleOnEntity(
+                eq("urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUri()),
+                eq("urn:ngsi-ld:Beekeeper:01".toUri())
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should handle an delete event removing a right on an entity`() {
+        val rightRemoveEvent = loadSampleData("authorization/RightRemoveOnEntity.json")
+
+        iamListener.processIamRights(rightRemoveEvent)
+
+        verify {
+            subjectAccessRightsService.removeRoleOnEntity(
+                eq("urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUri()),
+                eq("urn:ngsi-ld:Beekeeper:01".toUri())
+            )
+        }
+        confirmVerified()
+    }
 }

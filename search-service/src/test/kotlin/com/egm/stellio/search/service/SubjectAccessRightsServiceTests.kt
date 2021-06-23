@@ -105,6 +105,32 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should remove an entity from the allowed list of read entities`() {
+        val userAccessRights = SubjectAccessRights(
+            subjectId = userUri,
+            subjectType = SubjectAccessRights.SubjectType.USER,
+            globalRole = "stellio-admin",
+            allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
+        )
+
+        subjectAccessRightsService.create(userAccessRights).block()
+
+        StepVerifier.create(
+            subjectAccessRightsService.removeRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1234".toUri())
+        )
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier.create(
+            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1234".toUri())
+        )
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should update the global role of a subject`() {
         val userAccessRights = SubjectAccessRights(
             subjectId = userUri,

@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -30,6 +31,15 @@ class IAMListener(
             is AttributeAppendEvent -> addRoleToSubject(authorizationEvent)
             is AttributeReplaceEvent -> TODO()
             is AttributeDeleteEvent -> TODO()
+            else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
+        }
+    }
+
+    @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
+    fun processIamRights(content: String) {
+        when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
+            is AttributeAppendEvent -> addEntityToSubject(authorizationEvent)
+            is AttributeDeleteEvent -> removeEntityFromSubject(authorizationEvent)
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
     }
@@ -69,5 +79,26 @@ class IAMListener(
             else
                 subjectAccessRightsService.removeAdminGlobalRole(attributeAppendEvent.entityId)
         }
+    }
+
+    private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
+        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val entityId = operationPayloadNode["object"].asText()
+        when (attributeAppendEvent.attributeName) {
+            "rCanRead" -> {
+                subjectAccessRightsService.addReadRoleOnEntity(attributeAppendEvent.entityId, entityId.toUri())
+            }
+            "rCanWrite" -> {
+                subjectAccessRightsService.addWriteRoleOnEntity(attributeAppendEvent.entityId, entityId.toUri())
+            }
+            else -> logger.warn("Unrecognized attribute name ${attributeAppendEvent.attributeName}")
+        }
+    }
+
+    private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
+        subjectAccessRightsService.removeRoleOnEntity(
+            attributeDeleteEvent.entityId,
+            attributeDeleteEvent.attributeName.toUri()
+        )
     }
 }

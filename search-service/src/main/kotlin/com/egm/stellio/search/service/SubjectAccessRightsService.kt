@@ -62,6 +62,39 @@ class SubjectAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
+    @Transactional
+    fun addWriteRoleOnEntity(subjectId: URI, entityId: URI): Mono<Int> =
+        databaseClient.execute(
+            """
+                UPDATE subject_access_rights
+                SET allowed_write_entities = array_append(allowed_write_entities, :entity_id::text)
+                WHERE subject_id = :subject_id
+            """
+        )
+            .bind("subject_id", subjectId)
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+            .thenReturn(1)
+            .onErrorReturn(-1)
+
+    @Transactional
+    fun removeRoleOnEntity(subjectId: URI, entityId: URI): Mono<Int> =
+        databaseClient.execute(
+            """
+                UPDATE subject_access_rights
+                SET allowed_read_entities = array_remove(allowed_read_entities, :entity_id::text),
+                    allowed_write_entities = array_remove(allowed_write_entities, :entity_id::text)
+                WHERE subject_id = :subject_id
+            """
+        )
+            .bind("subject_id", subjectId)
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+            .thenReturn(1)
+            .onErrorReturn(-1)
+
     fun addAdminGlobalRole(subjectId: URI): Mono<Int> =
         databaseClient.execute(
             """

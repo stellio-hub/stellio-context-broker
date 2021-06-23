@@ -1,13 +1,14 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.SubjectAccessRights
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.SubjectType
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.data.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.util.UUID
 
 @Service
 class SubjectAccessRightsService(
@@ -33,7 +34,7 @@ class SubjectAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
-    fun retrieve(subjectId: URI): Mono<SubjectAccessRights> =
+    fun retrieve(subjectId: UUID): Mono<SubjectAccessRights> =
         databaseClient.execute(
             """
             SELECT *
@@ -47,7 +48,7 @@ class SubjectAccessRightsService(
             .map { rowToUserAccessRights(it) }
 
     @Transactional
-    fun addReadRoleOnEntity(subjectId: URI, entityId: URI): Mono<Int> =
+    fun addReadRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Int> =
         databaseClient.execute(
             """
                 UPDATE subject_access_rights
@@ -63,7 +64,7 @@ class SubjectAccessRightsService(
             .onErrorReturn(-1)
 
     @Transactional
-    fun addWriteRoleOnEntity(subjectId: URI, entityId: URI): Mono<Int> =
+    fun addWriteRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Int> =
         databaseClient.execute(
             """
                 UPDATE subject_access_rights
@@ -79,7 +80,7 @@ class SubjectAccessRightsService(
             .onErrorReturn(-1)
 
     @Transactional
-    fun removeRoleOnEntity(subjectId: URI, entityId: URI): Mono<Int> =
+    fun removeRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Int> =
         databaseClient.execute(
             """
                 UPDATE subject_access_rights
@@ -95,7 +96,8 @@ class SubjectAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
-    fun addAdminGlobalRole(subjectId: URI): Mono<Int> =
+    @Transactional
+    fun addAdminGlobalRole(subjectId: UUID): Mono<Int> =
         databaseClient.execute(
             """
                 UPDATE subject_access_rights
@@ -109,7 +111,8 @@ class SubjectAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
-    fun removeAdminGlobalRole(subjectId: URI): Mono<Int> =
+    @Transactional
+    fun removeAdminGlobalRole(subjectId: UUID): Mono<Int> =
         databaseClient.execute(
             """
                 UPDATE subject_access_rights
@@ -123,7 +126,7 @@ class SubjectAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
-    fun hasReadRoleOnEntity(subjectId: URI, entityId: URI): Mono<Boolean> =
+    fun hasReadRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
         databaseClient.execute(
             """
                 SELECT COUNT(subject_id) as count
@@ -142,7 +145,7 @@ class SubjectAccessRightsService(
             .onErrorReturn(false)
 
     @Transactional
-    fun delete(subjectId: URI): Mono<Int> =
+    fun delete(subjectId: UUID): Mono<Int> =
         databaseClient.execute("DELETE FROM subject_access_rights WHERE subject_id = :subject_id")
             .bind("subject_id", subjectId)
             .fetch()
@@ -151,8 +154,8 @@ class SubjectAccessRightsService(
 
     private fun rowToUserAccessRights(row: Map<String, Any>) =
         SubjectAccessRights(
-            subjectId = (row["subject_id"] as String).toUri(),
-            subjectType = SubjectAccessRights.SubjectType.valueOf(row["subject_type"] as String),
+            subjectId = row["subject_id"] as UUID,
+            subjectType = SubjectType.valueOf(row["subject_type"] as String),
             globalRole = row["global_role"] as String?,
             allowedReadEntities = (row["allowed_read_entities"] as Array<String>?),
             allowedWriteEntities = (row["allowed_write_entities"] as Array<String>?)

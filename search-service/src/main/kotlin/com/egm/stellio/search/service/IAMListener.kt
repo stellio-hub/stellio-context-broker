@@ -1,7 +1,6 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.SubjectAccessRights
-import com.egm.stellio.search.model.getSubjectTypeFromSubjectId
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
@@ -10,6 +9,8 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.extractSubjectUuid
+import com.egm.stellio.shared.web.getSubjectTypeFromSubjectId
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -46,7 +47,7 @@ class IAMListener(
 
     private fun createSubjectAccessRights(entityCreateEvent: EntityCreateEvent) {
         val userAccessRights = SubjectAccessRights(
-            subjectId = entityCreateEvent.entityId,
+            subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
             subjectType = getSubjectTypeFromSubjectId(entityCreateEvent.entityId)
         )
 
@@ -57,7 +58,7 @@ class IAMListener(
     }
 
     private fun deleteSubjectAccessRights(entityDeleteEvent: EntityDeleteEvent) {
-        subjectAccessRightsService.delete(entityDeleteEvent.entityId)
+        subjectAccessRightsService.delete(entityDeleteEvent.entityId.extractSubjectUuid())
             .subscribe {
                 logger.debug("Deleted subject ${entityDeleteEvent.entityId}")
             }
@@ -75,9 +76,9 @@ class IAMListener(
                 }
             }
             if (hasStellioAdminRole)
-                subjectAccessRightsService.addAdminGlobalRole(attributeAppendEvent.entityId)
+                subjectAccessRightsService.addAdminGlobalRole(attributeAppendEvent.entityId.extractSubjectUuid())
             else
-                subjectAccessRightsService.removeAdminGlobalRole(attributeAppendEvent.entityId)
+                subjectAccessRightsService.removeAdminGlobalRole(attributeAppendEvent.entityId.extractSubjectUuid())
         }
     }
 
@@ -86,10 +87,16 @@ class IAMListener(
         val entityId = operationPayloadNode["object"].asText()
         when (attributeAppendEvent.attributeName) {
             "rCanRead" -> {
-                subjectAccessRightsService.addReadRoleOnEntity(attributeAppendEvent.entityId, entityId.toUri())
+                subjectAccessRightsService.addReadRoleOnEntity(
+                    attributeAppendEvent.entityId.extractSubjectUuid(),
+                    entityId.toUri()
+                )
             }
             "rCanWrite" -> {
-                subjectAccessRightsService.addWriteRoleOnEntity(attributeAppendEvent.entityId, entityId.toUri())
+                subjectAccessRightsService.addWriteRoleOnEntity(
+                    attributeAppendEvent.entityId.extractSubjectUuid(),
+                    entityId.toUri()
+                )
             }
             else -> logger.warn("Unrecognized attribute name ${attributeAppendEvent.attributeName}")
         }
@@ -97,7 +104,7 @@ class IAMListener(
 
     private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
         subjectAccessRightsService.removeRoleOnEntity(
-            attributeDeleteEvent.entityId,
+            attributeDeleteEvent.entityId.extractSubjectUuid(),
             attributeDeleteEvent.attributeName.toUri()
         )
     }

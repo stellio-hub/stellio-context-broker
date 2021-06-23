@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.SubjectAccessRights
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.SubjectType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -10,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -21,7 +23,7 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
-    private val userUri = "urn:ngsi-ld:User:0123".toUri()
+    private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
 
     @AfterEach
     fun clearUsersAccessRightsTable() {
@@ -35,8 +37,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should persist an user access right`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666", "urn:ngsi-ld:Entity:0000")
@@ -55,8 +57,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         val allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
         val allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666", "urn:ngsi-ld:Entity:0000")
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = allowedReadEntities,
             allowedWriteEntities = allowedWriteEntities
@@ -65,11 +67,11 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.retrieve(userUri)
+            subjectAccessRightsService.retrieve(subjectUuid)
         )
             .expectNextMatches {
-                it.subjectId == userUri &&
-                    it.subjectType == SubjectAccessRights.SubjectType.USER &&
+                it.subjectId == subjectUuid &&
+                    it.subjectType == SubjectType.USER &&
                     it.globalRole == "stellio-admin" &&
                     it.allowedReadEntities?.contentEquals(allowedReadEntities) == true &&
                     it.allowedWriteEntities?.contentEquals(allowedWriteEntities) == true
@@ -81,8 +83,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should add a new entity in the allowed list of read entities`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
         )
@@ -90,14 +92,14 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.addReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1111".toUri())
+            subjectAccessRightsService.addReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1111".toUri())
         )
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1111".toUri())
+            subjectAccessRightsService.hasReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1111".toUri())
         )
             .expectNextMatches { it == true }
             .expectComplete()
@@ -107,8 +109,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should remove an entity from the allowed list of read entities`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
         )
@@ -116,14 +118,14 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.removeRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1234".toUri())
+            subjectAccessRightsService.removeRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1234".toUri())
         )
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1234".toUri())
+            subjectAccessRightsService.hasReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1234".toUri())
         )
             .expectNextMatches { it == false }
             .expectComplete()
@@ -133,8 +135,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should update the global role of a subject`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666")
         )
@@ -142,14 +144,14 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.addAdminGlobalRole(userUri)
+            subjectAccessRightsService.addAdminGlobalRole(subjectUuid)
         )
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.retrieve(userUri)
+            subjectAccessRightsService.retrieve(subjectUuid)
         )
             .expectNextMatches {
                 it.globalRole == "stellio-admin"
@@ -158,14 +160,14 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.removeAdminGlobalRole(userUri)
+            subjectAccessRightsService.removeAdminGlobalRole(subjectUuid)
         )
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.retrieve(userUri)
+            subjectAccessRightsService.retrieve(subjectUuid)
         )
             .expectNextMatches {
                 it.globalRole == null
@@ -177,8 +179,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should find if an user has a read role on a entity`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666")
@@ -187,21 +189,21 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1234".toUri())
+            subjectAccessRightsService.hasReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1234".toUri())
         )
             .expectNextMatches { it == true }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:1111".toUri())
+            subjectAccessRightsService.hasReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:1111".toUri())
         )
             .expectNextMatches { it == false }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.hasReadRoleOnEntity(userUri, "urn:ngsi-ld:Entity:6666".toUri())
+            subjectAccessRightsService.hasReadRoleOnEntity(subjectUuid, "urn:ngsi-ld:Entity:6666".toUri())
         )
             .expectNextMatches { it == true }
             .expectComplete()
@@ -211,8 +213,8 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should delete an user access right`() {
         val userAccessRights = SubjectAccessRights(
-            subjectId = userUri,
-            subjectType = SubjectAccessRights.SubjectType.USER,
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
             globalRole = "stellio-admin",
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666", "urn:ngsi-ld:Entity:0000")
@@ -221,14 +223,14 @@ class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
         subjectAccessRightsService.create(userAccessRights).block()
 
         StepVerifier.create(
-            subjectAccessRightsService.delete(userUri)
+            subjectAccessRightsService.delete(subjectUuid)
         )
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
         StepVerifier.create(
-            subjectAccessRightsService.retrieve(userUri)
+            subjectAccessRightsService.retrieve(subjectUuid)
         )
             .expectComplete()
             .verify()

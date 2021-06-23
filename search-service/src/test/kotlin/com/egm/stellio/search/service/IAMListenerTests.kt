@@ -1,8 +1,9 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.SubjectAccessRights
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.SubjectType
+import com.egm.stellio.shared.web.toUUID
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.verify
@@ -30,8 +31,8 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.create(
                 match {
-                    it.subjectId == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri() &&
-                        it.subjectType == SubjectAccessRights.SubjectType.USER &&
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUUID() &&
+                        it.subjectType == SubjectType.USER &&
                         it.globalRole == null &&
                         it.allowedReadEntities.isNullOrEmpty() &&
                         it.allowedWriteEntities.isNullOrEmpty()
@@ -50,7 +51,7 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.delete(
                 match {
-                    it == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri()
+                    it == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUUID()
                 }
             )
         }
@@ -66,7 +67,7 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.addAdminGlobalRole(
                 match {
-                    it == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb".toUri()
+                    it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
                 }
             )
         }
@@ -82,7 +83,7 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.addAdminGlobalRole(
                 match {
-                    it == "urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb".toUri()
+                    it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
                 }
             )
         }
@@ -98,7 +99,7 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.addAdminGlobalRole(
                 match {
-                    it == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb".toUri()
+                    it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
                 }
             )
         }
@@ -114,7 +115,7 @@ class IAMListenerTests {
         verify {
             subjectAccessRightsService.removeAdminGlobalRole(
                 match {
-                    it == "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb".toUri()
+                    it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
                 }
             )
         }
@@ -129,7 +130,7 @@ class IAMListenerTests {
 
         verify {
             subjectAccessRightsService.addReadRoleOnEntity(
-                eq("urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUri()),
+                eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUUID()),
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }
@@ -144,7 +145,7 @@ class IAMListenerTests {
 
         verify {
             subjectAccessRightsService.removeRoleOnEntity(
-                eq("urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUri()),
+                eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUUID()),
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }

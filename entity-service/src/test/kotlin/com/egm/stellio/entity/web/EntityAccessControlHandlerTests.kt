@@ -6,9 +6,15 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeDeleteEvent
+import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -18,9 +24,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.util.concurrent.SettableListenableFuture
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
@@ -36,6 +45,9 @@ class EntityAccessControlHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
+
+    @MockkBean
+    private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
@@ -64,6 +76,7 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -87,6 +100,24 @@ class EntityAccessControlHandlerTests {
                 },
                 match { it.objectId == entityUri1 },
                 eq(false)
+            )
+        }
+
+        verify {
+            kafkaTemplate.send(
+                eq("cim.iam.rights"),
+                eq(subjectId.toString()),
+                match {
+                    val event = JsonUtils.deserializeAs<AttributeAppendEvent>(it)
+                    val expectedOperationPayload =
+                        "{\"rCanRead\":{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Entity:entityId1\"}}"
+                    event.entityId == subjectId &&
+                        event.attributeName == "rCanRead" &&
+                        event.operationType == EventsType.ATTRIBUTE_APPEND &&
+                        event.contexts.size == 2 &&
+                        event.datasetId == null &&
+                        event.operationPayload.matchContent(expectedOperationPayload)
+                }
             )
         }
     }
@@ -200,9 +231,11 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
             .exchange()
             .expectStatus().isNoContent
 
@@ -215,6 +248,20 @@ class EntityAccessControlHandlerTests {
 
         verify {
             authorizationService.removeUserRightsOnEntity(eq(entityUri1), eq(subjectId))
+        }
+
+        verify {
+            kafkaTemplate.send(
+                eq("cim.iam.rights"),
+                eq(subjectId.toString()),
+                match {
+                    val event = JsonUtils.deserializeAs<AttributeDeleteEvent>(it)
+                    event.entityId == subjectId &&
+                        event.attributeName == entityUri1.toString() &&
+                        event.operationType == EventsType.ATTRIBUTE_DELETE &&
+                        event.contexts.size == 1
+                }
+            )
         }
     }
 

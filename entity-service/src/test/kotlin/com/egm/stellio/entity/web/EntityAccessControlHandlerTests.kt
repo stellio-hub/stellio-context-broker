@@ -46,7 +46,7 @@ class EntityAccessControlHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var authorizationService: AuthorizationService
 
-    @MockkBean
+    @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
@@ -110,7 +110,7 @@ class EntityAccessControlHandlerTests {
                 match {
                     val event = JsonUtils.deserializeAs<AttributeAppendEvent>(it)
                     val expectedOperationPayload =
-                        "{\"rCanRead\":{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Entity:entityId1\"}}"
+                        "{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Entity:entityId1\"}"
                     event.entityId == subjectId &&
                         event.attributeName == "rCanRead" &&
                         event.operationType == EventsType.ATTRIBUTE_APPEND &&

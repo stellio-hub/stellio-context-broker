@@ -71,11 +71,9 @@ class EntityAccessControlHandler(
             )
 
             val operationPayload = mapOf(
-                ngsiLdRelationship.compactName to mapOf(
-                    "type" to "Relationship",
-                    "object" to it.second.objectId,
-                    "datasetId" to it.second.datasetId
-                )
+                "type" to "Relationship",
+                "object" to it.second.objectId,
+                "datasetId" to it.second.datasetId
             )
             val attributeAppendEvent = AttributeAppendEvent(
                 entityId = subjectId.toUri(),

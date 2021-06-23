@@ -231,6 +231,7 @@ class EntityAccessControlHandlerTests {
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { authorizationService.removeUserRightsOnEntity(any(), any()) } returns 1
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         webClient.delete()
@@ -280,5 +281,25 @@ class EntityAccessControlHandlerTests {
                 eq("mock-user")
             )
         }
+    }
+
+    @Test
+    fun `it should return a 404 if the subject has no right on the target entity`() {
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { authorizationService.removeUserRightsOnEntity(any(), any()) } returns 0
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().json(
+                """
+                    {
+                        "detail": "Subject urn:ngsi-ld:User:0123 has no right on entity urn:ngsi-ld:Entity:entityId1",
+                        "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                        "title": "The referred resource has not been found"
+                    }
+                """.trimIndent()
+            )
     }
 }

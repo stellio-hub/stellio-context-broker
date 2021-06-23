@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
@@ -116,17 +117,22 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body("User is not authorized to manage rights on entity $entityId")
 
-        authorizationService.removeUserRightsOnEntity(entityId.toUri(), subjectId.toUri())
+        val removeResult = authorizationService.removeUserRightsOnEntity(entityId.toUri(), subjectId.toUri())
 
-        val attributeAppendEvent = AttributeDeleteEvent(
-            entityId = subjectId.toUri(),
-            attributeName = entityId,
-            datasetId = null,
-            updatedEntity = "",
-            contexts = contexts
-        )
-        kafkaTemplate.send("cim.iam.rights", subjectId, JsonUtils.serializeObject(attributeAppendEvent))
+        if (removeResult == 1) {
+            val attributeAppendEvent = AttributeDeleteEvent(
+                entityId = subjectId.toUri(),
+                attributeName = entityId,
+                datasetId = null,
+                updatedEntity = "",
+                contexts = contexts
+            )
+            kafkaTemplate.send("cim.iam.rights", subjectId, JsonUtils.serializeObject(attributeAppendEvent))
+        }
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        return if (removeResult == 1)
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            throw ResourceNotFoundException("Subject $subjectId has no right on entity $entityId")
     }
 }

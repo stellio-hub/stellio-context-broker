@@ -8,7 +8,9 @@ import arrow.core.right
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.SubjectAccessRightsService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.getDatasetId
@@ -18,6 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -35,13 +38,15 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.Optional
+import java.util.UUID
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val queryService: QueryService
+    private val queryService: QueryService,
+    private val subjectAccessRightsService: SubjectAccessRightsService
 ) {
 
     /**
@@ -131,6 +136,13 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+
+        val canReadEntity =
+            subjectAccessRightsService.hasReadRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+        if (!canReadEntity)
+            throw AccessDeniedException("User forbidden read access to entity $entityId")
+
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)

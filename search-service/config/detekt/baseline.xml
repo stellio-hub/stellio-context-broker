@@ -3,7 +3,6 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>LargeClass:EntityEventListenerServiceTest.kt$EntityEventListenerServiceTest</ID>
-    <ID>LargeClass:TemporalEntityHandlerTests.kt$TemporalEntityHandlerTests</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, jsonNode: JsonNode )</ID>

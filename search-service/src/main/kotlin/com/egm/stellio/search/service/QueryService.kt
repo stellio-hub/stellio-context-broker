@@ -50,7 +50,11 @@ class QueryService(
             temporalQuery.expandedAttrs
         ).collectList()
             .awaitFirst()
-            .ifEmpty { throw ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
+            .ifEmpty {
+                throw ResourceNotFoundException(
+                    entityOrAttrsNotFoundMessage(entityId.toString(), temporalQuery.expandedAttrs)
+                )
+            }
 
         // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
         // then do one search for each type of attribute

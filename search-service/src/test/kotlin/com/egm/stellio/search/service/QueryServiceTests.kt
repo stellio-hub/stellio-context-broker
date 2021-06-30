@@ -6,6 +6,7 @@ import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -14,10 +15,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Rule
 import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.LinkedMultiValueMap
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.time.ZonedDateTime
@@ -106,6 +109,33 @@ class QueryServiceTests {
                 "withTemporalValues" to true
             )
         )
+    }
+
+    @Test
+    fun `it should throw a 404 if the entity does not exist`() {
+        every { temporalEntityAttributeService.getForEntity(any(), any()) } answers {
+            Flux.empty()
+        }
+
+        val exception = assertThrows<ResourceNotFoundException> {
+            coroutinesTestRule.testDispatcher.runBlockingTest {
+                queryService.queryTemporalEntity(
+                    entityUri,
+                    TemporalQuery(
+                        timerel = TemporalQuery.Timerel.AFTER,
+                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                        expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+                    ),
+                    false,
+                    APIC_COMPOUND_CONTEXT
+                )
+            }
+        }
+
+        val expectedMessage =
+            "Entity $entityUri does not exist or it has none of the requested attributes : " +
+                "[$incomingAttrExpandedName, $outgoingAttrExpandedName]"
+        assertEquals(expectedMessage, exception.message)
     }
 
     @Test

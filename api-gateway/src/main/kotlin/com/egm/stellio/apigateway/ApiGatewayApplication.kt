@@ -53,6 +53,13 @@ class ApiGatewayApplication(
                     .uri("http://$searchServiceUrl:8083")
             }
             .route { p ->
+                p.path("/ngsi-ld/v1/temporal/entityOperations/**")
+                    .filters {
+                        it.filter(filterFactory.apply())
+                    }
+                    .uri("http://$searchServiceUrl:8083")
+            }
+            .route { p ->
                 p.path("/ngsi-ld/v1/subscriptions/**")
                     .filters {
                         it.filter(filterFactory.apply())

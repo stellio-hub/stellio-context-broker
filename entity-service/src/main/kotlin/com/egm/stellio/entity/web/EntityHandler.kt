@@ -89,9 +89,10 @@ class EntityHandler(
         val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
-        val type = params.getFirst(QUERY_PARAM_TYPE) ?: ""
+        val type = params.getFirst(QUERY_PARAM_TYPE)
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
-        val q = params.getFirst(QUERY_PARAM_FILTER) ?: ""
+        val attrs = params.getFirst(QUERY_PARAM_ATTRS)
+        val q = params.getFirst(QUERY_PARAM_FILTER)
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -121,12 +122,11 @@ class EntityHandler(
                     )
                 )
 
-        // TODO 6.4.3.2 says that either type or attrs must be provided (and not type or q)
-        if (q.isEmpty() && type.isEmpty())
+        if (q == null && type == null && attrs == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
-                        "'q' or 'type' request parameters have to be specified (TEMP - cf 6.4.3.2)"
+                        "one of 'q', 'type' and 'attrs' request parameters have to be specified"
                     )
                 )
 
@@ -135,7 +135,7 @@ class EntityHandler(
          * with the right parameters values
          */
         val countAndEntities = entityService.searchEntities(
-            mapOf("id" to ids, "type" to type, "idPattern" to idPattern, "q" to q.decode()) as Map<String, Any>,
+            QueryParams(ids, expandJsonLdKey(type as String, contextLink), idPattern, q?.decode()),
             userId,
             page,
             limit,
@@ -152,7 +152,7 @@ class EntityHandler(
                 mediaType, contextLink
             )
 
-        val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
+        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {

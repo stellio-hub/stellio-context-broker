@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.params.provider.Arguments
 import java.time.ZonedDateTime
+import java.util.UUID
 import java.util.stream.Stream
 
 @Suppress("unused")
@@ -25,6 +26,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = 20,
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -41,6 +43,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = 25,
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -61,6 +64,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             FullAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     20,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -81,6 +85,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             FullAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 payload = buildAttributeInstancePayload(
                                     25,
                                     ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
@@ -105,6 +110,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = 20,
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -117,6 +123,7 @@ class QueryParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:1234",
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -133,6 +140,7 @@ class QueryParameterizedTests {
                             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = 25,
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
@@ -145,6 +153,7 @@ class QueryParameterizedTests {
                             attributeType = TemporalEntityAttribute.AttributeType.Relationship
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
+                                temporalEntityAttribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:5678",
                                 observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )

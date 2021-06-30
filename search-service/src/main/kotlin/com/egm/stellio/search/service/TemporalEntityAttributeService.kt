@@ -4,6 +4,7 @@ import arrow.core.Validated
 import arrow.core.invalid
 import arrow.core.orNull
 import arrow.core.valid
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -34,7 +35,8 @@ import java.util.UUID
 @Service
 class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
-    private val attributeInstanceService: AttributeInstanceService
+    private val attributeInstanceService: AttributeInstanceService,
+    private val applicationProperties: ApplicationProperties
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -59,23 +61,29 @@ class TemporalEntityAttributeService(
             .rowsUpdated()
 
     internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
-        databaseClient.execute(
-            """
-            INSERT INTO entity_payload (entity_id, payload)
-            VALUES (:entity_id, :payload)
-            """
-        )
-            .bind("entity_id", entityId)
-            .bind("payload", entityPayload?.let { Json.of(entityPayload) })
-            .fetch()
-            .rowsUpdated()
+        if (applicationProperties.entity.storePayloads)
+            databaseClient.execute(
+                """
+                INSERT INTO entity_payload (entity_id, payload)
+                VALUES (:entity_id, :payload)
+                """
+            )
+                .bind("entity_id", entityId)
+                .bind("payload", entityPayload?.let { Json.of(entityPayload) })
+                .fetch()
+                .rowsUpdated()
+        else
+            Mono.just(1)
 
     fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
-        databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
-            .bind("payload", Json.of(payload))
-            .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
+        if (applicationProperties.entity.storePayloads)
+            databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
+                .bind("payload", Json.of(payload))
+                .bind("entity_id", entityId)
+                .fetch()
+                .rowsUpdated()
+        else
+            Mono.just(1)
 
     fun deleteEntityPayload(entityId: URI): Mono<Int> =
         databaseClient.execute("DELETE FROM entity_payload WHERE entity_id = :entity_id")
@@ -237,7 +245,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
-        Mono<Map<URI, List<TemporalEntityAttribute>>> {
+        Mono<List<TemporalEntityAttribute>> {
             var selectQuery = if (withEntityPayload)
                 """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
@@ -265,9 +273,6 @@ class TemporalEntityAttributeService(
                 .all()
                 .map { rowToTemporalEntityAttribute(it) }
                 .collectList()
-                .map { temporalEntityAttributes ->
-                    temporalEntityAttributes.groupBy { it.entityId }
-                }
         }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {

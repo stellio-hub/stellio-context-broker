@@ -19,6 +19,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -84,10 +85,12 @@ class TemporalEntityServiceTests {
         val attributeAndResultsMap = mapOf(
             temporalEntityAttribute to listOf(
                 SimplifiedAttributeInstanceResult(
+                    temporalEntityAttribute = UUID.randomUUID(),
                     value = "urn:ngsi-ld:Beehive:1234",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                 ),
                 SimplifiedAttributeInstanceResult(
+                    temporalEntityAttribute = UUID.randomUUID(),
                     value = "urn:ngsi-ld:Beehive:5678",
                     observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                 )

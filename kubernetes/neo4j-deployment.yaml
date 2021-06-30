@@ -74,7 +74,7 @@ spec:
             configMapKeyRef:
               name: stellio-conf
               key: NEO4J_SECURITY_PROCEDURES_UNRESTRICTED
-        - name: NEO4J_dbms_security_procedures_whitelist
+        - name: NEO4J_dbms_security_procedures_allowlist
           valueFrom:
             configMapKeyRef:
               name: stellio-conf
@@ -84,7 +84,7 @@ spec:
             configMapKeyRef:
               name: stellio-conf
               key: NEO4J_PLUGINS
-        image: neo4j:4.0
+        image: neo4j:4.2
         name: stellio-neo4j
         ports:
         - containerPort: 7474

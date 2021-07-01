@@ -29,10 +29,13 @@ class Neo4jAuthorizationRepository(
     ): List<URI> {
         val query =
             """
-            MATCH (userEntity:Entity), (entity:Entity)
-            WHERE entity.id IN ${'$'}entitiesId
-            AND (userEntity.id = ${'$'}userId 
+            MATCH (userEntity:Entity)
+            WHERE (userEntity.id = ${'$'}userId
                 OR (userEntity)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId }))
+            WITH userEntity 
+            MATCH (entity:Entity)
+            WHERE entity.id IN ${'$'}entitiesId
+            WITH userEntity, entity
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
             WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
             return entity.id as id

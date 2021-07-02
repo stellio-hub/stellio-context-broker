@@ -1,9 +1,11 @@
 package com.egm.stellio.search.model
 
+import org.springframework.data.annotation.Id
 import java.net.URI
 import java.util.UUID
 
 data class TemporalEntityAttribute(
+    @Id
     val id: UUID = UUID.randomUUID(),
     val entityId: URI,
     val type: String,

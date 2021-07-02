@@ -5,6 +5,7 @@ import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.format.DateTimeParseException
 
 fun splitQueryTermOnOperator(queryTerm: String): List<String> =
     queryTerm.split("==", "!=", ">=", ">", "<=", "<")
@@ -50,7 +51,7 @@ fun String.isDateTime(): Boolean =
     try {
         ZonedDateTime.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }
 
@@ -58,7 +59,7 @@ fun String.isDate(): Boolean =
     try {
         LocalDate.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }
 
@@ -66,6 +67,6 @@ fun String.isTime(): Boolean =
     try {
         LocalTime.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }

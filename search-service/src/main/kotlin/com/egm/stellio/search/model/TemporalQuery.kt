@@ -24,7 +24,7 @@ data class TemporalQuery(
 
         companion object {
             fun isSupportedAggregate(aggregate: String): Boolean =
-                values().toList().any { it.name == aggregate.toUpperCase() }
+                values().toList().any { it.name == aggregate.uppercase() }
         }
     }
 }

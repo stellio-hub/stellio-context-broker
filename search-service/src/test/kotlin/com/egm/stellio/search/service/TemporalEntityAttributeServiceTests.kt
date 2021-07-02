@@ -1,6 +1,9 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.TimescaleBasedTests
+import com.egm.stellio.search.model.AttributeInstance
+import com.egm.stellio.search.model.EntityPayload
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.loadSampleData
@@ -16,7 +19,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -24,7 +27,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
+class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
     @Autowired
     @SpykBean
@@ -34,7 +37,7 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Autowired
-    private lateinit var databaseClient: DatabaseClient
+    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String? = null
@@ -70,22 +73,16 @@ class TemporalEntityAttributeServiceTests : TimescaleBasedTests() {
 
     @AfterEach
     fun clearPreviousTemporalEntityAttributesAndObservations() {
-        databaseClient.delete()
-            .from("entity_payload")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(EntityPayload::class.java)
+            .all()
             .block()
 
-        databaseClient.delete()
-            .from("attribute_instance")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(AttributeInstance::class.java)
+            .all()
             .block()
 
-        databaseClient.delete()
-            .from("temporal_entity_attribute")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
+            .all()
             .block()
     }
 

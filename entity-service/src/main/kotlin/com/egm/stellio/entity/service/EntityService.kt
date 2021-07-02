@@ -374,10 +374,10 @@ class EntityService(
     ): UpdateAttributeResult {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
         return if (!neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId),
-            relationshipTypeName,
-            ngsiLdRelationshipInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                relationshipTypeName,
+                ngsiLdRelationshipInstance.datasetId
+            )
         ) {
             createEntityRelationship(
                 entityId,
@@ -431,10 +431,10 @@ class EntityService(
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         return if (!neo4jRepository.hasPropertyInstance(
-            EntitySubjectNode(entityId),
-            ngsiLdProperty.name,
-            ngsiLdPropertyInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId
+            )
         ) {
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             UpdateAttributeResult(
@@ -477,9 +477,9 @@ class EntityService(
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         return if (!neo4jRepository.hasGeoPropertyOfName(
-            EntitySubjectNode(entityId),
-            ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
+            )
         ) {
             createLocationProperty(
                 entityId,
@@ -548,10 +548,10 @@ class EntityService(
         ngsiLdRelationshipInstance: NgsiLdRelationshipInstance
     ): UpdateAttributeResult =
         if (neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId),
-            ngsiLdRelationship.name.toRelationshipTypeName(),
-            ngsiLdRelationshipInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdRelationship.name.toRelationshipTypeName(),
+                ngsiLdRelationshipInstance.datasetId
+            )
         ) {
             deleteEntityAttributeInstance(entityId, ngsiLdRelationship.name, ngsiLdRelationshipInstance.datasetId)
             createEntityRelationship(
@@ -584,8 +584,8 @@ class EntityService(
         ngsiLdPropertyInstance: NgsiLdPropertyInstance
     ): UpdateAttributeResult =
         if (neo4jRepository.hasPropertyInstance(
-            EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
-        )
+                EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
+            )
         ) {
             updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             UpdateAttributeResult(
@@ -650,8 +650,8 @@ class EntityService(
                 subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true
             ) >= 1
         else if (neo4jRepository.hasRelationshipOfType(
-            EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
-        )
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
+            )
         )
             return neo4jRepository.deleteEntityRelationship(
                 subjectNodeInfo = EntitySubjectNode(entityId),
@@ -669,8 +669,8 @@ class EntityService(
                 expandedAttributeName, datasetId
             ) >= 1
         else if (neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
-        )
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
+            )
         )
             return neo4jRepository.deleteEntityRelationship(
                 EntitySubjectNode(entityId),

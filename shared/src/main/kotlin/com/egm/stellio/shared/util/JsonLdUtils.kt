@@ -265,7 +265,7 @@ object JsonLdUtils {
         val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
         logger.debug("Expanded type $type to $expandedType")
         return if (expandedType.isNotEmpty())
-        (expandedType[0] as Map<String, Any>).keys.first()
+            (expandedType[0] as Map<String, Any>).keys.first()
         else
             null
     }
@@ -442,10 +442,10 @@ object JsonLdUtils {
 
     fun parseAndExpandAttributeFragment(attributeName: String, attributePayload: String, contexts: List<String>):
         Map<String, List<Map<String, List<Any>>>> =
-            expandJsonLdFragment(
-                serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
-                contexts
-            ) as Map<String, List<Map<String, List<Any>>>>
+        expandJsonLdFragment(
+            serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
+            contexts
+        ) as Map<String, List<Map<String, List<Any>>>>
 
     fun reconstructPolygonCoordinates(compactedJsonLdEntity: MutableMap<String, Any>) =
         compactedJsonLdEntity
@@ -513,7 +513,7 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
         else
             JsonLdProcessor.expand(parsedFragment)
     } catch (e: JsonLdError) {
-        throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
+        throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
     }
     if (expandedFragment.isEmpty())
         throw BadRequestDataException("Unable to parse input payload")

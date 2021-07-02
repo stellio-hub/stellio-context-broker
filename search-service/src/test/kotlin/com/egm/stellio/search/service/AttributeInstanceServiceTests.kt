@@ -1,11 +1,11 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -13,14 +13,18 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import io.mockk.*
+import io.mockk.confirmVerified
+import io.mockk.spyk
+import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.insert
+import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.time.Instant
@@ -30,13 +34,16 @@ import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : TimescaleBasedTests() {
+class AttributeInstanceServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
+
+    @Autowired
+    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
@@ -53,8 +60,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute)
             .then()
             .block()
@@ -62,10 +68,8 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @AfterEach
     fun clearPreviousObservations() {
-        databaseClient.delete()
-            .from("attribute_instance")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(AttributeInstance::class.java)
+            .all()
             .block()
     }
 
@@ -133,8 +137,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute2)
             .then()
             .block()
@@ -278,8 +281,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute2)
             .then()
             .block()

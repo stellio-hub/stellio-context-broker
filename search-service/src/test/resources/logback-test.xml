@@ -14,7 +14,8 @@
         </encoder>
     </appender>
 
-    <logger name="com.egm.stellio.entity" level="DEBUG"/>
+    <logger name="com.egm.stellio.search" level="DEBUG"/>
+    <logger name="org.springframework.kafka" level="WARN" />
     <logger name="org.apache.zookeeper" level="WARN"/>
     <logger name="kafka" level="WARN"/>
     <logger name="org.apache.kafka" level="WARN"/>

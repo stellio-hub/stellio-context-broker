@@ -1,39 +1,56 @@
 package com.egm.stellio.search.web
 
-import arrow.core.*
-import com.egm.stellio.search.model.TemporalEntityAttribute
+import arrow.core.Either
+import arrow.core.flatMap
+import arrow.core.getOrHandle
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
-import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.OptionsParamValue
+import com.egm.stellio.shared.util.buildGetSuccessResponse
+import com.egm.stellio.shared.util.checkAndGetContext
+import com.egm.stellio.shared.util.getApplicableMediaType
+import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.hasValueInOptionsParam
+import com.egm.stellio.shared.util.parseAndExpandRequestParameter
+import com.egm.stellio.shared.util.parseTimeParameter
+import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val entityService: EntityService,
     private val queryService: QueryService
 ) {
 
@@ -122,35 +139,6 @@ class TemporalEntityHandler(
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
-
-    /**
-     * Get the entity payload from entity service if we don't have it locally (for legacy entries in DB)
-     */
-    private fun loadEntityPayload(
-        temporalEntityAttribute: TemporalEntityAttribute,
-        bearerToken: String,
-        contextLink: String
-    ): Mono<JsonLdEntity> =
-        when {
-            temporalEntityAttribute.entityPayload == null ->
-                entityService.getEntityById(temporalEntityAttribute.entityId, bearerToken)
-                    .doOnSuccess {
-                        val entityPayload = compact(it, contextLink)
-                        temporalEntityAttributeService.updateEntityPayload(
-                            temporalEntityAttribute.entityId,
-                            serializeObject(entityPayload)
-                        ).subscribe()
-                    }
-            temporalEntityAttribute.type != "https://uri.etsi.org/ngsi-ld/Subscription" -> Mono.just(
-                expandJsonLdEntity(
-                    temporalEntityAttribute.entityPayload
-                )
-            )
-            else -> {
-                val parsedEntity = expandJsonLdEntity(temporalEntityAttribute.entityPayload)
-                Mono.just(parsedEntity)
-            }
-        }
 }
 
 internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {
@@ -209,7 +197,7 @@ internal fun buildTimerelAndTime(
         Pair(null, null).right()
     } else if (timerelParam != null && timeParam != null) {
         val timeRelResult = try {
-            TemporalQuery.Timerel.valueOf(timerelParam.toUpperCase()).right()
+            TemporalQuery.Timerel.valueOf(timerelParam.uppercase()).right()
         } catch (e: IllegalArgumentException) {
             "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
         }

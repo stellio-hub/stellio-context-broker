@@ -8,7 +8,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
-import com.egm.stellio.entity.config.TestContainersConfiguration
+import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -20,12 +20,12 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import junit.framework.TestCase.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
@@ -33,8 +33,7 @@ import java.net.URI
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
-@Import(TestContainersConfiguration::class)
-class Neo4jSearchRepositoryTests {
+class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository
@@ -56,6 +55,11 @@ class Neo4jSearchRepositoryTests {
     private val sub = "01"
     private val page = 1
     private val limit = 20
+
+    @AfterEach
+    fun cleanData() {
+        entityRepository.deleteAll()
+    }
 
     @Test
     fun `it should return matching entities that user can access`() {
@@ -88,10 +92,6 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id, thirdEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -121,10 +121,6 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(groupEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -144,8 +140,6 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -182,14 +176,11 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(clientEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
     fun `it should return all matching entities for admin users`() {
-        val userEntity = createEntity(
+        createEntity(
             userUri,
             listOf(AuthorizationService.USER_LABEL),
             mutableListOf(
@@ -221,14 +212,11 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
     fun `it should return matching entities as the specific access policy`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -256,9 +244,6 @@ class Neo4jSearchRepositoryTests {
 
         assertTrue(entities.contains(firstEntity.id))
         assertFalse(entities.contains(secondEntity.id))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -292,10 +277,6 @@ class Neo4jSearchRepositoryTests {
         ).first
 
         assertEquals(entitiesCount, 2)
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -324,9 +305,6 @@ class Neo4jSearchRepositoryTests {
 
         assertEquals(countAndEntities.first, 1)
         assertEquals(countAndEntities.second, emptyList<URI>())
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @ParameterizedTest
@@ -366,10 +344,6 @@ class Neo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(expectedEntitiesIds))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     fun createEntity(

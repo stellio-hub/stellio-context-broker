@@ -1,14 +1,15 @@
 package com.egm.stellio.entity.model
 
-import org.neo4j.ogm.annotation.Id
-import org.neo4j.ogm.annotation.NodeEntity
-import org.neo4j.ogm.annotation.typeconversion.Convert
+import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
+import org.springframework.data.neo4j.core.convert.ConvertWith
+import org.springframework.data.neo4j.core.schema.Id
+import org.springframework.data.neo4j.core.schema.Node
 import java.net.URI
 
-@NodeEntity
-class PartialEntity(
+@Node
+data class PartialEntity(
 
     @Id
-    @Convert(UriConverter::class)
+    @ConvertWith(converter = Neo4jUriPropertyConverter::class)
     val id: URI
 )

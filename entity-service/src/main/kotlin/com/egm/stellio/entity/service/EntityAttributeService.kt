@@ -84,7 +84,11 @@ class EntityAttributeService(
         datasetId: URI?,
         contexts: List<String>
     ): UpdateAttributeResult {
-        val relationship = neo4jRepository.getRelationshipOfSubject(entityId, relationshipType, datasetId)
+        val relationship =
+            if (datasetId != null)
+                relationshipRepository.getRelationshipOfSubject(entityId, relationshipType, datasetId)
+            else
+                relationshipRepository.getRelationshipOfSubject(entityId, relationshipType)
         val relationshipUpdates = partialUpdateRelationshipOfAttribute(
             relationship,
             entityId,
@@ -118,7 +122,11 @@ class EntityAttributeService(
         datasetId: URI?,
         contexts: List<String>
     ): UpdateAttributeResult {
-        val property = neo4jRepository.getPropertyOfSubject(entityId, expandedPropertyName, datasetId)
+        val property =
+            if (datasetId != null)
+                propertyRepository.getPropertyOfSubject(entityId, expandedPropertyName, datasetId)
+            else
+                propertyRepository.getPropertyOfSubject(entityId, expandedPropertyName)
         val propertyUpdates = partialUpdatePropertyOfAttribute(
             property,
             propertyValues
@@ -144,7 +152,7 @@ class EntityAttributeService(
         contexts: List<String>
     ): Boolean {
         return attributeValues.filterKeys {
-            if (attribute.attributeType == "Relationship")
+            if (attribute is Relationship)
                 !NGSILD_RELATIONSHIPS_CORE_MEMBERS.contains(it)
             else
                 !NGSILD_PROPERTIES_CORE_MEMBERS.contains(it)
@@ -155,27 +163,27 @@ class EntityAttributeService(
             val attributeOfAttributeName = it.key
             when {
                 neo4jRepository.hasRelationshipInstance(
-                    AttributeSubjectNode(attribute.id),
+                    AttributeSubjectNode(attribute.id()),
                     attributeOfAttributeName.toRelationshipTypeName()
                 ) -> {
-                    val relationshipOfAttribute = neo4jRepository.getRelationshipOfSubject(
-                        attribute.id,
+                    val relationshipOfAttribute = relationshipRepository.getRelationshipOfSubject(
+                        attribute.id(),
                         attributeOfAttributeName.toRelationshipTypeName()
                     )
                     partialUpdateRelationshipOfAttribute(
                         relationshipOfAttribute,
-                        attribute.id,
+                        attribute.id(),
                         attributeOfAttributeName.toRelationshipTypeName(),
                         null,
                         it.value
                     )
                 }
                 neo4jRepository.hasPropertyInstance(
-                    AttributeSubjectNode(attribute.id),
+                    AttributeSubjectNode(attribute.id()),
                     expandJsonLdKey(attributeOfAttributeName, contexts)!!
                 ) -> {
-                    val propertyOfAttribute = neo4jRepository.getPropertyOfSubject(
-                        attribute.id,
+                    val propertyOfAttribute = propertyRepository.getPropertyOfSubject(
+                        attribute.id(),
                         expandJsonLdKey(attributeOfAttributeName, contexts)!!
                     )
                     partialUpdatePropertyOfAttribute(
@@ -186,16 +194,16 @@ class EntityAttributeService(
                 else -> {
                     if (isAttributeOfType(it.value, JsonLdUtils.NGSILD_RELATIONSHIP_TYPE)) {
                         val ngsiLdRelationship = NgsiLdRelationship(
-                            attributeOfAttributeName.toRelationshipTypeName(),
+                            attributeOfAttributeName,
                             listOf(it.value)
                         )
-                        entityService.createAttributeRelationships(attribute.id, listOf(ngsiLdRelationship))
+                        entityService.createAttributeRelationships(attribute.id(), listOf(ngsiLdRelationship))
                     } else if (isAttributeOfType(it.value, JsonLdUtils.NGSILD_PROPERTY_TYPE)) {
                         val ngsiLdProperty = NgsiLdProperty(
                             expandJsonLdKey(attributeOfAttributeName, contexts)!!,
                             listOf(it.value)
                         )
-                        entityService.createAttributeProperties(attribute.id, listOf(ngsiLdProperty))
+                        entityService.createAttributeProperties(attribute.id(), listOf(ngsiLdProperty))
                     } else false
                 }
             }

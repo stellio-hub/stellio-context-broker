@@ -1,8 +1,8 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.model.Entity
-import org.springframework.data.neo4j.annotation.Query
 import org.springframework.data.neo4j.repository.Neo4jRepository
+import org.springframework.data.neo4j.repository.query.Query
 import org.springframework.stereotype.Repository
 import java.net.URI
 
@@ -32,4 +32,18 @@ interface EntityRepository : Neo4jRepository<Entity, URI> {
             " relOfRel, type(or) as relOfRelType, relOfRelObject.id as relOfRelObjectId"
     )
     fun getEntityRelationships(id: String): List<Map<String, Any>>
+
+    @Query(
+        "MATCH ({ id: \$subjectId })-[:HAS_OBJECT]->(r:Relationship { datasetId: \$datasetId }) " +
+            "-[:`:#{literal(#relationshipType)}`]->(e:Entity)" +
+            " RETURN e"
+    )
+    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String, datasetId: URI): Entity?
+
+    @Query(
+        "MATCH ({ id: \$subjectId })-[:HAS_OBJECT]->(r:Relationship) " +
+            "-[:`:#{literal(#relationshipType)}`]->(e:Entity)" +
+            " RETURN e"
+    )
+    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String): Entity?
 }

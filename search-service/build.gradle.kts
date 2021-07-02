@@ -12,17 +12,20 @@ plugins {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     // required for Flyway's direct access to the DB to apply migration scripts
+    // (https://github.com/flyway/flyway/issues/2502)
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
-    implementation(project(":shared"))
     // implementation (and not runtime) because we are using the native jsonb encoding provided by PG
     implementation("io.r2dbc:r2dbc-postgresql")
+    implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
 }
 

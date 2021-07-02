@@ -275,12 +275,11 @@ class EntityEventListenerService(
                     observedAt = attributeMetadata.observedAt,
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
-                    payload =
-                        extractAttributeInstanceFromCompactedEntity(
-                            compactedJsonLdEntity,
-                            compactTerm(expandedAttributeName, contexts),
-                            attributeMetadata.datasetId
-                        )
+                    payload = extractAttributeInstanceFromCompactedEntity(
+                        compactedJsonLdEntity,
+                        compactTerm(expandedAttributeName, contexts),
+                        attributeMetadata.datasetId
+                    )
                 )
 
                 temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {

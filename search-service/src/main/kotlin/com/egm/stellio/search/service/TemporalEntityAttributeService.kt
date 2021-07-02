@@ -23,8 +23,11 @@ import com.egm.stellio.shared.util.toUri
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
-import org.springframework.data.r2dbc.core.DatabaseClient
-import org.springframework.data.r2dbc.core.bind
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.relational.core.query.Criteria.where
+import org.springframework.data.relational.core.query.Query.query
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
@@ -35,6 +38,7 @@ import java.util.UUID
 @Service
 class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val attributeInstanceService: AttributeInstanceService,
     private val applicationProperties: ApplicationProperties
 ) {
@@ -43,7 +47,7 @@ class TemporalEntityAttributeService(
 
     @Transactional
     fun create(temporalEntityAttribute: TemporalEntityAttribute): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             INSERT INTO temporal_entity_attribute
                 (id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id)
@@ -62,7 +66,7 @@ class TemporalEntityAttributeService(
 
     internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
         if (applicationProperties.entity.storePayloads)
-            databaseClient.execute(
+            databaseClient.sql(
                 """
                 INSERT INTO entity_payload (entity_id, payload)
                 VALUES (:entity_id, :payload)
@@ -77,7 +81,7 @@ class TemporalEntityAttributeService(
 
     fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
         if (applicationProperties.entity.storePayloads)
-            databaseClient.execute("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
+            databaseClient.sql("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
                 .bind("payload", Json.of(payload))
                 .bind("entity_id", entityId)
                 .fetch()
@@ -86,7 +90,7 @@ class TemporalEntityAttributeService(
             Mono.just(1)
 
     fun deleteEntityPayload(entityId: URI): Mono<Int> =
-        databaseClient.execute("DELETE FROM entity_payload WHERE entity_id = :entity_id")
+        databaseClient.sql("DELETE FROM entity_payload WHERE entity_id = :entity_id")
             .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
@@ -132,12 +136,11 @@ class TemporalEntityAttributeService(
                     observedAt = attributeMetadata.observedAt,
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
-                    payload =
-                        extractAttributeInstanceFromCompactedEntity(
-                            parsedPayload,
-                            compactTerm(expandedAttributeName, contexts),
-                            attributeMetadata.datasetId
-                        )
+                    payload = extractAttributeInstanceFromCompactedEntity(
+                        parsedPayload,
+                        compactTerm(expandedAttributeName, contexts),
+                        attributeMetadata.datasetId
+                    )
                 )
 
                 Pair(temporalEntityAttribute, attributeInstance)
@@ -161,15 +164,14 @@ class TemporalEntityAttributeService(
             .map { it.t1 + it.t2 }
 
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
-        databaseClient.execute("DELETE FROM temporal_entity_attribute WHERE entity_id = :entity_id")
-            .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)
+            .matching(query(where("entity_id").`is`(entityId)))
+            .all()
 
     fun deleteTemporalAttributeReferences(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
         attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(entityId, attributeName, datasetId)
             .zipWith(
-                databaseClient.execute(
+                databaseClient.sql(
                     """
                     delete FROM temporal_entity_attribute WHERE 
                         entity_id = :entity_id
@@ -191,7 +193,7 @@ class TemporalEntityAttributeService(
     fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
         attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(entityId, attributeName)
             .zipWith(
-                databaseClient.execute(
+                databaseClient.sql(
                     """
                     delete FROM temporal_entity_attribute WHERE 
                         entity_id = :entity_id
@@ -246,34 +248,34 @@ class TemporalEntityAttributeService(
 
     fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
         Mono<List<TemporalEntityAttribute>> {
-            var selectQuery = if (withEntityPayload)
-                """
+        var selectQuery = if (withEntityPayload)
+            """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
                     attribute_value_type, payload::TEXT, dataset_id
                 FROM temporal_entity_attribute
                 LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
                 WHERE
-                """.trimIndent()
-            else
-                """
+            """.trimIndent()
+        else
+            """
                 SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE
-                """.trimIndent()
+            """.trimIndent()
 
-            val formattedIds = ids.joinToString(",") { "'$it'" }
-            val formattedTypes = types.joinToString(",") { "'$it'" }
-            val formattedAttrs = attrs.joinToString(",") { "'$it'" }
-            if (ids.isNotEmpty()) selectQuery = "$selectQuery entity_id in ($formattedIds) AND"
-            if (types.isNotEmpty()) selectQuery = "$selectQuery type in ($formattedTypes) AND"
-            if (attrs.isNotEmpty()) selectQuery = "$selectQuery attribute_name in ($formattedAttrs) AND"
-            return databaseClient
-                .execute(selectQuery.removeSuffix("AND"))
-                .fetch()
-                .all()
-                .map { rowToTemporalEntityAttribute(it) }
-                .collectList()
-        }
+        val formattedIds = ids.joinToString(",") { "'$it'" }
+        val formattedTypes = types.joinToString(",") { "'$it'" }
+        val formattedAttrs = attrs.joinToString(",") { "'$it'" }
+        if (ids.isNotEmpty()) selectQuery = "$selectQuery entity_id in ($formattedIds) AND"
+        if (types.isNotEmpty()) selectQuery = "$selectQuery type in ($formattedTypes) AND"
+        if (attrs.isNotEmpty()) selectQuery = "$selectQuery attribute_name in ($formattedAttrs) AND"
+        return databaseClient
+            .sql(selectQuery.removeSuffix("AND"))
+            .fetch()
+            .all()
+            .map { rowToTemporalEntityAttribute(it) }
+            .collectList()
+    }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
         val selectQuery = if (withEntityPayload)
@@ -300,7 +302,7 @@ class TemporalEntityAttributeService(
                 selectQuery
 
         return databaseClient
-            .execute(finalQuery)
+            .sql(finalQuery)
             .bind("entity_id", id)
             .fetch()
             .all()
@@ -316,7 +318,7 @@ class TemporalEntityAttributeService(
             """.trimIndent()
 
         return databaseClient
-            .execute(selectQuery)
+            .sql(selectQuery)
             .bind("entity_id", id)
             .map(rowToId)
             .first()
@@ -333,7 +335,7 @@ class TemporalEntityAttributeService(
             """.trimIndent()
 
         return databaseClient
-            .execute(selectQuery)
+            .sql(selectQuery)
             .bind("entity_id", id)
             .bind("attribute_name", attributeName)
             .let {

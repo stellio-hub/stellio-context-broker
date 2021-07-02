@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.config.TestContainersConfiguration
+import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -8,13 +8,15 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
-import junit.framework.TestCase.*
+import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertTrue
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
@@ -27,8 +29,7 @@ import java.time.ZonedDateTime
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-@Import(TestContainersConfiguration::class)
-class StandaloneNeo4jSearchRepositoryTests {
+class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository
@@ -45,6 +46,11 @@ class StandaloneNeo4jSearchRepositoryTests {
     private val userId = ""
     private val page = 1
     private val limit = 20
+
+    @AfterEach
+    fun cleanData() {
+        entityRepository.deleteAll()
+    }
 
     @Test
     fun `it should return an entity if type and string properties are correct`() {
@@ -63,7 +69,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -83,7 +88,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -103,7 +107,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -123,7 +126,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -143,7 +145,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -163,7 +164,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -182,7 +182,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -201,7 +200,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -220,7 +218,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -239,7 +236,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -266,7 +262,6 @@ class StandaloneNeo4jSearchRepositoryTests {
             DEFAULT_CONTEXTS
         ).second
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -290,7 +285,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -314,7 +308,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -338,7 +331,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -362,7 +354,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -387,7 +378,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -422,8 +412,6 @@ class StandaloneNeo4jSearchRepositoryTests {
             DEFAULT_CONTEXTS
         ).second
         assertFalse(entities.contains(entity.id))
-
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -486,7 +474,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -511,8 +498,6 @@ class StandaloneNeo4jSearchRepositoryTests {
 
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -620,9 +605,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
         assertTrue(entities.contains(thirdEntity.id))
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -653,24 +635,21 @@ class StandaloneNeo4jSearchRepositoryTests {
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
         assertFalse(entities.contains(thirdEntity.id))
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
     fun `it should return no entity if given idPattern is not matching`() {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
-        val thirdEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:11232".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
@@ -684,24 +663,21 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.isEmpty())
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
     fun `it should return matching entities count`() {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
-        val thirdEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
@@ -715,9 +691,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).first
 
         assertEquals(entitiesCount, 2)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @ParameterizedTest
@@ -728,17 +701,17 @@ class StandaloneNeo4jSearchRepositoryTests {
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
         )
-        val thirdEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
@@ -753,9 +726,6 @@ class StandaloneNeo4jSearchRepositoryTests {
         ).second
 
         assertTrue(entities.containsAll(expectedEntitiesIds))
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     fun createEntity(

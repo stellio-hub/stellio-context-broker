@@ -10,8 +10,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import io.r2dbc.postgresql.codec.Json
-import org.springframework.data.r2dbc.core.DatabaseClient
-import org.springframework.data.r2dbc.core.bind
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
@@ -27,7 +27,7 @@ class AttributeInstanceService(
 
     @Transactional
     fun create(attributeInstance: AttributeInstance): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             INSERT INTO attribute_instance 
                 (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
@@ -60,12 +60,11 @@ class AttributeInstanceService(
             observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload =
-                extractAttributeInstanceFromCompactedEntity(
-                    parsedPayload,
-                    attributeKey,
-                    null
-                )
+            payload = extractAttributeInstanceFromCompactedEntity(
+                parsedPayload,
+                attributeKey,
+                null
+            )
         )
         return create(attributeInstance)
     }
@@ -131,7 +130,7 @@ class AttributeInstanceService(
         if (temporalQuery.lastN != null)
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
-        return databaseClient.execute(selectQuery)
+        return databaseClient.sql(selectQuery)
             .fetch()
             .all()
             .map {
@@ -141,7 +140,7 @@ class AttributeInstanceService(
     }
 
     fun deleteAttributeInstancesOfEntity(entityId: URI): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE entity_id = :entity_id
@@ -153,7 +152,7 @@ class AttributeInstanceService(
             .rowsUpdated()
 
     fun deleteAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE 
@@ -173,7 +172,7 @@ class AttributeInstanceService(
             .rowsUpdated()
 
     fun deleteAllAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE 
@@ -196,10 +195,10 @@ class AttributeInstanceService(
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,
-                observedAt =
-                    row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                        ?: row["observed_at"]
-                            .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                observedAt = row["time_bucket"]?.let {
+                    ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
+                } ?: row["observed_at"]
+                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,

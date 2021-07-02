@@ -5,22 +5,18 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_R
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
-import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
-import org.neo4j.ogm.session.Session
-import org.slf4j.LoggerFactory
+import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
 import java.net.URI
 
 @Component
 class Neo4jAuthorizationRepository(
-    private val session: Session
+    private val neo4jClient: Neo4jClient
 ) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     fun filterEntitiesUserHasOneOfGivenRights(
         userId: URI,
@@ -52,9 +48,9 @@ class Neo4jAuthorizationRepository(
             "rights" to rights
         )
 
-        return session.query(query, parameters).map {
-            (it["id"] as String).toUri()
-        }
+        return neo4jClient.query(query).bindAll(parameters)
+            .fetch().all()
+            .map { (it["id"] as String).toUri() }
     }
 
     fun filterEntitiesWithSpecificAccessPolicy(
@@ -75,9 +71,9 @@ class Neo4jAuthorizationRepository(
             "specificAccessPolicies" to specificAccessPolicies
         )
 
-        return session.query(query, parameters).queryResults().map {
-            (it["id"] as String).toUri()
-        }
+        return neo4jClient.query(query).bindAll(parameters)
+            .fetch().all()
+            .map { (it["id"] as String).toUri() }
     }
 
     fun getUserRoles(userId: URI): Set<String> {
@@ -87,46 +83,31 @@ class Neo4jAuthorizationRepository(
             OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
                 [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
-            RETURN p, pgroup
+            RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             UNION
             MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
             OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
             OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
                 [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
-            RETURN p, pgroup
+            RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             """.trimIndent()
 
         val parameters = mapOf(
             "userId" to userId.toString()
         )
 
-        val result = session.query(query, parameters)
-
-        if (result.toSet().isEmpty()) {
-            return emptySet()
-        }
+        val result = neo4jClient.query(query).bindAll(parameters).fetch().all()
 
         return result
             .flatMap {
-                listOfNotNull(
-                    propertyToListOfRoles(it["p"]),
-                    propertyToListOfRoles(it["pgroup"])
-                ).flatten()
+                val roles = it["roles"] as List<*>
+                when {
+                    roles.isEmpty() -> emptyList()
+                    roles[0] is String -> listOf(roles[0] as String)
+                    else -> (roles[0] as List<String>)
+                }
             }
             .toSet()
-    }
-
-    private fun propertyToListOfRoles(property: Any?): List<String> {
-        val rolesProperty = property as Property? ?: return emptyList()
-
-        return when (rolesProperty.value) {
-            is String -> listOf(rolesProperty.value as String)
-            is List<*> -> rolesProperty.value as List<String>
-            else -> {
-                logger.warn("Unknown value type for roles property: ${rolesProperty.value}")
-                emptyList()
-            }
-        }
     }
 
     fun createAdminLinks(userId: URI, relationships: List<Relationship>, entitiesId: List<URI>): List<URI> {
@@ -143,19 +124,24 @@ class Neo4jAuthorizationRepository(
             }
             WITH user
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
-            MATCH (target:Entity { id: relPropAndTarget.second })
+            MATCH (target:Entity { id: relPropAndTarget.targetEntityId })
             CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:rCanAdmin]->(target)
-            SET r = relPropAndTarget.first
+            SET r = relPropAndTarget.props
             RETURN r.id as id
         """
 
         val parameters = mapOf(
-            "relPropsAndTargets" to relationships.map { it.nodeProperties() }.zip(entitiesId.toListOfString()),
+            "relPropsAndTargets" to relationships
+                .map { it.nodeProperties() }
+                .zip(entitiesId.toListOfString())
+                .map {
+                    mapOf("props" to it.first, "targetEntityId" to it.second)
+                },
             "userId" to userId.toString()
         )
 
-        return session.query(query, parameters).map {
-            (it["id"] as String).toUri()
-        }
+        return neo4jClient.query(query).bindAll(parameters)
+            .fetch().all()
+            .map { (it["id"] as String).toUri() }
     }
 }

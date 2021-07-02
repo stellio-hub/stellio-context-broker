@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
@@ -11,15 +10,12 @@ import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
-import org.neo4j.ogm.session.Session
-import org.neo4j.ogm.session.SessionFactory
-import org.neo4j.ogm.session.event.Event
-import org.neo4j.ogm.session.event.EventListenerAdapter
+import org.springframework.data.neo4j.core.Neo4jClient
+import org.springframework.data.neo4j.core.mappedBy
 import org.springframework.stereotype.Component
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import javax.annotation.PostConstruct
 
 sealed class SubjectNodeInfo(val id: URI, val label: String)
 class EntitySubjectNode(id: URI) : SubjectNodeInfo(id, "Entity")
@@ -27,14 +23,15 @@ class AttributeSubjectNode(id: URI) : SubjectNodeInfo(id, "Attribute")
 
 @Component
 class Neo4jRepository(
-    private val session: Session,
-    private val sessionFactory: SessionFactory
+    private val neo4jClient: Neo4jClient
 ) {
 
     fun mergePartialWithNormalEntity(id: URI): Int {
         val query =
             """
-            MATCH (e:Entity { id: ${'$'}id }), (pe:PartialEntity { id: ${'$'}id })
+            MATCH (pe:PartialEntity { id: ${'$'}id })
+            WITH pe
+            MATCH (e:Entity { id: ${'$'}id }) 
             WITH head(collect([e,pe])) as nodes
             CALL apoc.refactor.mergeNodes(nodes, { properties:"discard" })
             YIELD node
@@ -42,11 +39,7 @@ class Neo4jRepository(
             RETURN node
         """
 
-        val parameters = mapOf(
-            "id" to id
-        )
-
-        return session.query(query, parameters).queryStatistics().nodesDeleted
+        return neo4jClient.query(query).bind(id.toString()).to("id").run().counters().nodesDeleted()
     }
 
     fun createPropertyOfSubject(subjectNodeInfo: SubjectNodeInfo, property: Property): Boolean {
@@ -59,9 +52,9 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "props" to property.nodeProperties(),
-            "subjectId" to subjectNodeInfo.id
+            "subjectId" to subjectNodeInfo.id.toString()
         )
-        return session.query(query, parameters).queryStatistics().containsUpdates()
+        return neo4jClient.query(query).bindAll(parameters).run().counters().containsUpdates()
     }
 
     fun createRelationshipOfSubject(
@@ -82,11 +75,11 @@ class Neo4jRepository(
 
         val parameters = mapOf(
             "props" to relationship.nodeProperties(),
-            "subjectId" to subjectNodeInfo.id,
-            "targetId" to targetId
+            "subjectId" to subjectNodeInfo.id.toString(),
+            "targetId" to targetId.toString()
         )
 
-        return session.query(query, parameters).queryStatistics().containsUpdates()
+        return neo4jClient.query(query).bindAll(parameters).run().counters().containsUpdates()
     }
 
     /**
@@ -99,10 +92,9 @@ class Neo4jRepository(
             ON MATCH SET subject.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
             """
 
-        val parameters = mapOf(
-            "subjectId" to subjectId
-        )
-        return session.query(query, parameters).queryStatistics().propertiesSet
+        return neo4jClient.query(query)
+            .bind(subjectId.toString()).to("subjectId")
+            .run().counters().propertiesSet()
     }
 
     fun updateEntityPropertyInstance(
@@ -121,13 +113,13 @@ class Neo4jRepository(
         val matchQuery = if (datasetId == null)
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
-            ->(attribute:Property { name: ${'$'}propertyName })
-            WHERE NOT EXISTS (attribute.datasetId)
-            """.trimIndent()
+                ->(attribute:Property { name: ${'$'}propertyName })
+            WHERE attribute.datasetId IS NULL
+            """
         else
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
-            ->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
+                ->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
             """.trimIndent()
 
         var createAttributeQuery =
@@ -137,7 +129,7 @@ class Neo4jRepository(
             """
 
         val parameters = mutableMapOf(
-            "entityId" to subjectNodeInfo.id,
+            "entityId" to subjectNodeInfo.id.toString(),
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString(),
             "props" to Property(propertyName, newPropertyInstance).nodeProperties(),
@@ -164,14 +156,15 @@ class Neo4jRepository(
                     MERGE (target { id: "${ngsiLdRelationship.instances[0].objectId}" })
                     ON CREATE SET target:PartialEntity 
                     CREATE (newAttribute)-[:HAS_OBJECT]
-                    ->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}relationshipOfProperty_$index)
-                    -[:${relationship.type[0].toRelationshipTypeName()}]->(target)
+                        ->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}relationshipOfProperty_$index)
+                        -[:${relationship.type[0].toRelationshipTypeName()}]->(target)
                     """
             )
         }
 
-        return session.query(matchQuery + deleteAttributeQuery + createAttributeQuery, parameters)
-            .queryStatistics().nodesDeleted
+        return neo4jClient.query(matchQuery + deleteAttributeQuery + createAttributeQuery)
+            .bindAll(parameters)
+            .run().counters().nodesDeleted()
     }
 
     fun updateEntityModifiedDate(entityId: URI): Int {
@@ -181,7 +174,7 @@ class Neo4jRepository(
             ON MATCH SET entity.modifiedAt = datetime("${Instant.now().atZone(ZoneOffset.UTC)}")
         """
 
-        return session.query(query, mapOf("entityId" to entityId)).queryStatistics().propertiesSet
+        return neo4jClient.query(query).bind(entityId.toString()).to("entityId").run().counters().propertiesSet()
     }
 
     fun hasRelationshipOfType(subjectNodeInfo: SubjectNodeInfo, relationshipType: String): Boolean {
@@ -191,10 +184,9 @@ class Neo4jRepository(
             RETURN a.id
             """.trimIndent()
 
-        val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id
-        )
-        return session.query(query, parameters, true).toList().isNotEmpty()
+        return neo4jClient.query(query)
+            .bind(subjectNodeInfo.id.toString()).to("attributeId")
+            .fetch().first().isPresent
     }
 
     fun hasPropertyOfName(subjectNodeInfo: SubjectNodeInfo, propertyName: String): Boolean {
@@ -205,10 +197,10 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id,
+            "attributeId" to subjectNodeInfo.id.toString(),
             "propertyName" to propertyName
         )
-        return session.query(query, parameters, true).toList().isNotEmpty()
+        return neo4jClient.query(query).bindAll(parameters).fetch().first().isPresent
     }
 
     fun hasGeoPropertyOfName(subjectNodeInfo: SubjectNodeInfo, geoPropertyName: String): Boolean {
@@ -218,17 +210,16 @@ class Neo4jRepository(
             RETURN a.id
             """.trimIndent()
 
-        val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id
-        )
-        return session.query(query, parameters, true).toList().isNotEmpty()
+        return neo4jClient.query(query)
+            .bind(subjectNodeInfo.id.toString()).to("attributeId")
+            .fetch().first().isPresent
     }
 
     fun hasPropertyInstance(subjectNodeInfo: SubjectNodeInfo, propertyName: String, datasetId: URI? = null): Boolean {
         val query = if (datasetId == null)
             """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_VALUE]->(property:Property { name: ${'$'}propertyName })
-            WHERE NOT EXISTS (property.datasetId)
+            WHERE property.datasetId IS NULL
             RETURN a.id
             """.trimIndent()
         else
@@ -238,12 +229,12 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id,
+            "attributeId" to subjectNodeInfo.id.toString(),
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(query, parameters, true).toList().isNotEmpty()
+        return neo4jClient.query(query).bindAll(parameters).fetch().first().isPresent
     }
 
     fun hasRelationshipInstance(
@@ -264,10 +255,10 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to subjectNodeInfo.id,
+            "attributeId" to subjectNodeInfo.id.toString(),
             "datasetId" to datasetId?.toString()
         )
-        return session.query(query, parameters, true).toList().isNotEmpty()
+        return neo4jClient.query(query).bindAll(parameters).fetch().first().isPresent
     }
 
     fun updateRelationshipTargetOfSubject(
@@ -294,12 +285,12 @@ class Neo4jRepository(
         """.trimIndent()
 
         val parameters = mapOf(
-            "subjectId" to subjectId,
-            "newRelationshipObjectId" to newRelationshipObjectId,
+            "subjectId" to subjectId.toString(),
+            "newRelationshipObjectId" to newRelationshipObjectId.toString(),
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(relationshipTypeQuery, parameters).queryStatistics().containsUpdates()
+        return neo4jClient.query(relationshipTypeQuery).bindAll(parameters).run().counters().containsUpdates()
     }
 
     fun updateTargetOfRelationship(
@@ -319,11 +310,11 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "attributeId" to attributeId,
-            "oldRelationshipObjectId" to oldRelationshipObjectId,
-            "newRelationshipObjectId" to newRelationshipObjectId
+            "attributeId" to attributeId.toString(),
+            "oldRelationshipObjectId" to oldRelationshipObjectId.toString(),
+            "newRelationshipObjectId" to newRelationshipObjectId.toString()
         )
-        return session.query(relationshipTypeQuery, parameters).queryStatistics().nodesDeleted
+        return neo4jClient.query(relationshipTypeQuery).bindAll(parameters).run().counters().nodesDeleted()
     }
 
     fun updateLocationPropertyOfEntity(entityId: URI, geoProperty: NgsiLdGeoPropertyInstance): Int {
@@ -332,7 +323,7 @@ class Neo4jRepository(
             MERGE (entity:Entity { id: "$entityId" })
             ON MATCH SET entity.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
             """
-        return session.query(query, emptyMap<String, String>()).queryStatistics().propertiesSet
+        return neo4jClient.query(query).run().counters().propertiesSet()
     }
 
     fun deleteEntity(entityId: URI): Pair<Int, Int> {
@@ -367,11 +358,8 @@ class Neo4jRepository(
             DETACH DELETE n, prop, relOfProp, propOfProp, rel, propOfRel, relOfRel, inRel
             """.trimIndent()
 
-        val parameters = mapOf(
-            "entityId" to entityId
-        )
-        val queryStatistics = session.query(query, parameters).queryStatistics()
-        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+        val queryStatistics = neo4jClient.query(query).bind(entityId.toString()).to("entityId").run().counters()
+        return Pair(queryStatistics.nodesDeleted(), queryStatistics.relationshipsDeleted())
     }
 
     fun deleteEntityAttributes(entityId: URI): Pair<Int, Int> {
@@ -402,11 +390,8 @@ class Neo4jRepository(
             DETACH DELETE prop, relOfProp, propOfProp, rel, propOfRel, relOfRel
             """.trimIndent()
 
-        val parameters = mapOf(
-            "entityId" to entityId
-        )
-        val queryStatistics = session.query(query, parameters).queryStatistics()
-        return Pair(queryStatistics.nodesDeleted, queryStatistics.relationshipsDeleted)
+        val queryStatistics = neo4jClient.query(query).bind(entityId.toString()).to("entityId").run().counters()
+        return Pair(queryStatistics.nodesDeleted(), queryStatistics.relationshipsDeleted())
     }
 
     fun deleteEntityProperty(
@@ -429,20 +414,22 @@ class Neo4jRepository(
         else if (datasetId == null)
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName })
-            WHERE NOT EXISTS (attribute.datasetId)
-            """.trimIndent()
+            WHERE attribute.datasetId IS NULL
+            """
         else
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectNodeInfo.id,
+            "entityId" to subjectNodeInfo.id.toString(),
             "propertyName" to propertyName,
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
+        return neo4jClient.query(matchQuery + deleteAttributeQuery)
+            .bindAll(parameters)
+            .run().counters().nodesDeleted()
     }
 
     fun deleteEntityRelationship(
@@ -465,7 +452,7 @@ class Neo4jRepository(
         else if (datasetId == null)
             """
             MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_OBJECT]->(attribute:Relationship)-[:$relationshipType]->()
-            WHERE NOT EXISTS (attribute.datasetId)
+            WHERE attribute.datasetId IS NULL 
             """.trimIndent()
         else
             """
@@ -473,11 +460,11 @@ class Neo4jRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectNodeInfo.id,
+            "entityId" to subjectNodeInfo.id.toString(),
             "datasetId" to datasetId?.toString()
         )
 
-        return session.query(matchQuery + deleteAttributeQuery, parameters).queryStatistics().nodesDeleted
+        return neo4jClient.query(matchQuery + deleteAttributeQuery).bindAll(parameters).run().counters().nodesDeleted()
     }
 
     fun getEntityTypeAttributesInformation(expandedType: String): Map<String, Any> {
@@ -496,15 +483,15 @@ class Neo4jRepository(
                     reduce(output = [], r IN collect(distinct labels(rel)) | output + r) as relationshipNames
             """.trimIndent()
 
-        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        val result = neo4jClient.query(query).fetch().all()
         if (result.isEmpty())
             return emptyMap()
 
         val entityCount = (result.first()["entityCount"] as Long).toInt()
         val entityWithLocationCount = (result.first()["entityWithLocationCount"] as Long).toInt()
         return mapOf(
-            "properties" to (result.first()["propertyNames"] as Array<Any>).toSet(),
-            "relationships" to (result.first()["relationshipNames"] as Array<Any>)
+            "properties" to (result.first()["propertyNames"] as List<String>).toSet(),
+            "relationships" to (result.first()["relationshipNames"] as List<String>)
                 .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
             "geoProperties" to
                 if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet(),
@@ -525,16 +512,16 @@ class Neo4jRepository(
                     count(entity.location) as entityWithLocationCount
             """.trimIndent()
 
-        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
-            val entityTypes = (rowResult["entityType"] as Array<String>)
+            val entityTypes = (rowResult["entityType"] as List<String>)
                 .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
             entityTypes.map { entityType ->
                 mapOf(
                     "entityType" to entityType,
-                    "properties" to (rowResult["propertyNames"] as Array<Any>).toSet(),
-                    "relationships" to (rowResult["relationshipNames"] as Array<Any>)
+                    "properties" to (rowResult["propertyNames"] as List<Any>).toSet(),
+                    "relationships" to (rowResult["relationshipNames"] as List<Any>)
                         .filter { it !in listOf("Attribute", "Relationship") }.toSet(),
                     "geoProperties" to
                         if (entityWithLocationCount > 0) setOf(NGSILD_LOCATION_PROPERTY) else emptySet()
@@ -550,9 +537,9 @@ class Neo4jRepository(
                 RETURN DISTINCT(labels(entity)) as entityType
             """.trimIndent()
 
-        val result = session.query(query, emptyMap<String, Any>(), true).toList()
+        val result = neo4jClient.query(query).fetch().all()
         return result.map {
-            (it["entityType"] as Array<String>)
+            (it["entityType"] as List<String>)
                 .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
         }.flatten()
     }
@@ -564,62 +551,10 @@ class Neo4jRepository(
 
         val query = "MATCH (entity:Entity) WHERE entity.id IN \$entitiesIds RETURN entity.id as id"
 
-        return session.query(query, mapOf("entitiesIds" to entitiesIds.toListOfString()), true)
-            .map { (it["id"] as String).toUri() }
-    }
-
-    fun getPropertyOfSubject(subjectId: URI, propertyName: String, datasetId: URI? = null): Property {
-        val query = if (datasetId == null)
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName" })
-            WHERE NOT EXISTS (p.datasetId)
-            RETURN p
-            """.trimIndent()
-        else
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_VALUE]->(p:Property { name: "$propertyName", datasetId: "$datasetId" })
-            RETURN p
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["p"] as Property }
-            .first()
-    }
-
-    fun getRelationshipOfSubject(subjectId: URI, relationshipType: String, datasetId: URI? = null): Relationship {
-        val query = if (datasetId == null)
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->()
-            RETURN r
-            """.trimIndent()
-        else
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship { datasetId: "$datasetId" })
-            -[:$relationshipType]->()
-            RETURN r
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["r"] as Relationship }
-            .first()
-    }
-
-    fun getRelationshipTargetOfSubject(subjectId: URI, relationshipType: String, datasetId: URI? = null): Entity? {
-        val query = if (datasetId == null)
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship)-[:$relationshipType]->(e: Entity)
-            RETURN e
-            """.trimIndent()
-        else
-            """
-            MATCH ({ id: '$subjectId' })-[:HAS_OBJECT]->(r:Relationship { datasetId: "$datasetId" })
-          -[:$relationshipType]->(e: Entity)
-            RETURN e
-            """.trimIndent()
-
-        return session.query(query, emptyMap<String, Any>(), true).toMutableList()
-            .map { it["e"] as Entity }
-            .firstOrNull()
+        return neo4jClient.query(query).bind(entitiesIds.toListOfString()).to("entitiesIds")
+            .mappedBy { _, record -> (record["id"].asString()).toUri() }
+            .all()
+            .toList()
     }
 
     private val deleteAttributeQuery =
@@ -635,29 +570,4 @@ class Neo4jRepository(
         AuthorizationService.AUTHORIZATION_ONTOLOGY + "Client",
         AuthorizationService.AUTHORIZATION_ONTOLOGY + "Group"
     )
-
-    @PostConstruct
-    fun addEventListenerToSessionFactory() {
-        val eventListener = PreSaveEventListener()
-        sessionFactory.register(eventListener)
-    }
-}
-
-class PreSaveEventListener : EventListenerAdapter() {
-    override fun onPreSave(event: Event) {
-        when (event.getObject()) {
-            is Entity -> {
-                val entity = event.getObject() as Entity
-                entity.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
-            }
-            is Property -> {
-                val property = event.getObject() as Property
-                property.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
-            }
-            is Relationship -> {
-                val relationship = event.getObject() as Relationship
-                relationship.modifiedAt = Instant.now().atZone(ZoneOffset.UTC)
-            }
-        }
-    }
 }

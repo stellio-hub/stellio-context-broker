@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.time.ZonedDateTime
 
-@SpringBootTest
+@SpringBootTest(classes = [QueryService::class])
 @ActiveProfiles("test")
 @ExperimentalCoroutinesApi
 class QueryServiceTests {
@@ -61,7 +61,7 @@ class QueryServiceTests {
         val exception = assertThrows<BadRequestDataException> {
             queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
         }
-        Assertions.assertEquals(
+        assertEquals(
             "'timerel' and 'time' must be used in conjunction",
             exception.message
         )
@@ -76,7 +76,7 @@ class QueryServiceTests {
         val exception = assertThrows<BadRequestDataException> {
             queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
         }
-        Assertions.assertEquals(
+        assertEquals(
             "Either type or attrs need to be present in request parameters",
             exception.message
         )
@@ -95,7 +95,7 @@ class QueryServiceTests {
 
         val parsedParams = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
 
-        Assertions.assertEquals(
+        assertEquals(
             parsedParams,
             mapOf(
                 "ids" to setOf(entityUri, secondEntityUri),

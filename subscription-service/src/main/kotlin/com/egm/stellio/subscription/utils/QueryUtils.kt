@@ -7,7 +7,6 @@ import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import org.slf4j.LoggerFactory
 
 object QueryUtils {
 
@@ -17,8 +16,6 @@ object QueryUtils {
     const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
     const val PROPERTY_TYPE = "\"Property\""
     const val RELATIONSHIP_TYPE = "\"Relationship\""
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     /**
      * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.

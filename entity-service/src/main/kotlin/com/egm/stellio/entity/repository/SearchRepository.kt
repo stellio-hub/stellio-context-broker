@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.shared.model.QueryParams
+import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
 interface SearchRepository {
@@ -17,6 +18,7 @@ interface SearchRepository {
      *  @property first count of all matching entities in the database.
      *  @property second list of matching entities ids as requested by pagination sorted by entity id.
      */
+    @Transactional(readOnly = true)
     fun getEntities(
         queryParams: QueryParams,
         userSub: String,

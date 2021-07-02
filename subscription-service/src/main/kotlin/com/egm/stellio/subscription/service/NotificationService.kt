@@ -73,12 +73,13 @@ class NotificationService(
             request = request.contentType(MediaType.APPLICATION_JSON)
             return request
                 .bodyValue(serializeObject(notification))
-                .exchange()
-                .doOnError { e -> logger.error("Failed to send notification to $uri : ${e.message}") }
-                .map {
-                    val success = it.statusCode() == HttpStatus.OK
+                .exchangeToMono { response ->
+                    val success = response.statusCode() == HttpStatus.OK
                     logger.info("The notification sent has been received with ${if (success) "success" else "failure"}")
-                    Triple(subscription, notification, success)
+                    if (!success) {
+                        logger.error("Failed to send notification to $uri : ${response.statusCode()}")
+                    }
+                    Mono.just(Triple(subscription, notification, success))
                 }
                 .doOnNext {
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()

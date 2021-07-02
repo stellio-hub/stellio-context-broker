@@ -7,7 +7,8 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoders
 
 /**
- * This configuration class was added since handlers tests (when importing a customSecurityConfiguration) requires defining a bean of type ReactiveJwtDecoder.
+ * This configuration class was added since handlers tests (when importing a customSecurityConfiguration)
+ * requires defining a bean of type ReactiveJwtDecoder.
  */
 @TestConfiguration
 class WebSecurityTestConfig : WebSecurityConfig() {

@@ -1664,7 +1664,7 @@ class EntityHandlerTests {
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Unexpected error while parsing payload : loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld"
+                    "detail": "Unexpected error while parsing payload (cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld)"
                 }
                 """.trimIndent()
             )

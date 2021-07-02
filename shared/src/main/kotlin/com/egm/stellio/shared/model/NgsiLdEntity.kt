@@ -278,25 +278,25 @@ class NgsiLdGeoPropertyInstance(
         // TODO this lacks sanity checks
         private fun extractCoordinates(geoPropertyType: GeoPropertyType, geoPropertyValue: Map<String, List<Any>>):
             List<Any> {
-                val coordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
-                if (geoPropertyType == GeoPropertyType.Point) {
-                    val longitude = (coordinates[0] as Map<String, Double>)["@value"]!!
-                    val latitude = (coordinates[1] as Map<String, Double>)["@value"]!!
-                    return listOf(longitude, latitude)
-                } else {
-                    val res = arrayListOf<List<Double?>>()
-                    var count = 1
-                    coordinates.forEach {
-                        if (count % 2 != 0) {
-                            val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]!!
-                            val latitude = (coordinates[count] as Map<String, Double>)["@value"]!!
-                            res.add(listOf(longitude, latitude))
-                        }
-                        count++
+            val coordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
+            if (geoPropertyType == GeoPropertyType.Point) {
+                val longitude = (coordinates[0] as Map<String, Double>)["@value"]!!
+                val latitude = (coordinates[1] as Map<String, Double>)["@value"]!!
+                return listOf(longitude, latitude)
+            } else {
+                val res = arrayListOf<List<Double?>>()
+                var count = 1
+                coordinates.forEach {
+                    if (count % 2 != 0) {
+                        val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]!!
+                        val latitude = (coordinates[count] as Map<String, Double>)["@value"]!!
+                        res.add(listOf(longitude, latitude))
                     }
-                    return res
+                    count++
                 }
+                return res
             }
+        }
 
         fun toWktFormat(geoPropertyType: GeoPropertyType, coordinates: List<Any>): String {
             return if (geoPropertyType == GeoPropertyType.Point) {

@@ -54,8 +54,8 @@ class SubscriptionHandlerServiceTests {
         val mockkedProperty = mockkClass(Property::class)
 
         every { entityService.exists(any()) } returns false
-        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
-        every { entityRepository.save<Entity>(any()) } returns mockkedSubscription
+        every { propertyRepository.save(any()) } returns mockkedProperty
+        every { entityRepository.save(any()) } returns mockkedSubscription
 
         subscriptionHandlerService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
 
@@ -88,13 +88,13 @@ class SubscriptionHandlerServiceTests {
     fun `it should delete a subscription`() {
         val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
 
-        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
+        every { entityRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
         every { entityService.deleteEntity(any()) } returns Pair(2, 1)
 
         subscriptionHandlerService.deleteSubscriptionEntity(subscriptionId)
 
         verify {
-            neo4jRepository.getRelationshipTargetOfSubject(
+            entityRepository.getRelationshipTargetOfSubject(
                 eq(subscriptionId),
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
@@ -109,7 +109,7 @@ class SubscriptionHandlerServiceTests {
         val subscriptionId = "urn:ngsi-ld:Subscription:04".toUri()
         val notificationId = "urn:ngsi-ld:Notification:01".toUri()
 
-        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } answers {
+        every { entityRepository.getRelationshipTargetOfSubject(any(), any()) } answers {
             mockkClass(Entity::class, relaxed = true) {
                 every { id } returns notificationId
             }
@@ -119,7 +119,7 @@ class SubscriptionHandlerServiceTests {
         subscriptionHandlerService.deleteSubscriptionEntity(subscriptionId)
 
         verify {
-            neo4jRepository.getRelationshipTargetOfSubject(
+            entityRepository.getRelationshipTargetOfSubject(
                 eq(subscriptionId),
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
@@ -143,9 +143,9 @@ class SubscriptionHandlerServiceTests {
         val mockkedProperty = mockkClass(Property::class)
 
         every { entityRepository.getEntityCoreById(any()) } returns mockkedSubscription
-        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
-        every { entityRepository.save<Entity>(any()) } returns mockkedNotification
-        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
+        every { propertyRepository.save(any()) } returns mockkedProperty
+        every { entityRepository.save(any()) } returns mockkedNotification
+        every { entityRepository.getRelationshipTargetOfSubject(any(), any()) } returns null
         every { mockkedSubscription.id } returns subscriptionId
         every { neo4jRepository.createRelationshipOfSubject(any(), any(), any()) } returns true
 
@@ -157,7 +157,7 @@ class SubscriptionHandlerServiceTests {
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
-            neo4jRepository.getRelationshipTargetOfSubject(
+            entityRepository.getRelationshipTargetOfSubject(
                 subscriptionId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
@@ -183,15 +183,15 @@ class SubscriptionHandlerServiceTests {
         val mockkedRelationship = mockkClass(Relationship::class)
 
         every { entityRepository.getEntityCoreById(any()) } returns mockkedSubscription
-        every { propertyRepository.save<Property>(any()) } returns mockkedProperty
-        every { entityRepository.save<Entity>(any()) } returns mockkedNotification
-        every { neo4jRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedLastNotification
-        every { neo4jRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
+        every { propertyRepository.save(any()) } returns mockkedProperty
+        every { entityRepository.save(any()) } returns mockkedNotification
+        every { entityRepository.getRelationshipTargetOfSubject(any(), any()) } returns mockkedLastNotification
+        every { relationshipRepository.getRelationshipOfSubject(any(), any()) } returns mockkedRelationship
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedNotification.id } returns notificationId
         every { mockkedLastNotification.id } returns lastNotificationId
         every { neo4jRepository.updateTargetOfRelationship(any(), any(), any(), any()) } returns 1
-        every { relationshipRepository.save<Relationship>(any()) } returns mockkedRelationship
+        every { relationshipRepository.save(any()) } returns mockkedRelationship
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
 
         subscriptionHandlerService.createNotificationEntity(
@@ -202,13 +202,13 @@ class SubscriptionHandlerServiceTests {
         verify { propertyRepository.save(any<Property>()) }
         verify { entityRepository.save(any<Entity>()) }
         verify {
-            neo4jRepository.getRelationshipTargetOfSubject(
+            entityRepository.getRelationshipTargetOfSubject(
                 subscriptionId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
         }
         verify {
-            neo4jRepository.getRelationshipOfSubject(
+            relationshipRepository.getRelationshipOfSubject(
                 subscriptionId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )

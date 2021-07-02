@@ -4,16 +4,16 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.toUri
-import org.neo4j.ogm.session.Session
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
 import java.net.URI
 
 @Component
 @ConditionalOnProperty("application.authentication.enabled")
 class Neo4jSearchRepository(
-    private val session: Session,
-    private val neo4jAuthorizationService: Neo4jAuthorizationService
+    private val neo4jAuthorizationService: Neo4jAuthorizationService,
+    private val neo4jClient: Neo4jClient
 ) : SearchRepository {
 
     override fun getEntities(
@@ -28,7 +28,7 @@ class Neo4jSearchRepository(
         else
             QueryUtils.prepareQueryForEntitiesWithAuthentication(queryParams, page, limit, contexts)
 
-        val result = session.query(query, mapOf("userId" to USER_PREFIX + userSub), true)
+        val result = neo4jClient.query(query).bind(USER_PREFIX + userSub).to("userId").fetch().all()
         return if (limit == 0)
             Pair(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,

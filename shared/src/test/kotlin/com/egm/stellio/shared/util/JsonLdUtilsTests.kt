@@ -157,7 +157,8 @@ class JsonLdUtilsTests {
             parseAndExpandJsonLdFragment(rawEntity)
         }
         assertEquals(
-            "Unexpected error while parsing payload : loading remote context failed: unknownContext",
+            "Unexpected error while parsing payload " +
+                "(cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: unknownContext)",
             exception.message
         )
     }

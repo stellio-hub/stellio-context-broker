@@ -14,8 +14,8 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
-    implementation("com.jayway.jsonpath:json-path:2.5.0")
     implementation("io.r2dbc:r2dbc-postgresql")
+    implementation("com.jayway.jsonpath:json-path:2.5.0")
     implementation(project(":shared"))
     // firebase SDK
     implementation("com.google.firebase:firebase-admin:6.12.2")
@@ -25,6 +25,8 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
 }
 

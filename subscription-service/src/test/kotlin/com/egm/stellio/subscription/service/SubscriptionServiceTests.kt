@@ -3,11 +3,12 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.config.TimescaleBasedTests
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.NotificationParams.*
+import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.verify
@@ -15,10 +16,9 @@ import junit.framework.TestCase.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.net.URI
@@ -27,7 +27,7 @@ import java.time.ZoneOffset
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubscriptionServiceTests : TimescaleBasedTests() {
+class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Value("\${application.jsonld.apic_context}")
     val apicContext: String = ""
@@ -39,7 +39,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
-    private val MOCK_USER_SUB = "mock-user-sub"
+    private val mockUserSub = "mock-user-sub"
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI
@@ -62,13 +62,13 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     }
 
     private fun createSubscription(subscription: Subscription): URI {
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
         return subscription.id
     }
 
     private fun createSubscription1() {
         val subscription = gimmeRawSubscription(
-            withQueryAndGeoQuery = Pair(true, false),
+            withQueryAndGeoQuery = Pair(first = true, second = false),
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
@@ -163,7 +163,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             )
         )
 
-        val creationResult = subscriptionService.create(subscription, MOCK_USER_SUB)
+        val creationResult = subscriptionService.create(subscription, mockUserSub)
 
         StepVerifier.create(creationResult)
             .expectNext(2)
@@ -172,14 +172,14 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
         // TODO this is not totally satisfying but well it's a first check that our inserts are triggered
         verify {
-            databaseClient.execute(
+            databaseClient.sql(
                 match<String> {
                     it.startsWith("INSERT INTO subscription")
                 }
             )
         }
         verify(atLeast = 2) {
-            databaseClient.execute(
+            databaseClient.sql(
                 match<String> {
                     """
                     INSERT INTO entity_info (id, id_pattern, type, subscription_id)
@@ -189,7 +189,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             )
         }
         verify(atLeast = 1) {
-            databaseClient.execute(
+            databaseClient.sql(
                 match<String> {
                     """
                     INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id)
@@ -217,12 +217,16 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                         null
                     ) &&
                     it.entities.size == 2 &&
-                    it.entities.any {
-                        it.type == "Beekeeper" &&
-                            it.id == null &&
-                            it.idPattern == "urn:ngsi-ld:Beekeeper:1234*"
+                    it.entities.any { entityInfo ->
+                        entityInfo.type == "Beekeeper" &&
+                            entityInfo.id == null &&
+                            entityInfo.idPattern == "urn:ngsi-ld:Beekeeper:1234*"
                     } &&
-                    it.entities.any { it.type == "Beehive" && it.id == null && it.idPattern == null } &&
+                    it.entities.any { entityInfo ->
+                        entityInfo.type == "Beehive" &&
+                            entityInfo.id == null &&
+                            entityInfo.idPattern == null
+                    } &&
                     it.geoQ == null
             }
             .verifyComplete()
@@ -355,7 +359,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
         )
         val notifiedAt = Instant.now().atZone(ZoneOffset.UTC)
 
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
         subscriptionService.updateSubscriptionNotification(
             subscription,
             Notification(subscriptionId = subscription.id, notifiedAt = notifiedAt, data = emptyList()),
@@ -377,19 +381,18 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     fun `it should delete an existing subscription`() {
         val subscription = gimmeRawSubscription()
 
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
 
-        val deletionResult = subscriptionService.delete(subscription.id).block()
-
-        assertEquals(deletionResult, 1)
+        StepVerifier.create(subscriptionService.delete(subscription.id))
+            .expectNext(1)
+            .verifyComplete()
     }
 
     @Test
     fun `it should not delete an unknown subscription`() {
-        val deletionResult = subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription".toUri())
-            .block()
-
-        assertEquals(deletionResult, 0)
+        StepVerifier.create(subscriptionService.delete("urn:ngsi-ld:Subscription:UnknownSubscription".toUri()))
+            .expectNext(0)
+            .verifyComplete()
     }
 
     @Test
@@ -525,7 +528,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             watchedAttributes = null
         )
 
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
@@ -551,7 +554,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             watchedAttributes = listOf("incoming", "outgoing", "temperature")
         )
 
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
@@ -577,7 +580,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             watchedAttributes = listOf("outgoing", "temperature")
         )
 
-        subscriptionService.create(subscription, MOCK_USER_SUB).block()
+        subscriptionService.create(subscription, mockUserSub).block()
 
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
@@ -602,7 +605,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
                 "q" to "foodQuantity>=150",
                 "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
             ),
-            listOf(apicContext)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         subscriptionService.update(subscription4Id, parsedInput).block()
@@ -634,7 +637,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             )
         )
 
-        subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(apicContext)).block()
+        subscriptionService.updateNotification(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).block()
         val updateResult = subscriptionService.getById(subscription4Id)
 
         StepVerifier.create(updateResult)
@@ -664,7 +667,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
             )
         )
 
-        subscriptionService.updateEntities(subscription4Id, parsedInput, listOf(apicContext)).doOnNext {
+        subscriptionService.updateEntities(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).doOnNext {
             val updateResult = subscriptionService.getById(subscription4Id)
 
             StepVerifier.create(updateResult)
@@ -691,7 +694,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should activate a subscription`() {
-        val parsedInput = Pair(mapOf("isActive" to true), listOf(apicContext))
+        val parsedInput = Pair(mapOf("isActive" to true), listOf(APIC_COMPOUND_CONTEXT))
 
         subscriptionService.update(subscription3Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription3Id)
@@ -704,7 +707,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should deactivate a subscription`() {
-        val parsedInput = Pair(mapOf("isActive" to false), listOf(apicContext))
+        val parsedInput = Pair(mapOf("isActive" to false), listOf(APIC_COMPOUND_CONTEXT))
 
         subscriptionService.update(subscription1Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription1Id)
@@ -719,7 +722,7 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
     @Test
     fun `it should update a subscription watched attributes`() {
         val parsedInput =
-            Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(apicContext))
+            Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(APIC_COMPOUND_CONTEXT))
 
         subscriptionService.update(subscription5Id, parsedInput).block()
         val updateResult = subscriptionService.getById(subscription5Id)
@@ -734,22 +737,22 @@ class SubscriptionServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should throw a BadRequestData exception if the subscription has an unknown attribute`() {
-        val parsedInput = Pair(mapOf("unknownAttribute" to "unknownValue"), listOf(apicContext))
+        val parsedInput = Pair(mapOf("unknownAttribute" to "unknownValue"), listOf(APIC_COMPOUND_CONTEXT))
 
         StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
             .expectErrorMatches { throwable ->
-                throwable.cause is BadRequestDataException
+                throwable is BadRequestDataException
             }
             .verify()
     }
 
     @Test
     fun `it should throw a NotImplemented exception if the subscription has an unsupported attribute`() {
-        val parsedInput = Pair(mapOf("throttling" to "someValue"), listOf(apicContext))
+        val parsedInput = Pair(mapOf("throttling" to "someValue"), listOf(APIC_COMPOUND_CONTEXT))
 
         StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
             .expectErrorMatches { throwable ->
-                throwable.cause is NotImplementedException
+                throwable is NotImplementedException
             }
             .verify()
     }

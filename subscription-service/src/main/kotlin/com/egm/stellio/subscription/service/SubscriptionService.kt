@@ -24,10 +24,13 @@ import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.r2dbc.core.bind
-import org.springframework.data.relational.core.query.Criteria
+import org.springframework.data.relational.core.query.Criteria.where
+import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
@@ -41,6 +44,7 @@ import java.time.ZonedDateTime
 @Component
 class SubscriptionService(
     private val databaseClient: DatabaseClient,
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val subscriptionRepository: SubscriptionRepository
 ) {
 
@@ -56,7 +60,7 @@ class SubscriptionService(
             :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
             """.trimIndent()
 
-        return databaseClient.execute(insertStatement)
+        return databaseClient.sql(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
             .bind("name", subscription.name)
@@ -94,7 +98,7 @@ class SubscriptionService(
     }
 
     private fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             INSERT INTO entity_info (id, id_pattern, type, subscription_id) 
             VALUES (:id, :id_pattern, :type, :subscription_id)
@@ -116,7 +120,7 @@ class SubscriptionService(
                     else -> geoQuery.coordinates
                 }
 
-            databaseClient.execute(
+            databaseClient.sql(
                 """
                 INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) 
                 VALUES (:georel, :geometry, :coordinates, :subscription_id)
@@ -145,7 +149,7 @@ class SubscriptionService(
             WHERE subscription.id = :id
             """.trimIndent()
 
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("id", id)
             .map(rowToSubscription)
             .all()
@@ -162,7 +166,7 @@ class SubscriptionService(
             WHERE id = :id
             """.trimIndent()
 
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
             .map(rowToSub)
             .first()
@@ -224,18 +228,16 @@ class SubscriptionService(
         value: Any?
     ): Mono<Int> {
         val updateStatement = Update.update(columnName, value)
-        return databaseClient.update()
-            .table("subscription")
-            .using(updateStatement)
-            .matching(Criteria.where("id").`is`(subscriptionId))
-            .fetch()
-            .rowsUpdated()
+        return r2dbcEntityTemplate.update(Subscription::class.java)
+            .matching(query(where("id").`is`(subscriptionId)))
+            .apply(updateStatement)
             .doOnError { e ->
                 throw BadRequestDataException(
                     e.message ?: "Could not update attribute $attributeName"
                 )
             }
     }
+
     fun updateGeometryQuery(subscriptionId: URI, geoQuery: Map<String, Any>): Mono<Int> {
         try {
             val firstValue = geoQuery.entries.iterator().next()
@@ -244,12 +246,11 @@ class SubscriptionService(
                 updateStatement = updateStatement.set(it.key, it.value.toString())
             }
 
-            return databaseClient.update()
-                .table("geometry_query")
-                .using(updateStatement)
-                .matching(Criteria.where("subscription_id").`is`(subscriptionId))
-                .fetch()
-                .rowsUpdated()
+            return r2dbcEntityTemplate.update(
+                query(where("subscription_id").`is`(subscriptionId)),
+                updateStatement,
+                GeoQuery::class.java
+            )
                 .doOnError { e ->
                     throw BadRequestDataException(e.message ?: "Could not update the Geometry query")
                 }
@@ -275,12 +276,11 @@ class SubscriptionService(
                 }
             }
 
-            return databaseClient.update()
-                .table("subscription")
-                .using(updateStatement)
-                .matching(Criteria.where("id").`is`(subscriptionId))
-                .fetch()
-                .rowsUpdated()
+            return r2dbcEntityTemplate.update(
+                query(where("id").`is`(subscriptionId)),
+                updateStatement,
+                Subscription::class.java
+            )
                 .doOnError { e ->
                     throw BadRequestDataException(e.message ?: "Could not update the Notification")
                 }
@@ -338,25 +338,17 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: URI): Mono<Int> {
-        val deleteStatement =
-            """
-            DELETE FROM subscription 
-            WHERE subscription.id = :id
-            """.trimIndent()
-
-        return databaseClient.execute(deleteStatement)
-            .bind("id", subscriptionId)
-            .fetch()
-            .rowsUpdated()
-    }
+    fun delete(subscriptionId: URI): Mono<Int> =
+        r2dbcEntityTemplate.delete(
+            query(where("id").`is`(subscriptionId)),
+            Subscription::class.java
+        )
 
     fun deleteEntityInfo(subscriptionId: URI): Mono<Int> =
-        databaseClient.delete()
-            .from("entity_info")
-            .matching(Criteria.where("subscription_id").`is`(subscriptionId))
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(
+            query(where("subscription_id").`is`(subscriptionId)),
+            EntityInfo::class.java
+        )
 
     fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
         val selectStatement =
@@ -378,7 +370,7 @@ class SubscriptionService(
                 limit :limit
                 offset :offset)
             """.trimIndent()
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
             .bind("sub", sub)
@@ -400,7 +392,7 @@ class SubscriptionService(
             SELECT count(*) from subscription
             WHERE subscription.sub = :sub
             """.trimIndent()
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("sub", sub)
             .map(rowToSubscriptionCount)
             .first()
@@ -422,7 +414,7 @@ class SubscriptionService(
                 AND (entity_info.id_pattern IS NULL OR :id ~ entity_info.id_pattern)
             )
             """.trimIndent()
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("id", id)
             .bind("type", type)
             .bind("updatedAttributes", updatedAttributes)
@@ -471,14 +463,14 @@ class SubscriptionService(
             FROM geometry_query 
             WHERE subscription_id = :sub_id
             """.trimIndent()
-        return databaseClient.execute(selectStatement)
+        return databaseClient.sql(selectStatement)
             .bind("sub_id", subscriptionId)
             .map(rowToGeoQuery)
             .first()
     }
 
     fun runGeoQueryStatement(geoQueryStatement: String): Mono<Boolean> {
-        return databaseClient.execute(geoQueryStatement.trimIndent())
+        return databaseClient.sql(geoQueryStatement.trimIndent())
             .map(matchesGeoQuery)
             .first()
     }
@@ -496,12 +488,11 @@ class SubscriptionService(
             .set("last_notification", notification.notifiedAt)
             .set(lastStatusName, notification.notifiedAt)
 
-        return databaseClient.update()
-            .table("subscription")
-            .using(updateStatement)
-            .matching(Criteria.where("id").`is`(subscription.id))
-            .fetch()
-            .rowsUpdated()
+        return r2dbcEntityTemplate.update(
+            query(where("id").`is`(subscription.id)),
+            updateStatement,
+            Subscription::class.java
+        )
     }
 
     private var rowToSubscription: ((Row) -> Subscription) = { row ->

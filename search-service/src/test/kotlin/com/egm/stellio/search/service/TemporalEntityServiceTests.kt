@@ -21,7 +21,7 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@SpringBootTest
+@SpringBootTest(classes = [TemporalEntityService::class])
 @ActiveProfiles("test")
 class TemporalEntityServiceTests {
 

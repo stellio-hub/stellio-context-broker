@@ -13,13 +13,13 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
-    implementation("org.neo4j:neo4j-ogm-bolt-native-types")
-    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.0.13")
+    implementation("eu.michael-simons.neo4j:neo4j-migrations-spring-boot-starter:0.1.4")
     implementation(project(":shared"))
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
     testImplementation("org.hamcrest:hamcrest:2.2")
+    testImplementation("org.testcontainers:neo4j")
     testImplementation(testFixtures(project(":shared")))
 }
 
@@ -32,7 +32,8 @@ tasks.bootRun {
 jib.from.image = "adoptopenjdk/openjdk11:alpine-jre"
 jib.to.image = "stellio/stellio-entity-service"
 jib.container.entrypoint = listOf(
-    "/bin/sh", "-c",
+    "/bin/sh",
+    "-c",
     "/database/wait-for-neo4j.sh neo4j:7687 -t \$NEO4J_WAIT_TIMEOUT -- " +
         "java " +
         (project.ext["jibContainerJvmFlags"] as List<String>).joinToString(" ") +

@@ -16,7 +16,6 @@ the<DependencyManagementExtension>().apply {
 }
 
 dependencies {
-    testFixturesImplementation("org.testcontainers:testcontainers")
     testFixturesImplementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     testFixturesImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     testFixturesImplementation("org.springframework:spring-core")
@@ -24,7 +23,6 @@ dependencies {
     testFixturesImplementation("org.springframework.security:spring-security-test")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-test") {
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
     }

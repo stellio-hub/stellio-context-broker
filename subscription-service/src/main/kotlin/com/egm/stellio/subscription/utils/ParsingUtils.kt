@@ -71,7 +71,7 @@ object ParsingUtils {
 
     fun String.toSqlColumnName(): String =
         this.map {
-            if (it.isUpperCase()) "_${it.toLowerCase()}"
+            if (it.isUpperCase()) "_${it.lowercase()}"
             else it
         }.joinToString("")
 

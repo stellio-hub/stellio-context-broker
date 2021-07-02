@@ -18,10 +18,12 @@ class EntityService(
     private val consumer: (ClientCodecConfigurer) -> Unit =
         { configurer -> configurer.defaultCodecs().enableLoggingRequestDetails(true) }
 
-    private var webClient = WebClient.builder()
-        .exchangeStrategies(ExchangeStrategies.builder().codecs(consumer).build())
-        .baseUrl(applicationProperties.entity.serviceUrl.toString())
-        .build()
+    private val webClient by lazy {
+        WebClient.builder()
+            .exchangeStrategies(ExchangeStrategies.builder().codecs(consumer).build())
+            .baseUrl(applicationProperties.entity.serviceUrl.toString())
+            .build()
+    }
 
     fun getEntityById(entityId: URI, bearerToken: String): Mono<JsonLdEntity> =
         webClient.get()

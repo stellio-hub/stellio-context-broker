@@ -18,8 +18,10 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -564,6 +566,7 @@ class StandaloneNeo4jSearchRepositoryTests {
 
     @Test
     fun `it should return entities matching creation date only (without specifying a type)`() {
+        val now = Instant.now().atOffset(ZoneOffset.UTC)
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper")
@@ -573,7 +576,7 @@ class StandaloneNeo4jSearchRepositoryTests {
             listOf("Beekeeper")
         )
         val entitiesCount = searchRepository.getEntities(
-            QueryParams(q = "createdAt>2021-07-10T00:00:00Z"),
+            QueryParams(q = "createdAt>$now"),
             userId,
             page,
             limit,

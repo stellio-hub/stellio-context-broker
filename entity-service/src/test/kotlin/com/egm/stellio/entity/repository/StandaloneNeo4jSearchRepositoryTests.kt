@@ -533,6 +533,57 @@ class StandaloneNeo4jSearchRepositoryTests {
 
         assertFalse(entities.contains(firstEntity.id))
         assertTrue(entities.contains(secondEntity.id))
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return an entity matching creation date and an id (without specifying a type)`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper")
+        )
+        val entitiesCount = searchRepository.getEntities(
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), q = "createdAt>2021-07-10T00:00:00Z"),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).first
+
+        assertEquals(1, entitiesCount)
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
+    }
+
+    @Test
+    fun `it should return entities matching creation date only (without specifying a type)`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper")
+        )
+        val entitiesCount = searchRepository.getEntities(
+            QueryParams(q = "createdAt>2021-07-10T00:00:00Z"),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).first
+
+        assertEquals(2, entitiesCount)
+
+        neo4jRepository.deleteEntity(firstEntity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test

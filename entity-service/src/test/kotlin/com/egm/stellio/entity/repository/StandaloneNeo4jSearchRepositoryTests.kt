@@ -514,6 +514,28 @@ class StandaloneNeo4jSearchRepositoryTests {
     }
 
     @Test
+    fun `it should return an entity matching given id without specifying a type`() {
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper")
+        )
+        val entities = searchRepository.getEntities(
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertFalse(entities.contains(firstEntity.id))
+        assertTrue(entities.contains(secondEntity.id))
+    }
+
+    @Test
     fun `it should return entities matching given type and ids`() {
         val firstEntity = createEntity(
             beekeeperUri,

@@ -660,6 +660,21 @@ class EntityHandlerTests {
     }
 
     @Test
+    fun `get entities should allow a query not including a type request parameter`() {
+        every { entityService.exists(any()) } returns true
+        every { entityService.searchEntities(any(), any(), any(), any(), any<String>(), false) } returns Pair(
+            0,
+            emptyList()
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entities/?attrs=myProp")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+    }
+
+    @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
         every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(

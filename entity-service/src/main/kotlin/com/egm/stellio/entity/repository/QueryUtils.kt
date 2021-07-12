@@ -204,13 +204,18 @@ object QueryUtils {
                     comparablePropertyPath[1]
                 else
                     "value"
-                """
-                   EXISTS {
-                       MATCH (entity)-[:HAS_VALUE]->(p:Property)
-                       WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
-                       AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
-                   }
-                """.trimIndent()
+                if (listOf("createdAt", "modifiedAt").contains(parsedQueryTerm.first))
+                    """
+                        entity.${parsedQueryTerm.first} ${parsedQueryTerm.second} $comparableValue
+                    """.trimIndent()
+                else
+                    """
+                       EXISTS {
+                           MATCH (entity)-[:HAS_VALUE]->(p:Property)
+                           WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
+                           AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
+                       }
+                    """.trimIndent()
             }
         }
             .replace(";", " AND ")

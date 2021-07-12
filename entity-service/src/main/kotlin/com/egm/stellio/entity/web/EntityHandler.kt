@@ -135,7 +135,7 @@ class EntityHandler(
          * with the right parameters values
          */
         val countAndEntities = entityService.searchEntities(
-            QueryParams(ids, expandJsonLdKey(type as String, contextLink), idPattern, q?.decode()),
+            QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode()),
             userId,
             page,
             limit,

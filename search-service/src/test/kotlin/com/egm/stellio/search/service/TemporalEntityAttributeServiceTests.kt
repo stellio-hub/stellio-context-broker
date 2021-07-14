@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.loadSampleData
@@ -17,7 +18,6 @@ import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
@@ -38,9 +38,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
-
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
 
     val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
     val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
@@ -92,7 +89,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntity(
@@ -137,7 +134,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         StepVerifier.create(temporalReferencesResults)
@@ -172,7 +169,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         StepVerifier.create(temporalReferencesResults)
@@ -201,7 +198,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         StepVerifier.create(temporalReferencesResults)
@@ -220,7 +217,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         ).block()
 
         verify {
@@ -250,7 +247,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(), incomingAttrExpandedName
@@ -268,7 +265,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -287,7 +284,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
@@ -307,8 +304,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
-        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -339,8 +338,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
-        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -365,8 +366,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(apicContext!!)).block()
-        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
@@ -401,7 +404,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId).block()
 
@@ -424,7 +427,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         every {
             attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(any(), any(), any())
@@ -455,7 +458,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
 
-        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(apicContext!!)).block()
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
         every {
             attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(any(), any())

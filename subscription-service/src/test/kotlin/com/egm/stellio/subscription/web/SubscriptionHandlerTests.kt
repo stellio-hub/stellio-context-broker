@@ -38,9 +38,6 @@ import reactor.core.publisher.Mono
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
 
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
-
     @Autowired
     private lateinit var webClient: WebTestClient
 
@@ -168,7 +165,7 @@ class SubscriptionHandlerTests {
                         it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
                         it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
                         .toString(Charsets.UTF_8).removeNoise() &&
-                        it.contexts == listOf(apicContext!!)
+                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
                 }
             )
         }
@@ -410,7 +407,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
         val updatedSubscription = gimmeRawSubscription()
         every { subscriptionService.exists(any()) } returns Mono.just(true)
@@ -450,7 +447,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)

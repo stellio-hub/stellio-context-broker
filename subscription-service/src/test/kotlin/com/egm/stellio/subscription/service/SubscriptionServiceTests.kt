@@ -29,9 +29,6 @@ import java.time.ZoneOffset
 @ActiveProfiles("test")
 class SubscriptionServiceTests : WithTimescaleContainer {
 
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String = ""
-
     @Autowired
     private lateinit var subscriptionService: SubscriptionService
 

@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
@@ -53,9 +52,6 @@ class TemporalEntityHandlerTests {
     private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
     private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
-
     private lateinit var apicHeaderLink: String
 
     @Autowired
@@ -74,7 +70,7 @@ class TemporalEntityHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(apicContext!!)
+        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
         webClient = webClient.mutate()
             .defaultHeaders {
@@ -97,7 +93,7 @@ class TemporalEntityHandlerTests {
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(apicContext!!))
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue(jsonLdObservation))
             .exchange()
@@ -127,7 +123,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-            .header("Link", buildContextLinkHeader(apicContext!!))
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
@@ -509,7 +505,7 @@ class TemporalEntityHandlerTests {
                         it.getFirst("endTime") == "2019-10-18T07:31:39Z" &&
                         it.getFirst("type") == "BeeHive"
                 },
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
         coVerify {
@@ -518,7 +514,7 @@ class TemporalEntityHandlerTests {
                 setOf("BeeHive"),
                 temporalQuery,
                 false,
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
 
@@ -607,7 +603,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.size == 1)
         assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
@@ -620,7 +616,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.size == 2)
         assertTrue(
@@ -639,7 +635,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.isEmpty())
     }
@@ -651,7 +647,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.lastN == 2)
     }
@@ -663,7 +659,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertNull(temporalQuery.lastN)
     }
@@ -675,7 +671,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertNull(temporalQuery.lastN)
     }
@@ -684,7 +680,7 @@ class TemporalEntityHandlerTests {
     fun `it should treat time and timerel properties as optional`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)

@@ -10,7 +10,6 @@ import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.security.test.context.support.WithAnonymousUser
@@ -28,9 +27,6 @@ import java.time.ZonedDateTime
 @WithMockUser
 class TemporalEntityOperationsHandlerTests {
 
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
-
     private lateinit var apicHeaderLink: String
 
     @Autowired
@@ -41,7 +37,7 @@ class TemporalEntityOperationsHandlerTests {
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(apicContext!!)
+        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
         webClient = webClient.mutate()
             .defaultHeaders {
@@ -87,7 +83,7 @@ class TemporalEntityOperationsHandlerTests {
         verify {
             queryService.parseAndCheckQueryParams(
                 queryParams,
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
         coVerify {
@@ -96,7 +92,7 @@ class TemporalEntityOperationsHandlerTests {
                 setOf("BeeHive", "Apiary"),
                 temporalQuery,
                 true,
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
 

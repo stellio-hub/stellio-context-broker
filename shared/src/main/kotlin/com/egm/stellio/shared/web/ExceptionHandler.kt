@@ -50,7 +50,7 @@ class ExceptionHandler {
             )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")
+                InternalErrorResponse("$cause")
             )
         }
 

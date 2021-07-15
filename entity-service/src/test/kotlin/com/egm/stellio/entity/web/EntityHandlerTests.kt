@@ -163,9 +163,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(500)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                    "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Internal Server Exception\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title":"There has been an error during the operation execution",
+                      "detail":"InternalErrorException(message=Internal Server Exception)"
+                    }
+                    """
             )
     }
 
@@ -1793,9 +1797,13 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                    "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Unexpected server error\"}"
+                """
+                    {
+                      "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                      "title":"There has been an error during the operation execution",
+                      "detail":"java.lang.RuntimeException: Unexpected server error"
+                    }
+                    """
             )
     }
 

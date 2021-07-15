@@ -66,8 +66,6 @@ class EntityServiceTests {
             "@id" to mortalityRemovalServiceUri.toString(),
             "@type" to listOf("MortalityRemovalService")
         )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
         entityService.createEntity(sampleDataWithContext)

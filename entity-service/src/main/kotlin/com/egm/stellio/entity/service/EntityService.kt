@@ -9,10 +9,8 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -169,40 +167,50 @@ class EntityService(
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity? {
-        val entity = entityRepository.getEntityCoreById(entityId.toString()) ?: return null
+        val entity = entityRepository.findById(entityId)
+            .orElseThrow { ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
         val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
 
-        entityRepository.getEntitySpecificProperties(entityId.toString())
-            .groupBy {
-                (it["property"] as Property).id
-            }
-            .values
-            .map { buildPropertyFragment(it, entity.contexts, includeSysAttrs) }
-            .groupBy { it.first }
-            .mapValues { propertyInstances ->
-                propertyInstances.value.map { instanceFragment ->
-                    instanceFragment.second
+        entity.properties
+            .map { property ->
+                val serializedProperty = property.serializeCoreProperties(includeSysAttrs)
+
+                property.properties.forEach { innerProperty ->
+                    val serializedSubProperty = innerProperty.serializeCoreProperties(includeSysAttrs)
+                    serializedProperty[innerProperty.name] = serializedSubProperty
                 }
+
+                property.relationships.forEach { innerRelationship ->
+                    val serializedSubRelationship = serializeRelationship(innerRelationship, includeSysAttrs)
+                    serializedProperty[innerRelationship.relationshipType()] = serializedSubRelationship
+                }
+
+                Pair(property.name, serializedProperty)
             }
-            .forEach { property ->
-                resultEntity[property.key] = property.value
+            .groupBy({ it.first }, { it.second })
+            .forEach { (propertyName, propertyValues) ->
+                resultEntity[propertyName] = propertyValues
             }
 
-        entityRepository.getEntityRelationships(entityId.toString())
-            .groupBy {
-                (it["rel"] as Relationship).id
-            }.values
-            .map {
-                buildRelationshipFragment(it, entity.contexts, includeSysAttrs)
-            }
-            .groupBy { it.first }
-            .mapValues { relationshipInstances ->
-                relationshipInstances.value.map { instanceFragment ->
-                    instanceFragment.second
+        entity.relationships
+            .map { relationship ->
+                val serializedRelationship = serializeRelationship(relationship, includeSysAttrs)
+
+                relationship.properties.forEach { innerProperty ->
+                    val serializedSubProperty = innerProperty.serializeCoreProperties(includeSysAttrs)
+                    serializedRelationship[innerProperty.name] = serializedSubProperty
                 }
+
+                relationship.relationships.forEach { innerRelationship ->
+                    val serializedSubRelationship = serializeRelationship(innerRelationship, includeSysAttrs)
+                    serializedRelationship[innerRelationship.relationshipType()] = serializedSubRelationship
+                }
+
+                Pair(relationship.relationshipType(), serializedRelationship)
             }
-            .forEach { relationship ->
-                resultEntity[relationship.key] = relationship.value
+            .groupBy({ it.first }, { it.second })
+            .forEach { (relationshipName, relationshipValues) ->
+                resultEntity[relationshipName] = relationshipValues
             }
 
         return JsonLdEntity(resultEntity, entity.contexts)
@@ -210,87 +218,16 @@ class EntityService(
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
 
-    private fun buildPropertyFragment(
-        rawProperty: List<Map<String, Any>>,
-        contexts: List<String>,
-        includeSysAttrs: Boolean
-    ): Pair<String, Map<String, Any>> {
-        val property = rawProperty[0]["property"] as Property
-        val propertyKey = property.name
-        val propertyValues = property.serializeCoreProperties(includeSysAttrs)
-
-        rawProperty.filter { relEntry -> relEntry["propValue"] != null }
-            .forEach {
-                val propertyOfProperty = it["propValue"] as Property
-                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties(includeSysAttrs)
-            }
-
-        rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
-            .forEach {
-                val relationship = it["relOfProp"] as Relationship
-                val targetEntityId = it["relOfPropObjectId"] as String
-                val relationshipKey = (it["relType"] as String)
-                logger.debug("Adding relOfProp to $targetEntityId with type $relationshipKey")
-
-                val relationshipValue = mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntityId)
-                )
-                val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-                relationshipValues.putAll(relationshipValue)
-                val expandedRelationshipKey =
-                    expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
-                propertyValues[expandedRelationshipKey] = relationshipValues
-            }
-
-        return Pair(propertyKey, propertyValues)
-    }
-
-    private fun buildRelationshipFragment(
-        rawRelationship: List<Map<String, Any>>,
-        contexts: List<String>,
-        includeSysAttrs: Boolean
-    ): Pair<String, Map<String, Any>> {
-        val relationship = rawRelationship[0]["rel"] as Relationship
-        val primaryRelType = relationship.type[0]
-        val primaryRelation =
-            rawRelationship.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-        val relationshipTargetId = primaryRelation["relObjectId"] as String
-        val relationshipValue = mapOf(
-            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
-        )
-
-        val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-        relationshipValues.putAll(relationshipValue)
-
-        rawRelationship.filter { relEntry -> relEntry["propValue"] != null }
-            .forEach {
-                val propertyOfProperty = it["propValue"] as Property
-                relationshipValues[propertyOfProperty.name] =
-                    propertyOfProperty.serializeCoreProperties(includeSysAttrs)
-            }
-
-        rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
-            .forEach {
-                val relationship = it["relOfRel"] as Relationship
-                val innerRelType = (it["relOfRelType"] as String)
-                val innerTargetEntityId = it["relOfRelObjectId"] as String
-
-                val innerRelationship = mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
-                )
-
-                val innerRelationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-                innerRelationshipValues.putAll(innerRelationship)
-                val expandedInnerRelationshipType =
-                    expandRelationshipType(mapOf(innerRelType to relationshipValue), contexts)
-
-                relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
-            }
-
-        return Pair(primaryRelType, relationshipValues)
+    private fun serializeRelationship(relationship: Relationship, includeSysAttrs: Boolean): MutableMap<String, Any> {
+        val serializedRelationship = relationship.serializeCoreProperties(includeSysAttrs)
+        // TODO not perfect as it makes one more DB request per relationship to get the target entity id
+        val targetEntityId =
+            neo4jRepository.getTargetObjectIdOfRelationship(
+                relationship.id,
+                relationship.relationshipType().toRelationshipTypeName()
+            )
+        serializedRelationship[NGSILD_RELATIONSHIP_HAS_OBJECT] = mapOf(JSONLD_ID to targetEntityId.toString())
+        return serializedRelationship
     }
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity

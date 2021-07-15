@@ -248,13 +248,6 @@ object JsonLdUtils {
             }
     }
 
-    fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
-        val expKey = JsonLdProcessor.expand(relationship, jsonLdOptions)
-        return (expKey[0] as Map<String, Any>).keys.first()
-    }
-
     fun expandJsonLdKey(type: String, context: String): String? =
         expandJsonLdKey(type, listOf(context))
 

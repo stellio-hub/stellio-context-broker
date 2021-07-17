@@ -21,6 +21,7 @@ plugins {
     kotlin("kapt") version "1.5.20" apply false
     id("io.gitlab.arturbosch.detekt") version "1.17.1" apply false
     id("org.sonarqube") version "3.1.1"
+    jacoco
 }
 
 subprojects {
@@ -35,6 +36,7 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "kotlin-kapt")
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "jacoco")
 
     java.sourceCompatibility = JavaVersion.VERSION_11
 
@@ -122,6 +124,21 @@ subprojects {
             xml.enabled = true
             txt.enabled = false
             html.enabled = true
+        }
+    }
+
+    // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
+    jacoco {
+        toolVersion = "0.8.7"
+    }
+    tasks.test {
+        finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+    }
+    tasks.withType<JacocoReport> {
+        dependsOn(tasks.test) // tests are required to run before generating the report
+        reports {
+            xml.isEnabled = true
+            html.isEnabled = true
         }
     }
 

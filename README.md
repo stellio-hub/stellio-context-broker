@@ -16,10 +16,13 @@
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
 context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.02_60/gs_CIM009v010202p.pdf).
 
-This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for
-[Core Context](https://github.com/Fiware/catalogue/tree/master/core).
+Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
+FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
+platform components to accelerate the development of Smart Solutions. For more information check the FIWARE Catalogue entry for
+[Core Context](https://github.com/Fiware/catalogue/tree/master/core). The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
 
-The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
+You can find more info at the [FIWARE developers](https://developers.fiware.org/) website and the [FIWARE](https://fiware.org/) website.
+The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FIWARE Catalogue](https://catalogue.fiware.org/).
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
 | ------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |

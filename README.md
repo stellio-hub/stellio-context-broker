@@ -153,7 +153,7 @@ docker run stellio/stellio-entity-service:latest
 
 ## Usage
 
-To start using Stellio, you can follow the [API quick start](API_Quick_Start.md).
+To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).
 
 ## License
 

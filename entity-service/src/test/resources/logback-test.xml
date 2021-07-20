@@ -14,9 +14,9 @@
         </encoder>
     </appender>
 
-    <logger name="com.egm.stellio.entity" level="DEBUG"/>
-    <logger name="org.apache.zookeeper" level="WARN"/>
-    <logger name="kafka" level="WARN"/>
+    <logger name="com.egm.stellio" level="DEBUG"/>
+    <logger name="org.springframework.data.neo4j.core" level="DEBUG"/>
+    <logger name="org.springframework.data.neo4j.cypher" level="DEBUG" />
     <logger name="org.apache.kafka" level="WARN"/>
 
     <root level="INFO">

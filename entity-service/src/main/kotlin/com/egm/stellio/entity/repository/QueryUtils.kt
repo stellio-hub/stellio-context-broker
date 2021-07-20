@@ -20,10 +20,11 @@ object QueryUtils {
         limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q) = queryParams
+        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
         val formattedIds = id?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
+        val innerAttrsFilterQuery = buildInnerAttrsFilterQuery(expandedAttrs)
 
         val matchUserClause =
             """
@@ -45,11 +46,12 @@ object QueryUtils {
 
         val idPatternClause =
             when {
-                idPattern != null -> """
-                            AND entity.id =~ '$idPattern'
-                            ${if (innerQuery.isNotEmpty()) " AND " else ""}
-                        """
-                innerQuery.isNotEmpty() -> " AND "
+                idPattern != null ->
+                    """
+                    AND entity.id =~ '$idPattern'
+                    ${if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
+                    """
+                innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty() -> " AND "
                 else -> ""
             }
 
@@ -66,6 +68,7 @@ object QueryUtils {
             $idClause
             $idPatternClause
             $innerQuery
+            $innerAttrsFilterQuery
             return entity.id as entityId
             """.trimIndent()
 
@@ -77,6 +80,7 @@ object QueryUtils {
             $idClause
             $idPatternClause
             $innerQuery
+            $innerAttrsFilterQuery
             return entity.id as entityId
         """.trimIndent()
 
@@ -90,6 +94,7 @@ object QueryUtils {
             $idClause
             $idPatternClause
             $innerQuery
+            $innerAttrsFilterQuery
             return entity.id as entityId
             """.trimIndent()
 
@@ -126,10 +131,11 @@ object QueryUtils {
         limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q) = queryParams
+        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
         val formattedIds = id?.map { "'$it'" }
         val pattern = Pattern.compile("([^();|]+)")
         val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
+        val innerAttrsFilterQuery = buildInnerAttrsFilterQuery(expandedAttrs)
 
         val matchClause =
             if (expandedType == null)
@@ -138,14 +144,14 @@ object QueryUtils {
                 "MATCH (entity:`$expandedType`)"
 
         val whereClause =
-            if (innerQuery.isNotEmpty() || id != null || idPattern != null) " WHERE "
+            if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty() || id != null || idPattern != null) " WHERE "
             else ""
 
         val idClause =
             if (id != null)
                 """
                     entity.id in $formattedIds
-                    ${if (idPattern != null || innerQuery.isNotEmpty()) " AND " else ""}
+                    ${if (idPattern != null || innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
                 """
             else ""
 
@@ -153,7 +159,7 @@ object QueryUtils {
             if (idPattern != null)
                 """
                     entity.id =~ '$idPattern'
-                    ${if (innerQuery.isNotEmpty()) " AND " else ""}
+                    ${if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
                 """
             else ""
 
@@ -176,6 +182,7 @@ object QueryUtils {
                 $idClause
                 $idPatternClause
                 $innerQuery
+                $innerAttrsFilterQuery
             $pagingClause
             """
     }
@@ -220,4 +227,18 @@ object QueryUtils {
         }
             .replace(";", " AND ")
             .replace("|", " OR ")
+
+    private fun buildInnerAttrsFilterQuery(expandedAttrs: Set<String>): String =
+        expandedAttrs.joinToString(" AND ") { expandedAttr ->
+            """
+               EXISTS {
+                   MATCH (entity)
+                   WHERE (
+                        (entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })
+                        OR 
+                        (entity)-[:HAS_OBJECT]-(:Relationship:`$expandedAttr`)
+                   ) 
+               }
+            """.trimIndent()
+        }
 }

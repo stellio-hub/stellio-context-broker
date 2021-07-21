@@ -43,6 +43,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val deadFishUri = "urn:ngsi-ld:DeadFishes:019BN".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
+    private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val userId = ""
     private val page = 1
     private val limit = 20
@@ -57,7 +58,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
 
         val entities = searchRepository.getEntities(
@@ -76,7 +77,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
 
         val entities = searchRepository.getEntities(
@@ -207,7 +208,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "ScalpaXYZ"))
+            mutableListOf(Property(name = expandedNameProperty, value = "ScalpaXYZ"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "name!=\"ScalpaXYZ\""),
@@ -225,7 +226,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name!=\"ScalpaXYZ\""),
@@ -366,7 +367,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                     name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
                     value = LocalTime.parse("12:00:00")
                 ),
-                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
+                Property(name = expandedNameProperty, value = "beekeeper")
             )
         )
         val entities = searchRepository.getEntities(
@@ -390,7 +391,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                     name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
                     value = LocalTime.parse("12:00:00")
                 ),
-                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
+                Property(name = expandedNameProperty, value = "beekeeper")
             )
         )
 
@@ -424,7 +425,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
                     name = expandJsonLdKey("testedAt", DEFAULT_CONTEXTS)!!,
                     value = LocalTime.parse("12:00:00")
                 ),
-                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "beekeeper")
+                Property(name = expandedNameProperty, value = "beekeeper")
             )
         )
         createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
@@ -481,12 +482,12 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), expandedType = "Beekeeper"),
@@ -579,17 +580,17 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(
@@ -612,17 +613,17 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:11232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
@@ -642,17 +643,17 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:11232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:BeeHive:*"),
@@ -666,21 +667,104 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return matching entities count`() {
+    fun `it should return an entity matching attrs on a property`() {
         createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandJsonLdKey("description", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+        )
+        val entities = searchRepository.getEntities(
+            QueryParams(expandedAttrs = setOf(expandedNameProperty)),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return an entity matching attrs on a relationship`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(expandedAttrs = setOf("observedBy")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return an entity matching attrs on a relationship and a property value`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(q = "name==\"Scalpa\"", expandedAttrs = setOf("observedBy")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return an entity matching attrs on a relationship and an entity type`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(expandedType = "Beekeeper", expandedAttrs = setOf("observedBy")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return matching entities count`() {
+        createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createEntity(
+            "urn:ngsi-ld:Beekeeper:01232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
@@ -704,17 +788,17 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
 
         val entities = searchRepository.getEntities(

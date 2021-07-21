@@ -130,12 +130,14 @@ class EntityHandler(
                     )
                 )
 
+        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
+
         /**
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
         val countAndEntities = entityService.searchEntities(
-            QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode()),
+            QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
             userId,
             page,
             limit,
@@ -152,7 +154,6 @@ class EntityHandler(
                 mediaType, contextLink
             )
 
-        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {

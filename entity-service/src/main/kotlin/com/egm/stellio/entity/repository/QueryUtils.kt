@@ -14,6 +14,8 @@ import java.util.regex.Pattern
 
 object QueryUtils {
 
+    private val qPattern = Pattern.compile("([^();|]+)")
+
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
         page: Int,
@@ -21,10 +23,8 @@ object QueryUtils {
         contexts: List<String>
     ): String {
         val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val formattedIds = id?.map { "'$it'" }
-        val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
-        val innerAttrsFilterQuery = buildInnerAttrsFilterQuery(expandedAttrs)
+        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
 
         val matchUserClause =
             """
@@ -40,35 +40,20 @@ object QueryUtils {
             with userEntity
             """.trimIndent()
 
-        val idClause =
-            if (id != null) "AND entity.id in $formattedIds"
-            else ""
+        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
+        val idClause = buildIdClause(id)
+        val idPatternClause = buildIdPatternClause(idPattern)
 
-        val idPatternClause =
-            when {
-                idPattern != null ->
-                    """
-                    AND entity.id =~ '$idPattern'
-                    ${if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
-                    """
-                innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty() -> " AND "
-                else -> ""
-            }
-
-        val matchEntityClause =
-            if (expandedType == null)
-                "(entity:Entity)"
-            else
-                "(entity:Entity:`$expandedType`)"
+        val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
+            .filter { it.isNotEmpty() }
+            .joinToString(separator = " AND ", prefix = " AND ")
+            .takeIf { it.trim() != "AND" } ?: ""
 
         val matchEntitiesClause =
             """
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->$matchEntityClause
             WHERE any(r IN labels(right) WHERE r IN ${AuthorizationService.READ_RIGHT.map { "'$it'" }})
-            $idClause
-            $idPatternClause
-            $innerQuery
-            $innerAttrsFilterQuery
+            $finalFilterClause
             return entity.id as entityId
             """.trimIndent()
 
@@ -77,10 +62,7 @@ object QueryUtils {
             MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)
             -[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$matchEntityClause
 	        WHERE any(r IN labels(grpRight) WHERE r IN ${AuthorizationService.READ_RIGHT.map { "'$it'" }})
-            $idClause
-            $idPatternClause
-            $innerQuery
-            $innerAttrsFilterQuery
+            $finalFilterClause
             return entity.id as entityId
         """.trimIndent()
 
@@ -91,10 +73,7 @@ object QueryUtils {
                 '${AuthorizationService.SpecificAccessPolicy.AUTH_WRITE.name}',
                 '${AuthorizationService.SpecificAccessPolicy.AUTH_READ.name}'
             ]
-            $idClause
-            $idPatternClause
-            $innerQuery
-            $innerAttrsFilterQuery
+            $finalFilterClause
             return entity.id as entityId
             """.trimIndent()
 
@@ -132,36 +111,17 @@ object QueryUtils {
         contexts: List<String>
     ): String {
         val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val formattedIds = id?.map { "'$it'" }
-        val pattern = Pattern.compile("([^();|]+)")
-        val innerQuery = q?.let { buildInnerQuery(q, pattern, contexts) } ?: ""
-        val innerAttrsFilterQuery = buildInnerAttrsFilterQuery(expandedAttrs)
+        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
 
-        val matchClause =
-            if (expandedType == null)
-                "MATCH (entity:Entity)"
-            else
-                "MATCH (entity:`$expandedType`)"
+        val matchEntityClause = buildMatchEntityClause(expandedType)
+        val idClause = buildIdClause(id)
+        val idPatternClause = buildIdPatternClause(idPattern)
 
-        val whereClause =
-            if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty() || id != null || idPattern != null) " WHERE "
-            else ""
-
-        val idClause =
-            if (id != null)
-                """
-                    entity.id in $formattedIds
-                    ${if (idPattern != null || innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
-
-        val idPatternClause =
-            if (idPattern != null)
-                """
-                    entity.id =~ '$idPattern'
-                    ${if (innerQuery.isNotEmpty() || innerAttrsFilterQuery.isNotEmpty()) " AND " else ""}
-                """
-            else ""
+        val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
+            .filter { it.isNotEmpty() }
+            .joinToString(separator = " AND ", prefix = " WHERE ")
+            .takeIf { it.trim() != "WHERE" } ?: ""
 
         val pagingClause = if (limit == 0)
             """
@@ -177,19 +137,33 @@ object QueryUtils {
             """.trimIndent()
 
         return """
-            $matchClause
-            $whereClause
-                $idClause
-                $idPatternClause
-                $innerQuery
-                $innerAttrsFilterQuery
+            $matchEntityClause
+            $finalFilterClause
             $pagingClause
             """
     }
 
-    private fun buildInnerQuery(rawQuery: String, pattern: Pattern, contexts: List<String>): String =
+    private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
+        if (expandedType == null)
+            "$prefix (entity:Entity)"
+        else
+            "$prefix (entity:`$expandedType`)"
 
-        rawQuery.replace(pattern.toRegex()) { matchResult ->
+    private fun buildIdClause(id: List<String>?): String {
+        return if (id != null) {
+            val formattedIds = id.map { "'$it'" }
+            " entity.id in $formattedIds "
+        } else ""
+    }
+
+    private fun buildIdPatternClause(idPattern: String?): String =
+        if (idPattern != null)
+            " entity.id =~ '$idPattern' "
+        else ""
+
+    private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
+
+        rawQuery.replace(qPattern.toRegex()) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
@@ -229,7 +203,9 @@ object QueryUtils {
             .replace("|", " OR ")
 
     private fun buildInnerAttrsFilterQuery(expandedAttrs: Set<String>): String =
-        expandedAttrs.joinToString(" AND ") { expandedAttr ->
+        expandedAttrs.joinToString(
+            separator = " AND "
+        ) { expandedAttr ->
             """
                EXISTS {
                    MATCH (entity)

@@ -667,7 +667,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return an entity if given attrs is matching a property`() {
+    fun `it should return an entity matching attrs on a property`() {
         createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -690,7 +690,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return an entity if given attrs is matching a relationship`() {
+    fun `it should return an entity matching attrs on a relationship`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -700,6 +700,46 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedAttrs = setOf("observedBy")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return an entity matching attrs on a relationship and a property value`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(q = "name==\"Scalpa\"", expandedAttrs = setOf("observedBy")),
+            userId,
+            page,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertEquals(1, entities.size)
+    }
+
+    @Test
+    fun `it should return an entity matching attrs on a relationship and an entity type`() {
+        val entity = createEntity(
+            "urn:ngsi-ld:Beekeeper:01231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(entity.id), "observedBy", partialTargetEntityUri)
+
+        val entities = searchRepository.getEntities(
+            QueryParams(expandedType = "Beekeeper", expandedAttrs = setOf("observedBy")),
             userId,
             page,
             limit,

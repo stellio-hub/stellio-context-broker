@@ -41,6 +41,7 @@ class EntityEventListenerService(
 
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
+        logger.debug("Processing message: $content")
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
             is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)

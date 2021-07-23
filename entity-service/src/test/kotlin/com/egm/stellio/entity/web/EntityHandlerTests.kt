@@ -1757,7 +1757,6 @@ class EntityHandlerTests {
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty

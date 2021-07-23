@@ -240,10 +240,8 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun delete(
-        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String
     ): ResponseEntity<*> {
-        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -251,13 +249,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
-        // Is there a way to avoid loading the entity to get its type... for the later event
+        // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
         val entity = entityService.getEntityCoreProperties(entityId.toUri())
 
         entityService.deleteEntity(entityId.toUri())
 
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), contexts), entity.type[0]
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

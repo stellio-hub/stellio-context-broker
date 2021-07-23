@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Rule
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -260,6 +261,53 @@ class QueryServiceTests {
             io.mockk.verify {
                 temporalEntityService.buildTemporalEntities(
                     match { it.first().first == entityUri },
+                    any(),
+                    listOf(APIC_COMPOUND_CONTEXT),
+                    false
+                )
+            }
+        }
+
+    @Test
+    fun `it should return an empty list for a temporal entity attribute if it has no temporal values`() =
+        coroutinesTestRule.testDispatcher.runBlockingTest {
+            val temporalEntityAttribute = TemporalEntityAttribute(
+                entityId = entityUri,
+                type = "BeeHive",
+                attributeName = "incoming",
+                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+            )
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(
+                listOf(temporalEntityAttribute)
+            )
+            every {
+                attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
+            } returns Mono.just(emptyList())
+
+            every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
+
+            val entitiesList = queryService.queryTemporalEntities(
+                emptySet(),
+                setOf(beehiveType, apiaryType),
+                TemporalQuery(
+                    expandedAttrs = emptySet(),
+                    timerel = TemporalQuery.Timerel.BEFORE,
+                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                ),
+                false,
+                APIC_COMPOUND_CONTEXT
+            )
+
+            assertTrue(entitiesList.isEmpty())
+
+            io.mockk.verify {
+                temporalEntityService.buildTemporalEntities(
+                    match {
+                        it.size == 1 &&
+                            it.first().first == entityUri &&
+                            it.first().second.size == 1 &&
+                            it.first().second.values.first().isEmpty()
+                    },
                     any(),
                     listOf(APIC_COMPOUND_CONTEXT),
                     false

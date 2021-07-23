@@ -330,6 +330,25 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should not retrieve any instance if there is no value in the time interval`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.plusHours(1)
+        )
+        val enrichedEntity =
+            attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.isEmpty()
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should not allow to create two attribute instances with same observation date`() {
         val attributeInstance = gimmeAttributeInstance()
 

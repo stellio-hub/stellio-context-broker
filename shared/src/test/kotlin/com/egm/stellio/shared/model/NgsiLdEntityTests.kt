@@ -159,6 +159,43 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should parse an entity with a property having a JSON object value`() {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "deviceState": {
+                "type": "Property",
+                "value": {
+                  "state1": "open",
+                  "state2": "closed"
+                }
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        assertEquals(1, ngsiLdEntity.properties.size)
+        val ngsiLdProperty = ngsiLdEntity.properties[0]
+        assertEquals("https://uri.fiware.org/ns/data-models#deviceState", ngsiLdProperty.name)
+        assertEquals(1, ngsiLdProperty.instances.size)
+        val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
+        assertTrue(ngsiLdPropertyInstance.value is Map<*, *>)
+        val valueMap = ngsiLdPropertyInstance.value as Map<String, String>
+        assertEquals(2, valueMap.size)
+        assertEquals(
+            setOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/state1",
+                "https://uri.etsi.org/ngsi-ld/default-context/state2"
+            ),
+            valueMap.keys
+        )
+        assertEquals("open", valueMap["https://uri.etsi.org/ngsi-ld/default-context/state1"])
+    }
+
+    @Test
     fun `it should parse an entity with a property having all core fields`() {
         val rawEntity =
             """

@@ -87,6 +87,20 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should create a property whose value is a JSON object`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = mapOf("length" to 2, "height" to 12, "comment" to "none"))
+            )
+        )
+
+        val persistedEntity = entityRepository.findById(entity.id)
+    }
+
+    @Test
     fun `it should update the default property instance`() {
         val entity = createEntity(
             beekeeperUri,

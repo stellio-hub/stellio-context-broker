@@ -206,9 +206,15 @@ object JsonLdUtils {
                     }
                 } else if (firstListEntry[JSONLD_VALUE_KW] != null) {
                     firstListEntry[JSONLD_VALUE_KW]
-                } else {
+                } else if (firstListEntry[JSONLD_ID] != null) {
                     // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
                     firstListEntry[JSONLD_ID]
+                } else {
+                    // it is purely a map, flatten it
+                    // {https://uri.etsi.org/ngsi-ld/default-context/state1=[{@value=open}], https://uri.etsi.org/ngsi-ld/default-context/state2=[{@value=closed}]}
+                    firstListEntry.mapValues {
+                        ((it.value as List<String>)[0] as Map<String, Any>)[JSONLD_VALUE_KW]
+                    }
                 }
             } else {
                 intermediateList.map {

@@ -41,4 +41,4 @@ jib.to.image = "stellio/stellio-subscription-service"
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8084")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
-jib.container.labels = project.ext["jibContainerLabels"] as Map<String, String>
+jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

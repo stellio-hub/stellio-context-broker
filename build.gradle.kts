@@ -17,7 +17,7 @@ plugins {
     kotlin("jvm") version "1.5.21" apply false
     kotlin("plugin.spring") version "1.5.21" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
-    id("com.google.cloud.tools.jib") version "2.7.1" apply false
+    id("com.google.cloud.tools.jib") version "3.1.2" apply false
     kotlin("kapt") version "1.5.21" apply false
     id("io.gitlab.arturbosch.detekt") version "1.17.1" apply false
     id("org.sonarqube") version "3.3"
@@ -142,7 +142,7 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "gcr.io/distroless/java:11")
+    project.ext.set("jibFromImage", "adoptopenjdk:11-jre")
     project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(

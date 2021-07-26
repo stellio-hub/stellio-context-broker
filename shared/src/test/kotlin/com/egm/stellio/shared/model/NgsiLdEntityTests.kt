@@ -159,6 +159,26 @@ class NgsiLdEntityTests {
     }
 
     @Test
+    fun `it should parse an entity with a property whose name contains a colon`() {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "prefix:name": {
+                "type": "Property",
+                "value": "Open"
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        val ngsiLdProperty = ngsiLdEntity.properties[0]
+        assertEquals("prefix:name", ngsiLdProperty.name)
+    }
+
+    @Test
     fun `it should parse an entity with a property having a JSON object value`() {
         val rawEntity =
             """

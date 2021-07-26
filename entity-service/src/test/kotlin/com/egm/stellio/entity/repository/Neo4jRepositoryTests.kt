@@ -87,6 +87,22 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should create a property whose name contains a colon`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = "prefix:name", value = "value")
+            )
+        )
+
+        val persistedEntity = entityRepository.findById(entity.id)
+        assertTrue(persistedEntity.isPresent)
+        val persistedProperty = persistedEntity.get().properties[0]
+        assertEquals("prefix:name", persistedProperty.name)
+    }
+
+    @Test
     fun `it should create a property whose value is a JSON object`() {
         val entity = createEntity(
             beekeeperUri,
@@ -98,6 +114,30 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
 
         val persistedEntity = entityRepository.findById(entity.id)
+    }
+
+    @Test
+    fun `it should create a property for an entity`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val property = Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb =
+            propertyRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size")
+        assertEquals("https://uri.etsi.org/ngsi-ld/size", propertyFromDb.name)
+        assertEquals(100L, propertyFromDb.value)
+        assertNotNull(propertyFromDb.createdAt)
+        assertNull(propertyFromDb.datasetId)
+        assertNull(propertyFromDb.observedAt)
+        assertEquals(0, propertyFromDb.properties.size)
+        assertEquals(0, propertyFromDb.relationships.size)
     }
 
     @Test

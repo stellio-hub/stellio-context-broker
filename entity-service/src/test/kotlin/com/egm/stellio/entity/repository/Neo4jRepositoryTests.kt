@@ -108,12 +108,17 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "https://uri.etsi.org/ngsi-ld/size",
-                    value = mapOf("length" to 2, "height" to 12, "comment" to "none"))
+                Property(
+                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    value = mapOf("length" to 2, "height" to 12, "comment" to "none")
+                )
             )
         )
 
         val persistedEntity = entityRepository.findById(entity.id)
+        assertTrue(persistedEntity.isPresent)
+        val persistedProperty = persistedEntity.get().properties[0]
+        assertEquals(mapOf("length" to 2, "height" to 12, "comment" to "none"), persistedProperty.value)
     }
 
     @Test

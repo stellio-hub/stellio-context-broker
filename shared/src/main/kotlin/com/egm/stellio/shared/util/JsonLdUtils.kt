@@ -213,7 +213,7 @@ object JsonLdUtils {
                     // it is purely a map, flatten it
                     // {https://uri.etsi.org/ngsi-ld/default-context/state1=[{@value=open}], https://uri.etsi.org/ngsi-ld/default-context/state2=[{@value=closed}]}
                     firstListEntry.mapValues {
-                        ((it.value as List<String>)[0] as Map<String, Any>)[JSONLD_VALUE_KW]
+                        (it.value as List<Map<String, Any>>)
                     }
                 }
             } else {

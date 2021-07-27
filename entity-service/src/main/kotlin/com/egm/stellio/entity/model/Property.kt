@@ -136,6 +136,8 @@ data class Property(
 
         nodeProperties["name"] = name
         nodeProperties["value"] =
+            // there is no neo4j support for JSON object
+            // store the serialized map prefixed with 'jsonObject@' to know how to deserialize it later
             if (value is Map<*, *>)
                 StringValue("jsonObject@" + serializeObject(value))
             else

@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.config
 
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.neo4j.driver.Value
 import org.neo4j.driver.Values
 import org.neo4j.driver.internal.value.ListValue
@@ -16,7 +17,9 @@ class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
             is List<*> -> ListValue(*source.map { Values.value(it) }.toTypedArray())
             is URI -> StringValue(source.toString())
             is Map<*, *> -> {
-                val value = "jsonObject@" + JsonUtils.serializeObject(source)
+                // there is no neo4j support for JSON object
+                // store the serialized map prefixed with 'jsonObject@' to know how to deserialize it later
+                val value = "jsonObject@" + serializeObject(source)
                 StringValue(value)
             }
             else -> Values.value(source)
@@ -29,7 +32,7 @@ class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
             is StringValue -> {
                 if (source.asString().startsWith("jsonObject@")) {
                     val sourceString = source.asString().removePrefix("jsonObject@")
-                    JsonUtils.deserializeAs<Map<String, Any>>(sourceString)
+                    deserializeAs<Map<String, Any>>(sourceString)
                 } else Values.ofObject().apply(source)
             }
             else -> Values.ofObject().apply(source)

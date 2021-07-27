@@ -49,6 +49,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
+    private val sizeExpandedName = "https://uri.etsi.org/ngsi-ld/size"
 
     @AfterEach
     fun cleanData() {
@@ -109,7 +110,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(
                 Property(
-                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    name = sizeExpandedName,
                     value = mapOf("length" to 2, "height" to 12, "comment" to "none")
                 )
             )
@@ -122,22 +123,49 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create a property for an entity`() {
+    fun `it should create a property with a long value for an entity`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper")
         )
 
-        val property = Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L)
+        val property = Property(name = sizeExpandedName, value = 100L)
 
         val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
 
         assertTrue(created)
 
         val propertyFromDb =
-            propertyRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size")
-        assertEquals("https://uri.etsi.org/ngsi-ld/size", propertyFromDb.name)
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
         assertEquals(100L, propertyFromDb.value)
+        assertNotNull(propertyFromDb.createdAt)
+        assertNull(propertyFromDb.datasetId)
+        assertNull(propertyFromDb.observedAt)
+        assertEquals(0, propertyFromDb.properties.size)
+        assertEquals(0, propertyFromDb.relationships.size)
+    }
+
+    @Test
+    fun `it should create a property with a JSON object for an entity`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val propertyValue = mapOf("key1" to "value1", "key2" to 12, "key3" to listOf("v1", "v2"))
+        val property = Property(
+            name = sizeExpandedName,
+            value = propertyValue)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb =
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
+        assertEquals(propertyValue, propertyFromDb.value)
         assertNotNull(propertyFromDb.createdAt)
         assertNull(propertyFromDb.datasetId)
         assertNull(propertyFromDb.observedAt)
@@ -151,9 +179,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(name = sizeExpandedName, value = 100L),
                 Property(
-                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    name = sizeExpandedName,
                     value = 200L,
                     datasetId = "urn:ngsi-ld:Dataset:size:1".toUri()
                 )
@@ -175,18 +203,18 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         neo4jRepository.updateEntityPropertyInstance(
             EntitySubjectNode(entity.id),
-            "https://uri.etsi.org/ngsi-ld/size",
+            sizeExpandedName,
             newProperty.instances[0]
         )
 
         assertEquals(
             300L,
-            propertyRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName).value
         )
         assertEquals(
             200L,
             propertyRepository.getPropertyOfSubject(
-                entity.id, "https://uri.etsi.org/ngsi-ld/size", "urn:ngsi-ld:Dataset:size:1".toUri()
+                entity.id, sizeExpandedName, "urn:ngsi-ld:Dataset:size:1".toUri()
             ).value
         )
     }
@@ -197,9 +225,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(name = sizeExpandedName, value = 100L),
                 Property(
-                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    name = sizeExpandedName,
                     value = 200L,
                     datasetId = "urn:ngsi-ld:Dataset:size:1".toUri()
                 )
@@ -222,18 +250,18 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         neo4jRepository.updateEntityPropertyInstance(
             EntitySubjectNode(entity.id),
-            "https://uri.etsi.org/ngsi-ld/size",
+            sizeExpandedName,
             newProperty.instances[0]
         )
 
         assertEquals(
             100L,
-            propertyRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName).value
         )
         assertEquals(
             300L,
             propertyRepository.getPropertyOfSubject(
-                entity.id, "https://uri.etsi.org/ngsi-ld/size", "urn:ngsi-ld:Dataset:size:1".toUri()
+                entity.id, sizeExpandedName, "urn:ngsi-ld:Dataset:size:1".toUri()
             ).value
         )
     }

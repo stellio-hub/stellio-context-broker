@@ -171,8 +171,9 @@ object JsonLdUtils {
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
         value as List<Map<String, List<Any>>>
+
     /**
-     * Extract the actual value (@value) of a given property from the properties map of an expanded property.
+     * Extract the actual value (@value) of a property from the properties map of an expanded property.
      *
      * @param value a map similar to:
      * {
@@ -196,23 +197,28 @@ object JsonLdUtils {
             if (intermediateList.size == 1) {
                 val firstListEntry = intermediateList[0]
                 val finalValueType = firstListEntry[JSONLD_TYPE]
-                if (finalValueType != null) {
-                    val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
-                    when (finalValueType) {
-                        NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
-                        NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
-                        NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                        else -> firstListEntry[JSONLD_VALUE_KW]
+                when {
+                    finalValueType != null -> {
+                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
+                        when (finalValueType) {
+                            NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
+                            NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
+                            NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
+                            else -> finalValue
+                        }
                     }
-                } else if (firstListEntry[JSONLD_VALUE_KW] != null) {
-                    firstListEntry[JSONLD_VALUE_KW]
-                } else if (firstListEntry[JSONLD_ID] != null) {
-                    // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
-                    firstListEntry[JSONLD_ID]
-                } else {
-                    // it is a map / JSON object, keep it as is
-                    // {https://uri.etsi.org/ngsi-ld/default-context/key=[{@value=value}], ...}
-                    firstListEntry
+                    firstListEntry[JSONLD_VALUE_KW] != null -> {
+                        firstListEntry[JSONLD_VALUE_KW]
+                    }
+                    firstListEntry[JSONLD_ID] != null -> {
+                        // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
+                        firstListEntry[JSONLD_ID]
+                    }
+                    else -> {
+                        // it is a map / JSON object, keep it as is
+                        // {https://uri.etsi.org/ngsi-ld/default-context/key=[{@value=value}], ...}
+                        firstListEntry
+                    }
                 }
             } else {
                 intermediateList.map {

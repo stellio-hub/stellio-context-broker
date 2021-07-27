@@ -204,7 +204,7 @@ object JsonLdUtils {
                             NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
                             NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
                             NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                            else -> finalValue
+                            else -> firstListEntry[JSONLD_VALUE_KW]
                         }
                     }
                     firstListEntry[JSONLD_VALUE_KW] != null -> {

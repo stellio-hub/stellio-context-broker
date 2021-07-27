@@ -9,6 +9,8 @@ import org.neo4j.driver.internal.value.StringValue
 import org.springframework.data.neo4j.core.convert.Neo4jPersistentPropertyConverter
 import java.net.URI
 
+const val jsonObjectPrefix = "jsonObject@"
+
 class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
 
     @Suppress("SpreadOperator")
@@ -19,7 +21,7 @@ class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
             is Map<*, *> -> {
                 // there is no neo4j support for JSON object
                 // store the serialized map prefixed with 'jsonObject@' to know how to deserialize it later
-                val value = "jsonObject@" + serializeObject(source)
+                val value = jsonObjectPrefix + serializeObject(source)
                 StringValue(value)
             }
             else -> Values.value(source)
@@ -30,8 +32,8 @@ class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
         return when (source) {
             is ListValue -> source.asList()
             is StringValue -> {
-                if (source.asString().startsWith("jsonObject@")) {
-                    val sourceString = source.asString().removePrefix("jsonObject@")
+                if (source.asString().startsWith(jsonObjectPrefix)) {
+                    val sourceString = source.asString().removePrefix(jsonObjectPrefix)
                     deserializeAs<Map<String, Any>>(sourceString)
                 } else Values.ofObject().apply(source)
             }

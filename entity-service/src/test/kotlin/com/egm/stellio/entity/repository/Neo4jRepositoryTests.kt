@@ -88,7 +88,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create a property whose name contains a colon`() {
+    fun `it should create an entity with a property whose name contains a colon`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -104,7 +104,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create a property whose value is a JSON object`() {
+    fun `it should create an entity with a property whose value is a JSON object`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -123,7 +123,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create a property with a long value for an entity`() {
+    fun `it should create a property for a subject`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper")
@@ -135,8 +135,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         assertTrue(created)
 
-        val propertyFromDb =
-            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
         assertEquals(sizeExpandedName, propertyFromDb.name)
         assertEquals(100L, propertyFromDb.value)
         assertNotNull(propertyFromDb.createdAt)
@@ -147,7 +146,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create a property with a JSON object for an entity`() {
+    fun `it should create a property with a JSON object value for a sujbect`() {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper")
@@ -160,15 +159,28 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         assertTrue(created)
 
-        val propertyFromDb =
-            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
         assertEquals(sizeExpandedName, propertyFromDb.name)
         assertEquals(propertyValue, propertyFromDb.value)
-        assertNotNull(propertyFromDb.createdAt)
-        assertNull(propertyFromDb.datasetId)
-        assertNull(propertyFromDb.observedAt)
-        assertEquals(0, propertyFromDb.properties.size)
-        assertEquals(0, propertyFromDb.relationships.size)
+    }
+
+    @Test
+    fun `it should create a property with a list value for a subject`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val propertyValue = listOf("v1", "v2")
+        val property = Property(name = sizeExpandedName, value = propertyValue)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
+        assertEquals(propertyValue, propertyFromDb.value)
     }
 
     @Test

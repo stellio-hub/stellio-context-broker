@@ -2,6 +2,7 @@ package com.egm.stellio.entity.model
 
 import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
 import com.egm.stellio.entity.config.Neo4jValuePropertyConverter
+import com.egm.stellio.entity.config.jsonObjectPrefix
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
@@ -139,7 +140,7 @@ data class Property(
             // there is no neo4j support for JSON object
             // store the serialized map prefixed with 'jsonObject@' to know how to deserialize it later
             if (value is Map<*, *>)
-                StringValue("jsonObject@" + serializeObject(value))
+                StringValue(jsonObjectPrefix + serializeObject(value))
             else
                 value
 

@@ -210,11 +210,9 @@ object JsonLdUtils {
                     // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
                     firstListEntry[JSONLD_ID]
                 } else {
-                    // it is purely a map, flatten it
-                    // {https://uri.etsi.org/ngsi-ld/default-context/state1=[{@value=open}], https://uri.etsi.org/ngsi-ld/default-context/state2=[{@value=closed}]}
-                    firstListEntry.mapValues {
-                        (it.value as List<Map<String, Any>>)
-                    }
+                    // it is a map / JSON object, keep it as is
+                    // {https://uri.etsi.org/ngsi-ld/default-context/key=[{@value=value}], ...}
+                    firstListEntry
                 }
             } else {
                 intermediateList.map {

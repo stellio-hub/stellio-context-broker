@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.model
 
+import com.egm.stellio.entity.config.JSON_OBJECT_PREFIX
 import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
 import com.egm.stellio.entity.config.Neo4jValuePropertyConverter
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
@@ -14,10 +15,12 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonRawValue
+import org.neo4j.driver.internal.value.StringValue
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.neo4j.core.convert.ConvertWith
 import org.springframework.data.neo4j.core.schema.Id
@@ -133,7 +136,13 @@ data class Property(
         }
 
         nodeProperties["name"] = name
-        nodeProperties["value"] = value
+        nodeProperties["value"] =
+            // there is no neo4j support for JSON object
+            // store the serialized map prefixed with 'jsonObject@' to know how to deserialize it later
+            if (value is Map<*, *>)
+                StringValue(JSON_OBJECT_PREFIX + serializeObject(value))
+            else
+                value
 
         unitCode?.run {
             nodeProperties["unitCode"] = this

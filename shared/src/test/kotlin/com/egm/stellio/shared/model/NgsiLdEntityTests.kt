@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.model
 
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.toUri
@@ -156,6 +157,66 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
+    }
+
+    @Test
+    fun `it should parse an entity with a property whose name contains a colon`() {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "prefix:name": {
+                "type": "Property",
+                "value": "Open"
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        val ngsiLdProperty = ngsiLdEntity.properties[0]
+        assertEquals("prefix:name", ngsiLdProperty.name)
+    }
+
+    @Test
+    fun `it should parse an entity with a property having a JSON object value`() {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "deviceState": {
+                "type": "Property",
+                "value": {
+                  "state1": "open",
+                  "state2": "closed"
+                }
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        assertEquals(1, ngsiLdEntity.properties.size)
+        val ngsiLdProperty = ngsiLdEntity.properties[0]
+        assertEquals("https://uri.fiware.org/ns/data-models#deviceState", ngsiLdProperty.name)
+        assertEquals(1, ngsiLdProperty.instances.size)
+        val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
+        assertTrue(ngsiLdPropertyInstance.value is Map<*, *>)
+        val valueMap = ngsiLdPropertyInstance.value as Map<String, String>
+        assertEquals(2, valueMap.size)
+        assertEquals(
+            setOf(
+                "https://uri.etsi.org/ngsi-ld/default-context/state1",
+                "https://uri.etsi.org/ngsi-ld/default-context/state2"
+            ),
+            valueMap.keys
+        )
+        assertEquals(
+            listOf(mapOf(JSONLD_VALUE_KW to "open")),
+            valueMap["https://uri.etsi.org/ngsi-ld/default-context/state1"]
+        )
     }
 
     @Test

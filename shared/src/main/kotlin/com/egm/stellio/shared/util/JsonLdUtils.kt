@@ -211,7 +211,8 @@ object JsonLdUtils {
                         firstListEntry[JSONLD_VALUE_KW]
                     }
                     firstListEntry[JSONLD_ID] != null -> {
-                        // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
+                        // Used to get the value of datasetId property,
+                        // since it is mapped to "@id" key rather than "@value"
                         firstListEntry[JSONLD_ID]
                     }
                     else -> {

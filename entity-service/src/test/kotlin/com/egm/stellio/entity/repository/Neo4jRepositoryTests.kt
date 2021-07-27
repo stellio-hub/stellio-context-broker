@@ -154,9 +154,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
 
         val propertyValue = mapOf("key1" to "value1", "key2" to 12, "key3" to listOf("v1", "v2"))
-        val property = Property(
-            name = sizeExpandedName,
-            value = propertyValue)
+        val property = Property(name = sizeExpandedName, value = propertyValue)
 
         val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
 

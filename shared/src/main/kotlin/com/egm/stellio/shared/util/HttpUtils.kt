@@ -1,6 +1,7 @@
 package com.egm.stellio.shared.util
 
 import org.slf4j.LoggerFactory
+import java.net.URLDecoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -24,3 +25,6 @@ object HttpUtils {
         }
     }
 }
+
+fun String.decode(): String =
+    URLDecoder.decode(this, "UTF-8")

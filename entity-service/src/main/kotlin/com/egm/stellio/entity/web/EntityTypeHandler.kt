@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.EntityTypeService
-import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey

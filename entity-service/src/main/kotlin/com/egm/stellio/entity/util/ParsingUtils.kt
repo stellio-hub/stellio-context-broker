@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
@@ -36,9 +35,6 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
         else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
     }
 }
-
-fun String.decode(): String =
-    URLDecoder.decode(this, "UTF-8")
 
 // FIXME kinda weak ... better options?
 fun String.isRelationshipTarget(): Boolean =

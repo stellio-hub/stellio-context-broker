@@ -1,7 +1,6 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime

@@ -144,7 +144,8 @@ subprojects {
     }
 
     project.ext.set("jibFromImage", "openjdk:11-jre-buster-slim")
-    project.ext.set("jibFromPlatforms",
+    project.ext.set(
+        "jibFromPlatforms",
         listOf(
             PlatformParameters().apply { os = "linux"; architecture = "arm64" },
             PlatformParameters().apply { os = "linux"; architecture = "amd64" }

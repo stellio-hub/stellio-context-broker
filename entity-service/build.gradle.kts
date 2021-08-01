@@ -1,3 +1,5 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
+
 val mainClass = "com.egm.stellio.entity.EntityServiceApplicationKt"
 
 configurations {
@@ -29,12 +31,14 @@ tasks.bootRun {
     environment("SPRING_PROFILES_ACTIVE", "dev")
 }
 
-jib.from.image = "adoptopenjdk/openjdk11:alpine-jre"
+// use a non-slim image to have wget (used by the wait-for script below)
+jib.from.image = "openjdk:11-jre-buster"
+jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-entity-service"
 jib.container.entrypoint = listOf(
     "/bin/sh",
     "-c",
-    "/database/wait-for-neo4j.sh neo4j:7687 -t \$NEO4J_WAIT_TIMEOUT -- " +
+    "/database/wait-for-it.sh neo4j:7687 -t \$NEO4J_WAIT_TIMEOUT -- " +
         "java " +
         (project.ext["jibContainerJvmFlags"] as List<String>).joinToString(" ") +
         " -cp /app/resources:/app/classes:/app/libs/* " + mainClass
@@ -43,4 +47,4 @@ jib.container.environment = mapOf("NEO4J_WAIT_TIMEOUT" to "100")
 jib.container.ports = listOf("8082")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
 jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)
-jib.extraDirectories.permissions = mapOf("/database/wait-for-neo4j.sh" to "775")
+jib.extraDirectories.permissions = mapOf("/database/wait-for-it.sh" to "775")

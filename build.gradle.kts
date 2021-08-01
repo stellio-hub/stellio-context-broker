@@ -1,3 +1,4 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.detekt
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -142,7 +143,13 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "adoptopenjdk:11-jre")
+    project.ext.set("jibFromImage", "openjdk:11-jre-buster-slim")
+    project.ext.set("jibFromPlatforms",
+        listOf(
+            PlatformParameters().apply { os = "linux"; architecture = "arm64" },
+            PlatformParameters().apply { os = "linux"; architecture = "amd64" }
+        )
+    )
     project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(

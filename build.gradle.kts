@@ -143,7 +143,7 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "openjdk:11-jre-buster-slim")
+    project.ext.set("jibFromImage", "openjdk:11-jre-slim-buster")
     project.ext.set(
         "jibFromPlatforms",
         listOf(

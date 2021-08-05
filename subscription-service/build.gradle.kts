@@ -15,7 +15,7 @@ dependencies {
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation("io.r2dbc:r2dbc-postgresql")
-    implementation("com.jayway.jsonpath:json-path:2.5.0")
+    implementation("com.jayway.jsonpath:json-path:2.6.0")
     implementation(project(":shared"))
     // firebase SDK
     implementation("com.google.firebase:firebase-admin:6.12.2")

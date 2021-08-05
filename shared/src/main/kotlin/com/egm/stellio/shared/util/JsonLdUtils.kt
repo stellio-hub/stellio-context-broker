@@ -298,6 +298,9 @@ object JsonLdUtils {
         return compactedFragment.keys.first()
     }
 
+    fun compactFragment(value: Map<String, Any>, context: List<String>): Map<String, Any> =
+        JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
+
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String =
         compactAndStringifyFragment(mapOf(key to value), context)
 

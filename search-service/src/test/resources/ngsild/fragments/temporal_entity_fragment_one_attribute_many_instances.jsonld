@@ -1,0 +1,16 @@
+{
+  "incoming": [
+    {
+      "type": "Property",
+      "value": 20.7,
+      "unitCode": "CEL",
+      "observedAt": "2019-10-18T07:31:39.77Z"
+    },
+    {
+      "type": "Property",
+      "value": 22.7,
+      "unitCode": "CEL",
+      "observedAt": "2019-10-20T07:31:39.77Z"
+    }
+  ]
+}

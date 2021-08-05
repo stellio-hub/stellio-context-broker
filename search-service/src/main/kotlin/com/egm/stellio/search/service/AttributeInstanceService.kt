@@ -4,11 +4,12 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import io.r2dbc.postgresql.codec.Json
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
@@ -44,27 +45,24 @@ class AttributeInstanceService(
             .rowsUpdated()
             .onErrorReturn(-1)
 
-    // TODO not totally compatible with the specification
-    // it should accept an array of attribute instances
-    fun addAttributeInstances(
+    @Transactional
+    fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
         attributeValues: Map<String, List<Any>>,
-        parsedPayload: Map<String, Any>
+        contexts: List<String>
     ): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Value cannot be null")
+            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
+        val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
+            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without an observed date")
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
+            observedAt = observedAt,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload = extractAttributeInstanceFromCompactedEntity(
-                parsedPayload,
-                attributeKey,
-                null
-            )
+            payload = compactFragment(attributeValues, contexts).minus(JSONLD_CONTEXT)
         )
         return create(attributeInstance)
     }

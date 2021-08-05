@@ -11,12 +11,12 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.OptionsParamValue
 import com.egm.stellio.shared.util.buildGetSuccessResponse
@@ -55,36 +55,39 @@ class TemporalEntityHandler(
 ) {
 
     /**
-     * Mirror of what we receive from Kafka.
-     *
-     * Implements 6.20.3.1
+     * Implements 6.20.3.1 - Add attributes to Temporal Representation of Entity
      */
     @PostMapping("/{entityId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun addAttrs(
+    suspend fun addAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val body = requestBody.awaitFirst()
-        val parsedBody = JsonUtils.deserializeObject(body)
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
 
         jsonLdAttributes
-            .forEach {
-                val compactedAttributeName = compactTerm(it.key, contexts)
-                val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
-                    entityId.toUri(),
-                    it.key
-                ).awaitFirst()
+            .forEach { attributeEntry ->
+                val attributeInstances = expandValueAsListOfMap(attributeEntry.value)
+                attributeInstances.forEach { attributeInstance ->
+                    val datasetId = attributeInstance.getDatasetId()
+                    val temporalEntityAttributeUuid = temporalEntityAttributeService.getForEntityAndAttribute(
+                        entityId.toUri(),
+                        attributeEntry.key,
+                        datasetId
+                    ).awaitFirst()
 
-                attributeInstanceService.addAttributeInstances(
-                    temporalEntityAttributeUuid,
-                    compactedAttributeName,
-                    expandValueAsMap(it.value),
-                    parsedBody
-                ).awaitFirst()
+                    val compactedAttributeName = compactTerm(attributeEntry.key, contexts)
+                    attributeInstanceService.addAttributeInstance(
+                        temporalEntityAttributeUuid,
+                        compactedAttributeName,
+                        attributeInstance,
+                        contexts
+                    ).awaitFirst()
+                }
             }
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
 

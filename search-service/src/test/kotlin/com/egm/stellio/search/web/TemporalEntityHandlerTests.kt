@@ -81,21 +81,23 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a 204 if temporal entity fragment is valid`() {
-        val jsonLdObservation = loadSampleData("observation.jsonld")
-        val parsedJsonLdObservation = deserializeObject(jsonLdObservation)
+    fun `it should correctly handle an attribute with one instance`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-        every { attributeInstanceService.addAttributeInstances(any(), any(), any(), any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(jsonLdObservation))
+            .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
             .expectStatus().isNoContent
 
@@ -106,13 +108,142 @@ class TemporalEntityHandlerTests {
             )
         }
         verify {
-            attributeInstanceService.addAttributeInstances(
+            attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 eq("incoming"),
                 match {
                     it.size == 4
                 },
-                parsedJsonLdObservation
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle an attribute with many instances`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                eq("https://ontology.eglobalmark.com/apic#incoming")
+            )
+        }
+        verify(exactly = 2) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                eq("incoming"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle many attributes with one instance`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify(exactly = 2) {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                or(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                )
+            )
+        }
+        verify(exactly = 2) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                or("incoming", "outgoing"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle many attributes with many instances`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify(exactly = 4) {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                or(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                )
+            )
+        }
+        verify(exactly = 4) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                or("incoming", "outgoing"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
         confirmVerified(temporalEntityAttributeService)

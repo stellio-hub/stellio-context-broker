@@ -35,7 +35,7 @@ class ExceptionHandlerTests {
     }
 
     @Test
-    fun `it should raise an error of type BadRequestData if the request payload is not a valid JSON-LD fragment`() {
+    fun `it should raise an error of type LdContextNotAvailable if the context is not resolvable`() {
         val invalidJsonPayload =
             """
             {
@@ -51,8 +51,9 @@ class ExceptionHandlerTests {
             .uri("/router/mockkedroute/validate-json-ld-fragment")
             .bodyValue(invalidJsonPayload)
             .exchange()
-            .expectStatus().isEqualTo(HttpStatus.BAD_REQUEST)
+            .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
             .expectBody()
-            .jsonPath("$..type").isEqualTo("https://uri.etsi.org/ngsi-ld/errors/BadRequestData")
+            .jsonPath("$..type")
+            .isEqualTo("https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable")
     }
 }

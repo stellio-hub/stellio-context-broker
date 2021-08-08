@@ -520,7 +520,10 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
         else
             JsonLdProcessor.expand(parsedFragment)
     } catch (e: JsonLdError) {
-        throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
+        if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
+            throw LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
+        else
+            throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
     }
     if (expandedFragment.isEmpty())
         throw BadRequestDataException("Unable to parse input payload")

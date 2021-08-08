@@ -14,3 +14,4 @@ data class TooComplexQueryException(override val message: String) : APiException
 data class TooManyResultsException(override val message: String) : APiException(message)
 data class AccessDeniedException(override val message: String) : APiException(message)
 data class NotImplementedException(override val message: String) : APiException(message)
+data class LdContextNotAvailableException(override val message: String) : APiException(message)

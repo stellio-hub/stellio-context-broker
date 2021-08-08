@@ -1655,7 +1655,7 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `entity attributes update should return a 400 if JSON-LD context is not correct`() {
+    fun `entity attributes update should return a 503 if JSON-LD context is not correct`() {
         val payload =
             """
             {
@@ -1677,13 +1677,13 @@ class EntityHandlerTests {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(payload)
             .exchange()
-            .expectStatus().isBadRequest
+            .expectStatus().isEqualTo(HttpStatus.SERVICE_UNAVAILABLE)
             .expectBody().json(
                 """
                 {
-                    "type": "https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title": "The request includes input data which does not meet the requirements of the operation",
-                    "detail": "Unexpected error while parsing payload (cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld)"
+                    "type": "https://uri.etsi.org/ngsi-ld/errors/LdContextNotAvailable",
+                    "title": "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or compaction cannot be performed",
+                    "detail": "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: loading remote context failed: http://easyglobalmarket.com/contexts/diat.jsonld)"
                 }
                 """.trimIndent()
             )

@@ -47,10 +47,8 @@ data class TooManyResultsResponse(override val detail: String) : ErrorResponse(
 
 data class LdContextNotAvailableResponse(override val detail: String) : ErrorResponse(
     ErrorType.LD_CONTEXT_NOT_AVAILABLE.type,
-    """
-    A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and expansion or 
-    compaction cannot be performed
-    """.trimIndent(),
+    "A remote JSON-LD @context referenced in a request cannot be retrieved by the NGSI-LD Broker and " +
+        "expansion or compaction cannot be performed",
     detail
 )
 

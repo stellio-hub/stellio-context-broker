@@ -172,7 +172,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         var entities = searchRepository.getEntities(
             queryParams,
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second

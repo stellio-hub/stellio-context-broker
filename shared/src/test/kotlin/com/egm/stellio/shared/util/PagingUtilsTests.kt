@@ -14,7 +14,7 @@ class PagingUtilsTests {
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
             8,
-            1,
+            0,
             10
         )
 
@@ -27,13 +27,13 @@ class PagingUtilsTests {
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
             8,
-            2,
+            5,
             5
         )
 
         assertEquals(
             links,
-            Pair("</ngsi-ld/v1/subscriptions?limit=5&page=1>;rel=\"prev\";type=\"application/ld+json\"", null)
+            Pair("</ngsi-ld/v1/subscriptions?limit=5&offset=0>;rel=\"prev\";type=\"application/ld+json\"", null)
         )
     }
 
@@ -43,13 +43,13 @@ class PagingUtilsTests {
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
             8,
-            1,
+            0,
             5
         )
 
         assertEquals(
             links,
-            Pair(null, "</ngsi-ld/v1/subscriptions?limit=5&page=2>;rel=\"next\";type=\"application/ld+json\"")
+            Pair(null, "</ngsi-ld/v1/subscriptions?limit=5&offset=5>;rel=\"next\";type=\"application/ld+json\"")
         )
     }
 
@@ -59,15 +59,15 @@ class PagingUtilsTests {
             subscriptionResourceUrl,
             LinkedMultiValueMap(),
             8,
-            3,
-            1
+            2,
+            3
         )
 
         assertEquals(
             links,
             Pair(
-                "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/subscriptions?limit=1&page=4>;rel=\"next\";type=\"application/ld+json\""
+                "</ngsi-ld/v1/subscriptions?limit=3&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/subscriptions?limit=3&offset=5>;rel=\"next\";type=\"application/ld+json\""
             )
         )
     }

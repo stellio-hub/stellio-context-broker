@@ -16,11 +16,11 @@ class StandaloneNeo4jSearchRepository(
     override fun getEntities(
         queryParams: QueryParams,
         userSub: String,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>> {
-        val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, page, limit, contexts)
+        val query = QueryUtils.prepareQueryForEntitiesWithoutAuthentication(queryParams, offset, limit, contexts)
         val result = neo4jClient.query(query).fetch().all()
         return if (limit == 0)
             Pair(

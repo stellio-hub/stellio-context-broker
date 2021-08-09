@@ -11,8 +11,8 @@ interface SearchRepository {
      *
      * @param queryParams query parameters.
      * @param userSub to be used in authentication enabled mode to apply permissions checks.
-     * @param page page number for pagination.
-     * @param limit limit number for pagination.
+     * @param offset offset for pagination.
+     * @param limit limit for pagination.
      * @param contexts list of JSON-LD contexts for term to URI expansion.
      * @return [Pair]
      *  @property first count of all matching entities in the database.
@@ -22,7 +22,7 @@ interface SearchRepository {
     fun getEntities(
         queryParams: QueryParams,
         userSub: String,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>>

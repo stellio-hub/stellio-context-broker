@@ -54,7 +54,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     private val serviceAccountUri = "urn:ngsi-ld:User:01".toUri()
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val sub = "01"
-    private val page = 1
+    private val offset = 0
     private val limit = 20
 
     @AfterEach
@@ -87,7 +87,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -116,7 +116,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -135,7 +135,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -172,7 +172,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         var entities = searchRepository.getEntities(
             queryParams,
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -182,7 +182,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         entities = searchRepository.getEntities(
             queryParams.copy(expandedAttrs = setOf(expandedNameProperty)),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -218,7 +218,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -249,7 +249,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
@@ -283,7 +283,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).first
@@ -310,7 +310,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val countAndEntities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             sub,
-            page,
+            offset,
             0,
             DEFAULT_CONTEXTS
         )
@@ -323,7 +323,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
     fun `it should only return matching entities requested by pagination`(
         idPattern: String?,
-        page: Int,
+        offset: Int,
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
@@ -350,7 +350,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second

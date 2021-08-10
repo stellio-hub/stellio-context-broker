@@ -178,6 +178,10 @@
       "@type": "@id"
     },
     "temporalQ": "ngsi-ld:temporalQ",
+    "tenant": {
+      "@id": "ngsi-ld:tenant",
+      "@type": "@id"
+    },
     "throttling": "ngsi-ld:throttling",
     "timeAt": {
       "@id": "ngsi-ld:timeAt",

@@ -1,5 +1,3 @@
-import com.google.cloud.tools.jib.gradle.PlatformParameters
-
 plugins {
     id("com.google.cloud.tools.jib")
     id("org.springframework.boot")
@@ -11,7 +9,6 @@ dependencies {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
-jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-api-gateway"
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8080")

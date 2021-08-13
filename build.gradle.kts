@@ -72,7 +72,7 @@ subprojects {
 
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.17.1")
+        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

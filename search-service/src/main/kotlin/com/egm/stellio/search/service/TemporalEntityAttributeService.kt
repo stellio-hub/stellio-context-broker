@@ -159,9 +159,7 @@ class TemporalEntityAttributeService(
     fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
         attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
             .zipWith(deleteEntityPayload(entityId))
-            .map { it.t1 + it.t2 }
-            .zipWith(deleteTemporalAttributesOfEntity(entityId))
-            .map { it.t1 + it.t2 }
+            .then(deleteTemporalAttributesOfEntity(entityId))
 
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
         r2dbcEntityTemplate.delete(TemporalEntityAttribute::class.java)

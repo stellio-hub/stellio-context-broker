@@ -394,7 +394,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).block()
 
-        assert(deletedRecords == 5)
+        assert(deletedRecords == 2)
+
+        verify {
+            attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
+        }
+        confirmVerified(attributeInstanceService)
     }
 
     @Test

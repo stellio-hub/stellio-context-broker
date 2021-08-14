@@ -19,7 +19,7 @@ plugins {
     id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
     id("com.google.cloud.tools.jib") version "3.1.3" apply false
     kotlin("kapt") version "1.5.21" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.17.1" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.18.0" apply false
     id("org.sonarqube") version "3.3"
     jacoco
 }
@@ -115,8 +115,8 @@ subprojects {
     }
 
     detekt {
-        toolVersion = "1.17.1"
-        input = files("src/main/kotlin", "src/test/kotlin")
+        toolVersion = "1.18.0"
+        source = files("src/main/kotlin", "src/test/kotlin")
         config = files(detektConfigFile)
         buildUponDefaultConfig = true
         baseline = file("$projectDir/config/detekt/baseline.xml")

@@ -9,7 +9,7 @@ class DateUtilsTests {
     @Test
     fun `it should correctly render a datetime with milliseconds at zero`() {
         val datetime = ZonedDateTime.parse("2020-12-26T10:54:00.000Z")
-        assertEquals("2020-12-26T10:54:00.000Z", datetime.toNgsiLdFormat())
+        assertEquals("2020-12-26T10:54:00Z", datetime.toNgsiLdFormat())
     }
 
     @Test

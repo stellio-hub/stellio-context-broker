@@ -7,4 +7,3 @@ val formatter: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
 fun ZonedDateTime.toNgsiLdFormat(): String =
     formatter.format(this)
-

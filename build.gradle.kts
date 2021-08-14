@@ -70,7 +70,7 @@ subprojects {
 
         implementation("org.locationtech.jts.io:jts-io-common:1.18.1")
 
-        "kapt"("io.arrow-kt:arrow-meta:0.10.4")
+        "kapt"("io.arrow-kt:arrow-meta:0.13.2")
 
         "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
 

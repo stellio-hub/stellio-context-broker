@@ -210,8 +210,8 @@ class EntityService(
             .map {
                 JsonLdEntity(
                     it.serializeCoreProperties(includeSysAttrs)
-                        .plus(serializeEntityProperties(it.properties))
-                        .plus(serializeEntityRelationships(it.relationships)),
+                        .plus(serializeEntityProperties(it.properties, includeSysAttrs))
+                        .plus(serializeEntityRelationships(it.relationships, includeSysAttrs)),
                     it.contexts
                 )
             }.sortedBy {
@@ -230,8 +230,8 @@ class EntityService(
 
         return JsonLdEntity(
             entity.serializeCoreProperties(includeSysAttrs)
-                .plus(serializeEntityProperties(entity.properties))
-                .plus(serializeEntityRelationships(entity.relationships)),
+                .plus(serializeEntityProperties(entity.properties, includeSysAttrs))
+                .plus(serializeEntityRelationships(entity.relationships, includeSysAttrs)),
             entity.contexts
         )
     }

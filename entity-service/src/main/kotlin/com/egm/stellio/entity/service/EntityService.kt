@@ -161,17 +161,11 @@ class EntityService(
 
     fun existsAsPartial(entityId: URI): Boolean = partialEntityRepository.existsById(entityId)
 
-    /**
-     * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
-     * associated to the entity
-     * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
-     */
-    fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity? {
-        val entity = entityRepository.findById(entityId)
-            .orElseThrow { ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
-        val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
-
-        entity.properties
+    private fun serializeEntityProperties(
+        properties: List<Property>,
+        includeSysAttrs: Boolean = false
+    ): Map<String, Any> =
+        properties
             .map { property ->
                 val serializedProperty = property.serializeCoreProperties(includeSysAttrs)
 
@@ -188,11 +182,12 @@ class EntityService(
                 Pair(property.name, serializedProperty)
             }
             .groupBy({ it.first }, { it.second })
-            .forEach { (propertyName, propertyValues) ->
-                resultEntity[propertyName] = propertyValues
-            }
 
-        entity.relationships
+    private fun serializeEntityRelationships(
+        relationships: List<Relationship>,
+        includeSysAttrs: Boolean = false
+    ): Map<String, Any> =
+        relationships
             .map { relationship ->
                 val serializedRelationship = serializeRelationship(relationship, includeSysAttrs)
 
@@ -209,11 +204,36 @@ class EntityService(
                 Pair(relationship.relationshipType(), serializedRelationship)
             }
             .groupBy({ it.first }, { it.second })
-            .forEach { (relationshipName, relationshipValues) ->
-                resultEntity[relationshipName] = relationshipValues
+
+    fun getFullEntitiesById(entitiesIds: List<URI>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
+        entityRepository.findAllById(entitiesIds)
+            .map {
+                JsonLdEntity(
+                    it.serializeCoreProperties(includeSysAttrs)
+                        .plus(serializeEntityProperties(it.properties))
+                        .plus(serializeEntityRelationships(it.relationships)),
+                    it.contexts
+                )
+            }.sortedBy {
+                // as findAllById does not preserve order of the results, sort them back by id (search order)
+                it.id
             }
 
-        return JsonLdEntity(resultEntity, entity.contexts)
+    /**
+     * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
+     * associated to the entity
+     * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
+     */
+    fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity? {
+        val entity = entityRepository.findById(entityId)
+            .orElseThrow { ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
+
+        return JsonLdEntity(
+            entity.serializeCoreProperties(includeSysAttrs)
+                .plus(serializeEntityProperties(entity.properties))
+                .plus(serializeEntityRelationships(entity.relationships)),
+            entity.contexts
+        )
     }
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
@@ -232,6 +252,7 @@ class EntityService(
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
+    @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
         userSub: String,
@@ -251,7 +272,7 @@ class EntityService(
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      * @return a list of entities represented as per #getFullEntityById result
      */
-    @Transactional
+    @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
         userSub: String,
@@ -267,7 +288,8 @@ class EntityService(
             limit,
             contexts
         )
-        return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
+
+        return Pair(result.first, getFullEntitiesById(result.second, includeSysAttrs))
     }
 
     @Transactional

@@ -262,7 +262,7 @@ class Neo4jRepository(
         val query = if (datasetId == null)
             """
             MATCH (a:${subjectNodeInfo.label} { id: ${'$'}attributeId })-[:HAS_OBJECT]->(rel:Relationship)-[:$relationshipType]->()
-            WHERE NOT EXISTS (rel.datasetId)
+            WHERE rel.datasetId IS NULL
             RETURN a.id
             """.trimIndent()
         else

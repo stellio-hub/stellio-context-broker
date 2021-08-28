@@ -9,6 +9,7 @@ import com.egm.stellio.entity.repository.RelationshipRepository
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
@@ -21,6 +22,8 @@ class EntityAttributeService(
     private val relationshipRepository: RelationshipRepository
 ) {
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Transactional
     fun partialUpdateEntityAttribute(
         entityId: URI,
@@ -29,6 +32,8 @@ class EntityAttributeService(
     ): UpdateResult {
         val expandedAttributeName = expandedPayload.keys.first()
         val attributeValues = expandedPayload.values.first()
+
+        logger.debug("Updating attribute $expandedAttributeName of entity $entityId with values: $attributeValues")
 
         val updateResult = attributeValues.map { attributeInstanceValues ->
             val datasetId = attributeInstanceValues.getDatasetId()

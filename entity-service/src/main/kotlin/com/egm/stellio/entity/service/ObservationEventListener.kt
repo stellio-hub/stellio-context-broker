@@ -20,6 +20,7 @@ class ObservationEventListener(
 
     @KafkaListener(topicPattern = "cim.observation.*", groupId = "observations")
     fun processMessage(content: String) {
+        logger.debug("Received event: $content")
         when (val observationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreate(observationEvent)
             is AttributeUpdateEvent -> handleAttributeUpdateEvent(observationEvent)
@@ -107,7 +108,7 @@ class ObservationEventListener(
                     observationEvent.attributeName,
                     observationEvent.datasetId,
                     observationEvent.operationPayload,
-                    compactAndSerialize(updatedEntity!!, observationEvent.contexts, MediaType.APPLICATION_JSON),
+                    compactAndSerialize(updatedEntity, observationEvent.contexts, MediaType.APPLICATION_JSON),
                     observationEvent.contexts,
                     observationEvent.overwrite
                 ),

@@ -544,8 +544,8 @@ fun extractAttributeInstanceFromCompactedEntity(
     else {
         // Since some attributes cannot be well compacted, to be improved later
         logger.warn(
-            "Received expanded attribute $attributeName, " +
-                "extracting instance for ${attributeName.extractShortTypeFromExpanded()}"
+            "Could not find entry for attribute: $attributeName, " +
+                "trying on the 'guessed' short form instead: ${attributeName.extractShortTypeFromExpanded()}"
         )
         compactedJsonLdEntity[attributeName.extractShortTypeFromExpanded()] as CompactedJsonLdAttribute
     }

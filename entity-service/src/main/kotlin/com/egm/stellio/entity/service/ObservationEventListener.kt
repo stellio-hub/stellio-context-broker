@@ -56,11 +56,20 @@ class ObservationEventListener(
         )
 
         try {
-            entityAttributeService.partialUpdateEntityAttribute(
+            val updateResult = entityAttributeService.partialUpdateEntityAttribute(
                 observationEvent.entityId,
                 expandedPayload,
                 observationEvent.contexts
             )
+            // TODO things could be more fine-grained (e.g., one instance updated and not the other one)
+            //  so we should also check the notUpdated data and remove them from the propagated payload
+            if (updateResult.updated.isEmpty()) {
+                logger.info(
+                    "Nothing has been updated for attribute ${observationEvent.attributeName}" +
+                        " in entity ${observationEvent.entityId}, returning"
+                )
+                return
+            }
         } catch (e: ResourceNotFoundException) {
             logger.error("Entity or attribute not found in observation : ${e.message}")
             return

@@ -135,6 +135,7 @@ class Neo4jAuthorizationService(
     override fun createAdminLinks(entitiesId: List<URI>, userSub: String) {
         val relationships = entitiesId.map {
             Relationship(
+                objectId = it,
                 type = listOf(R_CAN_ADMIN),
                 datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
             )

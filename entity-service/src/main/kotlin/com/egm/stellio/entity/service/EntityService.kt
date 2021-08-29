@@ -8,8 +8,6 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
@@ -42,8 +40,7 @@ class EntityService(
                 createEntityRelationship(
                     ngsiLdEntity.id,
                     ngsiLdRelationship.name,
-                    ngsiLdRelationshipInstance,
-                    ngsiLdRelationshipInstance.objectId
+                    ngsiLdRelationshipInstance
                 )
             }
         }
@@ -95,13 +92,12 @@ class EntityService(
     private fun createEntityRelationship(
         entityId: URI,
         relationshipType: String,
-        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance,
-        targetEntityId: URI
+        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance
     ): URI {
         val rawRelationship = Relationship(relationshipType, ngsiLdRelationshipInstance)
 
         neo4jRepository.createRelationshipOfSubject(
-            EntitySubjectNode(entityId), rawRelationship, targetEntityId
+            EntitySubjectNode(entityId), rawRelationship, ngsiLdRelationshipInstance.objectId
         )
 
         createAttributeProperties(rawRelationship.id, ngsiLdRelationshipInstance.properties)
@@ -175,7 +171,7 @@ class EntityService(
                 }
 
                 property.relationships.forEach { innerRelationship ->
-                    val serializedSubRelationship = serializeRelationship(innerRelationship, includeSysAttrs)
+                    val serializedSubRelationship = innerRelationship.serializeCoreProperties(includeSysAttrs)
                     serializedProperty[innerRelationship.relationshipType()] = serializedSubRelationship
                 }
 
@@ -189,7 +185,7 @@ class EntityService(
     ): Map<String, Any> =
         relationships
             .map { relationship ->
-                val serializedRelationship = serializeRelationship(relationship, includeSysAttrs)
+                val serializedRelationship = relationship.serializeCoreProperties(includeSysAttrs)
 
                 relationship.properties.forEach { innerProperty ->
                     val serializedSubProperty = innerProperty.serializeCoreProperties(includeSysAttrs)
@@ -197,7 +193,7 @@ class EntityService(
                 }
 
                 relationship.relationships.forEach { innerRelationship ->
-                    val serializedSubRelationship = serializeRelationship(innerRelationship, includeSysAttrs)
+                    val serializedSubRelationship = innerRelationship.serializeCoreProperties(includeSysAttrs)
                     serializedRelationship[innerRelationship.relationshipType()] = serializedSubRelationship
                 }
 
@@ -238,18 +234,6 @@ class EntityService(
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
 
-    private fun serializeRelationship(relationship: Relationship, includeSysAttrs: Boolean): MutableMap<String, Any> {
-        val serializedRelationship = relationship.serializeCoreProperties(includeSysAttrs)
-        // TODO not perfect as it makes one more DB request per relationship to get the target entity id
-        val targetEntityId =
-            neo4jRepository.getTargetObjectIdOfRelationship(
-                relationship.id,
-                relationship.relationshipType().toRelationshipTypeName()
-            )
-        serializedRelationship[NGSILD_RELATIONSHIP_HAS_OBJECT] = mapOf(JSONLD_ID to targetEntityId.toString())
-        return serializedRelationship
-    }
-
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     @Transactional(readOnly = true)
@@ -266,8 +250,7 @@ class EntityService(
     /**
      * Search entities by type and query parameters
      *
-     * @param type the short-hand type (e.g "Measure")
-     * @param query the list of raw query parameters (e.g "name==test")
+     * @param queryParams the list of raw query parameters (e.g. type, idPattern,...)
      * @param contexts the list of contexts to consider
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      * @return a list of entities represented as per #getFullEntityById result
@@ -341,8 +324,7 @@ class EntityService(
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
@@ -371,8 +353,7 @@ class EntityService(
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
@@ -516,8 +497,7 @@ class EntityService(
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,

@@ -395,6 +395,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             userUri,
             targetIds.map {
                 Relationship(
+                    objectId = it,
                     type = listOf(R_CAN_ADMIN),
                     datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
                 )
@@ -426,6 +427,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             serviceAccountUri,
             targetIds.map {
                 Relationship(
+                    objectId = it,
                     type = listOf(R_CAN_ADMIN),
                     datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
                 )
@@ -442,7 +444,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     fun createRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, objectId: URI): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType))
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType))
 
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 

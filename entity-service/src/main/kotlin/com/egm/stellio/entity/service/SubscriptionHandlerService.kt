@@ -108,6 +108,7 @@ class SubscriptionHandlerService(
             entityService.deleteEntity(lastNotification.id)
         } else {
             val rawRelationship = Relationship(
+                objectId = notification.id,
                 type = listOf(JsonLdUtils.EGM_RAISED_NOTIFICATION)
             )
 

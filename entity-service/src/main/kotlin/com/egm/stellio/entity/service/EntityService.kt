@@ -202,13 +202,18 @@ class EntityService(
             .groupBy({ it.first }, { it.second })
 
     fun getFullEntitiesById(entitiesIds: List<URI>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
-        entityRepository.findAllById(entitiesIds)
+        entitiesIds
             .map {
+                entityRepository.findById(it)
+            }
+            .filter { it.isPresent }
+            .map {
+                val entity = it.get()
                 JsonLdEntity(
-                    it.serializeCoreProperties(includeSysAttrs)
-                        .plus(serializeEntityProperties(it.properties, includeSysAttrs))
-                        .plus(serializeEntityRelationships(it.relationships, includeSysAttrs)),
-                    it.contexts
+                    entity.serializeCoreProperties(includeSysAttrs)
+                        .plus(serializeEntityProperties(entity.properties, includeSysAttrs))
+                        .plus(serializeEntityRelationships(entity.relationships, includeSysAttrs)),
+                    entity.contexts
                 )
             }.sortedBy {
                 // as findAllById does not preserve order of the results, sort them back by id (search order)

@@ -3,7 +3,9 @@ package com.egm.stellio.entity.model
 import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsString
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.shared.util.toUri
@@ -26,6 +28,9 @@ data class Relationship(
     @Id
     @ConvertWith(converter = Neo4jUriPropertyConverter::class)
     val id: URI = "urn:ngsi-ld:Relationship:${UUID.randomUUID()}".toUri(),
+
+    // keep a copy of the target object URI to avoid unnecessary DB calls to retrieve it
+    var objectId: URI,
 
     var observedAt: ZonedDateTime? = null,
 
@@ -53,6 +58,7 @@ data class Relationship(
 
     constructor(type: String, ngsiLdRelationshipInstance: NgsiLdRelationshipInstance) :
         this(
+            objectId = ngsiLdRelationshipInstance.objectId,
             type = listOf(type),
             observedAt = ngsiLdRelationshipInstance.observedAt,
             datasetId = ngsiLdRelationshipInstance.datasetId
@@ -86,6 +92,9 @@ data class Relationship(
             )
         }
 
+        resultEntity[JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT] = mapOf(
+            JsonLdUtils.JSONLD_ID to objectId.toString()
+        )
         resultEntity[JsonLdUtils.JSONLD_TYPE] = JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri
 
         return resultEntity
@@ -94,6 +103,7 @@ data class Relationship(
     override fun nodeProperties(): MutableMap<String, Any> {
         val nodeProperties = mutableMapOf<String, Any>(
             "id" to id.toString(),
+            "objectId" to objectId.toString(),
             "createdAt" to createdAt
         )
 
@@ -114,7 +124,10 @@ data class Relationship(
 
     override fun id(): URI = id
 
-    private fun updateValues(observedAt: ZonedDateTime?): Relationship {
+    private fun updateValues(objectId: URI?, observedAt: ZonedDateTime?): Relationship {
+        objectId?.let {
+            this.objectId = it
+        }
         observedAt?.let {
             this.observedAt = observedAt
         }
@@ -122,7 +135,10 @@ data class Relationship(
     }
 
     fun updateValues(updateFragment: Map<String, List<Any>>): Relationship =
-        updateValues(getPropertyValueFromMapAsDateTime(updateFragment, JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY))
+        updateValues(
+            getPropertyValueFromMapAsString(updateFragment, NGSILD_RELATIONSHIP_HAS_OBJECT)?.toUri(),
+            getPropertyValueFromMapAsDateTime(updateFragment, JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY)
+        )
 
     // neo4j forces us to have a list but we know we have only one dynamic label
     fun relationshipType(): String =

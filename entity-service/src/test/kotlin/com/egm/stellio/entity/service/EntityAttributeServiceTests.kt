@@ -22,6 +22,8 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.net.URI
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityAttributeService::class])
 @ActiveProfiles("test")
@@ -174,7 +176,7 @@ class EntityAttributeServiceTests {
 
         val expandedPayload = parseAndExpandAttributeFragment(propertyName, payload, listOf(AQUAC_COMPOUND_CONTEXT))
         val property = Property(name = propertyName, unitCode = "years", value = 0)
-        val relationship = Relationship(type = listOf("measuredBy"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf("measuredBy"))
 
         every { neo4jRepository.hasRelationshipInstance(match { it.label == "Entity" }, any(), any()) } returns false
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
@@ -247,7 +249,7 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val relationship = Relationship(type = listOf("isContainedIn"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { relationshipRepository.getRelationshipOfSubject(any(), any()) } returns relationship
@@ -281,7 +283,7 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val relationship = Relationship(type = listOf("isContainedIn"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { relationshipRepository.getRelationshipOfSubject(any(), any(), any()) } returns relationship
@@ -320,7 +322,7 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val relationship = Relationship(type = listOf("isContainedIn"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
         val property = Property(name = "depth", value = 0)
 
         every { neo4jRepository.hasRelationshipInstance(match { it.label == "Entity" }, any(), any()) } returns true
@@ -366,8 +368,8 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val relationship = Relationship(type = listOf("isContainedIn"))
-        val measuredByRelationship = Relationship(type = listOf("measuredBy"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
+        val measuredByRelationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
 
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { relationshipRepository.getRelationshipOfSubject(fishUri, any()) } returns relationship
@@ -497,7 +499,7 @@ class EntityAttributeServiceTests {
             """.trimIndent()
 
         val expandedPayload = parseAndExpandAttributeFragment(relationshipType, payload, listOf(AQUAC_COMPOUND_CONTEXT))
-        val relationship = Relationship(type = listOf("isContainedIn"))
+        val relationship = Relationship(objectId = generateRandomObjectId(), type = listOf(relationshipType))
         every { neo4jRepository.hasRelationshipInstance(any(), any(), any()) } returns true
         every { relationshipRepository.getRelationshipOfSubject(any(), any(), any()) } returns relationship
         every { neo4jRepository.updateRelationshipTargetOfSubject(any(), any(), any()) } returns true
@@ -541,4 +543,7 @@ class EntityAttributeServiceTests {
 
         confirmVerified()
     }
+
+    private fun generateRandomObjectId(): URI =
+        "urn:ngsi-ld:Entity:${UUID.randomUUID()}".toUri()
 }

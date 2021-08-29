@@ -379,6 +379,27 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should update the target relationship of a relationship`() {
+        val property = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
+        propertyRepository.save(property)
+        val relationship = createRelationship(
+            AttributeSubjectNode(property.id),
+            EGM_OBSERVED_BY,
+            "urn:ngsi-ld:Entity:123".toUri()
+        )
+
+        neo4jRepository.updateTargetOfRelationship(
+            relationship.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            "urn:ngsi-ld:Entity:123".toUri(),
+            "urn:ngsi-ld:Entity:456".toUri()
+        )
+
+        val updatedRelationship = relationshipRepository.findById(relationship.id)
+        assertEquals("urn:ngsi-ld:Entity:456".toUri(), updatedRelationship.get().objectId)
+    }
+
+    @Test
     fun `it should add modifiedAt value when creating a new property`() {
         val property = Property(name = "name", value = "Scalpa")
         propertyRepository.save(property)
@@ -387,7 +408,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should add modifiedAt value when saving a new relationship`() {
-        val relationship = Relationship(type = listOf("connectsTo"))
+        val relationship = Relationship(objectId = "urn:ngsi-ld:Entity:target".toUri(), type = listOf("connectsTo"))
         relationshipRepository.save(relationship)
         assertNotNull(relationshipRepository.findById(relationship.id).get().modifiedAt)
     }
@@ -1157,7 +1178,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         objectId: URI,
         datasetId: URI? = null
     ): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType), datasetId = datasetId)
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType), datasetId = datasetId)
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 
         return relationship

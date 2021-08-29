@@ -374,7 +374,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         objectId: URI,
         datasetId: URI? = null
     ): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType), datasetId = datasetId)
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType), datasetId = datasetId)
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 
         return relationship

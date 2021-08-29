@@ -177,23 +177,6 @@ class Neo4jRepository(
         return neo4jClient.query(query).bind(entityId.toString()).to("entityId").run().counters().propertiesSet()
     }
 
-    fun getTargetObjectIdOfRelationship(relationshipId: URI, relationshipType: String): URI {
-        val query =
-            """
-            MATCH (r:Relationship { id: ${'$'}relationshipId })-[:$relationshipType]->(e)
-            RETURN e.id as entityId
-            """.trimIndent()
-
-        val result = neo4jClient.query(query)
-            .bind(relationshipId.toString()).to("relationshipId")
-            .fetch()
-            .one()
-
-        return result.map {
-            (it["entityId"] as String).toUri()
-        }.orElse(null)
-    }
-
     fun hasRelationshipOfType(subjectNodeInfo: SubjectNodeInfo, relationshipType: String): Boolean {
         val query =
             """
@@ -324,6 +307,7 @@ class Neo4jRepository(
             ON CREATE SET target:PartialEntity
             DETACH DELETE v
             MERGE (a)-[:$relationshipType]->(target)
+            SET a.objectId = ${'$'}newRelationshipObjectId
             """.trimIndent()
 
         val parameters = mapOf(

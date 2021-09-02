@@ -6,7 +6,7 @@ import java.net.URI
 
 @ConstructorBinding
 @ConfigurationProperties("application")
-data class ApplicationProperties(
+data class dockerApplicationProperties(
     val entity: Entity,
     val authentication: Authentication
 ) {

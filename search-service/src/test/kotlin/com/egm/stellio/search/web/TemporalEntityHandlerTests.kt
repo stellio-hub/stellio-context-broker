@@ -816,4 +816,187 @@ class TemporalEntityHandlerTests {
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)
     }
+    @Test
+    fun `query subscriptions should return 200 with prev link header if exists`() {
+
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf( temporalEntity)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=1&offset=2")
+            .header("Accept", MediaType.APPLICATION_JSON.toString())
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists("Link")
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(1)
+            .jsonPath("$[0].@context").doesNotExist()
+            .jsonPath("$[1].@context").doesNotExist()
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with next link header if exists`() {
+
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf( temporalEntity)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=1&offset=0")
+            .header("Accept", MediaType.APPLICATION_JSON.toString())
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists("Link")
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(1)
+            .jsonPath("$[0].@context").doesNotExist()
+            .jsonPath("$[1].@context").doesNotExist()
+    }
+
+    @Test
+    fun `query subscriptions should return 200 with prev and next link header if exists`() {
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+            listOf( temporalEntity)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=1&offset=1")
+            .header("Accept", MediaType.APPLICATION_JSON.toString())
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().exists("Link")
+            .expectBody()
+            .jsonPath("$").isArray
+            .jsonPath("$.length()").isEqualTo(1)
+            .jsonPath("$[0].@context").doesNotExist()
+            .jsonPath("$[1].@context").doesNotExist()
+    }
+
+
+
+    @Test
+    fun `query subscriptions should return 400 if requested offset is less than zero`() {
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+            "Offset must be greater than zero and limit must be strictly greater than zero"
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=1&offset=-1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `query subscriptions should return 400 if limit is equal or less than zero`() {
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+            "Offset must be greater than zero and limit must be strictly greater than zero"
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=-1&offset=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                }
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `query subscriptions should return 400 if limit is greater than the maximum authorized limit`() {
+        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+            "You asked for 200 results, but the supported maximum limit is 100"
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive?limit=200&offset=1")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                }
+                """.trimIndent()
+            )
+    }
 }

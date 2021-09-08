@@ -244,7 +244,8 @@ class TemporalEntityAttributeService(
         ).valid()
     }
 
-    fun getForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
+
+    fun getForEntities(limit: Int, offset: Int, ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
         Mono<List<TemporalEntityAttribute>> {
         var selectQuery = if (withEntityPayload)
             """
@@ -273,6 +274,28 @@ class TemporalEntityAttributeService(
             .all()
             .map { rowToTemporalEntityAttribute(it) }
             .collectList()
+    }
+
+    fun getTemporalsCount(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
+        var selectStatement =
+            """
+            SELECT count(*) from temporal_entity_attribute
+            WHERE temporal_entity_attribute.entity_id = :entity_id
+            """.trimIndent()
+
+        val formattedIds = ids.joinToString(",") { "'$it'" }
+        val formattedTypes = types.joinToString(",") { "'$it'" }
+        val formattedAttrs = attrs.joinToString(",") { "'$it'" }
+        if (ids.isNotEmpty()) selectStatement = "$selectStatement entity_id in ($formattedIds) AND"
+        if (types.isNotEmpty()) selectStatement = "$selectStatement type in ($formattedTypes) AND"
+        if (attrs.isNotEmpty()) selectStatement = "$selectStatement attribute_name in ($formattedAttrs) AND"
+        return databaseClient
+            .sql(selectStatement.removeSuffix("AND"))
+            .bind("entity_id",ids )
+            .bind("type", types)
+            .bind("attribute_name", attrs)
+            .map(rowToTemporalCount)
+            .first()
     }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
@@ -317,7 +340,7 @@ class TemporalEntityAttributeService(
 
         return databaseClient
             .sql(selectQuery)
-            .bind("entity_id", id)
+            .bind("id", id)
             .map(rowToId)
             .first()
     }
@@ -361,4 +384,9 @@ class TemporalEntityAttributeService(
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
     }
+    private var rowToTemporalCount: ((Row) -> Int) = { row ->
+        row.get("count", Integer::class.java)!!.toInt()
+    }
+
 }
+

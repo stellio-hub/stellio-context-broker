@@ -5,12 +5,15 @@ import arrow.core.flatMap
 import arrow.core.getOrHandle
 import arrow.core.left
 import arrow.core.right
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -19,6 +22,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.OptionsParamValue
+import com.egm.stellio.shared.util.PagingUtils
+import com.egm.stellio.shared.util.QUERY_PARAM_LIMIT
+import com.egm.stellio.shared.util.QUERY_PARAM_OFFSET
 import com.egm.stellio.shared.util.buildGetSuccessResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -27,6 +33,7 @@ import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseAndExpandRequestParameter
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -50,6 +57,7 @@ import java.util.Optional
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
 class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
+    private val applicationProperties: ApplicationProperties,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService
 ) {
@@ -99,21 +107,64 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
+        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
 
+        if (limit <= 0 || offset < 0)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "Offset must be greater than zero and limit must be strictly greater than zero"
+                    )
+                )
+
+        if (limit > applicationProperties.pagination.limitMax)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "You asked for $limit results, " +
+                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
+                    )
+                )
+
+        val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
         val temporalEntities = queryService.queryTemporalEntities(
+            limit,
+            offset,
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
             parsedParams["temporalQuery"] as TemporalQuery,
             parsedParams["withTemporalValues"] as Boolean,
             contextLink
         )
+        val temporalEntityCount = temporalEntityAttributeService.getTemporalsCount(
+            parsedParams["ids"] as Set<URI>,
+            parsedParams["types"] as Set<String>,
+            parsedParams["attrs"] as Set<String> ).awaitFirst()
+
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/temporal/entities",
+            params,
+            temporalEntityCount,
+            offset,
+            limit
+        )
+
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(emptyList<JsonLdEntity>()),
+            temporalEntityCount,
+            false,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
     }
+
 
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)

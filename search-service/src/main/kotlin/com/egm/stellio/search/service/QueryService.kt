@@ -74,6 +74,8 @@ class QueryService(
     }
 
     suspend fun queryTemporalEntities(
+        limit: Int,
+        offset: Int,
         ids: Set<URI>,
         types: Set<String>,
         temporalQuery: TemporalQuery,
@@ -81,6 +83,8 @@ class QueryService(
         contextLink: String
     ): List<CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+            limit,
+            offset,
             ids,
             types,
             temporalQuery.expandedAttrs

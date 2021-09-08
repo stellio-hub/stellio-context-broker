@@ -1,6 +1,5 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity

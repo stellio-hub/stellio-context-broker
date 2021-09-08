@@ -616,7 +616,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false
         )
 
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -641,6 +641,8 @@ class TemporalEntityHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
+                2,
+                2,
                 emptySet(),
                 setOf("BeeHive"),
                 temporalQuery,
@@ -665,7 +667,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -697,7 +699,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -827,7 +829,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf( temporalEntity)
 
         webClient.get()
@@ -857,7 +859,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf( temporalEntity)
 
         webClient.get()
@@ -877,7 +879,7 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query subscriptions should return 200 with prev and next link header if exists`() {
+    fun `query temporal entity should return 200 with prev and next link header if exists`() {
         val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
@@ -886,7 +888,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf( temporalEntity)
 
         webClient.get()
@@ -917,7 +919,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -948,7 +950,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -979,7 +981,7 @@ class TemporalEntityHandlerTests {
             "temporalQuery" to TemporalQuery(),
             "withTemporalValues" to false
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
 

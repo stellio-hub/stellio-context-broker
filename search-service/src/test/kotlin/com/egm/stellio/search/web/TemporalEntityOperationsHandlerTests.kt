@@ -63,7 +63,7 @@ class TemporalEntityOperationsHandlerTests {
             "temporalQuery" to temporalQuery,
             "withTemporalValues" to true
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -88,6 +88,8 @@ class TemporalEntityOperationsHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
+                2,
+                2,
                 emptySet(),
                 setOf("BeeHive", "Apiary"),
                 temporalQuery,

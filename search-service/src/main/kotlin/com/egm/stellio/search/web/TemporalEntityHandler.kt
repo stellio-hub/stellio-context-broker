@@ -10,10 +10,8 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.service.TemporalEntityService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
@@ -33,7 +31,6 @@ import com.egm.stellio.shared.util.hasValueInOptionsParam
 import com.egm.stellio.shared.util.parseAndExpandRequestParameter
 import com.egm.stellio.shared.util.parseTimeParameter
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -139,7 +136,7 @@ class TemporalEntityHandler(
             parsedParams["withTemporalValues"] as Boolean,
             contextLink
         )
-        val temporalEntityCount = temporalEntityAttributeService.getTemporalsCount(
+        val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
             parsedParams["attrs"] as Set<String> ).awaitFirst()
@@ -153,18 +150,14 @@ class TemporalEntityHandler(
         )
 
         return PagingUtils.buildPaginationResponse(
-            serializeObject(emptyList<JsonLdEntity>()),
+            (serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType)})),
             temporalEntityCount,
             false,
             prevAndNextLinks,
             mediaType,
             contextLink
         )
-
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
     }
-
 
     /**
      * Partial implementation of 6.19.3.1 (query parameters are not all supported)

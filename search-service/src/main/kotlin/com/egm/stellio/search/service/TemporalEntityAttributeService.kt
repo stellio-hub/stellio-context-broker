@@ -276,11 +276,12 @@ class TemporalEntityAttributeService(
             .collectList()
     }
 
-    fun getTemporalsCount(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
+    fun getCountForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
         var selectStatement =
             """
-            SELECT count(*) from temporal_entity_attribute
+            SELECT count(Distinct entity_id) as count_entity from temporal_entity_attribute
             WHERE temporal_entity_attribute.entity_id = :entity_id
+            
             """.trimIndent()
 
         val formattedIds = ids.joinToString(",") { "'$it'" }
@@ -340,7 +341,7 @@ class TemporalEntityAttributeService(
 
         return databaseClient
             .sql(selectQuery)
-            .bind("id", id)
+            .bind("entity_id", id)
             .map(rowToId)
             .first()
     }
@@ -385,7 +386,7 @@ class TemporalEntityAttributeService(
         row.get("id", UUID::class.java)!!
     }
     private var rowToTemporalCount: ((Row) -> Int) = { row ->
-        row.get("count", Integer::class.java)!!.toInt()
+        row.get("count_entity", Integer::class.java)!!.toInt()
     }
 
 }

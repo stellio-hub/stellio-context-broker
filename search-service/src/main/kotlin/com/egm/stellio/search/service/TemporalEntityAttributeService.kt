@@ -244,9 +244,12 @@ class TemporalEntityAttributeService(
         ).valid()
     }
 
-    fun getForEntities(limit: Int, offset: Int, ids: Set<URI>, types: Set<String>,
-        attrs: Set<String>, withEntityPayload: Boolean = false):
-        Mono<List<TemporalEntityAttribute>> {
+    fun getForEntities( limit: Int, 
+                        offset: Int,
+                        ids: Set<URI>,
+                        types: Set<String>,
+                        attrs: Set<String>,
+                        withEntityPayload: Boolean = false): Mono<List<TemporalEntityAttribute>> {
         var selectQuery = if (withEntityPayload)
             """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,

@@ -228,8 +228,8 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             queryService.queryTemporalEntities(
-                1,
-                1,
+                2,
+                2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(

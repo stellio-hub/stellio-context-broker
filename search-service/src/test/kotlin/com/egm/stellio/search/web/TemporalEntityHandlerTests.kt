@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import arrow.core.extensions.listk.align.empty
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
@@ -613,7 +614,9 @@ class TemporalEntityHandlerTests {
             "ids" to emptySet<URI>(),
             "types" to setOf("BeeHive"),
             "temporalQuery" to temporalQuery,
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
+
         )
 
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
@@ -665,7 +668,8 @@ class TemporalEntityHandlerTests {
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
@@ -697,7 +701,8 @@ class TemporalEntityHandlerTests {
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
@@ -818,106 +823,145 @@ class TemporalEntityHandlerTests {
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)
     }
+
     @Test
-    fun `query subscriptions should return 200 with prev link header if exists`() {
+    fun `query temporal entity should return 200 with prev link header if exists`() {
 
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+        val firstTemporalEntity = deserializeObject(
+            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        ).minus("@context")
+        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf( temporalEntity)
+            listOf(firstTemporalEntity,secondTemporalEntity )
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=1&offset=2")
-            .header("Accept", MediaType.APPLICATION_JSON.toString())
-            .header("Link", apicHeaderLink)
+                "type=BeeHive&limit=1&offset=2")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().exists("Link")
-            .expectBody()
-            .jsonPath("$").isArray
-            .jsonPath("$.length()").isEqualTo(1)
-            .jsonPath("$[0].@context").doesNotExist()
-            .jsonPath("$[1].@context").doesNotExist()
+            .expectHeader()
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "type=BeeHive&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
+            )
     }
 
     @Test
-    fun `query subscriptions should return 200 with next link header if exists`() {
+    fun `query temporal entity should return 200 and empty response if requested offset does not exists`() {
 
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf( temporalEntity)
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns empty()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=1&offset=0")
-            .header("Accept", MediaType.APPLICATION_JSON.toString())
-            .header("Link", apicHeaderLink)
+                "type=BeeHive&limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().exists("Link")
-            .expectBody()
-            .jsonPath("$").isArray
-            .jsonPath("$.length()").isEqualTo(1)
-            .jsonPath("$[0].@context").doesNotExist()
-            .jsonPath("$[1].@context").doesNotExist()
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `query temporal entity should return 200 with next link header if exists`() {
+        val firstTemporalEntity = deserializeObject(
+            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        ).minus("@context")
+        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
+        )
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+            listOf(firstTemporalEntity,secondTemporalEntity )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/temporal/entities?" +
+                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                "type=BeeHive&limit=1&offset=0")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader()
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "type=BeeHive&limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
+            )
     }
 
     @Test
     fun `query temporal entity should return 200 with prev and next link header if exists`() {
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
+        val firstTemporalEntity = deserializeObject(
+            loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
+        ).minus("@context")
+        val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf( temporalEntity)
+            listOf(firstTemporalEntity,secondTemporalEntity )
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=1&offset=1")
-            .header("Accept", MediaType.APPLICATION_JSON.toString())
-            .header("Link", apicHeaderLink)
+                "type=BeeHive&limit=1&offset=1")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().exists("Link")
-            .expectBody()
-            .jsonPath("$").isArray
-            .jsonPath("$.length()").isEqualTo(1)
-            .jsonPath("$[0].@context").doesNotExist()
-            .jsonPath("$[1].@context").doesNotExist()
+            .expectHeader().valueEquals(
+                "Link",
+                "</ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "type=BeeHive&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
+                    "</ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "type=BeeHive&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
+            )
+
     }
 
 
 
     @Test
-    fun `query subscriptions should return 400 if requested offset is less than zero`() {
+    fun `query temporal entity should return 400 if requested offset is less than zero`() {
         val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
@@ -926,7 +970,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=1&offset=-1")
+                "type=BeeHive&limit=1&offset=-1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -941,14 +985,15 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query subscriptions should return 400 if limit is equal or less than zero`() {
+    fun `query temporal entity should return 400 if limit is equal or less than zero`() {
         val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
@@ -957,7 +1002,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=-1&offset=1")
+                "type=BeeHive&limit=-1&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -972,14 +1017,15 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query subscriptions should return 400 if limit is greater than the maximum authorized limit`() {
+    fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
         val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
             "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
@@ -988,7 +1034,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
                 "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive?limit=200&offset=1")
+                "type=BeeHive&limit=200&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

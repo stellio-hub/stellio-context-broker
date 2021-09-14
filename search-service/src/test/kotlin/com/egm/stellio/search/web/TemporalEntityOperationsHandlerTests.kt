@@ -61,6 +61,7 @@ class TemporalEntityOperationsHandlerTests {
             time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName))
+
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
@@ -72,7 +73,6 @@ class TemporalEntityOperationsHandlerTests {
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             emptyList()
         val queryParams = LinkedMultiValueMap<String, String>()
-
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")
         queryParams.add("time", "2019-10-17T07:31:39Z")

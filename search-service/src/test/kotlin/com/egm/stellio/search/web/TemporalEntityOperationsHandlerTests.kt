@@ -60,7 +60,8 @@ class TemporalEntityOperationsHandlerTests {
             timerel = TemporalQuery.Timerel.BETWEEN,
             time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
-            expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName))
+            expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+        )
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(

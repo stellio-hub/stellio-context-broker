@@ -213,8 +213,8 @@ class QueryServiceTests {
             )
             every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
                 Mono.just(
-                listOf(temporalEntityAttribute)
-            )
+                    listOf(temporalEntityAttribute)
+                )
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
             } returns Mono.just(

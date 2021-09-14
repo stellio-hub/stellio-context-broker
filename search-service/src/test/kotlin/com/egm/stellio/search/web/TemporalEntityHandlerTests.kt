@@ -846,9 +846,11 @@ class TemporalEntityHandlerTests {
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=1&offset=2")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=1&offset=2"
+            )
             .exchange()
             .expectStatus().isOk
             .expectHeader()
@@ -874,9 +876,11 @@ class TemporalEntityHandlerTests {
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns empty()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=1&offset=9")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=1&offset=9"
+            )
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
@@ -901,9 +905,11 @@ class TemporalEntityHandlerTests {
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=1&offset=0")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=1&offset=0"
+            )
             .exchange()
             .expectStatus().isOk
             .expectHeader()
@@ -934,9 +940,11 @@ class TemporalEntityHandlerTests {
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=1&offset=1")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=1&offset=1"
+            )
             .exchange()
             .expectStatus().isOk
             .expectHeader()
@@ -945,7 +953,7 @@ class TemporalEntityHandlerTests {
                 "</ngsi-ld/v1/temporal/entities?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
-                    "</ngsi-ld/v1/temporal/entities?" +
+                "</ngsi-ld/v1/temporal/entities?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
@@ -961,15 +969,21 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
-            any()) } throws BadRequestDataException(
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(),
+                any()
+            )
+        } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=1&offset=-1")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=1&offset=-1"
+            )
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -993,15 +1007,21 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(),
-            any(), any()) } throws BadRequestDataException(
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(),
+                any(), any()
+            )
+        } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=-1&offset=1")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=-1&offset=1"
+            )
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -1025,15 +1045,21 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
-            any()) } throws BadRequestDataException(
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(),
+                any()
+            )
+        } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities?" +
-                "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
-                "type=BeeHive&limit=200&offset=1")
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=200&offset=1"
+            )
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(

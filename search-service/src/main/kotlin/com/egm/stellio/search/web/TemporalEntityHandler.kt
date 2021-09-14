@@ -137,7 +137,8 @@ class TemporalEntityHandler(
         val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
-            parsedParams["attrs"] as Set<String>).awaitFirst()
+            parsedParams["attrs"] as Set<String>
+        ).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
 

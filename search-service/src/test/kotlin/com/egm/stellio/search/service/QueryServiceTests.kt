@@ -211,7 +211,8 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any()) } returns Mono.just(
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(),
+                any(), any()) }returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {
@@ -281,7 +282,8 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(),any(), any(), any()) } returns Mono.just(
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(),
+                any(), any()) } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {

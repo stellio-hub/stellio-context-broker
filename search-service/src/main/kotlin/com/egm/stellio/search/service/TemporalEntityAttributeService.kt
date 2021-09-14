@@ -244,8 +244,8 @@ class TemporalEntityAttributeService(
         ).valid()
     }
 
-
-    fun getForEntities(limit: Int, offset: Int, ids: Set<URI>, types: Set<String>, attrs: Set<String>, withEntityPayload: Boolean = false):
+    fun getForEntities(limit: Int, offset: Int, ids: Set<URI>, types: Set<String>,
+        attrs: Set<String>, withEntityPayload: Boolean = false):
         Mono<List<TemporalEntityAttribute>> {
         var selectQuery = if (withEntityPayload)
             """
@@ -292,7 +292,7 @@ class TemporalEntityAttributeService(
         if (attrs.isNotEmpty()) selectStatement = "$selectStatement attribute_name in ($formattedAttrs) AND"
         return databaseClient
             .sql(selectStatement.removeSuffix("AND"))
-            .bind("entity_id",ids )
+            .bind("entity_id", ids)
             .bind("type", types)
             .bind("attribute_name", attrs)
             .map(rowToTemporalCount)
@@ -388,6 +388,4 @@ class TemporalEntityAttributeService(
     private var rowToTemporalCount: ((Row) -> Int) = { row ->
         row.get("count_entity", Integer::class.java)!!.toInt()
     }
-
 }
-

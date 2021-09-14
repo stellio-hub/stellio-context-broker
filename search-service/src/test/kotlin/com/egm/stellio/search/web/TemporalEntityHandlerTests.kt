@@ -621,7 +621,8 @@ class TemporalEntityHandlerTests {
 
         )
 
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+            any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -845,7 +846,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity )
+            listOf(firstTemporalEntity,secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -856,7 +857,7 @@ class TemporalEntityHandlerTests {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/temporal/entities?" +
+                "</ngsi-ld/v1/temporal/entities?"+
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
                     "type=BeeHive&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
             )
@@ -864,7 +865,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exists`() {
-
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
@@ -901,7 +901,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity )
+            listOf(firstTemporalEntity,secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -913,7 +913,7 @@ class TemporalEntityHandlerTests {
             .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
             )
     }
@@ -934,7 +934,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity )
+            listOf(firstTemporalEntity,secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -946,16 +946,13 @@ class TemporalEntityHandlerTests {
             .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
                     "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
-
     }
-
-
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
@@ -968,7 +965,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
+            any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -1000,7 +998,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(),
+            any(), any(), any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -1032,7 +1031,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } throws BadRequestDataException(
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
+            any(), any(), any()) } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
 

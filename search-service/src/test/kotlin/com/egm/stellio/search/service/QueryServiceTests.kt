@@ -211,7 +211,7 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any()) } returns
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
                 Mono.just(
                 listOf(temporalEntityAttribute)
             )
@@ -229,8 +229,8 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             queryService.queryTemporalEntities(
-                2,
-                2,
+                // 2,
+                // 2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(
@@ -244,8 +244,6 @@ class QueryServiceTests {
 
             io.mockk.verify {
                 temporalEntityAttributeService.getForEntities(
-                    2,
-                    2,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
                     emptySet()
@@ -282,8 +280,7 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any(),
-                any(), any()) } returns Mono.just(
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {
@@ -293,8 +290,8 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             val entitiesList = queryService.queryTemporalEntities(
-                1,
-                1,
+                // 1,
+                // 1,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(

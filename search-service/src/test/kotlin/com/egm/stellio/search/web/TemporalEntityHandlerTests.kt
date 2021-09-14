@@ -621,8 +621,7 @@ class TemporalEntityHandlerTests {
 
         )
 
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-            any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -647,8 +646,6 @@ class TemporalEntityHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                30,
-                0,
                 emptySet(),
                 setOf("BeeHive"),
                 temporalQuery,
@@ -675,7 +672,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -709,7 +706,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -845,7 +842,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -874,7 +871,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns empty()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns empty()
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -900,7 +897,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -933,7 +930,7 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -956,7 +953,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
@@ -966,7 +962,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
-            any(), any(), any()) } throws BadRequestDataException(
+            any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -989,7 +985,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
@@ -999,7 +994,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(),
-            any(), any(), any(), any()) } throws BadRequestDataException(
+            any(), any()) } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
 
@@ -1022,7 +1017,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
-        val temporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
@@ -1032,7 +1026,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(),
-            any(), any(), any()) } throws BadRequestDataException(
+            any()) } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
 

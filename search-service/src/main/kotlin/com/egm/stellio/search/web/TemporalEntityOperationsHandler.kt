@@ -50,8 +50,8 @@ class TemporalEntityOperationsHandler(
 
         val parsedParams = queryService.parseAndCheckQueryParams(queryParams, contextLink)
         val temporalEntities = queryService.queryTemporalEntities(
-            limit,
-            offset,
+            // limit,
+            // offset,
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
             parsedParams["temporalQuery"] as TemporalQuery,
@@ -61,7 +61,7 @@ class TemporalEntityOperationsHandler(
         val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
-            parsedParams["attrs"] as Set<String> ).awaitFirst()
+            parsedParams["attrs"] as Set<String>).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/temporal/entities",
@@ -72,7 +72,7 @@ class TemporalEntityOperationsHandler(
         )
 
         return PagingUtils.buildPaginationResponse(
-            (serializeObject(temporalEntities.map {addContextsToEntity(it, listOf(contextLink), mediaType)})),
+            (serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })),
             temporalEntityCount,
             false,
             prevAndNextLinks,

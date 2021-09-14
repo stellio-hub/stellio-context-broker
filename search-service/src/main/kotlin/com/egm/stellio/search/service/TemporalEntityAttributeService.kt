@@ -245,8 +245,6 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(
-        limit: Int,
-        offset: Int,
         ids: Set<URI>,
         types: Set<String>,
         attrs: Set<String>,

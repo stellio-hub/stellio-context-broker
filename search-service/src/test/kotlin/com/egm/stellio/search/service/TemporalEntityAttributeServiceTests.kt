@@ -311,8 +311,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                1,
-                1,
                 setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
                 setOf(
@@ -348,8 +346,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                1,
-                1,
                 setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 setOf("https://ontology.eglobalmark.com/apic#UnknownType"),
                 setOf(
@@ -378,8 +374,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
-                1,
-                2,
                 setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
                 setOf("unknownAttribute")

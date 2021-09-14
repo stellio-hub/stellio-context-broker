@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -18,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
+import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -31,6 +33,9 @@ class TemporalEntityOperationsHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @MockkBean(relaxed = true)
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean(relaxed = true)
     private lateinit var queryService: QueryService
@@ -57,6 +62,8 @@ class TemporalEntityOperationsHandlerTests {
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
         )
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to setOf("BeeHive", "Apiary"),
@@ -88,8 +95,8 @@ class TemporalEntityOperationsHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                2,
-                2,
+                30,
+                0,
                 emptySet(),
                 setOf("BeeHive", "Apiary"),
                 temporalQuery,

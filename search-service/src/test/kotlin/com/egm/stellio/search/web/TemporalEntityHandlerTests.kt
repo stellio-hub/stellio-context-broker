@@ -610,6 +610,8 @@ class TemporalEntityHandlerTests {
             time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to setOf("BeeHive"),
@@ -644,8 +646,8 @@ class TemporalEntityHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                2,
-                2,
+                30,
+                0,
                 emptySet(),
                 setOf("BeeHive"),
                 temporalQuery,
@@ -664,6 +666,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
@@ -697,6 +700,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
@@ -921,7 +925,7 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(3)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
             "ids" to emptySet<URI>(),
             "types" to emptySet<String>(),
@@ -938,7 +942,8 @@ class TemporalEntityHandlerTests {
                 "type=BeeHive&limit=1&offset=1")
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals(
+            .expectHeader()
+            .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
                     "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+

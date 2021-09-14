@@ -68,7 +68,8 @@ class TemporalEntityOperationsHandlerTests {
             "ids" to emptySet<URI>(),
             "types" to setOf("BeeHive", "Apiary"),
             "temporalQuery" to temporalQuery,
-            "withTemporalValues" to true
+            "withTemporalValues" to true,
+            "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns emptyList()
 

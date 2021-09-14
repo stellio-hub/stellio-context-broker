@@ -846,7 +846,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity)
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -857,8 +857,8 @@ class TemporalEntityHandlerTests {
             .expectHeader()
             .valueEquals(
                 "Link",
-                "</ngsi-ld/v1/temporal/entities?"+
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&"+
+                "</ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
             )
     }
@@ -901,7 +901,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity)
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +
@@ -934,7 +934,7 @@ class TemporalEntityHandlerTests {
             "attrs" to emptySet<String>()
         )
         coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
-            listOf(firstTemporalEntity,secondTemporalEntity)
+            listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?" +

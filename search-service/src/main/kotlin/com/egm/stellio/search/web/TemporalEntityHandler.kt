@@ -152,7 +152,7 @@ class TemporalEntityHandler(
         )
 
         return PagingUtils.buildPaginationResponse(
-            serializeObject(temporalEntities.map {addContextsToEntity(it, listOf(contextLink), mediaType)}),
+            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
             temporalEntityCount,
             false,
             prevAndNextLinks,

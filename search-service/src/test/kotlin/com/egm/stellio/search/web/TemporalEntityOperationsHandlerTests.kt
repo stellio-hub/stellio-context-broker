@@ -69,11 +69,13 @@ class TemporalEntityOperationsHandlerTests {
             "types" to setOf("BeeHive", "Apiary"),
             "temporalQuery" to temporalQuery,
             "withTemporalValues" to true,
-            "attrs" to emptySet<String>()
+            "attrs" to emptySet<String>(),
+            "limit" to 1,
+            "offset" to 0
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-        any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(), any()) } returns
             emptyList()
+
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")
@@ -97,7 +99,7 @@ class TemporalEntityOperationsHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                30,
+                1,
                 0,
                 emptySet(),
                 setOf("BeeHive", "Apiary"),

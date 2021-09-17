@@ -271,10 +271,9 @@ class TemporalEntityAttributeService(
         var queryFinal = commonFunc.removeSuffix("AND")
         queryFinal += """
             ORDER BY entity_id
-            limit ${limit}
-            offset ${offset}
+            limit :limit
+            offset :offset
         """.trimIndent()
-        println("The final query========${queryFinal}")
         return databaseClient
             .sql(queryFinal)
             .bind("limit", limit)

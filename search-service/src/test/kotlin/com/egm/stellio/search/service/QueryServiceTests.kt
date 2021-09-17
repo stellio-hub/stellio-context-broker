@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
@@ -45,6 +46,9 @@ class QueryServiceTests {
 
     @MockkBean
     private lateinit var temporalEntityService: TemporalEntityService
+
+    @MockkBean(relaxed = true)
+    private lateinit var applicationProperties: ApplicationProperties
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val secondEntityUri = "urn:ngsi-ld:BeeHive:TESTB".toUri()

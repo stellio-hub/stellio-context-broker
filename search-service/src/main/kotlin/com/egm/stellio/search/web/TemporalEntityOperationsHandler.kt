@@ -1,6 +1,4 @@
 package com.egm.stellio.search.web
-
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
@@ -12,7 +10,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
-import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.net.URI
@@ -21,7 +18,6 @@ import java.net.URI
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
 class TemporalEntityOperationsHandler(
     private val queryService: QueryService,
-    private val applicationProperties: ApplicationProperties,
     private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
 
@@ -31,11 +27,8 @@ class TemporalEntityOperationsHandler(
     @PostMapping("/query", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun queryEntities(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val body = requestBody.awaitFirst()
@@ -50,6 +43,8 @@ class TemporalEntityOperationsHandler(
 
         val parsedParams = queryService.parseAndCheckQueryParams(queryParams, contextLink)
         val temporalEntities = queryService.queryTemporalEntities(
+            parsedParams["limit"] as Int,
+            parsedParams["offset"] as Int,
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
             parsedParams["temporalQuery"] as TemporalQuery,
@@ -66,8 +61,8 @@ class TemporalEntityOperationsHandler(
             "/ngsi-ld/v1/temporal/entities",
             queryParams,
             temporalEntityCount,
-            offset,
-            limit
+        0,
+            30
         )
 
         return PagingUtils.buildPaginationResponse(

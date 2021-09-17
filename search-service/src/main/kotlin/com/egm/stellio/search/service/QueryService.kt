@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
@@ -19,6 +20,7 @@ import java.util.*
 class QueryService(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val applicationProperties: ApplicationProperties,
     private val temporalEntityService: TemporalEntityService
 ) {
 
@@ -29,6 +31,9 @@ class QueryService(
         val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
         val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
         val temporalQuery = buildTemporalQuery(queryParams, contextLink)
+        val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
+        val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?:
+        applicationProperties.pagination.limitDefault
 
         if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
             throw BadRequestDataException("Either type or attrs need to be present in request parameters")
@@ -37,7 +42,9 @@ class QueryService(
             "ids" to ids,
             "types" to types,
             "temporalQuery" to temporalQuery,
-            "withTemporalValues" to withTemporalValues
+            "withTemporalValues" to withTemporalValues,
+            "limit" to limit,
+            "offset" to offset
         )
     }
 
@@ -74,6 +81,8 @@ class QueryService(
     }
 
     suspend fun queryTemporalEntities(
+        limit: Int,
+        offset: Int,
         ids: Set<URI>,
         types: Set<String>,
         temporalQuery: TemporalQuery,
@@ -81,6 +90,8 @@ class QueryService(
         contextLink: String
     ): List<CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
+            limit,
+            offset,
             ids,
             types,
             temporalQuery.expandedAttrs

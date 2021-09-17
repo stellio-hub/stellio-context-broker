@@ -621,7 +621,8 @@ class TemporalEntityHandlerTests {
 
         )
 
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(),
+            any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -646,6 +647,8 @@ class TemporalEntityHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
+                30,
+                0,
                 emptySet(),
                 setOf("BeeHive"),
                 temporalQuery,
@@ -672,7 +675,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+            any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -706,7 +710,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+        any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -842,7 +847,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+        any(),any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -873,7 +879,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns empty()
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+            any(), any()) } returns empty()
 
         webClient.get()
             .uri(
@@ -901,7 +908,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+            any(), any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -936,7 +944,8 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns
+        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
+        any(),any()) } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -972,7 +981,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(),
-                any()
+                any(), any(), any()
             )
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
@@ -1010,7 +1019,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(),
-                any(), any()
+                any(), any(), any(), any()
             )
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
@@ -1048,7 +1057,7 @@ class TemporalEntityHandlerTests {
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(),
-                any()
+                any(), any(), any()
             )
         } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"

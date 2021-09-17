@@ -93,6 +93,8 @@ class QueryServiceTests {
         queryParams.add("attrs", "incoming,outgoing")
         queryParams.add("id", "$entityUri,$secondEntityUri")
         queryParams.add("options", "temporalValues")
+        queryParams.add("limit", "10")
+        queryParams.add("offset", "2")
 
         val parsedParams = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
 
@@ -107,7 +109,10 @@ class QueryServiceTests {
                     endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
                     expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
                 ),
-                "withTemporalValues" to true
+                "withTemporalValues" to true,
+                "limit" to 10,
+                "offset" to 2
+
             )
         )
     }
@@ -211,7 +216,7 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any()) } returns
                 Mono.just(
                     listOf(temporalEntityAttribute)
                 )
@@ -229,8 +234,8 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             queryService.queryTemporalEntities(
-                // 2,
-                // 2,
+                2,
+                2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(
@@ -244,6 +249,8 @@ class QueryServiceTests {
 
             io.mockk.verify {
                 temporalEntityAttributeService.getForEntities(
+                    2,
+                    2,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
                     emptySet()
@@ -280,7 +287,8 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(),
+                any()) } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {
@@ -290,8 +298,8 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             val entitiesList = queryService.queryTemporalEntities(
-                // 1,
-                // 1,
+                2,
+                2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(

@@ -128,6 +128,8 @@ class TemporalEntityHandler(
 
         val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
         val temporalEntities = queryService.queryTemporalEntities(
+            limit,
+            offset,
             parsedParams["ids"] as Set<URI>,
             parsedParams["types"] as Set<String>,
             parsedParams["temporalQuery"] as TemporalQuery,

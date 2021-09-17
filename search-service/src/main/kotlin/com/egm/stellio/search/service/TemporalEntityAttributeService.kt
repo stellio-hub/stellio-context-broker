@@ -245,11 +245,13 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(
+        limit: Int,
+        offset: Int,
         ids: Set<URI>,
         types: Set<String>,
         attrs: Set<String>,
-        withEntityPayload: Boolean = false
-    ): Mono<List<TemporalEntityAttribute>> {
+        withEntityPayload: Boolean = false):
+        Mono<List<TemporalEntityAttribute>> {
         var selectQuery = if (withEntityPayload)
             """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
@@ -265,14 +267,18 @@ class TemporalEntityAttributeService(
                 WHERE
             """.trimIndent()
 
-        val formattedIds = ids.joinToString(",") { "'$it'" }
-        val formattedTypes = types.joinToString(",") { "'$it'" }
-        val formattedAttrs = attrs.joinToString(",") { "'$it'" }
-        if (ids.isNotEmpty()) selectQuery = "$selectQuery entity_id in ($formattedIds) AND"
-        if (types.isNotEmpty()) selectQuery = "$selectQuery type in ($formattedTypes) AND"
-        if (attrs.isNotEmpty()) selectQuery = "$selectQuery attribute_name in ($formattedAttrs) AND"
+        var commonFunc = commonTemporalQuery(ids, types, attrs, selectQuery)
+        var queryFinal = commonFunc.removeSuffix("AND")
+        queryFinal += """
+            ORDER BY entity_id
+            limit ${limit}
+            offset ${offset}
+        """.trimIndent()
+        println("The final query========${queryFinal}")
         return databaseClient
-            .sql(selectQuery.removeSuffix("AND"))
+            .sql(queryFinal)
+            .bind("limit", limit)
+            .bind("offset", offset)
             .fetch()
             .all()
             .map { rowToTemporalEntityAttribute(it) }
@@ -287,19 +293,27 @@ class TemporalEntityAttributeService(
             
             """.trimIndent()
 
+        var commonFunc = commonTemporalQuery(ids, types, attrs, selectStatement)
+        return databaseClient
+            .sql(commonFunc.removeSuffix("AND"))
+            .bind("entity_id", ids)
+            .map(rowToTemporalCount)
+            .first()
+    }
+
+    fun commonTemporalQuery(
+        ids: Set<URI>,
+        types: Set<String>,
+        attrs: Set<String>,
+        selectQuery: String): String {
+        var selectStatement = selectQuery
         val formattedIds = ids.joinToString(",") { "'$it'" }
         val formattedTypes = types.joinToString(",") { "'$it'" }
         val formattedAttrs = attrs.joinToString(",") { "'$it'" }
         if (ids.isNotEmpty()) selectStatement = "$selectStatement entity_id in ($formattedIds) AND"
         if (types.isNotEmpty()) selectStatement = "$selectStatement type in ($formattedTypes) AND"
         if (attrs.isNotEmpty()) selectStatement = "$selectStatement attribute_name in ($formattedAttrs) AND"
-        return databaseClient
-            .sql(selectStatement.removeSuffix("AND"))
-            .bind("entity_id", ids)
-            .bind("type", types)
-            .bind("attribute_name", attrs)
-            .map(rowToTemporalCount)
-            .first()
+        return selectStatement
     }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {

@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
@@ -111,6 +112,23 @@ fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): 
         .map {
             JsonLdUtils.expandJsonLdKey(it.trim(), contextLink)!!
         }.toSet()
+
+fun extractAndValidatePaginationParameters(
+    queryParams: MultiValueMap<String, String>,
+    limitDefault: Int,
+    limitMax: Int,
+    isAskingForCount: Boolean = false
+): Pair<Int, Int> {
+    val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
+    val limit = queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: limitDefault
+    if (!isAskingForCount && (limit <= 0 || offset < 0))
+        throw BadRequestDataException("Offset must be greater than zero and limit must be strictly greater than zero")
+    if (isAskingForCount && (limit < 0 || offset < 0))
+        throw BadRequestDataException("Offset and limit must be greater than zero")
+    if (limit > limitMax)
+        throw BadRequestDataException("You asked for $limit results, but the supported maximum limit is $limitMax")
+    return Pair(offset, limit)
+}
 
 fun getApplicableMediaType(httpHeaders: HttpHeaders): MediaType =
     httpHeaders.accept.getApplicable()

@@ -612,14 +612,8 @@ class TemporalEntityHandlerTests {
         )
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to setOf("BeeHive"),
-            "temporalQuery" to temporalQuery,
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            buildDefaultQueryParams().plus(mapOf("types" to setOf("BeeHive"), "temporalQuery" to temporalQuery))
 
         coEvery {
             queryService.queryTemporalEntities(
@@ -637,6 +631,7 @@ class TemporalEntityHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
+
         verify {
             queryService.parseAndCheckQueryParams(
                 match {
@@ -672,13 +667,7 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -711,13 +700,7 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -852,13 +835,8 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 2))
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -888,13 +866,7 @@ class TemporalEntityHandlerTests {
     fun `query temporal entity should return 200 and empty response if requested offset does not exists`() {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -921,13 +893,8 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 0))
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -961,13 +928,8 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(3)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 1))
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(), any(),
@@ -999,13 +961,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(),
@@ -1037,13 +993,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(),
@@ -1075,13 +1025,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>()
-        )
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
             queryService.queryTemporalEntities(
                 any(), any(), any(), any(),
@@ -1109,4 +1053,15 @@ class TemporalEntityHandlerTests {
                 """.trimIndent()
             )
     }
+
+    private fun buildDefaultQueryParams(): Map<String, Any> =
+        mapOf(
+            "ids" to emptySet<URI>(),
+            "types" to emptySet<String>(),
+            "temporalQuery" to TemporalQuery(),
+            "withTemporalValues" to false,
+            "attrs" to emptySet<String>(),
+            "offset" to 0,
+            "limit" to 30
+        )
 }

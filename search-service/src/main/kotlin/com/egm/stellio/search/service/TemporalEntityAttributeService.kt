@@ -251,9 +251,8 @@ class TemporalEntityAttributeService(
         types: Set<String>,
         attrs: Set<String>,
         withEntityPayload: Boolean = false
-    ):
-        Mono<List<TemporalEntityAttribute>> {
-        var selectQuery = if (withEntityPayload)
+    ): Mono<List<TemporalEntityAttribute>> {
+        val selectQuery = if (withEntityPayload)
             """
                 SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
                     attribute_value_type, payload::TEXT, dataset_id
@@ -268,15 +267,16 @@ class TemporalEntityAttributeService(
                 WHERE
             """.trimIndent()
 
-        var commonFunc = commonTemporalQuery(ids, types, attrs, selectQuery)
-        var queryFinal = commonFunc.removeSuffix("AND")
-        queryFinal += """
+        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs)
+        val finalQuery = """
+            $selectQuery
+            $filterQuery
             ORDER BY entity_id
             limit :limit
             offset :offset
         """.trimIndent()
         return databaseClient
-            .sql(queryFinal)
+            .sql(finalQuery)
             .bind("limit", limit)
             .bind("offset", offset)
             .fetch()
@@ -286,34 +286,41 @@ class TemporalEntityAttributeService(
     }
 
     fun getCountForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
-        var selectStatement =
+        val selectStatement =
             """
             SELECT count(distinct(entity_id)) as count_entity from temporal_entity_attribute
             WHERE
-            
             """.trimIndent()
 
-        var commonFunc = commonTemporalQuery(ids, types, attrs, selectStatement)
+        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs)
         return databaseClient
-            .sql(commonFunc.removeSuffix("AND"))
+            .sql("$selectStatement $filterQuery")
             .map(rowToTemporalCount)
             .first()
     }
 
-    fun commonTemporalQuery(
+    fun buildEntitiesQueryFilter(
         ids: Set<URI>,
         types: Set<String>,
-        attrs: Set<String>,
-        selectQuery: String
+        attrs: Set<String>
     ): String {
-        var selectStatement = selectQuery
-        val formattedIds = ids.joinToString(",") { "'$it'" }
-        val formattedTypes = types.joinToString(",") { "'$it'" }
-        val formattedAttrs = attrs.joinToString(",") { "'$it'" }
-        if (ids.isNotEmpty()) selectStatement = "$selectStatement entity_id in ($formattedIds) AND"
-        if (types.isNotEmpty()) selectStatement = "$selectStatement type in ($formattedTypes) AND"
-        if (attrs.isNotEmpty()) selectStatement = "$selectStatement attribute_name in ($formattedAttrs) AND"
-        return selectStatement
+        val formattedIds = ids.joinToString(
+            separator = ",",
+            prefix = "entity_id in(",
+            postfix = ")"
+        ) { "'$it'" }
+        val formattedTypes = types.joinToString(
+            separator = ",",
+            prefix = "type in (",
+            postfix = ")"
+        ) { "'$it'" }
+        val formattedAttrs = attrs.joinToString(
+            separator = ",",
+            prefix = "attribute_name in (",
+            postfix = ")"
+        ) { "'$it'" }
+
+        return listOf(formattedIds, formattedTypes, formattedAttrs).joinToString(" AND ")
     }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
@@ -401,6 +408,7 @@ class TemporalEntityAttributeService(
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
     }
+
     private var rowToTemporalCount: ((Row) -> Int) = { row ->
         row.get("count_entity", Integer::class.java)!!.toInt()
     }

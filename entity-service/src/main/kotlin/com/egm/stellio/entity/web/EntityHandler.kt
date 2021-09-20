@@ -85,8 +85,12 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE)
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
@@ -99,29 +103,6 @@ class EntityHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
-
-        if (!count && (limit <= 0 || offset < 0))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "Offset must be greater than zero and limit must be strictly greater than zero"
-                    )
-                )
-
-        if (count && (limit < 0 || offset < 0))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse("Offset and limit must be greater than zero")
-                )
-
-        if (limit > applicationProperties.pagination.limitMax)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "You asked for $limit results, " +
-                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
-                    )
-                )
 
         if (q == null && type == null && attrs == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)

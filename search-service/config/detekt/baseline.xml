@@ -12,10 +12,8 @@
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, withEntityPayload: Boolean = false )</ID>
     <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMetadata(jsonNode: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toTemporalAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>
-    <ID>ReturnCount:TemporalEntityHandler.kt$TemporalEntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getForEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>SwallowedException:TemporalEntityHandler.kt$catch (e: IllegalArgumentException) { "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left() }</ID>
     <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, contextLink: String): TemporalQuery</ID>
-    <ID>UnusedPrivateMember:QueryServiceTests.kt$QueryServiceTests$@MockkBean(relaxed = true) private lateinit var applicationProperties: ApplicationProperties</ID>
     <ID>UtilityClassWithPublicConstructor:ParameterizedTests.kt$ParameterizedTests</ID>
     <ID>UtilityClassWithPublicConstructor:QueryParameterizedTests.kt$QueryParameterizedTests</ID>
   </CurrentIssues>

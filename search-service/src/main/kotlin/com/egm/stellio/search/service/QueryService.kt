@@ -31,9 +31,11 @@ class QueryService(
         val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
         val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
         val temporalQuery = buildTemporalQuery(queryParams, contextLink)
-        val offset = queryParams.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-        val limit =
-            queryParams.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            queryParams,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax
+        )
 
         if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
             throw BadRequestDataException("Either type or attrs need to be present in request parameters")

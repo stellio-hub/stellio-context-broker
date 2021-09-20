@@ -1,4 +1,5 @@
 package com.egm.stellio.search.web
+
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
@@ -61,8 +62,8 @@ class TemporalEntityOperationsHandler(
             "/ngsi-ld/v1/temporal/entities",
             queryParams,
             temporalEntityCount,
-            offset = 0,
-            limit = 30
+            parsedParams["offset"] as Int,
+            parsedParams["limit"] as Int,
         )
 
         return PagingUtils.buildPaginationResponse(

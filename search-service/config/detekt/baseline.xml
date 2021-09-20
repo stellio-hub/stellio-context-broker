@@ -8,7 +8,6 @@
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt; )</ID>
     <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, expandedAttributeName: String, datasetId: URI?, attributeValuesNode: JsonNode, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:QueryService.kt$QueryService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, temporalQuery: TemporalQuery, withTemporalValues: Boolean, contextLink: String )</ID>
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, withEntityPayload: Boolean = false )</ID>
     <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMetadata(jsonNode: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toTemporalAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>

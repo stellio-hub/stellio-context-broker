@@ -3,6 +3,7 @@ package com.egm.stellio.search.web
 import arrow.core.extensions.listk.align.empty
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
@@ -40,7 +41,6 @@ import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -613,13 +613,10 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().plus(mapOf("types" to setOf("BeeHive"), "temporalQuery" to temporalQuery))
+            buildDefaultQueryParams().copy(types = setOf("BeeHive"), temporalQuery = temporalQuery)
 
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(), any(),
-                any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } returns emptyList()
 
         webClient.get()
@@ -646,13 +643,15 @@ class TemporalEntityHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                30,
-                0,
-                emptySet(),
-                setOf("BeeHive"),
-                temporalQuery,
-                false,
-                APIC_COMPOUND_CONTEXT
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.limit == 30 &&
+                        temporalEntitiesQuery.offset == 0 &&
+                        temporalEntitiesQuery.ids.isEmpty() &&
+                        temporalEntitiesQuery.types == setOf("BeeHive") &&
+                        temporalEntitiesQuery.temporalQuery == temporalQuery &&
+                        !temporalEntitiesQuery.withTemporalValues
+                },
+                eq(APIC_COMPOUND_CONTEXT)
             )
         }
 
@@ -669,12 +668,8 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
-        } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+            queryService.queryTemporalEntities(any(), any())
+        } returns listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri(
@@ -702,12 +697,8 @@ class TemporalEntityHandlerTests {
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
-        } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+            queryService.queryTemporalEntities(any(), any())
+        } returns listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
             .uri(
@@ -836,12 +827,9 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 2))
+            buildDefaultQueryParams().copy(limit = 1, offset = 2)
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
@@ -867,12 +855,7 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
-        coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
-        } returns empty()
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns empty()
 
         webClient.get()
             .uri(
@@ -894,12 +877,9 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 0))
+            buildDefaultQueryParams().copy(limit = 1, offset = 0)
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
@@ -929,12 +909,9 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(3)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().plus(mapOf("limit" to 1, "offset" to 1))
+            buildDefaultQueryParams().copy(limit = 1, offset = 1)
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(), any(),
-                any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
@@ -963,10 +940,7 @@ class TemporalEntityHandlerTests {
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(),
-                any(), any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -995,10 +969,7 @@ class TemporalEntityHandlerTests {
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(),
-                any(), any(), any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -1027,10 +998,7 @@ class TemporalEntityHandlerTests {
 
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
         coEvery {
-            queryService.queryTemporalEntities(
-                any(), any(), any(), any(),
-                any(), any(), any()
-            )
+            queryService.queryTemporalEntities(any(), any())
         } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )
@@ -1054,14 +1022,13 @@ class TemporalEntityHandlerTests {
             )
     }
 
-    private fun buildDefaultQueryParams(): Map<String, Any> =
-        mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to emptySet<String>(),
-            "temporalQuery" to TemporalQuery(),
-            "withTemporalValues" to false,
-            "attrs" to emptySet<String>(),
-            "offset" to 0,
-            "limit" to 30
+    private fun buildDefaultQueryParams(): TemporalEntitiesQuery =
+        TemporalEntitiesQuery(
+            ids = emptySet(),
+            types = emptySet(),
+            temporalQuery = TemporalQuery(),
+            withTemporalValues = false,
+            offset = 0,
+            limit = 30
         )
 }

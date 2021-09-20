@@ -43,7 +43,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Optional
 
@@ -102,29 +101,24 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
+        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
 
         val temporalEntities = queryService.queryTemporalEntities(
-            parsedParams["limit"] as Int,
-            parsedParams["offset"] as Int,
-            parsedParams["ids"] as Set<URI>,
-            parsedParams["types"] as Set<String>,
-            parsedParams["temporalQuery"] as TemporalQuery,
-            parsedParams["withTemporalValues"] as Boolean,
+            temporalEntitiesQuery,
             contextLink
         )
         val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
-            parsedParams["ids"] as Set<URI>,
-            parsedParams["types"] as Set<String>,
-            parsedParams["attrs"] as Set<String>
+            temporalEntitiesQuery.ids,
+            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.temporalQuery.expandedAttrs
         ).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/temporal/entities",
             params,
             temporalEntityCount,
-            parsedParams["offset"] as Int,
-            parsedParams["limit"] as Int,
+            temporalEntitiesQuery.offset,
+            temporalEntitiesQuery.limit
         )
 
         return PagingUtils.buildPaginationResponse(

@@ -4,6 +4,7 @@ import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -107,25 +108,22 @@ class QueryServiceTests {
         every { applicationProperties.pagination.limitDefault } returns 30
         every { applicationProperties.pagination.limitMax } returns 100
 
-        val parsedParams = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
+        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
 
+        assertEquals(setOf(entityUri, secondEntityUri), temporalEntitiesQuery.ids)
+        assertEquals(setOf(beehiveType, apiaryType), temporalEntitiesQuery.types)
         assertEquals(
-            parsedParams,
-            mapOf(
-                "ids" to setOf(entityUri, secondEntityUri),
-                "types" to setOf(beehiveType, apiaryType),
-                "temporalQuery" to TemporalQuery(
-                    timerel = TemporalQuery.Timerel.BETWEEN,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-                    endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
-                    expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
-                ),
-                "withTemporalValues" to true,
-                "limit" to 10,
-                "offset" to 2
-
-            )
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+                expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+            ),
+            temporalEntitiesQuery.temporalQuery
         )
+        assertTrue(temporalEntitiesQuery.withTemporalValues)
+        assertEquals(10, temporalEntitiesQuery.limit)
+        assertEquals(2, temporalEntitiesQuery.offset)
     }
 
     @Test
@@ -243,16 +241,18 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             queryService.queryTemporalEntities(
-                2,
-                2,
-                emptySet(),
-                setOf(beehiveType, apiaryType),
-                TemporalQuery(
-                    expandedAttrs = emptySet(),
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                TemporalEntitiesQuery(
+                    emptySet(),
+                    setOf(beehiveType, apiaryType),
+                    TemporalQuery(
+                        expandedAttrs = emptySet(),
+                        timerel = TemporalQuery.Timerel.BEFORE,
+                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    ),
+                    false,
+                    2,
+                    2
                 ),
-                false,
                 APIC_COMPOUND_CONTEXT
             )
 
@@ -311,16 +311,18 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             val entitiesList = queryService.queryTemporalEntities(
-                2,
-                2,
-                emptySet(),
-                setOf(beehiveType, apiaryType),
-                TemporalQuery(
-                    expandedAttrs = emptySet(),
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                TemporalEntitiesQuery(
+                    emptySet(),
+                    setOf(beehiveType, apiaryType),
+                    TemporalQuery(
+                        expandedAttrs = emptySet(),
+                        timerel = TemporalQuery.Timerel.BEFORE,
+                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    ),
+                    false,
+                    2,
+                    2
                 ),
-                false,
                 APIC_COMPOUND_CONTEXT
             )
 

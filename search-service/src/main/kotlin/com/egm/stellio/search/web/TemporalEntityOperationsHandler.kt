@@ -61,8 +61,8 @@ class TemporalEntityOperationsHandler(
             "/ngsi-ld/v1/temporal/entities",
             queryParams,
             temporalEntityCount,
-        0,
-            30
+            offset = 0,
+            limit = 30
         )
 
         return PagingUtils.buildPaginationResponse(

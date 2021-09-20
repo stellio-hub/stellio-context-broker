@@ -332,7 +332,6 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
     }
-    
     @Test
     fun `it should retrieve the temporal entities for the requested limit and offset`() {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
@@ -374,8 +373,10 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalEntity =
             temporalEntityAttributeService.getCountForEntities(
-                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri(),
-                    "urn:ngsi-ld:BeeHive:TESTD".toUri()),
+                setOf(
+                    "urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                    "urn:ngsi-ld:BeeHive:TESTD".toUri()
+                ),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
                 setOf(
                     incomingAttrExpandedName,

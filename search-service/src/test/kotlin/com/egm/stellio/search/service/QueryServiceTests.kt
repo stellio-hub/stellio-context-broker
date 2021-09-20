@@ -239,7 +239,7 @@ class QueryServiceTests {
 
             queryService.queryTemporalEntities(
                 2,
-                1,
+                2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(
@@ -254,7 +254,7 @@ class QueryServiceTests {
             io.mockk.verify {
                 temporalEntityAttributeService.getForEntities(
                     2,
-                    1,
+                    2,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
                     emptySet()
@@ -291,8 +291,12 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(),
-                any()) } returns Mono.just(
+            every {
+                temporalEntityAttributeService.getForEntities(
+                    any(), any(), any(), any(),
+                    any()
+                )
+            } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {
@@ -303,7 +307,7 @@ class QueryServiceTests {
 
             val entitiesList = queryService.queryTemporalEntities(
                 2,
-                1,
+                2,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(

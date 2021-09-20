@@ -621,8 +621,12 @@ class TemporalEntityHandlerTests {
 
         )
 
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(), any(),
-            any()) } returns emptyList()
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(), any(),
+                any()
+            )
+        } returns emptyList()
 
         webClient.get()
             .uri(
@@ -675,8 +679,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-            any(), any()) } returns
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -710,8 +718,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-        any(), any()) } returns
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -847,8 +859,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-        any(),any()) } returns
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -879,8 +895,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-            any(), any()) } returns empty()
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns empty()
 
         webClient.get()
             .uri(
@@ -908,8 +928,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-            any(), any()) } returns
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()
@@ -944,8 +968,12 @@ class TemporalEntityHandlerTests {
             "withTemporalValues" to false,
             "attrs" to emptySet<String>()
         )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any(),
-        any(),any()) } returns
+        coEvery {
+            queryService.queryTemporalEntities(
+                any(), any(), any(), any(), any(),
+                any(), any()
+            )
+        } returns
             listOf(firstTemporalEntity, secondTemporalEntity)
 
         webClient.get()

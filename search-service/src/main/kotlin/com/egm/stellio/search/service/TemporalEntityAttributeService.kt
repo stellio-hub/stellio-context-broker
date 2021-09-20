@@ -250,7 +250,8 @@ class TemporalEntityAttributeService(
         ids: Set<URI>,
         types: Set<String>,
         attrs: Set<String>,
-        withEntityPayload: Boolean = false):
+        withEntityPayload: Boolean = false
+    ):
         Mono<List<TemporalEntityAttribute>> {
         var selectQuery = if (withEntityPayload)
             """
@@ -303,7 +304,8 @@ class TemporalEntityAttributeService(
         ids: Set<URI>,
         types: Set<String>,
         attrs: Set<String>,
-        selectQuery: String): String {
+        selectQuery: String
+    ): String {
         var selectStatement = selectQuery
         val formattedIds = ids.joinToString(",") { "'$it'" }
         val formattedTypes = types.joinToString(",") { "'$it'" }
@@ -331,7 +333,6 @@ class TemporalEntityAttributeService(
             """.trimIndent()
 
         val expandedAttrsList = attrs.joinToString(",") { "'$it'" }
-
         val finalQuery =
             if (attrs.isNotEmpty())
                 "$selectQuery AND attribute_name in ($expandedAttrsList)"

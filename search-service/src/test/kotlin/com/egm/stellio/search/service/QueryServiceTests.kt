@@ -239,7 +239,7 @@ class QueryServiceTests {
 
             queryService.queryTemporalEntities(
                 2,
-                2,
+                1,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(
@@ -254,7 +254,7 @@ class QueryServiceTests {
             io.mockk.verify {
                 temporalEntityAttributeService.getForEntities(
                     2,
-                    2,
+                    1,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
                     emptySet()
@@ -303,7 +303,7 @@ class QueryServiceTests {
 
             val entitiesList = queryService.queryTemporalEntities(
                 2,
-                2,
+                1,
                 emptySet(),
                 setOf(beehiveType, apiaryType),
                 TemporalQuery(

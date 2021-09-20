@@ -287,15 +287,14 @@ class TemporalEntityAttributeService(
     fun getCountForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
         var selectStatement =
             """
-            SELECT count(Distinct entity_id) as count_entity from temporal_entity_attribute
-            WHERE temporal_entity_attribute.entity_id = :entity_id
+            SELECT count(distinct(entity_id)) as count_entity from temporal_entity_attribute
+            WHERE
             
             """.trimIndent()
 
         var commonFunc = commonTemporalQuery(ids, types, attrs, selectStatement)
         return databaseClient
             .sql(commonFunc.removeSuffix("AND"))
-            .bind("entity_id", ids)
             .map(rowToTemporalCount)
             .first()
     }

@@ -171,8 +171,9 @@ object JsonLdUtils {
 
     fun expandValueAsListOfMap(value: Any): List<Map<String, List<Any>>> =
         value as List<Map<String, List<Any>>>
+
     /**
-     * Extract the actual value (@value) of a given property from the properties map of an expanded property.
+     * Extract the actual value (@value) of a property from the properties map of an expanded property.
      *
      * @param value a map similar to:
      * {
@@ -196,19 +197,29 @@ object JsonLdUtils {
             if (intermediateList.size == 1) {
                 val firstListEntry = intermediateList[0]
                 val finalValueType = firstListEntry[JSONLD_TYPE]
-                if (finalValueType != null) {
-                    val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
-                    when (finalValueType) {
-                        NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
-                        NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
-                        NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
-                        else -> firstListEntry[JSONLD_VALUE_KW]
+                when {
+                    finalValueType != null -> {
+                        val finalValue = String::class.safeCast(firstListEntry[JSONLD_VALUE_KW])
+                        when (finalValueType) {
+                            NGSILD_DATE_TIME_TYPE -> ZonedDateTime.parse(finalValue)
+                            NGSILD_DATE_TYPE -> LocalDate.parse(finalValue)
+                            NGSILD_TIME_TYPE -> LocalTime.parse(finalValue)
+                            else -> firstListEntry[JSONLD_VALUE_KW]
+                        }
                     }
-                } else if (firstListEntry[JSONLD_VALUE_KW] != null) {
-                    firstListEntry[JSONLD_VALUE_KW]
-                } else {
-                    // Used to get the value of datasetId property, since it is mapped to "@id" key rather than "@value"
-                    firstListEntry[JSONLD_ID]
+                    firstListEntry[JSONLD_VALUE_KW] != null -> {
+                        firstListEntry[JSONLD_VALUE_KW]
+                    }
+                    firstListEntry[JSONLD_ID] != null -> {
+                        // Used to get the value of datasetId property,
+                        // since it is mapped to "@id" key rather than "@value"
+                        firstListEntry[JSONLD_ID]
+                    }
+                    else -> {
+                        // it is a map / JSON object, keep it as is
+                        // {https://uri.etsi.org/ngsi-ld/default-context/key=[{@value=value}], ...}
+                        firstListEntry
+                    }
                 }
             } else {
                 intermediateList.map {
@@ -248,13 +259,6 @@ object JsonLdUtils {
             }
     }
 
-    fun expandRelationshipType(relationship: Map<String, Map<String, Any>>, contexts: List<String>): String {
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to contexts)
-        val expKey = JsonLdProcessor.expand(relationship, jsonLdOptions)
-        return (expKey[0] as Map<String, Any>).keys.first()
-    }
-
     fun expandJsonLdKey(type: String, context: String): String? =
         expandJsonLdKey(type, listOf(context))
 
@@ -265,7 +269,7 @@ object JsonLdUtils {
         val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
         logger.debug("Expanded type $type to $expandedType")
         return if (expandedType.isNotEmpty())
-        (expandedType[0] as Map<String, Any>).keys.first()
+            (expandedType[0] as Map<String, Any>).keys.first()
         else
             null
     }
@@ -293,6 +297,9 @@ object JsonLdUtils {
             )
         return compactedFragment.keys.first()
     }
+
+    fun compactFragment(value: Map<String, Any>, context: List<String>): Map<String, Any> =
+        JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
 
     fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String =
         compactAndStringifyFragment(mapOf(key to value), context)
@@ -442,10 +449,10 @@ object JsonLdUtils {
 
     fun parseAndExpandAttributeFragment(attributeName: String, attributePayload: String, contexts: List<String>):
         Map<String, List<Map<String, List<Any>>>> =
-            expandJsonLdFragment(
-                serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
-                contexts
-            ) as Map<String, List<Map<String, List<Any>>>>
+        expandJsonLdFragment(
+            serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
+            contexts
+        ) as Map<String, List<Map<String, List<Any>>>>
 
     fun reconstructPolygonCoordinates(compactedJsonLdEntity: MutableMap<String, Any>) =
         compactedJsonLdEntity
@@ -513,7 +520,10 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
         else
             JsonLdProcessor.expand(parsedFragment)
     } catch (e: JsonLdError) {
-        throw BadRequestDataException("Unexpected error while parsing payload : ${e.message}")
+        if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
+            throw LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
+        else
+            throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
     }
     if (expandedFragment.isEmpty())
         throw BadRequestDataException("Unable to parse input payload")
@@ -534,8 +544,8 @@ fun extractAttributeInstanceFromCompactedEntity(
     else {
         // Since some attributes cannot be well compacted, to be improved later
         logger.warn(
-            "Received expanded attribute $attributeName, " +
-                "extracting instance for ${attributeName.extractShortTypeFromExpanded()}"
+            "Could not find entry for attribute: $attributeName, " +
+                "trying on the 'guessed' short form instead: ${attributeName.extractShortTypeFromExpanded()}"
         )
         compactedJsonLdEntity[attributeName.extractShortTypeFromExpanded()] as CompactedJsonLdAttribute
     }

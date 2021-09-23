@@ -5,28 +5,28 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
 
-extra["springCloudVersion"] = "Hoxton.SR11"
-extra["testcontainersVersion"] = "1.15.1"
+extra["springCloudVersion"] = "2020.0.3"
+extra["testcontainersVersion"] = "1.15.3"
 
 plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.3.10.RELEASE" apply false
+    id("org.springframework.boot") version "2.5.4" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
-    kotlin("jvm") version "1.3.72" apply false
-    kotlin("plugin.spring") version "1.3.72" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "9.3.0"
-    id("com.google.cloud.tools.jib") version "2.5.0" apply false
-    kotlin("kapt") version "1.3.61" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.11.2" apply false
-    id("org.sonarqube") version "3.1.1"
+    kotlin("jvm") version "1.5.21" apply false
+    kotlin("plugin.spring") version "1.5.21" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
+    id("com.google.cloud.tools.jib") version "3.1.4" apply false
+    kotlin("kapt") version "1.5.21" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.18.0" apply false
+    id("org.sonarqube") version "3.3"
+    jacoco
 }
 
 subprojects {
     repositories {
         mavenCentral()
-        jcenter()
         maven { url = uri("https://dl.bintray.com/arrow-kt/arrow-kt/") }
     }
 
@@ -36,6 +36,7 @@ subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "kotlin-kapt")
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "jacoco")
 
     java.sourceCompatibility = JavaVersion.VERSION_11
 
@@ -62,7 +63,7 @@ subprojects {
         implementation("org.springframework.kafka:spring-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-        implementation("com.github.jsonld-java:jsonld-java:0.13.2")
+        implementation("com.github.jsonld-java:jsonld-java:0.13.3")
 
         implementation("io.arrow-kt:arrow-fx:0.10.4")
         implementation("io.arrow-kt:arrow-syntax:0.10.4")
@@ -71,7 +72,7 @@ subprojects {
 
         "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.11.2")
+        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
@@ -79,15 +80,15 @@ subprojects {
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
-            exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
             // to ensure we are using mocks and spies from springmockk lib instead
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:2.0.0")
+        testImplementation("com.ninja-squad:springmockk:3.0.1")
+        testImplementation("io.mockk:mockk:1.12.0")
         testImplementation("io.projectreactor:reactor-test")
-        testImplementation("org.springframework.cloud:spring-cloud-stream-test-support")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")
+        testImplementation("org.testcontainers:junit-jupiter")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
@@ -106,7 +107,6 @@ subprojects {
     }
 
     ktlint {
-        enableExperimentalRules.set(true)
         disabledRules.set(setOf("experimental:multiline-if-else", "no-wildcard-imports"))
         reporters {
             reporter(ReporterType.CHECKSTYLE)
@@ -115,8 +115,8 @@ subprojects {
     }
 
     detekt {
-        toolVersion = "1.11.2"
-        input = files("src/main/kotlin", "src/test/kotlin")
+        toolVersion = "1.18.0"
+        source = files("src/main/kotlin", "src/test/kotlin")
         config = files(detektConfigFile)
         buildUponDefaultConfig = true
         baseline = file("$projectDir/config/detekt/baseline.xml")
@@ -128,7 +128,22 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "gcr.io/distroless/java:11")
+    // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
+    jacoco {
+        toolVersion = "0.8.7"
+    }
+    tasks.test {
+        finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+    }
+    tasks.withType<JacocoReport> {
+        dependsOn(tasks.test) // tests are required to run before generating the report
+        reports {
+            xml.isEnabled = true
+            html.isEnabled = true
+        }
+    }
+
+    project.ext.set("jibFromImage", "adoptopenjdk:11-jre")
     project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(
@@ -158,6 +173,13 @@ allprojects {
     repositories {
         mavenCentral()
         maven { url = uri("https://repo.spring.io/milestone") }
-        jcenter()
+    }
+
+    sonarqube {
+        properties {
+            property("sonar.projectKey", "stellio-hub_stellio-context-broker")
+            property("sonar.organization", "stellio-hub")
+            property("sonar.host.url", "https://sonarcloud.io")
+        }
     }
 }

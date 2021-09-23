@@ -53,7 +53,7 @@ class SubscriptionHandlerService(
 
     fun deleteSubscriptionEntity(id: URI) {
         // Delete the last notification of the subscription
-        val lastNotification = neo4jRepository.getRelationshipTargetOfSubject(
+        val lastNotification = entityRepository.getRelationshipTargetOfSubject(
             id,
             JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
         )
@@ -87,14 +87,14 @@ class SubscriptionHandlerService(
         entityRepository.save(notification)
 
         // Find the last notification of the subscription
-        val lastNotification = neo4jRepository.getRelationshipTargetOfSubject(
+        val lastNotification = entityRepository.getRelationshipTargetOfSubject(
             subscriptionId,
             JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
         )
 
         // Create relationship between the subscription and the new notification
         if (lastNotification != null) {
-            val relationship = neo4jRepository.getRelationshipOfSubject(
+            val relationship = relationshipRepository.getRelationshipOfSubject(
                 subscriptionId,
                 JsonLdUtils.EGM_RAISED_NOTIFICATION.toRelationshipTypeName()
             )
@@ -108,6 +108,7 @@ class SubscriptionHandlerService(
             entityService.deleteEntity(lastNotification.id)
         } else {
             val rawRelationship = Relationship(
+                objectId = notification.id,
                 type = listOf(JsonLdUtils.EGM_RAISED_NOTIFICATION)
             )
 

@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.model
 
+import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -14,25 +15,26 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.locationtech.jts.io.WKTReader
-import org.neo4j.ogm.annotation.Id
-import org.neo4j.ogm.annotation.Labels
-import org.neo4j.ogm.annotation.NodeEntity
-import org.neo4j.ogm.annotation.Relationship
-import org.neo4j.ogm.annotation.typeconversion.Convert
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.neo4j.core.convert.ConvertWith
+import org.springframework.data.neo4j.core.schema.DynamicLabels
+import org.springframework.data.neo4j.core.schema.Id
+import org.springframework.data.neo4j.core.schema.Node
+import org.springframework.data.neo4j.core.schema.Relationship
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
-@NodeEntity
+@Node
 @JsonIgnoreProperties(ignoreUnknown = true)
-class Entity(
+data class Entity(
     @Id
     @JsonProperty("@id")
-    @Convert(UriConverter::class)
+    @ConvertWith(converter = Neo4jUriPropertyConverter::class)
     val id: URI,
 
-    @Labels
+    @DynamicLabels
     @JsonProperty("@type")
     val type: List<String>,
 
@@ -40,6 +42,7 @@ class Entity(
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
 
     @JsonIgnore
+    @LastModifiedDate
     var modifiedAt: ZonedDateTime? = null,
 
     @JsonIgnore
@@ -55,7 +58,7 @@ class Entity(
 
 ) {
 
-    fun serializeCoreProperties(includeSysAttrs: Boolean): MutableMap<String, Any> {
+    fun serializeCoreProperties(includeSysAttrs: Boolean): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = id.toString()
         resultEntity[JSONLD_TYPE] = type

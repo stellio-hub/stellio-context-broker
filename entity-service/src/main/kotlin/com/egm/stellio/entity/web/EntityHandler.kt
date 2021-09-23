@@ -5,7 +5,6 @@ import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.entity.util.decode
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
@@ -86,7 +85,7 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
         val type = params.getFirst(QUERY_PARAM_TYPE)
@@ -101,16 +100,18 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val userId = extractSubjectOrEmpty().awaitFirst()
 
-        if (!count && (limit <= 0 || page <= 0))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Page number and Limit must be strictly greater than zero"))
-
-        if (count && (limit < 0 || page <= 0))
+        if (!count && (limit <= 0 || offset < 0))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
-                        "Page number must be strictly greater than zero and Limit must be greater than zero"
+                        "Offset must be greater than zero and limit must be strictly greater than zero"
                     )
+                )
+
+        if (count && (limit < 0 || offset < 0))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse("Offset and limit must be greater than zero")
                 )
 
         if (limit > applicationProperties.pagination.limitMax)
@@ -130,14 +131,16 @@ class EntityHandler(
                     )
                 )
 
+        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
+
         /**
          * Decoding query parameters is not supported by default so a call to a decode function was added query
          * with the right parameters values
          */
         val countAndEntities = entityService.searchEntities(
-            QueryParams(ids, expandJsonLdKey(type as String, contextLink), idPattern, q?.decode()),
+            QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
             userId,
-            page,
+            offset,
             limit,
             contextLink,
             includeSysAttrs
@@ -152,7 +155,6 @@ class EntityHandler(
                 mediaType, contextLink
             )
 
-        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
         val filteredEntities =
             countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {
@@ -172,7 +174,7 @@ class EntityHandler(
             "/ngsi-ld/v1/entities",
             params,
             countAndEntities.first,
-            page,
+            offset,
             limit
         )
         return PagingUtils.buildPaginationResponse(
@@ -239,10 +241,8 @@ class EntityHandler(
      */
     @DeleteMapping("/{entityId}")
     suspend fun delete(
-        @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String
     ): ResponseEntity<*> {
-        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         if (!entityService.exists(entityId.toUri()))
@@ -250,13 +250,13 @@ class EntityHandler(
         if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
             throw AccessDeniedException("User forbidden admin access to entity $entityId")
 
-        // Is there a way to avoid loading the entity to get its type... for the later event
+        // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
         val entity = entityService.getEntityCoreProperties(entityId.toUri())
 
         entityService.deleteEntity(entityId.toUri())
 
         entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), contexts), entity.type[0]
+            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
         )
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

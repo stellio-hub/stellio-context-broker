@@ -3,6 +3,7 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.InvalidRequestException
+import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -141,7 +142,7 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if the JSON-LD fragment is not a valid JSON-LD document`() {
+    fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() {
         val rawEntity =
             """
             {
@@ -153,11 +154,12 @@ class JsonLdUtilsTests {
             }
             """.trimIndent()
 
-        val exception = assertThrows<BadRequestDataException> {
+        val exception = assertThrows<LdContextNotAvailableException> {
             parseAndExpandJsonLdFragment(rawEntity)
         }
         assertEquals(
-            "Unexpected error while parsing payload : loading remote context failed: unknownContext",
+            "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
+                "loading remote context failed: unknownContext)",
             exception.message
         )
     }

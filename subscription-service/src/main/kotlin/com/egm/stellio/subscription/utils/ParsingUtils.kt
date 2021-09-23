@@ -5,6 +5,7 @@ import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -13,8 +14,9 @@ object ParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val mapper: ObjectMapper = jacksonObjectMapper()
+
     fun parseSubscription(input: String, context: List<String>): Subscription {
-        val mapper = jacksonObjectMapper()
         val rawParsedData = mapper.readTree(input) as ObjectNode
         if (rawParsedData.get("@context") != null)
             rawParsedData.remove("@context")
@@ -30,7 +32,6 @@ object ParsingUtils {
     }
 
     fun parseSubscriptionUpdate(input: String, context: List<String>): Pair<Map<String, Any>, List<String>> {
-        val mapper = jacksonObjectMapper()
         val parsedSubscription: Map<String, List<Any>> = mapper.readValue(
             input,
             mapper.typeFactory.constructMapLikeType(
@@ -42,7 +43,6 @@ object ParsingUtils {
     }
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
-        val mapper = jacksonObjectMapper()
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
         entityInfo.type = JsonLdUtils.expandJsonLdKey(entityInfo.type, contexts!!)!!
         return entityInfo
@@ -50,7 +50,6 @@ object ParsingUtils {
 
     fun parseEndpointInfo(input: String?): List<EndpointInfo>? {
         input?.let {
-            val mapper = jacksonObjectMapper()
             return mapper.readValue(
                 input,
                 mapper.typeFactory.constructCollectionType(List::class.java, EndpointInfo::class.java)
@@ -60,18 +59,16 @@ object ParsingUtils {
     }
 
     fun endpointInfoToString(input: List<EndpointInfo>?): String {
-        val mapper = jacksonObjectMapper()
         return mapper.writeValueAsString(input)
     }
 
     fun endpointInfoMapToString(input: List<Map<String, String>>?): String {
-        val mapper = jacksonObjectMapper()
         return mapper.writeValueAsString(input)
     }
 
     fun String.toSqlColumnName(): String =
         this.map {
-            if (it.isUpperCase()) "_${it.toLowerCase()}"
+            if (it.isUpperCase()) "_${it.lowercase()}"
             else it
         }.joinToString("")
 

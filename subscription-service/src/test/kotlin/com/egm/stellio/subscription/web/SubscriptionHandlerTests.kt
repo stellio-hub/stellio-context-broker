@@ -2,6 +2,7 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -18,7 +19,6 @@ import org.hamcrest.core.Is
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
@@ -37,9 +37,6 @@ import reactor.core.publisher.Mono
 @Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", username = "mock-user")
 class SubscriptionHandlerTests {
-
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -168,7 +165,7 @@ class SubscriptionHandlerTests {
                         it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
                         it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
                         .toString(Charsets.UTF_8).removeNoise() &&
-                        it.contexts == listOf(apicContext!!)
+                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
                 }
             )
         }
@@ -207,9 +204,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(500)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                    "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Internal Server Exception\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                    "title":"There has been an error during the operation execution",
+                    "detail":"InternalErrorException(message=Internal Server Exception)"
+                }
+                """
             )
     }
 
@@ -290,11 +291,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=2")
             .exchange()
             .expectStatus().isOk
             .expectHeader()
-            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"")
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
+            )
     }
 
     @Test
@@ -305,11 +309,14 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=0")
             .exchange()
             .expectStatus().isOk
             .expectHeader()
-            .valueEquals("Link", "</ngsi-ld/v1/subscriptions?limit=1&page=2>;rel=\"next\";type=\"application/ld+json\"")
+            .valueEquals(
+                "Link",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
+            )
     }
 
     @Test
@@ -320,37 +327,37 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=2")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=1")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(
                 "Link",
-                "</ngsi-ld/v1/subscriptions?limit=1&page=1>;rel=\"prev\";type=\"application/ld+json\"",
-                "</ngsi-ld/v1/subscriptions?limit=1&page=3>;rel=\"next\";type=\"application/ld+json\""
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
+                "</ngsi-ld/v1/subscriptions?limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
     }
 
     @Test
-    fun `query subscriptions should return 200 and empty response if requested page does not exists`() {
+    fun `query subscriptions should return 200 and empty response if requested offset does not exists`() {
         every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.empty()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=9")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
     }
 
     @Test
-    fun `query subscriptions should return 400 if requested page is equal or less than zero`() {
+    fun `query subscriptions should return 400 if requested offset is less than zero`() {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(2)
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=1&page=0")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=1&offset=-1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -358,7 +365,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number and Limit must be greater than zero"
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
                 } 
                 """.trimIndent()
             )
@@ -372,7 +379,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
 
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=-1&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=-1&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -380,7 +387,7 @@ class SubscriptionHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Page number and Limit must be greater than zero"
+                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -389,7 +396,7 @@ class SubscriptionHandlerTests {
     @Test
     fun `query subscriptions should return 400 if limit is greater than the maximum authorized limit`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions/?limit=200&page=1")
+            .uri("/ngsi-ld/v1/subscriptions/?limit=200&offset=1")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -410,7 +417,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
         val updatedSubscription = gimmeRawSubscription()
         every { subscriptionService.exists(any()) } returns Mono.just(true)
@@ -450,7 +457,7 @@ class SubscriptionHandlerTests {
         val subscriptionId = subscriptionId
         val parsedSubscription = parseSubscriptionUpdate(
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(apicContext!!)
+            listOf(APIC_COMPOUND_CONTEXT)
         )
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
@@ -463,9 +470,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().is5xxServerError
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                    "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Update failed\"}"
+                """
+                    {
+                        "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                        "title":"There has been an error during the operation execution",
+                        "detail":"java.lang.RuntimeException: Update failed"
+                    }
+                    """
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
@@ -620,9 +631,13 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
             .expectBody().json(
-                "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/InternalError\"," +
-                    "\"title\":\"There has been an error during the operation execution\"," +
-                    "\"detail\":\"Unexpected server error\"}"
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
+                    "title":"There has been an error during the operation execution",
+                    "detail":"java.lang.RuntimeException: Unexpected server error"
+                }
+                """
             )
 
         verify { subscriptionService.exists(subscriptionId) }

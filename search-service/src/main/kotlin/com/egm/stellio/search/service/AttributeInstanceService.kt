@@ -4,14 +4,15 @@ import com.egm.stellio.search.model.*
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
-import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import io.r2dbc.postgresql.codec.Json
-import org.springframework.data.r2dbc.core.DatabaseClient
-import org.springframework.data.r2dbc.core.bind
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
@@ -27,7 +28,7 @@ class AttributeInstanceService(
 
     @Transactional
     fun create(attributeInstance: AttributeInstance): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             INSERT INTO attribute_instance 
                 (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
@@ -44,28 +45,24 @@ class AttributeInstanceService(
             .rowsUpdated()
             .onErrorReturn(-1)
 
-    // TODO not totally compatible with the specification
-    // it should accept an array of attribute instances
-    fun addAttributeInstances(
+    @Transactional
+    fun addAttributeInstance(
         temporalEntityAttributeUuid: UUID,
         attributeKey: String,
         attributeValues: Map<String, List<Any>>,
-        parsedPayload: Map<String, Any>
+        contexts: List<String>
     ): Mono<Int> {
         val attributeValue = getPropertyValueFromMap(attributeValues, NGSILD_PROPERTY_VALUE)
-            ?: throw BadRequestDataException("Value cannot be null")
+            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without a value")
+        val observedAt = getPropertyValueFromMapAsDateTime(attributeValues, NGSILD_OBSERVED_AT_PROPERTY)
+            ?: throw BadRequestDataException("Attribute $attributeKey has an instance without an observed date")
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            observedAt = getPropertyValueFromMapAsDateTime(attributeValues, EGM_OBSERVED_BY)!!,
+            observedAt = observedAt,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
-            payload =
-                extractAttributeInstanceFromCompactedEntity(
-                    parsedPayload,
-                    attributeKey,
-                    null
-                )
+            payload = compactFragment(attributeValues, contexts).minus(JSONLD_CONTEXT)
         )
         return create(attributeInstance)
     }
@@ -131,7 +128,7 @@ class AttributeInstanceService(
         if (temporalQuery.lastN != null)
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
 
-        return databaseClient.execute(selectQuery)
+        return databaseClient.sql(selectQuery)
             .fetch()
             .all()
             .map {
@@ -141,7 +138,7 @@ class AttributeInstanceService(
     }
 
     fun deleteAttributeInstancesOfEntity(entityId: URI): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE entity_id = :entity_id
@@ -153,7 +150,7 @@ class AttributeInstanceService(
             .rowsUpdated()
 
     fun deleteAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE 
@@ -173,7 +170,7 @@ class AttributeInstanceService(
             .rowsUpdated()
 
     fun deleteAllAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
-        databaseClient.execute(
+        databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
                 SELECT id FROM temporal_entity_attribute WHERE 
@@ -196,10 +193,10 @@ class AttributeInstanceService(
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,
-                observedAt =
-                    row["time_bucket"]?.let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
-                        ?: row["observed_at"]
-                            .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
+                observedAt = row["time_bucket"]?.let {
+                    ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
+                } ?: row["observed_at"]
+                    .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,

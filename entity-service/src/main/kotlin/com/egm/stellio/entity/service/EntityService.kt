@@ -8,11 +8,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.expandRelationshipType
+import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -44,8 +40,7 @@ class EntityService(
                 createEntityRelationship(
                     ngsiLdEntity.id,
                     ngsiLdRelationship.name,
-                    ngsiLdRelationshipInstance,
-                    ngsiLdRelationshipInstance.objectId
+                    ngsiLdRelationshipInstance
                 )
             }
         }
@@ -97,13 +92,12 @@ class EntityService(
     private fun createEntityRelationship(
         entityId: URI,
         relationshipType: String,
-        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance,
-        targetEntityId: URI
+        ngsiLdRelationshipInstance: NgsiLdRelationshipInstance
     ): URI {
         val rawRelationship = Relationship(relationshipType, ngsiLdRelationshipInstance)
 
         neo4jRepository.createRelationshipOfSubject(
-            EntitySubjectNode(entityId), rawRelationship, targetEntityId
+            EntitySubjectNode(entityId), rawRelationship, ngsiLdRelationshipInstance.objectId
         )
 
         createAttributeProperties(rawRelationship.id, ngsiLdRelationshipInstance.properties)
@@ -163,162 +157,114 @@ class EntityService(
 
     fun existsAsPartial(entityId: URI): Boolean = partialEntityRepository.existsById(entityId)
 
+    private fun serializeEntityProperties(
+        properties: List<Property>,
+        includeSysAttrs: Boolean = false
+    ): Map<String, Any> =
+        properties
+            .map { property ->
+                val serializedProperty = property.serializeCoreProperties(includeSysAttrs)
+
+                property.properties.forEach { innerProperty ->
+                    val serializedSubProperty = innerProperty.serializeCoreProperties(includeSysAttrs)
+                    serializedProperty[innerProperty.name] = serializedSubProperty
+                }
+
+                property.relationships.forEach { innerRelationship ->
+                    val serializedSubRelationship = innerRelationship.serializeCoreProperties(includeSysAttrs)
+                    serializedProperty[innerRelationship.relationshipType()] = serializedSubRelationship
+                }
+
+                Pair(property.name, serializedProperty)
+            }
+            .groupBy({ it.first }, { it.second })
+
+    private fun serializeEntityRelationships(
+        relationships: List<Relationship>,
+        includeSysAttrs: Boolean = false
+    ): Map<String, Any> =
+        relationships
+            .map { relationship ->
+                val serializedRelationship = relationship.serializeCoreProperties(includeSysAttrs)
+
+                relationship.properties.forEach { innerProperty ->
+                    val serializedSubProperty = innerProperty.serializeCoreProperties(includeSysAttrs)
+                    serializedRelationship[innerProperty.name] = serializedSubProperty
+                }
+
+                relationship.relationships.forEach { innerRelationship ->
+                    val serializedSubRelationship = innerRelationship.serializeCoreProperties(includeSysAttrs)
+                    serializedRelationship[innerRelationship.relationshipType()] = serializedSubRelationship
+                }
+
+                Pair(relationship.relationshipType(), serializedRelationship)
+            }
+            .groupBy({ it.first }, { it.second })
+
+    fun getFullEntitiesById(entitiesIds: List<URI>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
+        entitiesIds
+            .map {
+                entityRepository.findById(it)
+            }
+            .filter { it.isPresent }
+            .map {
+                val entity = it.get()
+                JsonLdEntity(
+                    entity.serializeCoreProperties(includeSysAttrs)
+                        .plus(serializeEntityProperties(entity.properties, includeSysAttrs))
+                        .plus(serializeEntityRelationships(entity.relationships, includeSysAttrs)),
+                    entity.contexts
+                )
+            }.sortedBy {
+                // as findAllById does not preserve order of the results, sort them back by id (search order)
+                it.id
+            }
+
     /**
      * @return a pair consisting of a map representing the entity keys and attributes and the list of contexts
      * associated to the entity
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
     fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity? {
-        val entity = entityRepository.getEntityCoreById(entityId.toString()) ?: return null
-        val resultEntity = entity.serializeCoreProperties(includeSysAttrs)
+        val entity = entityRepository.findById(entityId)
+            .orElseThrow { ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
 
-        entityRepository.getEntitySpecificProperties(entityId.toString())
-            .groupBy {
-                (it["property"] as Property).id
-            }
-            .values
-            .map { buildPropertyFragment(it, entity.contexts, includeSysAttrs) }
-            .groupBy { it.first }
-            .mapValues { propertyInstances ->
-                propertyInstances.value.map { instanceFragment ->
-                    instanceFragment.second
-                }
-            }
-            .forEach { property ->
-                resultEntity[property.key] = property.value
-            }
-
-        entityRepository.getEntityRelationships(entityId.toString())
-            .groupBy {
-                (it["rel"] as Relationship).id
-            }.values
-            .map {
-                buildRelationshipFragment(it, entity.contexts, includeSysAttrs)
-            }
-            .groupBy { it.first }
-            .mapValues { relationshipInstances ->
-                relationshipInstances.value.map { instanceFragment ->
-                    instanceFragment.second
-                }
-            }
-            .forEach { relationship ->
-                resultEntity[relationship.key] = relationship.value
-            }
-
-        return JsonLdEntity(resultEntity, entity.contexts)
+        return JsonLdEntity(
+            entity.serializeCoreProperties(includeSysAttrs)
+                .plus(serializeEntityProperties(entity.properties, includeSysAttrs))
+                .plus(serializeEntityRelationships(entity.relationships, includeSysAttrs)),
+            entity.contexts
+        )
     }
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
 
-    private fun buildPropertyFragment(
-        rawProperty: List<Map<String, Any>>,
-        contexts: List<String>,
-        includeSysAttrs: Boolean
-    ): Pair<String, Map<String, Any>> {
-        val property = rawProperty[0]["property"] as Property
-        val propertyKey = property.name
-        val propertyValues = property.serializeCoreProperties(includeSysAttrs)
-
-        rawProperty.filter { relEntry -> relEntry["propValue"] != null }
-            .forEach {
-                val propertyOfProperty = it["propValue"] as Property
-                propertyValues[propertyOfProperty.name] = propertyOfProperty.serializeCoreProperties(includeSysAttrs)
-            }
-
-        rawProperty.filter { relEntry -> relEntry["relOfProp"] != null }
-            .forEach {
-                val relationship = it["relOfProp"] as Relationship
-                val targetEntityId = it["relOfPropObjectId"] as String
-                val relationshipKey = (it["relType"] as String)
-                logger.debug("Adding relOfProp to $targetEntityId with type $relationshipKey")
-
-                val relationshipValue = mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to targetEntityId)
-                )
-                val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-                relationshipValues.putAll(relationshipValue)
-                val expandedRelationshipKey =
-                    expandRelationshipType(mapOf(relationshipKey to relationshipValue), contexts)
-                propertyValues[expandedRelationshipKey] = relationshipValues
-            }
-
-        return Pair(propertyKey, propertyValues)
-    }
-
-    private fun buildRelationshipFragment(
-        rawRelationship: List<Map<String, Any>>,
-        contexts: List<String>,
-        includeSysAttrs: Boolean
-    ): Pair<String, Map<String, Any>> {
-        val relationship = rawRelationship[0]["rel"] as Relationship
-        val primaryRelType = relationship.type[0]
-        val primaryRelation =
-            rawRelationship.find { relEntry -> relEntry["relType"] == primaryRelType.toRelationshipTypeName() }!!
-        val relationshipTargetId = primaryRelation["relObjectId"] as String
-        val relationshipValue = mapOf(
-            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to relationshipTargetId)
-        )
-
-        val relationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-        relationshipValues.putAll(relationshipValue)
-
-        rawRelationship.filter { relEntry -> relEntry["propValue"] != null }
-            .forEach {
-                val propertyOfProperty = it["propValue"] as Property
-                relationshipValues[propertyOfProperty.name] =
-                    propertyOfProperty.serializeCoreProperties(includeSysAttrs)
-            }
-
-        rawRelationship.filter { relEntry -> relEntry["relOfRel"] != null }
-            .forEach {
-                val relationship = it["relOfRel"] as Relationship
-                val innerRelType = (it["relOfRelType"] as String)
-                val innerTargetEntityId = it["relOfRelObjectId"] as String
-
-                val innerRelationship = mapOf(
-                    JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
-                    NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JSONLD_ID to innerTargetEntityId)
-                )
-
-                val innerRelationshipValues = relationship.serializeCoreProperties(includeSysAttrs)
-                innerRelationshipValues.putAll(innerRelationship)
-                val expandedInnerRelationshipType =
-                    expandRelationshipType(mapOf(innerRelType to relationshipValue), contexts)
-
-                relationshipValues[expandedInnerRelationshipType] = innerRelationshipValues
-            }
-
-        return Pair(primaryRelType, relationshipValues)
-    }
-
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
+    @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
         userSub: String,
-        page: Int,
+        offset: Int,
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(queryParams, userSub, page, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(queryParams, userSub, offset, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
      *
-     * @param type the short-hand type (e.g "Measure")
-     * @param query the list of raw query parameters (e.g "name==test")
+     * @param queryParams the list of raw query parameters (e.g. type, idPattern,...)
      * @param contexts the list of contexts to consider
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      * @return a list of entities represented as per #getFullEntityById result
      */
-    @Transactional
+    @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
         userSub: String,
-        page: Int,
+        offset: Int,
         limit: Int,
         contexts: List<String>,
         includeSysAttrs: Boolean
@@ -326,11 +272,12 @@ class EntityService(
         val result = searchRepository.getEntities(
             queryParams,
             userSub,
-            page,
+            offset,
             limit,
             contexts
         )
-        return Pair(result.first, result.second.mapNotNull { getFullEntityById(it, includeSysAttrs) })
+
+        return Pair(result.first, getFullEntitiesById(result.second, includeSysAttrs))
     }
 
     @Transactional
@@ -374,16 +321,15 @@ class EntityService(
     ): UpdateAttributeResult {
         val relationshipTypeName = ngsiLdRelationship.name.extractShortTypeFromExpanded()
         return if (!neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId),
-            relationshipTypeName,
-            ngsiLdRelationshipInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                relationshipTypeName,
+                ngsiLdRelationshipInstance.datasetId
+            )
         ) {
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
@@ -412,8 +358,7 @@ class EntityService(
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
@@ -431,10 +376,10 @@ class EntityService(
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         return if (!neo4jRepository.hasPropertyInstance(
-            EntitySubjectNode(entityId),
-            ngsiLdProperty.name,
-            ngsiLdPropertyInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId
+            )
         ) {
             createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             UpdateAttributeResult(
@@ -477,9 +422,9 @@ class EntityService(
         disallowOverwrite: Boolean
     ): UpdateAttributeResult {
         return if (!neo4jRepository.hasGeoPropertyOfName(
-            EntitySubjectNode(entityId),
-            ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
+            )
         ) {
             createLocationProperty(
                 entityId,
@@ -548,17 +493,16 @@ class EntityService(
         ngsiLdRelationshipInstance: NgsiLdRelationshipInstance
     ): UpdateAttributeResult =
         if (neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId),
-            ngsiLdRelationship.name.toRelationshipTypeName(),
-            ngsiLdRelationshipInstance.datasetId
-        )
+                EntitySubjectNode(entityId),
+                ngsiLdRelationship.name.toRelationshipTypeName(),
+                ngsiLdRelationshipInstance.datasetId
+            )
         ) {
             deleteEntityAttributeInstance(entityId, ngsiLdRelationship.name, ngsiLdRelationshipInstance.datasetId)
             createEntityRelationship(
                 entityId,
                 ngsiLdRelationship.name,
-                ngsiLdRelationshipInstance,
-                ngsiLdRelationshipInstance.objectId
+                ngsiLdRelationshipInstance
             )
             UpdateAttributeResult(
                 ngsiLdRelationship.name,
@@ -584,8 +528,8 @@ class EntityService(
         ngsiLdPropertyInstance: NgsiLdPropertyInstance
     ): UpdateAttributeResult =
         if (neo4jRepository.hasPropertyInstance(
-            EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
-        )
+                EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
+            )
         ) {
             updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             UpdateAttributeResult(
@@ -650,8 +594,8 @@ class EntityService(
                 subjectNodeInfo = EntitySubjectNode(entityId), propertyName = expandedAttributeName, deleteAll = true
             ) >= 1
         else if (neo4jRepository.hasRelationshipOfType(
-            EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
-        )
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName()
+            )
         )
             return neo4jRepository.deleteEntityRelationship(
                 subjectNodeInfo = EntitySubjectNode(entityId),
@@ -669,8 +613,8 @@ class EntityService(
                 expandedAttributeName, datasetId
             ) >= 1
         else if (neo4jRepository.hasRelationshipInstance(
-            EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
-        )
+                EntitySubjectNode(entityId), expandedAttributeName.toRelationshipTypeName(), datasetId
+            )
         )
             return neo4jRepository.deleteEntityRelationship(
                 EntitySubjectNode(entityId),

@@ -24,7 +24,7 @@ class EntityEventListenerService(
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
-            is EntityDeleteEvent -> logger.info("Entity delete operation is not yet implemented")
+            is EntityDeleteEvent -> logger.debug("Nothing to do on entity delete operation")
             is AttributeAppendEvent -> logger.info("Attribute append operation is not yet implemented")
             is AttributeReplaceEvent -> handleEntityEvent(
                 deserializeObject(entityEvent.operationPayload).keys,
@@ -36,7 +36,7 @@ class EntityEventListenerService(
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
-            is AttributeDeleteEvent -> logger.info("Attribute delete operation is not yet implemented")
+            is AttributeDeleteEvent -> logger.info("Nothing to do on attribute delete operation")
         }
     }
 

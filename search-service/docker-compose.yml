@@ -23,7 +23,7 @@ services:
     depends_on:
       - zookeeper
   postgres:
-    image: stellio/stellio-timescale-postgis:1.7.2-pg11
+    image: stellio/stellio-timescale-postgis:2.3.0-pg13
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - "POSTGRES_MULTIPLE_DATABASES=${STELLIO_SEARCH_DB_DATABASE},${STELLIO_SEARCH_DB_USER},${STELLIO_SEARCH_DB_PASSWORD}"

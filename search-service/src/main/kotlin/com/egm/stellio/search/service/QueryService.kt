@@ -1,5 +1,7 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.web.buildTemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -56,26 +58,15 @@ class QueryService(
                 )
             }
 
-        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
-        // then do one search for each type of attribute
-        val allAttributesInstancesPerAttribute = temporalEntityAttributes
-            .groupBy {
-                it.attributeValueType
-            }.mapValues {
-                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
-            }
-            .values
-            .flatten()
-            .groupBy { attributeInstanceResult ->
-                // group them by temporal entity attribute
-                temporalEntityAttributes.find { tea ->
-                    tea.id == attributeInstanceResult.temporalEntityAttribute
-                }!!
-            }
+        val temporalEntityAttributesWithMatchingInstances =
+            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
+
+        val temporalEntityAttributesWithInstances =
+            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
 
         return temporalEntityService.buildTemporalEntity(
             entityId,
-            allAttributesInstancesPerAttribute,
+            temporalEntityAttributesWithInstances,
             temporalQuery,
             listOf(contextLink),
             withTemporalValues
@@ -95,23 +86,14 @@ class QueryService(
             temporalQuery.expandedAttrs
         ).awaitFirstOrDefault(emptyList())
 
-        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
-        // then do one search for each type of attribute
-        val allAttributesInstances =
-            temporalEntityAttributes.groupBy {
-                it.attributeValueType
-            }.mapValues {
-                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
-            }.values.flatten()
+        val temporalEntityAttributesWithMatchingInstances =
+            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
+
+        val temporalEntityAttributesWithInstances =
+            fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
 
         val attributeInstancesPerEntityAndAttribute =
-            allAttributesInstances
-                .groupBy {
-                    // first, group them by temporal entity attribute
-                    temporalEntityAttributes.find { tea ->
-                        tea.id == it.temporalEntityAttribute
-                    }!!
-                }
+            temporalEntityAttributesWithInstances
                 .toList()
                 .groupBy {
                     // then, group them by entity
@@ -127,6 +109,43 @@ class QueryService(
             temporalQuery,
             listOf(contextLink),
             withTemporalValues
+        )
+    }
+
+    private suspend fun searchInstancesForTemporalEntityAttributes(
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        temporalQuery: TemporalQuery,
+        withTemporalValues: Boolean
+    ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> =
+        // split the group according to attribute type (measure or any) as this currently triggers 2 different queries
+        // then do one search for each type of attribute (less queries for improved performance)
+        temporalEntityAttributes
+            .groupBy {
+                it.attributeValueType
+            }.mapValues {
+                attributeInstanceService.search(temporalQuery, it.value, withTemporalValues).awaitFirst()
+            }
+            .values
+            .flatten()
+            .groupBy { attributeInstanceResult ->
+                // group them by temporal entity attribute
+                temporalEntityAttributes.find { tea ->
+                    tea.id == attributeInstanceResult.temporalEntityAttribute
+                }!!
+            }
+
+    private fun fillWithTEAWithoutInstances(
+        temporalEntityAttributes: List<TemporalEntityAttribute>,
+        temporalEntityAttributesWithInstances: Map<TemporalEntityAttribute, List<AttributeInstanceResult>>
+    ): Map<TemporalEntityAttribute, List<AttributeInstanceResult>> {
+        // filter the temporal entity attributes for which there are no attribute instances
+        val temporalEntityAttributesWithoutInstances =
+            temporalEntityAttributes.filter {
+                !temporalEntityAttributesWithInstances.keys.contains(it)
+            }
+        // add them in the result set accompanied with an empty list
+        return temporalEntityAttributesWithInstances.plus(
+            temporalEntityAttributesWithoutInstances.map { it to emptyList() }
         )
     }
 }

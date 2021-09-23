@@ -9,7 +9,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
-import com.egm.stellio.entity.config.TestContainersConfiguration
+import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -19,18 +19,17 @@ import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestContainersConfiguration::class)
-class Neo4jAuthorizationRepositoryTest {
+class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Autowired
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
@@ -48,6 +47,11 @@ class Neo4jAuthorizationRepositoryTest {
     private val apiaryUri = "urn:ngsi-ld:Apiary:01".toUri()
     private val apiary02Uri = "urn:ngsi-ld:Apiary:02".toUri()
 
+    @AfterEach
+    fun cleanData() {
+        entityRepository.deleteAll()
+    }
+
     @Test
     fun `it should filter entities authorized for user with given rights`() {
         val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
@@ -62,10 +66,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
-        assert(availableRightsForEntities == listOf(apiaryUri))
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(apiaryUri)
+        assertEquals(listOf(apiaryUri), availableRightsForEntities)
     }
 
     @Test
@@ -83,9 +84,6 @@ class Neo4jAuthorizationRepositoryTest {
             )
 
         assert(availableRightsForEntities.isEmpty())
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(apiaryUri)
     }
 
     @Test
@@ -108,11 +106,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
-        assert(authorizedEntitiesId == listOf(apiaryUri, apiary02Uri))
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(apiaryUri)
-        neo4jRepository.deleteEntity(apiary02Uri)
+        assertEquals(listOf(apiaryUri, apiary02Uri), authorizedEntitiesId)
     }
 
     @Test
@@ -138,9 +132,6 @@ class Neo4jAuthorizationRepositoryTest {
             )
 
         assert(availableRightsForEntities.isEmpty())
-
-        neo4jRepository.deleteEntity(clientUri)
-        neo4jRepository.deleteEntity(apiaryUri)
     }
 
     @Test
@@ -165,10 +156,7 @@ class Neo4jAuthorizationRepositoryTest {
                 setOf(R_CAN_READ, R_CAN_WRITE)
             )
 
-        assert(availableRightsForEntities == listOf(apiaryUri))
-
-        neo4jRepository.deleteEntity(clientUri)
-        neo4jRepository.deleteEntity(apiaryUri)
+        assertEquals(listOf(apiaryUri), availableRightsForEntities)
     }
 
     @Test
@@ -190,10 +178,7 @@ class Neo4jAuthorizationRepositoryTest {
                 listOf(SpecificAccessPolicy.AUTH_READ.name)
             )
 
-        assert(authorizedEntities == listOf(apiaryUri))
-
-        neo4jRepository.deleteEntity(apiaryUri)
-        neo4jRepository.deleteEntity(apiary02Uri)
+        assertEquals(listOf(apiaryUri), authorizedEntities)
     }
 
     @Test
@@ -214,9 +199,7 @@ class Neo4jAuthorizationRepositoryTest {
                 listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
             )
 
-        assert(authorizedEntities == listOf(apiaryUri))
-
-        neo4jRepository.deleteEntity(apiaryUri)
+        assertEquals(listOf(apiaryUri), authorizedEntities)
     }
 
     @Test
@@ -246,10 +229,7 @@ class Neo4jAuthorizationRepositoryTest {
                 listOf(SpecificAccessPolicy.AUTH_WRITE.name)
             )
 
-        assert(authorizedEntities == listOf(apiaryUri))
-
-        neo4jRepository.deleteEntity(apiaryUri)
-        neo4jRepository.deleteEntity(apiary02Uri)
+        assertEquals(listOf(apiaryUri), authorizedEntities)
     }
 
     @Test
@@ -267,9 +247,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
-        assert(roles == setOf("admin", "creator"))
-
-        neo4jRepository.deleteEntity(userUri)
+        assertEquals(setOf("admin", "creator"), roles)
     }
 
     @Test
@@ -291,9 +269,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles(serviceAccountUri)
 
-        assert(roles == setOf("admin", "creator"))
-
-        neo4jRepository.deleteEntity(clientUri)
+        assertEquals(setOf("admin", "creator"), roles)
     }
 
     @Test
@@ -311,9 +287,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
-        assert(roles == setOf("admin"))
-
-        neo4jRepository.deleteEntity(userUri)
+        assertEquals(setOf("admin"), roles)
     }
 
     @Test
@@ -335,10 +309,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
-        assert(roles == setOf("admin"))
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(groupUri)
+        assertEquals(setOf("admin"), roles)
     }
 
     @Test
@@ -360,10 +331,7 @@ class Neo4jAuthorizationRepositoryTest {
 
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
-        assert(roles == setOf("admin"))
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(groupUri)
+        assertEquals(setOf("admin"), roles)
     }
 
     @Test
@@ -373,8 +341,6 @@ class Neo4jAuthorizationRepositoryTest {
         val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
 
         assert(roles.isEmpty())
-
-        neo4jRepository.deleteEntity(userUri)
     }
 
     @Test
@@ -393,8 +359,6 @@ class Neo4jAuthorizationRepositoryTest {
         val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:unknown".toUri())
 
         assert(roles.isEmpty())
-
-        neo4jRepository.deleteEntity(clientUri)
     }
 
     @Test
@@ -417,8 +381,6 @@ class Neo4jAuthorizationRepositoryTest {
         val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:unknown".toUri())
 
         assert(roles.isEmpty())
-
-        neo4jRepository.deleteEntity(clientUri)
     }
 
     @Test
@@ -433,6 +395,7 @@ class Neo4jAuthorizationRepositoryTest {
             userUri,
             targetIds.map {
                 Relationship(
+                    objectId = it,
                     type = listOf(R_CAN_ADMIN),
                     datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
                 )
@@ -441,16 +404,13 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         assertEquals(2, createdRelations.size)
-
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(apiaryUri)
-        neo4jRepository.deleteEntity(apiary02Uri)
     }
 
     @Test
     fun `it should create admin links to entities for a client`() {
         createEntity(
-            clientUri, listOf(CLIENT_LABEL),
+            clientUri,
+            listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
                     name = SERVICE_ACCOUNT_ID,
@@ -467,6 +427,7 @@ class Neo4jAuthorizationRepositoryTest {
             serviceAccountUri,
             targetIds.map {
                 Relationship(
+                    objectId = it,
                     type = listOf(R_CAN_ADMIN),
                     datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
                 )
@@ -475,10 +436,6 @@ class Neo4jAuthorizationRepositoryTest {
         )
 
         assertEquals(2, createdRelations.size)
-
-        neo4jRepository.deleteEntity(clientUri)
-        neo4jRepository.deleteEntity(apiaryUri)
-        neo4jRepository.deleteEntity(apiary02Uri)
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property>): Entity {
@@ -487,7 +444,7 @@ class Neo4jAuthorizationRepositoryTest {
     }
 
     fun createRelationship(subjectNodeInfo: SubjectNodeInfo, relationshipType: String, objectId: URI): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType))
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType))
 
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 

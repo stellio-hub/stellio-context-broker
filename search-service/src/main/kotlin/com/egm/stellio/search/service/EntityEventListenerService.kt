@@ -41,6 +41,7 @@ class EntityEventListenerService(
 
     @KafkaListener(topicPattern = "cim.entity.*", groupId = "context_search")
     fun processMessage(content: String) {
+        logger.debug("Processing message: $content")
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
             is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
@@ -275,12 +276,11 @@ class EntityEventListenerService(
                     observedAt = attributeMetadata.observedAt,
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
-                    payload =
-                        extractAttributeInstanceFromCompactedEntity(
-                            compactedJsonLdEntity,
-                            compactTerm(expandedAttributeName, contexts),
-                            attributeMetadata.datasetId
-                        )
+                    payload = extractAttributeInstanceFromCompactedEntity(
+                        compactedJsonLdEntity,
+                        compactTerm(expandedAttributeName, contexts),
+                        attributeMetadata.datasetId
+                    )
                 )
 
                 temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {

@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.egm.stellio.subscription.firebase.FCMService
@@ -38,7 +39,7 @@ class NotificationService(
         val type = ngsiLdEntity.type
         return subscriptionService.getMatchingSubscriptions(id, type, updatedAttributes.joinToString(separator = ","))
             .filter {
-                subscriptionService.isMatchingQuery(it.q, rawEntity)
+                subscriptionService.isMatchingQuery(it.q?.decode(), rawEntity)
             }
             .filterWhen {
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getLocation())
@@ -73,12 +74,13 @@ class NotificationService(
             request = request.contentType(MediaType.APPLICATION_JSON)
             return request
                 .bodyValue(serializeObject(notification))
-                .exchange()
-                .doOnError { e -> logger.error("Failed to send notification to $uri : ${e.message}") }
-                .map {
-                    val success = it.statusCode() == HttpStatus.OK
+                .exchangeToMono { response ->
+                    val success = response.statusCode() == HttpStatus.OK
                     logger.info("The notification sent has been received with ${if (success) "success" else "failure"}")
-                    Triple(subscription, notification, success)
+                    if (!success) {
+                        logger.error("Failed to send notification to $uri : ${response.statusCode()}")
+                    }
+                    Mono.just(Triple(subscription, notification, success))
                 }
                 .doOnNext {
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()

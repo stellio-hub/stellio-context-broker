@@ -11,20 +11,22 @@ object PagingUtils {
         resourceUrl: String,
         requestParams: MultiValueMap<String, String>,
         resourcesCount: Int,
-        pageNumber: Int,
+        offset: Int,
         limit: Int
     ): Pair<String?, String?> {
         var prevLink: String? = null
         var nextLink: String? = null
 
-        if (pageNumber > 1 && (resourcesCount > (pageNumber - 1) * limit))
+        if (offset > 0 && resourcesCount > offset - limit) {
+            val prevOffset = if (offset > limit) offset - limit else 0
             prevLink =
-                "<$resourceUrl?${requestParams.toEncodedUrl(page = pageNumber - 1, limit = limit)}>;" +
+                "<$resourceUrl?${requestParams.toEncodedUrl(offset = prevOffset, limit = limit)}>;" +
                 "rel=\"prev\";type=\"application/ld+json\""
+        }
 
-        if (resourcesCount > pageNumber * limit)
+        if (resourcesCount > offset + limit)
             nextLink =
-                "<$resourceUrl?${requestParams.toEncodedUrl(page = pageNumber + 1, limit = limit)}>;" +
+                "<$resourceUrl?${requestParams.toEncodedUrl(offset = offset + limit, limit = limit)}>;" +
                 "rel=\"next\";type=\"application/ld+json\""
 
         return Pair(prevLink, nextLink)
@@ -56,10 +58,10 @@ object PagingUtils {
         else responseHeaders.body(body)
     }
 
-    private fun MultiValueMap<String, String>.toEncodedUrl(page: Int, limit: Int): String {
-        val requestParams = this.entries.filter { !listOf("page", "limit").contains(it.key) }.toMutableList()
+    private fun MultiValueMap<String, String>.toEncodedUrl(offset: Int, limit: Int): String {
+        val requestParams = this.entries.filter { !listOf("offset", "limit").contains(it.key) }.toMutableList()
         requestParams.addAll(mutableMapOf("limit" to listOf(limit.toString())).entries)
-        requestParams.addAll(mutableMapOf("page" to listOf(page.toString())).entries)
+        requestParams.addAll(mutableMapOf("offset" to listOf(offset.toString())).entries)
         return requestParams.joinToString("&") { it.key + "=" + it.value.joinToString(",") }
     }
 }

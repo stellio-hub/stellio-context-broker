@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
@@ -42,7 +41,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-@SpringBootTest
+@SpringBootTest(classes = [NotificationService::class])
 @ActiveProfiles("test")
 class NotificationServiceTests {
 
@@ -62,13 +61,13 @@ class NotificationServiceTests {
 
     private val apiaryId = "urn:ngsi-ld:Apiary:XYZ01"
 
-    private final val contexts = listOf(
+    private val contexts = listOf(
         "$EGM_BASE_CONTEXT_URL/apic/jsonld-contexts/apic.jsonld",
         "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld",
         NGSILD_CORE_CONTEXT
     )
 
-    private final val rawEntity =
+    private val rawEntity =
         """
             {
                "id":"$apiaryId",
@@ -121,7 +120,7 @@ class NotificationServiceTests {
     fun `it should notify the subscriber and update the subscription`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -180,7 +179,7 @@ class NotificationServiceTests {
             )
         )
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -213,7 +212,7 @@ class NotificationServiceTests {
     fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() {
         val subscription = gimmeRawSubscription(withNotifParams = Pair(FormatType.KEY_VALUES, listOf("location")))
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -245,7 +244,7 @@ class NotificationServiceTests {
                         (read(it.operationPayload, "$.data[*]..value") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*]..object") as List<String>).isEmpty() &&
                         (read(it.operationPayload, "$.data[*].excludedProp") as List<String>).isEmpty() &&
-                        it.contexts == listOf(NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
+                        it.contexts == listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
                 }
             )
         }
@@ -269,10 +268,9 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(
-            subscription1,
-            subscription2
-        )
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
+            Flux.just(subscription1, subscription2)
+        }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
         every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
@@ -313,10 +311,9 @@ class NotificationServiceTests {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
 
-        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } returns Flux.just(
-            subscription1,
-            subscription2
-        )
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
+            Flux.just(subscription1, subscription2)
+        }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
         every { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) } answers { Mono.just(true) }
         every { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) } answers { Mono.just(false) }

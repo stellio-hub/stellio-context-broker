@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: "CLA Assistant"
         if: (github.event.comment.body == 'recheck' || github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target'
-        # Alpha Release
+        # Beta Release
         uses: cla-assistant/github-action@v2.1.3-beta
         env: 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -19,7 +19,7 @@ jobs:
           PERSONAL_ACCESS_TOKEN : ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: 'docs/cla/cla.json'
-          path-to-cla-document: 'https://fiware.github.io/contribution-requirements/individual-cla.pdf' # e.g. a CLA or a DCO document
+          path-to-document: 'https://fiware.github.io/contribution-requirements/individual-cla.pdf' # e.g. a CLA or a DCO document
           # branch should not be protected
           branch: 'master'
           allowlist: bobeal,franckLG,HoucemKacem,dependabot,bot*

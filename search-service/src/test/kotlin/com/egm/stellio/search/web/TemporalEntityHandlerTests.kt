@@ -5,20 +5,29 @@ import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.entityNotFoundMessage
+import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
-import org.junit.jupiter.api.Assertions.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.confirmVerified
+import io.mockk.every
+import io.mockk.verify
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
@@ -43,9 +52,6 @@ class TemporalEntityHandlerTests {
     private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
     private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
-
     private lateinit var apicHeaderLink: String
 
     @Autowired
@@ -60,14 +66,11 @@ class TemporalEntityHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
-    @MockkBean
-    private lateinit var entityService: EntityService
-
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @BeforeAll
     fun configureWebClientDefaults() {
-        apicHeaderLink = buildContextLinkHeader(apicContext!!)
+        apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
         webClient = webClient.mutate()
             .defaultHeaders {
@@ -78,21 +81,23 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should return a 204 if temporal entity fragment is valid`() {
-        val jsonLdObservation = loadSampleData("observation.jsonld")
-        val parsedJsonLdObservation = deserializeObject(jsonLdObservation)
+    fun `it should correctly handle an attribute with one instance`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-        every { attributeInstanceService.addAttributeInstances(any(), any(), any(), any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
-            .header("Link", buildContextLinkHeader(apicContext!!))
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
-            .body(BodyInserters.fromValue(jsonLdObservation))
+            .body(BodyInserters.fromValue(entityTemporalFragment))
             .exchange()
             .expectStatus().isNoContent
 
@@ -103,13 +108,142 @@ class TemporalEntityHandlerTests {
             )
         }
         verify {
-            attributeInstanceService.addAttributeInstances(
+            attributeInstanceService.addAttributeInstance(
                 eq(temporalEntityAttributeUuid),
                 eq("incoming"),
                 match {
                     it.size == 4
                 },
-                parsedJsonLdObservation
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle an attribute with many instances`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                eq("https://ontology.eglobalmark.com/apic#incoming")
+            )
+        }
+        verify(exactly = 2) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                eq("incoming"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle many attributes with one instance`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify(exactly = 2) {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                or(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                )
+            )
+        }
+        verify(exactly = 2) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                or("incoming", "outgoing"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
+    }
+
+    @Test
+    fun `it should correctly handle many attributes with many instances`() {
+        val entityTemporalFragment =
+            loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
+        val temporalEntityAttributeUuid = UUID.randomUUID()
+
+        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
+            Mono.just(temporalEntityAttributeUuid)
+        }
+        every { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) } answers {
+            Mono.just(1)
+        }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(entityTemporalFragment))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify(exactly = 4) {
+            temporalEntityAttributeService.getForEntityAndAttribute(
+                eq(entityUri),
+                or(
+                    "https://ontology.eglobalmark.com/apic#incoming",
+                    "https://ontology.eglobalmark.com/apic#outgoing"
+                )
+            )
+        }
+        verify(exactly = 4) {
+            attributeInstanceService.addAttributeInstance(
+                eq(temporalEntityAttributeUuid),
+                or("incoming", "outgoing"),
+                match {
+                    it.size == 4
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         }
         confirmVerified(temporalEntityAttributeService)
@@ -120,7 +254,7 @@ class TemporalEntityHandlerTests {
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
-            .header("Link", buildContextLinkHeader(apicContext!!))
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
             .exchange()
@@ -502,7 +636,7 @@ class TemporalEntityHandlerTests {
                         it.getFirst("endTime") == "2019-10-18T07:31:39Z" &&
                         it.getFirst("type") == "BeeHive"
                 },
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
         coVerify {
@@ -511,7 +645,7 @@ class TemporalEntityHandlerTests {
                 setOf("BeeHive"),
                 temporalQuery,
                 false,
-                apicContext!!
+                APIC_COMPOUND_CONTEXT
             )
         }
 
@@ -600,7 +734,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.size == 1)
         assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
@@ -613,7 +747,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.size == 2)
         assertTrue(
@@ -632,7 +766,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("timerel", "after")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.expandedAttrs.isEmpty())
     }
@@ -644,7 +778,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertTrue(temporalQuery.lastN == 2)
     }
@@ -656,7 +790,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertNull(temporalQuery.lastN)
     }
@@ -668,7 +802,7 @@ class TemporalEntityHandlerTests {
         queryParams.add("time", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertNull(temporalQuery.lastN)
     }
@@ -677,7 +811,7 @@ class TemporalEntityHandlerTests {
     fun `it should treat time and timerel properties as optional`() {
         val queryParams = LinkedMultiValueMap<String, String>()
 
-        val temporalQuery = buildTemporalQuery(queryParams, apicContext!!)
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)

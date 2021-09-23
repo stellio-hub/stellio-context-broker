@@ -1,26 +1,33 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import io.mockk.*
+import io.mockk.confirmVerified
+import io.mockk.spyk
+import io.mockk.verify
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
+import org.springframework.data.r2dbc.core.insert
+import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.time.Instant
@@ -30,13 +37,16 @@ import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : TimescaleBasedTests() {
+class AttributeInstanceServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService
 
     @Autowired
     private lateinit var databaseClient: DatabaseClient
+
+    @Autowired
+    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val now = Instant.now().atZone(ZoneOffset.UTC)
 
@@ -53,8 +63,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute)
             .then()
             .block()
@@ -62,10 +71,8 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @AfterEach
     fun clearPreviousObservations() {
-        databaseClient.delete()
-            .from("attribute_instance")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(AttributeInstance::class.java)
+            .all()
             .block()
     }
 
@@ -133,8 +140,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute2)
             .then()
             .block()
@@ -278,8 +284,7 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
-        databaseClient.insert()
-            .into(TemporalEntityAttribute::class.java)
+        r2dbcEntityTemplate.insert<TemporalEntityAttribute>()
             .using(temporalEntityAttribute2)
             .then()
             .block()
@@ -328,6 +333,25 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
+    fun `it should not retrieve any instance if there is no value in the time interval`() {
+        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.plusHours(1)
+        )
+        val enrichedEntity =
+            attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.isEmpty()
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should not allow to create two attribute instances with same observation date`() {
         val attributeInstance = gimmeAttributeInstance()
 
@@ -342,22 +366,13 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
     }
 
     @Test
-    fun `it should create an attribute instance if it has a non null value or measuredValue`() {
+    fun `it should create an attribute instance if it has a non null value`() {
         val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
-        val observationPayload =
-            """
-        {
-          "outgoing": {
-            "type": "Property",
-            "value": 550.0
-          }
-        }
-            """.trimIndent()
-        val parsedObservationPayload = JsonUtils.deserializeObject(observationPayload)
         val attributeValues = mapOf(
-            EGM_OBSERVED_BY to listOf(
+            NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
             ),
             NGSILD_PROPERTY_VALUE to listOf(
@@ -367,19 +382,27 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
             )
         )
 
-        attributeInstanceService.addAttributeInstances(
+        attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
             "outgoing",
             attributeValues,
-            parsedObservationPayload
+            listOf(NGSILD_CORE_CONTEXT)
         ).block()
 
         verify {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
-                    it.measuredValue == 550.0 &&
+                    it.observedAt.toString() == "2015-10-18T11:20:30.000001Z" &&
+                        it.value == null &&
+                        it.measuredValue == 550.0 &&
                         it.payload.matchContent(
-                            """{"type": "Property","value": 550.0, "instanceId": "${it.instanceId}"}"""
+                            """
+                            {
+                                "value": 550.0, 
+                                "observedAt": "2015-10-18T11:20:30.000001Z",
+                                "instanceId": "${it.instanceId}"
+                            }
+                            """.trimIndent()
                         )
                 }
             )
@@ -390,33 +413,25 @@ class AttributeInstanceServiceTests : TimescaleBasedTests() {
 
     @Test
     fun `it should not create an attribute instance if it has a null value and null measuredValue`() {
-        val observationPayload =
-            """
-            {
-              "outgoing": {
-                "type": "Property",
-                "observedBy": "2015-10-18T11:20:30.000001Z"
-              }
-            }
-            """.trimIndent()
-        val parsedObservationPayload = JsonUtils.deserializeObject(observationPayload)
-
+        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
         val attributeValues = mapOf(
-            EGM_OBSERVED_BY to listOf(
+            NGSILD_OBSERVED_AT_PROPERTY to listOf(
                 mapOf(
-                    "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                    JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
+                    JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
-            )
+            ),
         )
 
-        assertThrows<BadRequestDataException>("Value cannot be null") {
-            attributeInstanceService.addAttributeInstances(
+        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
+            attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
                 "outgoing",
                 attributeValues,
-                parsedObservationPayload
+                listOf(NGSILD_CORE_CONTEXT)
             )
         }
+        assertEquals("Attribute outgoing has an instance without a value", exception.message)
     }
 
     @Test

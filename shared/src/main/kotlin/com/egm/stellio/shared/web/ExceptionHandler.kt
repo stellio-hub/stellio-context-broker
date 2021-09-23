@@ -48,9 +48,13 @@ class ExceptionHandler {
                 HttpStatus.NOT_IMPLEMENTED,
                 NotImplementedResponse(cause.message)
             )
+            is LdContextNotAvailableException -> generateErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                LdContextNotAvailableResponse(cause.message)
+            )
             else -> generateErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                InternalErrorResponse(cause.message ?: "There has been an error during the operation execution")
+                InternalErrorResponse("$cause")
             )
         }
 

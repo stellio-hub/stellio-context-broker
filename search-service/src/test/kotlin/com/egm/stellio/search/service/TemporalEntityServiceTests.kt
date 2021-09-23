@@ -1,6 +1,7 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
@@ -21,15 +21,12 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@SpringBootTest
+@SpringBootTest(classes = [TemporalEntityService::class])
 @ActiveProfiles("test")
 class TemporalEntityServiceTests {
 
     @Autowired
     private lateinit var temporalEntityService: TemporalEntityService
-
-    @Value("\${application.jsonld.apic_context}")
-    val apicContext: String? = null
 
     @Test
     fun `it should return a temporal entity with an empty array of instances if it has no temporal history`() {
@@ -68,7 +65,7 @@ class TemporalEntityServiceTests {
             "urn:ngsi-ld:BeeHive:TESTC".toUri(),
             attributeAndResultsMap,
             TemporalQuery(),
-            listOf(apicContext!!),
+            listOf(APIC_COMPOUND_CONTEXT),
             withTemporalValues
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
@@ -125,7 +122,7 @@ class TemporalEntityServiceTests {
         val temporalEntity = temporalEntityService.buildTemporalEntities(
             queryResult,
             TemporalQuery(),
-            listOf(apicContext!!),
+            listOf(APIC_COMPOUND_CONTEXT),
             withTemporalValues
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))

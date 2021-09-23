@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.config.TestContainersConfiguration
+import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.PartialEntity
 import com.egm.stellio.entity.model.Property
@@ -19,18 +19,18 @@ import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(TestContainersConfiguration::class)
-class Neo4jRepositoryTests {
+class Neo4jRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository
@@ -49,6 +49,14 @@ class Neo4jRepositoryTests {
 
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
+    private val sizeExpandedName = "https://uri.etsi.org/ngsi-ld/size"
+
+    @AfterEach
+    fun cleanData() {
+        entityRepository.deleteAll()
+        propertyRepository.deleteAll()
+        relationshipRepository.deleteAll()
+    }
 
     @Test
     fun `it should merge a partial entity to a normal entity`() {
@@ -62,8 +70,6 @@ class Neo4jRepositoryTests {
         assertTrue(entityRepository.existsById(beekeeperUri))
         val beekeeper = entityRepository.findById(beekeeperUri)
         assertEquals(listOf("Beekeeper"), beekeeper.get().type)
-
-        neo4jRepository.deleteEntity(beekeeperUri)
     }
 
     @Test
@@ -79,8 +85,102 @@ class Neo4jRepositoryTests {
         val relsOfProp = propertyRepository.findById(property.id).get().relationships
         assertEquals(1, relsOfProp.size)
         assertEquals(EGM_OBSERVED_BY, relsOfProp[0].type[0])
+    }
 
-        neo4jRepository.deleteEntity(beekeeperUri)
+    @Test
+    fun `it should create an entity with a property whose name contains a colon`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = "prefix:name", value = "value")
+            )
+        )
+
+        val persistedEntity = entityRepository.findById(entity.id)
+        assertTrue(persistedEntity.isPresent)
+        val persistedProperty = persistedEntity.get().properties[0]
+        assertEquals("prefix:name", persistedProperty.name)
+    }
+
+    @Test
+    fun `it should create an entity with a property whose value is a JSON object`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(
+                    name = sizeExpandedName,
+                    value = mapOf("length" to 2, "height" to 12, "comment" to "none")
+                )
+            )
+        )
+
+        val persistedEntity = entityRepository.findById(entity.id)
+        assertTrue(persistedEntity.isPresent)
+        val persistedProperty = persistedEntity.get().properties[0]
+        assertEquals(mapOf("length" to 2, "height" to 12, "comment" to "none"), persistedProperty.value)
+    }
+
+    @Test
+    fun `it should create a property for a subject`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val property = Property(name = sizeExpandedName, value = 100L)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
+        assertEquals(100L, propertyFromDb.value)
+        assertNotNull(propertyFromDb.createdAt)
+        assertNull(propertyFromDb.datasetId)
+        assertNull(propertyFromDb.observedAt)
+        assertEquals(0, propertyFromDb.properties.size)
+        assertEquals(0, propertyFromDb.relationships.size)
+    }
+
+    @Test
+    fun `it should create a property with a JSON object value for a sujbect`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val propertyValue = mapOf("key1" to "value1", "key2" to 12, "key3" to listOf("v1", "v2"))
+        val property = Property(name = sizeExpandedName, value = propertyValue)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
+        assertEquals(propertyValue, propertyFromDb.value)
+    }
+
+    @Test
+    fun `it should create a property with a list value for a subject`() {
+        val entity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper")
+        )
+
+        val propertyValue = listOf("v1", "v2")
+        val property = Property(name = sizeExpandedName, value = propertyValue)
+
+        val created = neo4jRepository.createPropertyOfSubject(EntitySubjectNode(entity.id), property)
+
+        assertTrue(created)
+
+        val propertyFromDb = propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName)
+        assertEquals(sizeExpandedName, propertyFromDb.name)
+        assertEquals(propertyValue, propertyFromDb.value)
     }
 
     @Test
@@ -89,9 +189,9 @@ class Neo4jRepositoryTests {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(name = sizeExpandedName, value = 100L),
                 Property(
-                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    name = sizeExpandedName,
                     value = 200L,
                     datasetId = "urn:ngsi-ld:Dataset:size:1".toUri()
                 )
@@ -113,22 +213,20 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.updateEntityPropertyInstance(
             EntitySubjectNode(entity.id),
-            "https://uri.etsi.org/ngsi-ld/size",
+            sizeExpandedName,
             newProperty.instances[0]
         )
 
         assertEquals(
             300L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName).value
         )
         assertEquals(
             200L,
-            neo4jRepository.getPropertyOfSubject(
-                entity.id, "https://uri.etsi.org/ngsi-ld/size", "urn:ngsi-ld:Dataset:size:1".toUri()
+            propertyRepository.getPropertyOfSubject(
+                entity.id, sizeExpandedName, "urn:ngsi-ld:Dataset:size:1".toUri()
             ).value
         )
-
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -137,9 +235,9 @@ class Neo4jRepositoryTests {
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = "https://uri.etsi.org/ngsi-ld/size", value = 100L),
+                Property(name = sizeExpandedName, value = 100L),
                 Property(
-                    name = "https://uri.etsi.org/ngsi-ld/size",
+                    name = sizeExpandedName,
                     value = 200L,
                     datasetId = "urn:ngsi-ld:Dataset:size:1".toUri()
                 )
@@ -162,22 +260,20 @@ class Neo4jRepositoryTests {
 
         neo4jRepository.updateEntityPropertyInstance(
             EntitySubjectNode(entity.id),
-            "https://uri.etsi.org/ngsi-ld/size",
+            sizeExpandedName,
             newProperty.instances[0]
         )
 
         assertEquals(
             100L,
-            neo4jRepository.getPropertyOfSubject(entity.id, "https://uri.etsi.org/ngsi-ld/size").value
+            propertyRepository.getPropertyOfSubject(entity.id, sizeExpandedName).value
         )
         assertEquals(
             300L,
-            neo4jRepository.getPropertyOfSubject(
-                entity.id, "https://uri.etsi.org/ngsi-ld/size", "urn:ngsi-ld:Dataset:size:1".toUri()
+            propertyRepository.getPropertyOfSubject(
+                entity.id, sizeExpandedName, "urn:ngsi-ld:Dataset:size:1".toUri()
             ).value
         )
-
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -215,12 +311,10 @@ class Neo4jRepositoryTests {
             newProperty.instances[0]
         )
 
-        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+        val updatedPropertyId = propertyRepository.getPropertyOfSubject(
             entity.id, "https://uri.etsi.org/ngsi-ld/name"
         ).id
-        assertEquals(propertyRepository.findById(updatedPropertyId).get().properties[0].value, "English")
-
-        neo4jRepository.deleteEntity(entity.id)
+        assertEquals("English", propertyRepository.findById(updatedPropertyId).get().properties[0].value)
     }
 
     @Test
@@ -275,15 +369,34 @@ class Neo4jRepositoryTests {
             newProperty.instances[0]
         )
 
-        val updatedPropertyId = neo4jRepository.getPropertyOfSubject(
+        val updatedPropertyId = propertyRepository.getPropertyOfSubject(
             entity.id, "https://uri.etsi.org/ngsi-ld/temperature"
         ).id
         assertEquals(
             propertyRepository.findById(updatedPropertyId).get().relationships[0].type[0],
             "https://uri.etsi.org/ngsi-ld/default-context/newRel"
         )
+    }
 
-        neo4jRepository.deleteEntity(entity.id)
+    @Test
+    fun `it should update the target relationship of a relationship`() {
+        val property = createProperty("https://uri.etsi.org/ngsi-ld/temperature", 36)
+        propertyRepository.save(property)
+        val relationship = createRelationship(
+            AttributeSubjectNode(property.id),
+            EGM_OBSERVED_BY,
+            "urn:ngsi-ld:Entity:123".toUri()
+        )
+
+        neo4jRepository.updateTargetOfRelationship(
+            relationship.id,
+            EGM_OBSERVED_BY.toRelationshipTypeName(),
+            "urn:ngsi-ld:Entity:123".toUri(),
+            "urn:ngsi-ld:Entity:456".toUri()
+        )
+
+        val updatedRelationship = relationshipRepository.findById(relationship.id)
+        assertEquals("urn:ngsi-ld:Entity:456".toUri(), updatedRelationship.get().objectId)
     }
 
     @Test
@@ -291,20 +404,18 @@ class Neo4jRepositoryTests {
         val property = Property(name = "name", value = "Scalpa")
         propertyRepository.save(property)
         assertNotNull(propertyRepository.findById(property.id).get().modifiedAt)
-        propertyRepository.deleteById(property.id)
     }
 
     @Test
     fun `it should add modifiedAt value when saving a new relationship`() {
-        val relationship = Relationship(type = listOf("connectsTo"))
+        val relationship = Relationship(objectId = "urn:ngsi-ld:Entity:target".toUri(), type = listOf("connectsTo"))
         relationshipRepository.save(relationship)
         assertNotNull(relationshipRepository.findById(relationship.id).get().modifiedAt)
-        relationshipRepository.deleteById(relationship.id)
     }
 
     @Test
     fun `it should update modifiedAt value when updating an entity`() {
-        val entity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
@@ -316,8 +427,8 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = "Demha"))
         )
         val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233".toUri()).get().modifiedAt
+        assertNotNull(updatedModifiedAt)
         assertThat(updatedModifiedAt).isAfter(modifiedAt)
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -328,7 +439,6 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
         assertTrue(entity.createdAt.toString().endsWith("Z"))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -339,12 +449,11 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
         assertTrue(entity.modifiedAt.toString().endsWith("Z"))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should filter existing entityIds`() {
-        val entity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
@@ -356,7 +465,6 @@ class Neo4jRepositoryTests {
             listOf("urn:ngsi-ld:Beekeeper:1233".toUri()),
             neo4jRepository.filterExistingEntitiesAsIds(entitiesIds)
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -376,8 +484,7 @@ class Neo4jRepositoryTests {
         )
         neo4jRepository.deleteEntityProperty(EntitySubjectNode(entity.id), "firstName", null, true)
 
-        assertEquals(entityRepository.findById(entity.id).get().properties.size, 1)
-        neo4jRepository.deleteEntity(entity.id)
+        assertEquals(1, entityRepository.findById(entity.id).get().properties.size)
     }
 
     @Test
@@ -413,7 +520,6 @@ class Neo4jRepositoryTests {
                     it.datasetId == "urn:ngsi-ld:Dataset:firstName:2".toUri()
             }
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -453,7 +559,6 @@ class Neo4jRepositoryTests {
                     it.datasetId == null
             }
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -473,8 +578,6 @@ class Neo4jRepositoryTests {
         )
 
         assertEquals(entityRepository.findById(sensor.id).get().relationships.size, 0)
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -504,9 +607,6 @@ class Neo4jRepositoryTests {
                     it.datasetId == "urn:ngsi-ld:Dataset:observedBy:01".toUri()
             }
         )
-
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -540,8 +640,6 @@ class Neo4jRepositoryTests {
                     it.datasetId == null
             }
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -561,8 +659,6 @@ class Neo4jRepositoryTests {
         assertTrue(propertyRepository.findById(originProperty.id).isEmpty)
         assertTrue(propertyRepository.findById(lastNameProperty.id).isEmpty)
         assertEquals(entityRepository.findById(entity.id).get().properties.size, 1)
-
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -580,9 +676,6 @@ class Neo4jRepositoryTests {
         val entity = entityRepository.findById(sensor.id).get()
         assertEquals(entity.relationships.size, 0)
         assertEquals(entity.properties.size, 0)
-
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -595,8 +688,6 @@ class Neo4jRepositoryTests {
 
         val entity = entityRepository.findById(device.id).get()
         assertEquals(entity.relationships.size, 0)
-
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -607,8 +698,7 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = 100L))
         )
 
-        assertNotNull(neo4jRepository.getPropertyOfSubject(entity.id, "name", null))
-        neo4jRepository.deleteEntity(entity.id)
+        assertNotNull(propertyRepository.getPropertyOfSubject(entity.id, "name"))
     }
 
     @Test
@@ -619,10 +709,9 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = 100L, datasetId = "urn:ngsi-ld:Dataset:name:1".toUri()))
         )
 
-        assertThrows<NoSuchElementException>("List is empty") {
-            neo4jRepository.getPropertyOfSubject(entity.id, "name", null)
+        assertThrows<EmptyResultDataAccessException>("List is empty") {
+            propertyRepository.getPropertyOfSubject(entity.id, "name")
         }
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -634,13 +723,12 @@ class Neo4jRepositoryTests {
         )
 
         assertNotNull(
-            neo4jRepository.getPropertyOfSubject(
+            propertyRepository.getPropertyOfSubject(
                 entity.id,
                 "name",
                 datasetId = "urn:ngsi-ld:Dataset:name:1".toUri()
             )
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -651,14 +739,13 @@ class Neo4jRepositoryTests {
             mutableListOf(Property(name = "name", value = 100L, datasetId = "urn:ngsi-ld:Dataset:name:1".toUri()))
         )
 
-        assertThrows<NoSuchElementException>("List is empty") {
-            neo4jRepository.getPropertyOfSubject(
+        assertThrows<EmptyResultDataAccessException>("List is empty") {
+            propertyRepository.getPropertyOfSubject(
                 entity.id,
                 "name",
                 datasetId = "urn:ngsi-ld:Dataset:name:2".toUri()
             )
         }
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -670,7 +757,6 @@ class Neo4jRepositoryTests {
         )
 
         assertTrue(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", null))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -682,7 +768,6 @@ class Neo4jRepositoryTests {
         )
 
         assertFalse(neo4jRepository.hasPropertyInstance(EntitySubjectNode(entity.id), "name", null))
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -700,7 +785,6 @@ class Neo4jRepositoryTests {
                 "urn:ngsi-ld:Dataset:name:1".toUri()
             )
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -718,7 +802,6 @@ class Neo4jRepositoryTests {
                 "urn:ngsi-ld:Dataset:name:2".toUri()
             )
         )
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -733,8 +816,6 @@ class Neo4jRepositoryTests {
                 EGM_OBSERVED_BY.toRelationshipTypeName()
             )
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -753,8 +834,6 @@ class Neo4jRepositoryTests {
                 EntitySubjectNode(sensor.id), EGM_OBSERVED_BY.toRelationshipTypeName()
             )
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -775,8 +854,6 @@ class Neo4jRepositoryTests {
                 "urn:ngsi-ld:Dataset:observedBy:01".toUri()
             )
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -797,8 +874,6 @@ class Neo4jRepositoryTests {
                 "urn:ngsi-ld:Dataset:observedBy:0002".toUri()
             )
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -819,12 +894,9 @@ class Neo4jRepositoryTests {
         )
 
         assertEquals(
-            neo4jRepository.getRelationshipTargetOfSubject(sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName())!!.id,
+            entityRepository.getRelationshipTargetOfSubject(sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName())!!.id,
             newDevice.id
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
-        neo4jRepository.deleteEntity(newDevice.id)
     }
 
     @Test
@@ -848,19 +920,16 @@ class Neo4jRepositoryTests {
         )
 
         assertEquals(
-            neo4jRepository.getRelationshipTargetOfSubject(
+            entityRepository.getRelationshipTargetOfSubject(
                 sensor.id, EGM_OBSERVED_BY.toRelationshipTypeName(), datasetId
             )!!.id,
             newDevice.id
         )
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
-        neo4jRepository.deleteEntity(newDevice.id)
     }
 
     @Test
     fun `it should return an emptyMap for unknown type`() {
-        val entity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -873,13 +942,11 @@ class Neo4jRepositoryTests {
             .getEntityTypeAttributesInformation("https://ontology.eglobalmark.com/apic#unknownType")
 
         assertTrue(attributesInformation.isEmpty())
-
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
     fun `it should retrieve entity type attributes information for two entities`() {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -887,7 +954,7 @@ class Neo4jRepositoryTests {
                 Property(name = "humidity", value = 65)
             )
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -901,19 +968,16 @@ class Neo4jRepositoryTests {
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 
-        assertEquals(propertiesInformation.size, 3)
+        assertEquals(3, propertiesInformation.size)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
         assertEquals(attributesInformation["geoProperties"], emptySet<String>())
         assertEquals(attributesInformation["entityCount"], 2)
-
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
     fun `it should retrieve entity type attributes information for two entities with relationships`() {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -941,14 +1005,11 @@ class Neo4jRepositoryTests {
         assertEquals(attributesInformation["relationships"], setOf("observedBy"))
         assertEquals(attributesInformation["geoProperties"], emptySet<String>())
         assertEquals(attributesInformation["entityCount"], 2)
-
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
     fun `it should retrieve entity type attributes information for three entities with location`() {
-        val firstEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -957,7 +1018,7 @@ class Neo4jRepositoryTests {
             ),
             NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -965,7 +1026,7 @@ class Neo4jRepositoryTests {
                 Property(name = "humidity", value = 61)
             )
         )
-        val thirdEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTD".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -984,10 +1045,6 @@ class Neo4jRepositoryTests {
         assertEquals(attributesInformation["relationships"], emptySet<String>())
         assertEquals(attributesInformation["geoProperties"], setOf("https://uri.etsi.org/ngsi-ld/location"))
         assertEquals(attributesInformation["entityCount"], 3)
-
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -1008,7 +1065,7 @@ class Neo4jRepositoryTests {
                 Property(name = "isContainedIn", value = 61)
             )
         )
-        val thirdEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Sensor:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
@@ -1027,10 +1084,6 @@ class Neo4jRepositoryTests {
                 listOf("https://ontology.eglobalmark.com/apic#Beehive", "https://ontology.eglobalmark.com/apic#Sensor")
             )
         )
-
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -1043,7 +1096,7 @@ class Neo4jRepositoryTests {
                 Property(name = "humidity", value = 65)
             )
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -1063,7 +1116,7 @@ class Neo4jRepositoryTests {
 
         val entityTypes = neo4jRepository.getEntityTypes()
 
-        assertEquals(entityTypes.size, 2)
+        assertEquals(2, entityTypes.size)
         assertTrue(
             entityTypes.containsAll(
                 listOf(
@@ -1082,10 +1135,6 @@ class Neo4jRepositoryTests {
                 )
             )
         )
-
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -1099,18 +1148,13 @@ class Neo4jRepositoryTests {
             "urn:ngsi-ld:Dataset:observedBy:01".toUri()
         )
 
-        val relationship = neo4jRepository.getRelationshipOfSubject(
+        val relationship = relationshipRepository.getRelationshipOfSubject(
             sensor.id,
             EGM_OBSERVED_BY.toRelationshipTypeName(),
             "urn:ngsi-ld:Dataset:observedBy:01".toUri()
         )
 
-        assertEquals(
-            relationship.type, listOf(EGM_OBSERVED_BY)
-        )
-
-        neo4jRepository.deleteEntity(sensor.id)
-        neo4jRepository.deleteEntity(device.id)
+        assertEquals(relationship.type, listOf(EGM_OBSERVED_BY))
     }
 
     fun createEntity(
@@ -1134,7 +1178,7 @@ class Neo4jRepositoryTests {
         objectId: URI,
         datasetId: URI? = null
     ): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType), datasetId = datasetId)
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType), datasetId = datasetId)
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 
         return relationship

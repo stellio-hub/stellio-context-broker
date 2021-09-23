@@ -8,7 +8,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
-import com.egm.stellio.entity.config.TestContainersConfiguration
+import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
@@ -20,12 +20,12 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import junit.framework.TestCase.*
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
@@ -33,8 +33,7 @@ import java.net.URI
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
-@Import(TestContainersConfiguration::class)
-class Neo4jSearchRepositoryTests {
+class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository
@@ -53,9 +52,15 @@ class Neo4jSearchRepositoryTests {
     private val userUri = "urn:ngsi-ld:User:01".toUri()
     private val clientUri = "urn:ngsi-ld:Client:01".toUri()
     private val serviceAccountUri = "urn:ngsi-ld:User:01".toUri()
+    private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val sub = "01"
-    private val page = 1
+    private val offset = 0
     private val limit = 20
+
+    @AfterEach
+    fun cleanData() {
+        entityRepository.deleteAll()
+    }
 
     @Test
     fun `it should return matching entities that user can access`() {
@@ -63,17 +68,17 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_ADMIN, secondEntity.id)
@@ -82,16 +87,12 @@ class Neo4jSearchRepositoryTests {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id, thirdEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -102,12 +103,12 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, secondEntity.id)
@@ -115,16 +116,12 @@ class Neo4jSearchRepositoryTests {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(groupEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -133,19 +130,17 @@ class Neo4jSearchRepositoryTests {
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertFalse(entities.contains(entity.id))
-        neo4jRepository.deleteEntity(userUri)
-        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -163,33 +158,41 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, firstEntity.id)
         createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, secondEntity.id)
 
-        val entities = searchRepository.getEntities(
-            QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
+        val queryParams = QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\"")
+        var entities = searchRepository.getEntities(
+            queryParams,
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(clientEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
+
+        entities = searchRepository.getEntities(
+            queryParams.copy(expandedAttrs = setOf(expandedNameProperty)),
+            sub,
+            offset,
+            limit,
+            DEFAULT_CONTEXTS
+        ).second
+
+        assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
     }
 
     @Test
     fun `it should return all matching entities for admin users`() {
-        val userEntity = createEntity(
+        createEntity(
             userUri,
             listOf(AuthorizationService.USER_LABEL),
             mutableListOf(
@@ -202,12 +205,12 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
 
         every { neo4jAuthorizationService.userIsAdmin(any()) } returns true
@@ -215,25 +218,22 @@ class Neo4jSearchRepositoryTests {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(listOf(firstEntity.id, secondEntity.id)))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
     fun `it should return matching entities as the specific access policy`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"),
+                Property(name = expandedNameProperty, value = "Scalpa"),
                 Property(
                     name = JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY,
                     value = AuthorizationService.SpecificAccessPolicy.AUTH_READ.name
@@ -243,22 +243,19 @@ class Neo4jSearchRepositoryTests {
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.contains(firstEntity.id))
         assertFalse(entities.contains(secondEntity.id))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -267,17 +264,17 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
@@ -286,16 +283,12 @@ class Neo4jSearchRepositoryTests {
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).first
 
         assertEquals(entitiesCount, 2)
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     @Test
@@ -304,12 +297,12 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
@@ -317,23 +310,20 @@ class Neo4jSearchRepositoryTests {
         val countAndEntities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
             sub,
-            page,
+            offset,
             0,
             DEFAULT_CONTEXTS
         )
 
         assertEquals(countAndEntities.first, 1)
         assertEquals(countAndEntities.second, emptyList<URI>())
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @ParameterizedTest
     @MethodSource("com.egm.stellio.entity.util.QueryEntitiesParameterizedTests#rawResultsProvider")
     fun `it should only return matching entities requested by pagination`(
         idPattern: String?,
-        page: Int,
+        offset: Int,
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
@@ -341,17 +331,17 @@ class Neo4jSearchRepositoryTests {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01232".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa2"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:03432".toUri(),
             listOf("Beekeeper"),
-            mutableListOf(Property(name = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!, value = "Scalpa3"))
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, secondEntity.id)
@@ -360,16 +350,12 @@ class Neo4jSearchRepositoryTests {
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
             sub,
-            page,
+            offset,
             limit,
             DEFAULT_CONTEXTS
         ).second
 
         assertTrue(entities.containsAll(expectedEntitiesIds))
-        neo4jRepository.deleteEntity(userEntity.id)
-        neo4jRepository.deleteEntity(firstEntity.id)
-        neo4jRepository.deleteEntity(secondEntity.id)
-        neo4jRepository.deleteEntity(thirdEntity.id)
     }
 
     fun createEntity(
@@ -388,7 +374,7 @@ class Neo4jSearchRepositoryTests {
         objectId: URI,
         datasetId: URI? = null
     ): Relationship {
-        val relationship = Relationship(type = listOf(relationshipType), datasetId = datasetId)
+        val relationship = Relationship(objectId = objectId, type = listOf(relationshipType), datasetId = datasetId)
         neo4jRepository.createRelationshipOfSubject(subjectNodeInfo, relationship, objectId)
 
         return relationship

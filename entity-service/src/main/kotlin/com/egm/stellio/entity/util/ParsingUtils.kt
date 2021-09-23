@@ -1,10 +1,10 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.shared.model.OperationNotSupportedException
-import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import java.time.format.DateTimeParseException
 
 fun splitQueryTermOnOperator(queryTerm: String): List<String> =
     queryTerm.split("==", "!=", ">=", ">", "<=", "<")
@@ -36,9 +36,6 @@ fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, Stri
     }
 }
 
-fun String.decode(): String =
-    URLDecoder.decode(this, "UTF-8")
-
 // FIXME kinda weak ... better options?
 fun String.isRelationshipTarget(): Boolean =
     this.removePrefix("\"").startsWith("urn:")
@@ -50,7 +47,7 @@ fun String.isDateTime(): Boolean =
     try {
         ZonedDateTime.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }
 
@@ -58,7 +55,7 @@ fun String.isDate(): Boolean =
     try {
         LocalDate.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }
 
@@ -66,6 +63,6 @@ fun String.isTime(): Boolean =
     try {
         LocalTime.parse(this)
         true
-    } catch (e: Exception) {
+    } catch (e: DateTimeParseException) {
         false
     }

@@ -9,17 +9,20 @@
 [![Docker badge](https://img.shields.io/docker/pulls/stellio/stellio-entity-service.svg)](https://hub.docker.com/r/stellio)
 [![License: Apache-2.0](https://img.shields.io/github/license/stellio-hub/stellio-context-broker.svg)](https://spdx.org/licenses/Apache-2.0.html)
 <br>
-![Release Drafter](https://github.com/stellio-hub/stellio-context-broker/workflows/Release%20Drafter/badge.svg)
+![Build](https://github.com/stellio-hub/stellio-context-broker/workflows/Build/badge.svg)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=stellio-hub_stellio-context-broker&metric=alert_status)](https://sonarcloud.io/dashboard?id=stellio-hub_stellio-context-broker)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4527/badge)](https://bestpractices.coreinfrastructure.org/projects/4527)
 
 Stellio is an NGSI-LD compliant context broker developed by EGM. NGSI-LD is an Open API and Datamodel specification for 
 context management [published by ETSI](https://www.etsi.org/deliver/etsi_gs/CIM/001_099/009/01.02.02_60/gs_CIM009v010202p.pdf).
 
-This project is part of [FIWARE](https://www.fiware.org/). For more information check the FIWARE Catalogue entry for
-[Core Context](https://github.com/Fiware/catalogue/tree/master/core).
+Stellio is a [FIWARE](https://www.fiware.org/) Generic Enabler. Therefore, it can be integrated as part of any platform “Powered by FIWARE”. 
+FIWARE is a curated framework of open source platform components which can be assembled together with other third-party 
+platform components to accelerate the development of Smart Solutions. For more information check the FIWARE Catalogue entry for
+[Core Context](https://github.com/Fiware/catalogue/tree/master/core). The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
 
-The roadmap of this FIWARE GE is described [here](./docs/roadmap.md).
+You can find more info at the [FIWARE developers](https://developers.fiware.org/) website and the [FIWARE](https://fiware.org/) website.
+The complete list of FIWARE GEs and Incubated FIWARE GEs can be found in the [FIWARE Catalogue](https://catalogue.fiware.org/).
 
 | :books: [Documentation](https://stellio.rtfd.io/) | :whale: [Docker Hub](https://hub.docker.com/orgs/stellio/repositories) | :dart: [Roadmap](./docs/roadmap.md) |
 | ------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------- |
@@ -150,7 +153,7 @@ docker run stellio/stellio-entity-service:latest
 
 ## Usage
 
-To start using Stellio, you can follow the [API quick start](API_Quick_Start.md).
+To start using Stellio, you can follow the [API quick start](https://github.com/stellio-hub/stellio-docs/blob/master/docs/quick_start_guide.md).
 
 ## License
 

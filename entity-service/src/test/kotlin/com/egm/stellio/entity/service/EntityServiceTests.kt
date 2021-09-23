@@ -22,8 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.Optional
 import java.util.UUID
@@ -39,19 +37,13 @@ class EntityServiceTests {
     private lateinit var neo4jRepository: Neo4jRepository
 
     @MockkBean(relaxed = true)
-    private lateinit var neo4jSearchRepository: Neo4jSearchRepository
-
-    @MockkBean(relaxed = true)
     private lateinit var entityRepository: EntityRepository
-
-    @MockkBean
-    private lateinit var propertyRepository: PropertyRepository
 
     @MockkBean
     private lateinit var partialEntityRepository: PartialEntityRepository
 
     @MockkBean
-    private lateinit var entityEventService: EntityEventService
+    private lateinit var searchRepository: SearchRepository
 
     private val mortalityRemovalServiceUri = "urn:ngsi-ld:MortalityRemovalService:014YFA9Z".toUri()
     private val fishContainmentUri = "urn:ngsi-ld:FishContainment:1234".toUri()
@@ -74,8 +66,6 @@ class EntityServiceTests {
             "@id" to mortalityRemovalServiceUri.toString(),
             "@type" to listOf("MortalityRemovalService")
         )
-        every { entityRepository.getEntitySpecificProperties(any()) } returns listOf()
-        every { entityRepository.getEntityRelationships(any()) } returns listOf()
         every { mockedBreedingService.contexts } returns sampleDataWithContext.contexts
 
         entityService.createEntity(sampleDataWithContext)
@@ -1106,17 +1096,5 @@ class EntityServiceTests {
             exception.message
         )
         confirmVerified()
-    }
-
-    private fun gimmeAnObservation(): Observation {
-        return Observation(
-            attributeName = "incoming",
-            latitude = 43.12,
-            longitude = 65.43,
-            observedBy = "urn:ngsi-ld:Sensor:01XYZ".toUri(),
-            unitCode = "CEL",
-            value = 12.4,
-            observedAt = Instant.now().atZone(ZoneOffset.UTC)
-        )
     }
 }

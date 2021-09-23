@@ -12,7 +12,7 @@ fun String.toUri(): URI =
         uri
     } catch (e: URISyntaxException) {
         throw BadRequestDataException(
-            "The supplied identifier was expected to be an URI but it is not: $this (${e.message})"
+            "The supplied identifier was expected to be an URI but it is not: $this (cause was: $e)"
         )
     }
 

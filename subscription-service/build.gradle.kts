@@ -14,8 +14,8 @@ dependencies {
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
-    implementation("com.jayway.jsonpath:json-path:2.5.0")
     implementation("io.r2dbc:r2dbc-postgresql")
+    implementation("com.jayway.jsonpath:json-path:2.6.0")
     implementation(project(":shared"))
     // firebase SDK
     implementation("com.google.firebase:firebase-admin:6.12.2")
@@ -24,7 +24,9 @@ dependencies {
 
     runtimeOnly("org.postgresql:postgresql")
 
-    testImplementation("com.github.tomakehurst:wiremock-standalone:2.25.1")
+    testImplementation("com.github.tomakehurst:wiremock-standalone:2.27.2")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:r2dbc")
     testImplementation(testFixtures(project(":shared")))
 }
 
@@ -39,4 +41,4 @@ jib.to.image = "stellio/stellio-subscription-service"
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8084")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()
-jib.container.labels = project.ext["jibContainerLabels"] as Map<String, String>
+jib.container.labels.putAll(project.ext["jibContainerLabels"] as Map<String, String>)

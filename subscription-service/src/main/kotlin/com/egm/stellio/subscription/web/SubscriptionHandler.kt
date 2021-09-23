@@ -77,14 +77,18 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
-        val page = params.getFirst(QUERY_PARAM_PAGE)?.toIntOrNull() ?: 1
+        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
         val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        if (limit <= 0 || page <= 0)
+        if (limit <= 0 || offset < 0)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(BadRequestDataResponse("Page number and Limit must be greater than zero"))
+                .body(
+                    BadRequestDataResponse(
+                        "Offset must be greater than zero and limit must be strictly greater than zero"
+                    )
+                )
 
         if (limit > applicationProperties.pagination.limitMax)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
@@ -96,14 +100,14 @@ class SubscriptionHandler(
                 )
 
         val userId = extractSubjectOrEmpty().awaitFirst()
-        val subscriptions = subscriptionService.getSubscriptions(limit, (page - 1) * limit, userId)
+        val subscriptions = subscriptionService.getSubscriptions(limit, offset, userId)
             .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(userId).awaitFirst()
         val prevAndNextLinks = getPagingLinks(
             "/ngsi-ld/v1/subscriptions",
             params,
             subscriptionsCount,
-            page,
+            offset,
             limit
         )
 

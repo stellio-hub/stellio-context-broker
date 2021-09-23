@@ -263,8 +263,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Unable to parse input payload"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Unable to parse input payload"
                 }
                 """
             )
@@ -280,8 +280,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' and 'time' must be used in conjunction"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -297,8 +297,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' and 'time' must be used in conjunction"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -323,8 +323,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'endTime' request parameter is mandatory if 'timerel' is 'between'"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'endTime' request parameter is mandatory if 'timerel' is 'between'"
                 } 
                 """
             )
@@ -340,8 +340,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'time' parameter is not a valid date"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'time' parameter is not a valid date"
                 } 
                 """
             )
@@ -357,8 +357,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' is not valid, it should be one of 'before', 'between', or 'after'"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'timerel' is not valid, it should be one of 'before', 'between', or 'after'"
                 }
                 """
             )
@@ -374,8 +374,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'endTime' parameter is not a valid date"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'endTime' parameter is not a valid date"
                 } 
                 """
             )
@@ -391,8 +391,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timeBucket' and 'aggregate' must be used in conjunction"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'timeBucket' and 'aggregate' must be used in conjunction"
                 } 
                 """
             )
@@ -411,8 +411,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Value 'unknown' is not supported for 'aggregate' parameter"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Value 'unknown' is not supported for 'aggregate' parameter"
                 } 
                 """
             )
@@ -435,8 +435,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                    "title":"The referred resource has not been found",
-                    "detail":"${entityNotFoundMessage(entityUri.toString())}"
+                    "detail":"The referred resource has not been found",
+                    "title":"${entityNotFoundMessage(entityUri.toString())}"
                 }
                 """
             )
@@ -595,8 +595,8 @@ class TemporalEntityHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'timerel' and 'time' must be used in conjunction"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"'timerel' and 'time' must be used in conjunction"
                 }
                 """
             )
@@ -816,4 +816,5 @@ class TemporalEntityHandlerTests {
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)
     }
+
 }

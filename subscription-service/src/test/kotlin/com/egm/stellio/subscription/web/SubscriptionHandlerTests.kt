@@ -111,8 +111,8 @@ class SubscriptionHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\": \"${subscriptionNotFoundMessage(subscriptionId)}\"}"
+                    "\"detail\":\"The referred resource has not been found\"," +
+                    "\"title\": \"${subscriptionNotFoundMessage(subscriptionId)}\"}"
             )
 
         verify { subscriptionService.exists(subscriptionId) }
@@ -130,9 +130,9 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
+                    "title":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title":"The request tried to access an unauthorized resource"
+                    "detail":"The request tried to access an unauthorized resource"
                 }
                 """.trimIndent()
             )
@@ -184,8 +184,8 @@ class SubscriptionHandlerTests {
             .expectStatus().isEqualTo(409)
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/AlreadyExists\"," +
-                    "\"title\":\"The referred element already exists\"," +
-                    "\"detail\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
+                    "\"detail\":\"The referred element already exists\"," +
+                    "\"title\":\"${subscriptionAlreadyExistsMessage(subscriptionId)}\"}"
             )
 
         verify { subscriptionEventService wasNot called }
@@ -207,8 +207,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                    "title":"There has been an error during the operation execution",
-                    "detail":"InternalErrorException(message=Internal Server Exception)"
+                    "detail":"There has been an error during the operation execution",
+                    "title":"InternalErrorException(message=Internal Server Exception)"
                 }
                 """
             )
@@ -228,8 +228,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Request payload must contain @context term for a request having an application/ld+json content type"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )
@@ -364,8 +364,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Offset must be greater than zero and limit must be strictly greater than zero"
                 } 
                 """.trimIndent()
             )
@@ -386,8 +386,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset must be greater than zero and limit must be strictly greater than zero"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Offset must be greater than zero and limit must be strictly greater than zero"
                 }
                 """.trimIndent()
             )
@@ -403,8 +403,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"You asked for 200 results, but the supported maximum limit is 100"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"You asked for 200 results, but the supported maximum limit is 100"
                 }
                 """.trimIndent()
             )
@@ -473,8 +473,8 @@ class SubscriptionHandlerTests {
                 """
                     {
                         "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                        "title":"There has been an error during the operation execution",
-                        "detail":"java.lang.RuntimeException: Update failed"
+                        "detail":"There has been an error during the operation execution",
+                        "title":"java.lang.RuntimeException: Update failed"
                     }
                     """
             )
@@ -501,8 +501,8 @@ class SubscriptionHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 "{\"type\":\"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound\"," +
-                    "\"title\":\"The referred resource has not been found\"," +
-                    "\"detail\":\"${subscriptionNotFoundMessage(subscriptionId)}\"}"
+                    "\"detail\":\"The referred resource has not been found\"," +
+                    "\"title\":\"${subscriptionNotFoundMessage(subscriptionId)}\"}"
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
@@ -526,8 +526,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Request payload must contain @context term for a request having an application/ld+json content type"
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":"Request payload must contain @context term for a request having an application/ld+json content type"
                 } 
                 """.trimIndent()
             )
@@ -552,9 +552,9 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
+                    "title":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title":"The request tried to access an unauthorized resource"
+                    "detail":"The request tried to access an unauthorized resource"
                 }
                 """.trimIndent()
             )
@@ -607,9 +607,9 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "detail":"${subscriptionNotFoundMessage(subscriptionId)}",
+                        "title":"${subscriptionNotFoundMessage(subscriptionId)}",
                         "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found"
+                        "detail":"The referred resource has not been found"
                     }
                 """.trimIndent()
             )
@@ -634,8 +634,8 @@ class SubscriptionHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/InternalError",
-                    "title":"There has been an error during the operation execution",
-                    "detail":"java.lang.RuntimeException: Unexpected server error"
+                    "detail":"There has been an error during the operation execution",
+                    "title":"java.lang.RuntimeException: Unexpected server error"
                 }
                 """
             )
@@ -657,9 +657,9 @@ class SubscriptionHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "detail":"${subscriptionUnauthorizedMessage(subscriptionId)}",
+                    "title":"${subscriptionUnauthorizedMessage(subscriptionId)}",
                     "type":"https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title":"The request tried to access an unauthorized resource"
+                    "detail":"The request tried to access an unauthorized resource"
                 }
                 """.trimIndent()
             )

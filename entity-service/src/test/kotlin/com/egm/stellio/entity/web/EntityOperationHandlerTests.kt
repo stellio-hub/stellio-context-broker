@@ -292,8 +292,8 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to create entities"
+                    "detail": "The request tried to access an unauthorized resource",
+                    "title": "User forbidden to create entities"
                 }
                 """.trimIndent()
             )
@@ -321,8 +321,8 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":
                 "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
                 }
                 """.trimIndent()
@@ -630,8 +630,8 @@ class EntityOperationHandlerTests {
                 """
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":
+                    "detail":"The request includes input data which does not meet the requirements of the operation",
+                    "title":
                 "Request payload must contain @context term for a request having an application/ld+json content type"
                 }
                 """.trimIndent()

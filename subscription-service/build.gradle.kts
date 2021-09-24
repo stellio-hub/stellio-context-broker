@@ -18,7 +18,7 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.6.0")
     implementation(project(":shared"))
     // firebase SDK
-    implementation("com.google.firebase:firebase-admin:6.12.2")
+    implementation("com.google.firebase:firebase-admin:8.1.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 

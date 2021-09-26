@@ -75,7 +75,7 @@ class Neo4jRepository(
             RETURN labels(target) as labels
             """.trimIndent()
         val parametersForExistence = mapOf(
-            "targetId" to targetId
+            "targetId" to targetId.toString()
         )
 
         val resultForExistence =
@@ -87,7 +87,7 @@ class Neo4jRepository(
                 resultForExistence
                     .get()
                     .values
-                    .map { (it as Array<String>).toList() }
+                    .map { it as List<String> }
                     .flatten()
                     .first { it == "Entity" || it == "PartialEntity" }
             else ""

@@ -1,8 +1,10 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.FullAttributeInstanceResult
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -11,6 +13,7 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Rule
@@ -46,6 +49,9 @@ class QueryServiceTests {
     @MockkBean
     private lateinit var temporalEntityService: TemporalEntityService
 
+    @MockkBean(relaxed = true)
+    private lateinit var applicationProperties: ApplicationProperties
+
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val secondEntityUri = "urn:ngsi-ld:BeeHive:TESTB".toUri()
 
@@ -74,6 +80,9 @@ class QueryServiceTests {
         queryParams.add("timerel", "before")
         queryParams.add("time", "2019-10-17T07:31:39Z")
 
+        every { applicationProperties.pagination.limitDefault } returns 30
+        every { applicationProperties.pagination.limitMax } returns 100
+
         val exception = assertThrows<BadRequestDataException> {
             queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
         }
@@ -93,23 +102,28 @@ class QueryServiceTests {
         queryParams.add("attrs", "incoming,outgoing")
         queryParams.add("id", "$entityUri,$secondEntityUri")
         queryParams.add("options", "temporalValues")
+        queryParams.add("limit", "10")
+        queryParams.add("offset", "2")
 
-        val parsedParams = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
+        every { applicationProperties.pagination.limitDefault } returns 30
+        every { applicationProperties.pagination.limitMax } returns 100
 
+        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(queryParams, APIC_COMPOUND_CONTEXT)
+
+        assertEquals(setOf(entityUri, secondEntityUri), temporalEntitiesQuery.ids)
+        assertEquals(setOf(beehiveType, apiaryType), temporalEntitiesQuery.types)
         assertEquals(
-            parsedParams,
-            mapOf(
-                "ids" to setOf(entityUri, secondEntityUri),
-                "types" to setOf(beehiveType, apiaryType),
-                "temporalQuery" to TemporalQuery(
-                    timerel = TemporalQuery.Timerel.BETWEEN,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-                    endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
-                    expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
-                ),
-                "withTemporalValues" to true
-            )
+            TemporalQuery(
+                timerel = TemporalQuery.Timerel.BETWEEN,
+                time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+                expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+            ),
+            temporalEntitiesQuery.temporalQuery
         )
+        assertTrue(temporalEntitiesQuery.withTemporalValues)
+        assertEquals(10, temporalEntitiesQuery.limit)
+        assertEquals(2, temporalEntitiesQuery.offset)
     }
 
     @Test
@@ -176,11 +190,11 @@ class QueryServiceTests {
                 APIC_COMPOUND_CONTEXT
             )
 
-            io.mockk.verify {
+            verify {
                 temporalEntityAttributeService.getForEntity(entityUri, emptySet(), false)
             }
 
-            io.mockk.verify {
+            verify {
                 attributeInstanceService.search(
                     match { temporalQuery ->
                         temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
@@ -191,7 +205,7 @@ class QueryServiceTests {
                 )
             }
 
-            io.mockk.verify {
+            verify {
                 temporalEntityService.buildTemporalEntity(
                     entityUri,
                     match { teaInstanceResult -> teaInstanceResult.size == 2 },
@@ -211,9 +225,8 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(
-                listOf(temporalEntityAttribute)
-            )
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any()) } returns
+                Mono.just(listOf(temporalEntityAttribute))
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
             } returns Mono.just(
@@ -228,26 +241,32 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             queryService.queryTemporalEntities(
-                emptySet(),
-                setOf(beehiveType, apiaryType),
-                TemporalQuery(
-                    expandedAttrs = emptySet(),
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                TemporalEntitiesQuery(
+                    emptySet(),
+                    setOf(beehiveType, apiaryType),
+                    TemporalQuery(
+                        expandedAttrs = emptySet(),
+                        timerel = TemporalQuery.Timerel.BEFORE,
+                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    ),
+                    false,
+                    2,
+                    2
                 ),
-                false,
                 APIC_COMPOUND_CONTEXT
             )
 
-            io.mockk.verify {
+            verify {
                 temporalEntityAttributeService.getForEntities(
+                    2,
+                    2,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
                     emptySet()
                 )
             }
 
-            io.mockk.verify {
+            verify {
                 attributeInstanceService.search(
                     match { temporalQuery ->
                         temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
@@ -258,7 +277,7 @@ class QueryServiceTests {
                 )
             }
 
-            io.mockk.verify {
+            verify {
                 temporalEntityService.buildTemporalEntities(
                     match { it.first().first == entityUri },
                     any(),
@@ -277,7 +296,12 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any()) } returns Mono.just(
+            every {
+                temporalEntityAttributeService.getForEntities(
+                    any(), any(), any(), any(),
+                    any()
+                )
+            } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
             every {
@@ -287,20 +311,24 @@ class QueryServiceTests {
             every { temporalEntityService.buildTemporalEntities(any(), any(), any(), any()) } returns emptyList()
 
             val entitiesList = queryService.queryTemporalEntities(
-                emptySet(),
-                setOf(beehiveType, apiaryType),
-                TemporalQuery(
-                    expandedAttrs = emptySet(),
-                    timerel = TemporalQuery.Timerel.BEFORE,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                TemporalEntitiesQuery(
+                    emptySet(),
+                    setOf(beehiveType, apiaryType),
+                    TemporalQuery(
+                        expandedAttrs = emptySet(),
+                        timerel = TemporalQuery.Timerel.BEFORE,
+                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    ),
+                    false,
+                    2,
+                    2
                 ),
-                false,
                 APIC_COMPOUND_CONTEXT
             )
 
             assertTrue(entitiesList.isEmpty())
 
-            io.mockk.verify {
+            verify {
                 temporalEntityService.buildTemporalEntities(
                     match {
                         it.size == 1 &&

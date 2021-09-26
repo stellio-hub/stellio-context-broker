@@ -1,8 +1,10 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.WebSecurityTestConfig
+import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -18,7 +20,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
-import java.net.URI
+import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 
 @ActiveProfiles("test")
@@ -31,6 +33,9 @@ class TemporalEntityOperationsHandlerTests {
 
     @Autowired
     private lateinit var webClient: WebTestClient
+
+    @MockkBean(relaxed = true)
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean(relaxed = true)
     private lateinit var queryService: QueryService
@@ -57,13 +62,18 @@ class TemporalEntityOperationsHandlerTests {
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
         )
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns mapOf(
-            "ids" to emptySet<URI>(),
-            "types" to setOf("BeeHive", "Apiary"),
-            "temporalQuery" to temporalQuery,
-            "withTemporalValues" to true
-        )
-        coEvery { queryService.queryTemporalEntities(any(), any(), any(), any(), any()) } returns emptyList()
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            TemporalEntitiesQuery(
+                ids = emptySet(),
+                types = setOf("BeeHive", "Apiary"),
+                temporalQuery = temporalQuery,
+                withTemporalValues = true,
+                limit = 1,
+                offset = 0
+            )
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -88,11 +98,15 @@ class TemporalEntityOperationsHandlerTests {
         }
         coVerify {
             queryService.queryTemporalEntities(
-                emptySet(),
-                setOf("BeeHive", "Apiary"),
-                temporalQuery,
-                true,
-                APIC_COMPOUND_CONTEXT
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.limit == 1 &&
+                        temporalEntitiesQuery.offset == 0 &&
+                        temporalEntitiesQuery.ids.isEmpty() &&
+                        temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.temporalQuery == temporalQuery &&
+                        temporalEntitiesQuery.withTemporalValues
+                },
+                eq(APIC_COMPOUND_CONTEXT)
             )
         }
 

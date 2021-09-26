@@ -1,7 +1,7 @@
 package com.egm.stellio.search.web
 
-import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -12,12 +12,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.net.URI
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
 class TemporalEntityOperationsHandler(
-    private val queryService: QueryService
+    private val queryService: QueryService,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
 
     /**
@@ -40,16 +40,32 @@ class TemporalEntityOperationsHandler(
                 queryParams.add(it.key, it.value.toString())
         }
 
-        val parsedParams = queryService.parseAndCheckQueryParams(queryParams, contextLink)
+        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(queryParams, contextLink)
         val temporalEntities = queryService.queryTemporalEntities(
-            parsedParams["ids"] as Set<URI>,
-            parsedParams["types"] as Set<String>,
-            parsedParams["temporalQuery"] as TemporalQuery,
-            parsedParams["withTemporalValues"] as Boolean,
+            temporalEntitiesQuery,
             contextLink
         )
+        val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
+            temporalEntitiesQuery.ids,
+            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.temporalQuery.expandedAttrs
+        ).awaitFirst()
 
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/temporal/entities",
+            queryParams,
+            temporalEntityCount,
+            temporalEntitiesQuery.offset,
+            temporalEntitiesQuery.limit
+        )
+
+        return PagingUtils.buildPaginationResponse(
+            (serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })),
+            temporalEntityCount,
+            false,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
     }
 }

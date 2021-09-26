@@ -8,7 +8,8 @@ import java.net.URI
 @ConfigurationProperties("application")
 data class ApplicationProperties(
     val entity: Entity,
-    val authentication: Authentication
+    val authentication: Authentication,
+    val pagination: Pagination
 ) {
     data class Authentication(
         val enabled: Boolean
@@ -17,5 +18,9 @@ data class ApplicationProperties(
     data class Entity(
         val serviceUrl: URI,
         val storePayloads: Boolean
+    )
+    data class Pagination(
+        val limitDefault: Int,
+        val limitMax: Int
     )
 }

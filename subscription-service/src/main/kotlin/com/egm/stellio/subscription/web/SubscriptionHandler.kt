@@ -77,27 +77,14 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
-        val offset = params.getFirst(QUERY_PARAM_OFFSET)?.toIntOrNull() ?: 0
-        val limit = params.getFirst(QUERY_PARAM_LIMIT)?.toIntOrNull() ?: applicationProperties.pagination.limitDefault
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax
+        )
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        if (limit <= 0 || offset < 0)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "Offset must be greater than zero and limit must be strictly greater than zero"
-                    )
-                )
-
-        if (limit > applicationProperties.pagination.limitMax)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "You asked for $limit results, " +
-                            "but the supported maximum limit is ${applicationProperties.pagination.limitMax}"
-                    )
-                )
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         val subscriptions = subscriptionService.getSubscriptions(limit, offset, userId)

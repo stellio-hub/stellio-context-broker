@@ -129,9 +129,9 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-            WITH collect(entity) as entities, count(entity) as count
-            UNWIND entities as entity
-            RETURN entity.id as id, count
+            WITH collect(entity.id) as entitiesIds, count(entity) as count
+            UNWIND entitiesIds as entityId
+            RETURN entityId as id, count
             ORDER BY id
             SKIP $offset LIMIT $limit
             """.trimIndent()
@@ -168,7 +168,7 @@ object QueryUtils {
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
-                        MATCH (entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
+                        MATCH (entity:Entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
                         WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
                     }
                 """.trimIndent()
@@ -192,7 +192,7 @@ object QueryUtils {
                 else
                     """
                        EXISTS {
-                           MATCH (entity)-[:HAS_VALUE]->(p:Property)
+                           MATCH (entity:Entity)-[:HAS_VALUE]->(p:Property)
                            WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
                            AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                        }
@@ -208,7 +208,7 @@ object QueryUtils {
         ) { expandedAttr ->
             """
                EXISTS {
-                   MATCH (entity)
+                   MATCH (entity:Entity)
                    WHERE (
                         (entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })
                         OR 

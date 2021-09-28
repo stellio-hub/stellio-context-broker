@@ -6,7 +6,7 @@ import java.net.URI
 
 @ConstructorBinding
 @ConfigurationProperties("application")
-data class dockerApplicationProperties(
+data class ApplicationProperties(
     val entity: Entity,
     val authentication: Authentication,
     val pagination: Pagination

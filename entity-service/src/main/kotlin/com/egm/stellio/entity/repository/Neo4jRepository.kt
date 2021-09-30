@@ -63,15 +63,51 @@ class Neo4jRepository(
         targetId: URI
     ): Boolean {
         val relationshipType = relationship.type[0].toRelationshipTypeName()
-        val query =
+
+        // first search for an existing target entity or partial entity with this id
+        val queryForTargetExistence =
             """
-            MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
-            MERGE (target { id: ${'$'}targetId })
-            ON CREATE SET target:PartialEntity
-            CREATE (subject)-[:HAS_OBJECT]->
-                (r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)-[:$relationshipType]->(target)
-            RETURN r.id as id
-        """
+            MATCH (target:Entity)
+            WHERE target.id = ${'$'}targetId
+            RETURN labels(target) as labels
+            UNION MATCH (target:PartialEntity)
+            WHERE target.id = ${'$'}targetId
+            RETURN labels(target) as labels
+            """.trimIndent()
+        val parametersForExistence = mapOf(
+            "targetId" to targetId.toString()
+        )
+
+        val resultForExistence =
+            neo4jClient.query(queryForTargetExistence).bindAll(parametersForExistence).fetch().first()
+        val targetAlreadyExists = resultForExistence.isPresent
+        // if the target exists, find whether it is an entity or a partial entity
+        val labelForExisting =
+            if (targetAlreadyExists)
+                resultForExistence
+                    .get()
+                    .values
+                    .map { it as List<String> }
+                    .flatten()
+                    .first { it == "Entity" || it == "PartialEntity" }
+            else ""
+
+        val query =
+            if (targetAlreadyExists)
+                """
+                MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
+                WITH subject
+                MATCH (target:$labelForExisting { id: ${'$'}targetId })
+                CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)
+                        -[:$relationshipType]->(target)
+                """
+            else
+                """
+                MATCH (subject:${subjectNodeInfo.label} { id: ${'$'}subjectId })
+                MERGE (target:PartialEntity { id: ${'$'}targetId })
+                CREATE (subject)-[:HAS_OBJECT]->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}props)
+                        -[:$relationshipType]->(target)
+                """.trimIndent()
 
         val parameters = mapOf(
             "props" to relationship.nodeProperties(),

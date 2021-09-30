@@ -1,6 +1,8 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.web.buildTemporalQuery
@@ -19,25 +21,36 @@ import java.util.*
 class QueryService(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val applicationProperties: ApplicationProperties,
     private val temporalEntityService: TemporalEntityService
 ) {
 
-    fun parseAndCheckQueryParams(queryParams: MultiValueMap<String, String>, contextLink: String): Map<String, Any> {
+    fun parseAndCheckQueryParams(
+        queryParams: MultiValueMap<String, String>,
+        contextLink: String
+    ): TemporalEntitiesQuery {
         val withTemporalValues = hasValueInOptionsParam(
             Optional.ofNullable(queryParams.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES
         )
         val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
         val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
         val temporalQuery = buildTemporalQuery(queryParams, contextLink)
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            queryParams,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax
+        )
 
         if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
             throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
-        return mapOf(
-            "ids" to ids,
-            "types" to types,
-            "temporalQuery" to temporalQuery,
-            "withTemporalValues" to withTemporalValues
+        return TemporalEntitiesQuery(
+            ids = ids,
+            types = types,
+            temporalQuery = temporalQuery,
+            withTemporalValues = withTemporalValues,
+            limit = limit,
+            offset = offset
         )
     }
 
@@ -74,20 +87,23 @@ class QueryService(
     }
 
     suspend fun queryTemporalEntities(
-        ids: Set<URI>,
-        types: Set<String>,
-        temporalQuery: TemporalQuery,
-        withTemporalValues: Boolean,
+        temporalEntitiesQuery: TemporalEntitiesQuery,
         contextLink: String
     ): List<CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
-            ids,
-            types,
-            temporalQuery.expandedAttrs
+            temporalEntitiesQuery.limit,
+            temporalEntitiesQuery.offset,
+            temporalEntitiesQuery.ids,
+            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.temporalQuery.expandedAttrs
         ).awaitFirstOrDefault(emptyList())
 
         val temporalEntityAttributesWithMatchingInstances =
-            searchInstancesForTemporalEntityAttributes(temporalEntityAttributes, temporalQuery, withTemporalValues)
+            searchInstancesForTemporalEntityAttributes(
+                temporalEntityAttributes,
+                temporalEntitiesQuery.temporalQuery,
+                temporalEntitiesQuery.withTemporalValues
+            )
 
         val temporalEntityAttributesWithInstances =
             fillWithTEAWithoutInstances(temporalEntityAttributes, temporalEntityAttributesWithMatchingInstances)
@@ -106,9 +122,9 @@ class QueryService(
 
         return temporalEntityService.buildTemporalEntities(
             attributeInstancesPerEntityAndAttribute,
-            temporalQuery,
+            temporalEntitiesQuery.temporalQuery,
             listOf(contextLink),
-            withTemporalValues
+            temporalEntitiesQuery.withTemporalValues
         )
     }
 

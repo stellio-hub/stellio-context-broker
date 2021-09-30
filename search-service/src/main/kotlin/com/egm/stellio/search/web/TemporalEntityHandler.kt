@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.OptionsParamValue
+import com.egm.stellio.shared.util.PagingUtils
 import com.egm.stellio.shared.util.buildGetSuccessResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getApplicableMediaType
@@ -42,7 +43,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZonedDateTime
 import java.util.Optional
 
@@ -101,18 +101,34 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val parsedParams = queryService.parseAndCheckQueryParams(params, contextLink)
+        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
 
         val temporalEntities = queryService.queryTemporalEntities(
-            parsedParams["ids"] as Set<URI>,
-            parsedParams["types"] as Set<String>,
-            parsedParams["temporalQuery"] as TemporalQuery,
-            parsedParams["withTemporalValues"] as Boolean,
+            temporalEntitiesQuery,
             contextLink
         )
+        val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
+            temporalEntitiesQuery.ids,
+            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.temporalQuery.expandedAttrs
+        ).awaitFirst()
 
-        return buildGetSuccessResponse(mediaType, contextLink)
-            .body(serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }))
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/temporal/entities",
+            params,
+            temporalEntityCount,
+            temporalEntitiesQuery.offset,
+            temporalEntitiesQuery.limit
+        )
+
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
+            temporalEntityCount,
+            false,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
     }
 
     /**

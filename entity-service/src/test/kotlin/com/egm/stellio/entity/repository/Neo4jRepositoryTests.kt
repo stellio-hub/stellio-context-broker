@@ -327,6 +327,8 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val somePartialEntity = partialEntityRepository.findById(partialTargetEntityUri)
         assertTrue(somePartialEntity.isPresent)
+
+        neo4jRepository.deleteEntity(entity.id)
     }
 
     @Test
@@ -345,7 +347,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             mutableListOf(temperatureProperty)
         )
 
-        createEntity("urn:ngsi-ld:Sensor:6789".toUri(), listOf("Sensor"))
+        val secondTargetEntity = createEntity("urn:ngsi-ld:Sensor:6789".toUri(), listOf("Sensor"))
         val newPropertyPayload =
             """
             {
@@ -376,6 +378,10 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             propertyRepository.findById(updatedPropertyId).get().relationships[0].type[0],
             "https://uri.etsi.org/ngsi-ld/default-context/newRel"
         )
+
+        neo4jRepository.deleteEntity(targetEntity.id)
+        neo4jRepository.deleteEntity(entity.id)
+        neo4jRepository.deleteEntity(secondTargetEntity.id)
     }
 
     @Test
@@ -415,13 +421,13 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should update modifiedAt value when updating an entity`() {
-        createEntity(
+        val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Scalpa"))
         )
         val modifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233".toUri()).get().modifiedAt
-        createEntity(
+        val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(Property(name = "name", value = "Demha"))
@@ -429,6 +435,9 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         val updatedModifiedAt = entityRepository.findById("urn:ngsi-ld:Beekeeper:1233".toUri()).get().modifiedAt
         assertNotNull(updatedModifiedAt)
         assertThat(updatedModifiedAt).isAfter(modifiedAt)
+
+        neo4jRepository.deleteEntity(entity.id)
+        neo4jRepository.deleteEntity(secondEntity.id)
     }
 
     @Test
@@ -687,7 +696,10 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         neo4jRepository.deleteEntity(sensor.id)
 
         val entity = entityRepository.findById(device.id).get()
-        assertEquals(entity.relationships.size, 0)
+        assertEquals(0, entity.relationships.size)
+
+        neo4jRepository.deleteEntity(sensor.id)
+        neo4jRepository.deleteEntity(device.id)
     }
 
     @Test
@@ -968,7 +980,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 
-        assertEquals(3, propertiesInformation.size)
+        assertEquals("Got the following attributes: $propertiesInformation", 3, propertiesInformation.size)
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
         assertEquals(attributesInformation["geoProperties"], emptySet<String>())
@@ -1078,7 +1090,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val entityTypesNames = neo4jRepository.getEntityTypesNames()
 
-        assertEquals(entityTypesNames.size, 2)
+        assertEquals(2, entityTypesNames.size)
         assertTrue(
             entityTypesNames.containsAll(
                 listOf("https://ontology.eglobalmark.com/apic#Beehive", "https://ontology.eglobalmark.com/apic#Sensor")
@@ -1116,7 +1128,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val entityTypes = neo4jRepository.getEntityTypes()
 
-        assertEquals(2, entityTypes.size)
+        assertEquals("Got the following types instead: $entityTypes", 2, entityTypes.size)
         assertTrue(
             entityTypes.containsAll(
                 listOf(

@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ComplexMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
     <ID>LargeClass:EntityOperationHandlerTests.kt$EntityOperationHandlerTests</ID>

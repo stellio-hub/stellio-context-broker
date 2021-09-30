@@ -405,7 +405,8 @@ class SubscriptionService(
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
-            WHERE is_active 
+            WHERE is_active
+            AND (expires_at is null OR expires_at >= now())
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
             AND id IN (
                 SELECT subscription_id

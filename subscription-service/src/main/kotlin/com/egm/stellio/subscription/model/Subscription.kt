@@ -84,7 +84,7 @@ private fun serializeWithoutSysAttrs(input: Any) =
         Subscription::class,
         SysAttrsMixinFilter::class,
         "sysAttrs",
-        setOf("createdAt", "modifiedAt", "expiresAt")
+        setOf("createdAt", "modifiedAt")
     )
 
 @JsonFilter("sysAttrs")

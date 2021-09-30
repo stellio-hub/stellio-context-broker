@@ -198,7 +198,10 @@ class SubscriptionService(
                     val entities = it.value as List<Map<String, Any>>
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
-                listOf("name", "description", "watchedAttributes", "q", "isActive", "modifiedAt", "expiresAt").contains(it.key) -> {
+                listOf(
+                    "name", "description", "watchedAttributes", "q", "isActive", "modifiedAt",
+                    "expiresAt"
+                ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
                     updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))

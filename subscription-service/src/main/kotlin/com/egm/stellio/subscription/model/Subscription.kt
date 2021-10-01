@@ -28,7 +28,8 @@ data class Subscription(
     val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val expiresAt: ZonedDateTime? = null
 ) {
     fun expandTypes(context: List<String>) {
         this.entities.forEach {

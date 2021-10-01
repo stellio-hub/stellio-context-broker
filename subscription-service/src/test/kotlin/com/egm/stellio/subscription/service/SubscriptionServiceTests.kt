@@ -187,7 +187,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 "incoming"
             )
         StepVerifier.create(persistedSubscription)
-            .expectNextCount(1L)
+            .expectNextCount(2L)
             .verifyComplete()
     }
 

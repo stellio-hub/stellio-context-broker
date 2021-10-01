@@ -89,7 +89,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = "Beehive")
             ),
-            expiresAt = ZonedDateTime.parse("2050-12-12T08:33:38Z")
+            expiresAt = Instant.now().atZone(ZoneOffset.UTC).plusDays(1)
         )
         subscription2Id = createSubscription(subscription)
     }
@@ -152,7 +152,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should not retrive an expired subscription matching an id`() {
+    fun `it should not retrieve an expired subscription matching an id`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:88".toUri(),
@@ -166,7 +166,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should retrive an subscription matching an id when expired date is not given`() {
+    fun `it should retrieve a subscription matching an id when expired date is not given`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:smartDoor:77".toUri(),
@@ -179,7 +179,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should retrive an subscription matching an id when expired date is in the future`() {
+    fun `it should retrieve a subscription matching an id when expired date is in the future`() {
         val persistedSubscription =
             subscriptionService.getMatchingSubscriptions(
                 "urn:ngsi-ld:Beehive:1234567890".toUri(),

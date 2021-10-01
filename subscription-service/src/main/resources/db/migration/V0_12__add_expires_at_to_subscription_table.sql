@@ -1,2 +1,2 @@
 ALTER TABLE subscription
-ADD expires_at date;
+ADD expires_at TIMESTAMPTZ;

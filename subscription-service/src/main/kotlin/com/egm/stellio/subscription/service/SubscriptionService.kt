@@ -25,7 +25,6 @@ import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
@@ -409,7 +408,7 @@ class SubscriptionService(
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
             WHERE is_active
-            AND (expires_at is null OR expires_at >= now())
+            AND ( expires_at is null OR expires_at >= :date )
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
             AND id IN (
                 SELECT subscription_id
@@ -423,6 +422,7 @@ class SubscriptionService(
             .bind("id", id)
             .bind("type", type)
             .bind("updatedAttributes", updatedAttributes)
+            .bind("date", Instant.now().atZone(ZoneOffset.UTC))
             .map(rowToRawSubscription)
 
             .all()

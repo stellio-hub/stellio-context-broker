@@ -3,6 +3,7 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
+import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -30,7 +31,8 @@ import java.net.URI
 class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
     private val authorizationService: AuthorizationService,
-    private val entityEventService: EntityEventService
+    private val entityEventService: EntityEventService,
+    private val entityService: EntityService
 ) {
 
     /**
@@ -163,6 +165,58 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
+    /**
+     * Implements 6.16.3.1 - Update Batch of Entities
+     */
+    @PostMapping("/update", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun update(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>,
+        @RequestParam(required = false) options: String?
+    ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val body = requestBody.awaitFirst()
+        checkContext(httpHeaders, body)
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+
+        val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
+            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+
+        val existingEntitiesIdsAuthorized =
+            authorizationService.filterEntitiesUserCanUpdate(
+                existingEntities.map { it.id },
+                userId
+            )
+        val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
+            existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
+
+        if (options == "noOverwrie")entityService.appendEntityAttributes(
+            userId.toUri(),
+            existingEntities
+            true)
+
+        val updateBatchOperationResult = entityOperationService.update(existingEntitiesAuthorized)
+
+        updateBatchOperationResult.errors.addAll(
+            existingEntitiesUnauthorized.map {
+                BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+            }
+        )
+
+        val batchOperationResult = BatchOperationResult(
+            ArrayList(updateBatchOperationResult.success),
+            ArrayList(updateBatchOperationResult.errors)
+        )
+        return if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+    }
+
+    /**
+     * Implements 6.17.3.1 - Delete Batch of Entities
+     */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()

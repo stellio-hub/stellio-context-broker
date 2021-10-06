@@ -4,7 +4,6 @@ package com.egm.stellio.entity.web
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
-import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -33,8 +32,7 @@ import java.util.Optional
 class EntityOperationHandler(
     private val entityOperationService: EntityOperationService,
     private val authorizationService: AuthorizationService,
-    private val entityEventService: EntityEventService,
-    private val entityService: EntityService
+    private val entityEventService: EntityEventService
 ) {
 
     /**
@@ -129,7 +127,7 @@ class EntityOperationHandler(
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
 
         val updateBatchOperationResult = when (options) {
-            "update" -> entityOperationService.update(existingEntitiesAuthorized)
+            "update" -> entityOperationService.update(existingEntitiesAuthorized,false)
             else -> entityOperationService.replace(existingEntitiesAuthorized)
         }
 
@@ -186,15 +184,7 @@ class EntityOperationHandler(
             extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-        val updateBatchOperationResult = when {
-            newEntities.isEmpty() -> BatchOperationResult()
-            authorizationService.userCanUpdateEntity(userId.toUri(),userId) -> entityOperationService.update(newEntities)
-            else -> BatchOperationResult(
-                errors = ArrayList(
-                    newEntities.map { BatchEntityError(it.id, arrayListOf("User forbidden to create entities")) }
-                )
-            )
-        }
+
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
                 existingEntities.map { it.id },
@@ -202,23 +192,23 @@ class EntityOperationHandler(
             )
         val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
+        val updateBatchOperationResult = entityOperationService.update(existingEntitiesAuthorized,disallowOverwrite)
         updateBatchOperationResult.errors.addAll(
             existingEntitiesUnauthorized.map {
                 BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+            }
+        )
+        updateBatchOperationResult.errors.addAll(
+            newEntities.map {
+                BatchEntityError(it.id, arrayListOf("Entity does not exist"))
             }
         )
         val batchOperationResult = BatchOperationResult(
             ArrayList(updateBatchOperationResult.success),
             ArrayList(updateBatchOperationResult.errors)
         )
+        publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
 
-        ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
-            .forEach {
-                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-                publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
-                    it.type
-
-            }
         return if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else

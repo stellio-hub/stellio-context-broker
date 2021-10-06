@@ -122,7 +122,7 @@ class EntityOperationServiceTests {
             emptyList()
         )
 
-        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity),false)
 
         assertEquals(
             listOf(firstEntityURI, secondEntityURI),
@@ -147,7 +147,7 @@ class EntityOperationServiceTests {
         } throws BadRequestDataException("error")
 
         val batchOperationResult =
-            entityOperationService.update(listOf(firstEntity, secondEntity))
+            entityOperationService.update(listOf(firstEntity, secondEntity),false)
 
         assertEquals(
             listOf(BatchEntitySuccess(firstEntityURI, updateResult = UpdateResult(emptyList(), emptyList()))),
@@ -176,7 +176,7 @@ class EntityOperationServiceTests {
         )
         every { entityService.appendEntityAttributes(eq(secondEntityURI), any(), any()) } returns updateResult
 
-        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity))
+        val batchOperationResult = entityOperationService.update(listOf(firstEntity, secondEntity),false)
 
         assertEquals(
             listOf(BatchEntitySuccess(firstEntityURI, UpdateResult(emptyList(), emptyList()))),

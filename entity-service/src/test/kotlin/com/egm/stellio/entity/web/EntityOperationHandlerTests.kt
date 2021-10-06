@@ -127,6 +127,7 @@ class EntityOperationHandlerTests {
     private val batchCreateEndpoint = "/ngsi-ld/v1/entityOperations/create"
     private val batchUpsertEndpoint = "/ngsi-ld/v1/entityOperations/upsert"
     private val batchUpsertWithUpdateEndpoint = "/ngsi-ld/v1/entityOperations/upsert?options=update"
+    private val batchUpdateEndpoint = "/ngsi-ld/v1/entityOperations/update"
     private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
 
     private val hcmrContext = listOf(
@@ -168,6 +169,32 @@ class EntityOperationHandlerTests {
         ),
         mutableListOf()
     )
+
+    @Test
+    fun `update batch entity should return a 204 if it has only updated existing entities`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        )
+        every {
+            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+        } returns entitiesIds
+        every {
+            entityOperationService.update(any(),any())
+        } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
+        every {
+            entityOperationService.getFullEntityById(any(), any())
+        } returns mockkClass(JsonLdEntity::class, relaxed = true)
+
+        webClient.post()
+            .uri(batchUpdateEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+    }
 
     @Test
     fun `create batch entity should return a 201 if JSON-LD payload is correct`() {
@@ -353,7 +380,7 @@ class EntityOperationHandlerTests {
         every {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
-        every { entityOperationService.update(any()) } returns upsertUpdateBatchOperationResult
+        every { entityOperationService.update(any(),any()) } returns upsertUpdateBatchOperationResult
         every {
             entityOperationService.getFullEntityById(any(), any())
         } returns mockkClass(JsonLdEntity::class, relaxed = true)
@@ -411,7 +438,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns entitiesIds
         every {
-            entityOperationService.update(any())
+            entityOperationService.update(any(),any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
         every {
             entityOperationService.getFullEntityById(any(), any())
@@ -451,7 +478,7 @@ class EntityOperationHandlerTests {
         every {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
-        every { entityOperationService.update(any()) } returns BatchOperationResult(
+        every { entityOperationService.update(any(),any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
         )
@@ -503,7 +530,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
 
         verify { entityOperationService.replace(existingEntities) }
-        verify { entityOperationService.update(any()) wasNot Called }
+        verify { entityOperationService.update(any(),any()) wasNot Called }
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityEvent(

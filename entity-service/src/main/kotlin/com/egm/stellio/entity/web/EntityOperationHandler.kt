@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.web
 
-
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
@@ -127,7 +126,7 @@ class EntityOperationHandler(
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
 
         val updateBatchOperationResult = when (options) {
-            "update" -> entityOperationService.update(existingEntitiesAuthorized,false)
+            "update" -> entityOperationService.update(existingEntitiesAuthorized, false)
             else -> entityOperationService.replace(existingEntitiesAuthorized)
         }
 
@@ -184,7 +183,6 @@ class EntityOperationHandler(
             extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
                 existingEntities.map { it.id },
@@ -192,7 +190,7 @@ class EntityOperationHandler(
             )
         val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
-        val updateBatchOperationResult = entityOperationService.update(existingEntitiesAuthorized,disallowOverwrite)
+        val updateBatchOperationResult = entityOperationService.update(existingEntitiesAuthorized, disallowOverwrite)
         updateBatchOperationResult.errors.addAll(
             existingEntitiesUnauthorized.map {
                 BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))

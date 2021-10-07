@@ -182,7 +182,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns entitiesIds
         every {
-            entityOperationService.update(any(),any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
         every {
             entityOperationService.getFullEntityById(any(), any())
@@ -380,7 +380,7 @@ class EntityOperationHandlerTests {
         every {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
-        every { entityOperationService.update(any(),any()) } returns upsertUpdateBatchOperationResult
+        every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
         every {
             entityOperationService.getFullEntityById(any(), any())
         } returns mockkClass(JsonLdEntity::class, relaxed = true)
@@ -438,7 +438,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns entitiesIds
         every {
-            entityOperationService.update(any(),any())
+            entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
         every {
             entityOperationService.getFullEntityById(any(), any())
@@ -478,7 +478,7 @@ class EntityOperationHandlerTests {
         every {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
-        every { entityOperationService.update(any(),any()) } returns BatchOperationResult(
+        every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
         )
@@ -530,7 +530,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
 
         verify { entityOperationService.replace(existingEntities) }
-        verify { entityOperationService.update(any(),any()) wasNot Called }
+        verify { entityOperationService.update(any(), any()) wasNot Called }
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityEvent(

@@ -155,9 +155,11 @@ class EntityOperationService(
     @Throws(BadRequestDataException::class)
     fun replaceEntity(entity: NgsiLdEntity, disallowOverwrite: Boolean): Either<BatchEntityError, BatchEntitySuccess> {
         neo4jRepository.deleteEntityAttributes(entity.id)
-        val (_, notUpdated) = entityService.appendEntityAttributes(entity.id,
+        val (_, notUpdated) = entityService.appendEntityAttributes(
+            entity.id,
             entity.attributes,
-            disallowOverwrite = disallowOverwrite)
+            disallowOverwrite = disallowOverwrite
+        )
         if (notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id).right()
         else
@@ -172,9 +174,11 @@ class EntityOperationService(
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
     fun updateEntity(entity: NgsiLdEntity, disallowOverwrite: Boolean): Either<BatchEntityError, BatchEntitySuccess> {
-        val updateResult = entityService.appendEntityAttributes(entity.id,
+        val updateResult = entityService.appendEntityAttributes(
+            entity.id,
             entity.attributes,
-            disallowOverwrite = disallowOverwrite)
+            disallowOverwrite = disallowOverwrite
+        )
         if (updateResult.notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id, updateResult).right()
         else

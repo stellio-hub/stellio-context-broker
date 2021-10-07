@@ -82,7 +82,7 @@ class EntityOperationHandlerTests {
         }
         """.trimIndent()
 
-    private val batchUpsertWithUpdateErrorsResponse =
+    private val batchUpsertorUpdateWithUpdateErrorsResponse =
         """
         { 
             "errors": [
@@ -178,9 +178,14 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
+        val expandedEntities = slot<List<NgsiLdEntity>>()
         every {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns entitiesIds
+        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -194,6 +199,40 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
+    }
+
+    @Test
+    fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val errors = arrayListOf(
+            BatchEntityError(
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
+            ),
+            BatchEntityError(
+                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
+            )
+        )
+
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every {
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+        } returns emptyList()
+        every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
+            arrayListOf(),
+            errors
+        )
+
+        webClient.post()
+            .uri(batchUpdateEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(batchUpsertorUpdateWithUpdateErrorsResponse)
     }
 
     @Test
@@ -488,7 +527,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertWithUpdateErrorsResponse)
+            .expectBody().json(batchUpsertorUpdateWithUpdateErrorsResponse)
 
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify { entityEventService wasNot called }

@@ -171,7 +171,7 @@ class EntityOperationHandlerTests {
     )
 
     @Test
-    fun `update batch entity should return a 204 if it has only updated existing entities`() {
+    fun `update batch for correct entities should return a 204`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),

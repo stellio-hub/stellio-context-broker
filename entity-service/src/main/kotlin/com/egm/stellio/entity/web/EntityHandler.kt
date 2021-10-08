@@ -254,7 +254,7 @@ class EntityHandler(
         @RequestParam options: Optional<String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
+        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
         val entityUri = entityId.toUri()
 
         if (!entityService.exists(entityUri))

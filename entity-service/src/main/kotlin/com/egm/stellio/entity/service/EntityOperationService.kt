@@ -109,13 +109,13 @@ class EntityOperationService(
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
-    fun update(entities: List<NgsiLdEntity>, disallowOverwrite: Boolean): BatchOperationResult {
+    fun update(entities: List<NgsiLdEntity>, disallowOverwrite: Boolean = false): BatchOperationResult {
         return processEntities(entities, disallowOverwrite, ::updateEntity)
     }
 
     private fun processEntities(
         entities: List<NgsiLdEntity>,
-        disallowOverwrite: Boolean,
+        disallowOverwrite: Boolean = false,
         processor: (NgsiLdEntity, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): BatchOperationResult {
         return entities.parallelStream().map {
@@ -138,7 +138,7 @@ class EntityOperationService(
 
     private fun processEntity(
         entity: NgsiLdEntity,
-        disallowOverwrite: Boolean,
+        disallowOverwrite: Boolean = false,
         processor: (NgsiLdEntity, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): Either<BatchEntityError, BatchEntitySuccess> {
         return try {
@@ -158,7 +158,7 @@ class EntityOperationService(
         val (_, notUpdated) = entityService.appendEntityAttributes(
             entity.id,
             entity.attributes,
-            disallowOverwrite = disallowOverwrite
+            disallowOverwrite
         )
         if (notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id).right()
@@ -177,7 +177,7 @@ class EntityOperationService(
         val updateResult = entityService.appendEntityAttributes(
             entity.id,
             entity.attributes,
-            disallowOverwrite = disallowOverwrite
+            disallowOverwrite
         )
         if (updateResult.notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id, updateResult).right()

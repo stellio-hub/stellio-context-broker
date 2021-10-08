@@ -177,9 +177,9 @@ class EntityOperationHandler(
         val body = requestBody.awaitFirst()
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
-        val disallowOverwrite = options.map { it == "noOverwrite" }.orElse(false)
+        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
+        val (_, jsonLdEntities, ngsiLdEntities) =
             extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 

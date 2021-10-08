@@ -178,11 +178,10 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
-        val expandedEntities = slot<List<NgsiLdEntity>>()
         every {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns entitiesIds
-        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
             emptyList()
         )
@@ -233,6 +232,69 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(batchUpsertorUpdateWithUpdateErrorsResponse)
+    }
+
+    @Test
+    fun `update batch entity should return a 400 if JSON-LD payload is not correct`() {
+        shouldReturn400WithBadPayload("update")
+    }
+
+    @Test
+    fun `update batch for correct entities with options flag noOverwrite`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        )
+        every {
+            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+        } returns entitiesIds
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every {
+            entityOperationService.update(any(), any())
+        } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
+        every {
+            entityOperationService.getFullEntityById(any(), any())
+        } returns mockkClass(JsonLdEntity::class, relaxed = true)
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityOperations/update?options=noOverwrite")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
+    }
+
+    @Test
+    fun `update batch for non existing entity`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val entitiesIds = arrayListOf(
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri(),
+            "urn:ngsi-ld:Device:XYZER-AQUABOX200".toUri(),
+        )
+        every {
+            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+        } returns entitiesIds
+        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
+            emptyList(),
+            emptyList()
+        )
+        every {
+            entityOperationService.update(any(), any())
+        } returns BatchOperationResult(errors = mutableListOf(), success = mutableListOf())
+
+        webClient.post()
+            .uri(batchUpdateEndpoint)
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isNoContent
+            .expectBody().isEmpty
     }
 
     @Test

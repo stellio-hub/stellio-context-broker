@@ -315,7 +315,8 @@ class EntityOperationHandlerTests {
                         ],
                         "success": []
                     }
-                """.trimIndent())
+                """.trimIndent()
+            )
     }
 
     @Test

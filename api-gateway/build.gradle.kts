@@ -8,6 +8,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 }
 
+springBoot {
+    buildInfo {
+        properties {
+            name = "Stellio Context Broker"
+        }
+    }
+}
+
 jib.from.image = project.ext["jibFromImage"].toString()
 jib.to.image = "stellio/stellio-api-gateway"
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>

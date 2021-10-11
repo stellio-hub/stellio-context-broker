@@ -101,11 +101,13 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
     fun replace(entities: List<NgsiLdEntity>): BatchOperationResult {
-        return processEntities(entities, disallowOverwrite = false, ::replaceEntity)
+        return processEntities(entities, false, ::replaceEntity)
     }
 
     /**
-     * Updates a batch of [entities] with boolean flag noOverwrite.
+     * Updates a batch of [entities]
+     *
+     * @param disallowOverwrite whether overwriting existing attributes is allowed
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */

@@ -287,7 +287,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns updatedEntitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            arrayListOf(),
+            emptyList(),
             listOf(nonExistingEntity)
         )
         every { entityOperationService.update(any()) } returns BatchOperationResult(

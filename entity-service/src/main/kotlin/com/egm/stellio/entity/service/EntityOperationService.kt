@@ -101,24 +101,27 @@ class EntityOperationService(
      * @return a [BatchOperationResult] with list of replaced ids and list of errors.
      */
     fun replace(entities: List<NgsiLdEntity>): BatchOperationResult {
-        return processEntities(entities, ::replaceEntity)
+        return processEntities(entities, false, ::replaceEntity)
     }
 
     /**
-     * Updates a batch of [entities].
+     * Updates a batch of [entities]
+     *
+     * @param disallowOverwrite whether overwriting existing attributes is allowed
      *
      * @return a [BatchOperationResult] with list of updated ids and list of errors.
      */
-    fun update(entities: List<NgsiLdEntity>): BatchOperationResult {
-        return processEntities(entities, ::updateEntity)
+    fun update(entities: List<NgsiLdEntity>, disallowOverwrite: Boolean = false): BatchOperationResult {
+        return processEntities(entities, disallowOverwrite, ::updateEntity)
     }
 
     private fun processEntities(
         entities: List<NgsiLdEntity>,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, BatchEntitySuccess>
+        disallowOverwrite: Boolean = false,
+        processor: (NgsiLdEntity, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): BatchOperationResult {
         return entities.parallelStream().map {
-            processEntity(it, processor)
+            processEntity(it, disallowOverwrite, processor)
         }.collect(
             { BatchOperationResult() },
             { batchOperationResult, updateResult ->
@@ -137,10 +140,11 @@ class EntityOperationService(
 
     private fun processEntity(
         entity: NgsiLdEntity,
-        processor: (NgsiLdEntity) -> Either<BatchEntityError, BatchEntitySuccess>
+        disallowOverwrite: Boolean = false,
+        processor: (NgsiLdEntity, Boolean) -> Either<BatchEntityError, BatchEntitySuccess>
     ): Either<BatchEntityError, BatchEntitySuccess> {
         return try {
-            processor(entity)
+            processor(entity, disallowOverwrite)
         } catch (e: BadRequestDataException) {
             BatchEntityError(entity.id, arrayListOf(e.message)).left()
         }
@@ -151,9 +155,13 @@ class EntityOperationService(
      */
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
-    fun replaceEntity(entity: NgsiLdEntity): Either<BatchEntityError, BatchEntitySuccess> {
+    fun replaceEntity(entity: NgsiLdEntity, disallowOverwrite: Boolean): Either<BatchEntityError, BatchEntitySuccess> {
         neo4jRepository.deleteEntityAttributes(entity.id)
-        val (_, notUpdated) = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
+        val (_, notUpdated) = entityService.appendEntityAttributes(
+            entity.id,
+            entity.attributes,
+            disallowOverwrite
+        )
         if (notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id).right()
         else
@@ -167,8 +175,12 @@ class EntityOperationService(
      */
     @Transactional(rollbackFor = [BadRequestDataException::class])
     @Throws(BadRequestDataException::class)
-    private fun updateEntity(entity: NgsiLdEntity): Either<BatchEntityError, BatchEntitySuccess> {
-        val updateResult = entityService.appendEntityAttributes(entity.id, entity.attributes, false)
+    fun updateEntity(entity: NgsiLdEntity, disallowOverwrite: Boolean): Either<BatchEntityError, BatchEntitySuccess> {
+        val updateResult = entityService.appendEntityAttributes(
+            entity.id,
+            entity.attributes,
+            disallowOverwrite
+        )
         if (updateResult.notUpdated.isEmpty())
             return BatchEntitySuccess(entity.id, updateResult).right()
         else

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityOperations")
@@ -125,7 +126,7 @@ class EntityOperationHandler(
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
 
         val updateBatchOperationResult = when (options) {
-            "update" -> entityOperationService.update(existingEntitiesAuthorized)
+            "update" -> entityOperationService.update(existingEntitiesAuthorized, false)
             else -> entityOperationService.replace(existingEntitiesAuthorized)
         }
 
@@ -163,6 +164,58 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
+    /**
+     * Implements 6.16.3.1 - Update Batch of Entities
+     */
+    @PostMapping("/update", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun update(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestBody requestBody: Mono<String>,
+        @RequestParam options: Optional<String>
+    ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val body = requestBody.awaitFirst()
+        checkContext(httpHeaders, body)
+        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
+        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
+
+        val (_, jsonLdEntities, ngsiLdEntities) =
+            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
+        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+
+        val existingEntitiesIdsAuthorized =
+            authorizationService.filterEntitiesUserCanUpdate(
+                existingEntities.map { it.id },
+                userId
+            )
+        val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
+            existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
+        val updateBatchOperationResult = entityOperationService.update(existingEntitiesAuthorized, disallowOverwrite)
+        updateBatchOperationResult.errors.addAll(
+            existingEntitiesUnauthorized.map {
+                BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+            }
+        )
+        updateBatchOperationResult.errors.addAll(
+            newEntities.map {
+                BatchEntityError(it.id, arrayListOf("Entity does not exist"))
+            }
+        )
+        val batchOperationResult = BatchOperationResult(
+            ArrayList(updateBatchOperationResult.success),
+            ArrayList(updateBatchOperationResult.errors)
+        )
+        publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
+
+        return if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+    }
+
+    /**
+     * Implements 6.17.3.1 - Delete Batch of Entities
+     */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()

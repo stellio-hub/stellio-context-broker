@@ -82,21 +82,6 @@ class EntityOperationHandlerTests {
         }
         """.trimIndent()
 
-    private val batchNonExistingEntityResponse =
-        """
-                {
-                    "errors": [
-                        {
-                            "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX200",
-                            "error": [
-                                "Entity does not exist"
-                            ]
-                        }
-                    ],
-                    "success": []
-                }
-        """.trimIndent()
-
     private val batchUpsertOrUpdateWithUpdateErrorsResponse =
         """
         { 
@@ -186,7 +171,7 @@ class EntityOperationHandlerTests {
     )
 
     @Test
-    fun `update batch should return a 204 if it has all correct entities`() {
+    fun `update batch entity should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -237,7 +222,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
-            arrayListOf(),
+            mutableListOf(),
             errors
         )
 
@@ -255,7 +240,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch should return 204 if options is noOverwrite`() {
+    fun `update batch entity should return 204 if JSON-LD payload is correct and noOverwrite is asked`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -289,7 +274,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch should return 207 with a non existing entity`() {
+    fun `update batch entity should return 207 if there is a non existing entity in the payload`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val updatedEntitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -302,7 +287,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
         } returns updatedEntitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            emptyList(),
+            arrayListOf(),
             listOf(nonExistingEntity)
         )
         every { entityOperationService.update(any()) } returns BatchOperationResult(
@@ -317,7 +302,20 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchNonExistingEntityResponse)
+            .expectBody().json(
+                """
+                    {
+                        "errors": [
+                            {
+                                "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX200",
+                                "error": [
+                                    "Entity does not exist"
+                                ]
+                            }
+                        ],
+                        "success": []
+                    }
+                """.trimIndent())
     }
 
     @Test

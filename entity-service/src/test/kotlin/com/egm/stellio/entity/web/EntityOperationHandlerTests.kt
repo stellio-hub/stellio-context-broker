@@ -82,7 +82,22 @@ class EntityOperationHandlerTests {
         }
         """.trimIndent()
 
-    private val batchUpsertorUpdateWithUpdateErrorsResponse =
+    private val batchNonExistingEntityResponse =
+        """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Device:HCMR-AQUABOX200",
+                            "error": [
+                                "Entity does not exist"
+                            ]
+                        }
+                    ],
+                    "success": []
+                }
+        """.trimIndent()
+
+    private val batchUpsertOrUpdateWithUpdateErrorsResponse =
         """
         { 
             "errors": [
@@ -171,7 +186,7 @@ class EntityOperationHandlerTests {
     )
 
     @Test
-    fun `update batch for correct entities should return a 204`() {
+    fun `update batch should return a 204 if it has all correct entities`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -231,7 +246,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertorUpdateWithUpdateErrorsResponse)
+            .expectBody().json(batchUpsertOrUpdateWithUpdateErrorsResponse)
     }
 
     @Test
@@ -240,7 +255,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `update batch for correct entities with options flag noOverwrite`() {
+    fun `update batch should return 204 if options is noOverwrite`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -267,34 +282,42 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
             .expectBody().isEmpty
+
+        verify { entityOperationService.update(any(), true) }
+
+        confirmVerified()
     }
 
     @Test
-    fun `update batch for non existing entity`() {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
-        val entitiesIds = arrayListOf(
+    fun `update batch should return 207 with a non existing entity`() {
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
+        val updatedEntitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri(),
-            "urn:ngsi-ld:Device:XYZER-AQUABOX200".toUri(),
+            "urn:ngsi-ld:Device:HCMR-AQUABOX200".toUri()
         )
+        val nonExistingEntity = mockk<NgsiLdEntity>()
+
+        every { nonExistingEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX200".toUri()
         every {
             authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
-        } returns entitiesIds
+        } returns updatedEntitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
-            emptyList()
+            listOf(nonExistingEntity)
+        )
+        every { entityOperationService.update(any()) } returns BatchOperationResult(
+            success = mutableListOf(), errors = mutableListOf()
         )
         every {
-            entityOperationService.update(any(), any())
-        } returns BatchOperationResult(errors = mutableListOf(), success = mutableListOf())
+            entityOperationService.getFullEntityById(any(), any())
+        } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
             .uri(batchUpdateEndpoint)
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isNoContent
-            .expectBody().isEmpty
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(batchNonExistingEntityResponse)
     }
 
     @Test
@@ -589,7 +612,7 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertorUpdateWithUpdateErrorsResponse)
+            .expectBody().json(batchUpsertOrUpdateWithUpdateErrorsResponse)
 
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify { entityEventService wasNot called }

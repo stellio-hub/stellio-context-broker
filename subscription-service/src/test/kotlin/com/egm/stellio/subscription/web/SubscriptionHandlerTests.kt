@@ -346,7 +346,7 @@ class SubscriptionHandlerTests {
     }
 
     @Test
-    fun `query subscriptions should return 200 and the number of results`() {
+    fun `query subscriptions should return 200 and the number of results if count is asked for`() {
         val subscription = gimmeRawSubscription()
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)

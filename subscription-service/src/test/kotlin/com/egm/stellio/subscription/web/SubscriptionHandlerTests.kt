@@ -56,41 +56,6 @@ class SubscriptionHandlerTests {
     private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
 
     @Test
-    fun `get subscriptions should return 200 and the number of results`() {
-        val subscription = gimmeRawSubscription()
-
-        every { subscriptionService.exists(any()) } returns Mono.just(true)
-        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(3)
-        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=10&offset=1&count=true")
-            .exchange()
-            .expectStatus().isOk
-            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
-            .expectBody()
-    }
-
-    @Test
-    fun `get subscriptions should return 400 if the number of results is requested with a limit less than zero`() {
-        val subscription = gimmeRawSubscription()
-
-        webClient.get()
-            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=-1&offset=1&count=true")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset and limit must be greater than zero"
-                }
-                """.trimIndent()
-            )
-    }
-
-    @Test
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
 
@@ -378,6 +343,22 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 and the number of results`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(3)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody()
     }
 
     @Test

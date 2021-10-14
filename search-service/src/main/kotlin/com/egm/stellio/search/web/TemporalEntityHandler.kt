@@ -12,22 +12,12 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.getDatasetId
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.OptionsParamValue
-import com.egm.stellio.shared.util.PagingUtils
-import com.egm.stellio.shared.util.buildGetSuccessResponse
-import com.egm.stellio.shared.util.checkAndGetContext
-import com.egm.stellio.shared.util.getApplicableMediaType
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.hasValueInOptionsParam
-import com.egm.stellio.shared.util.parseAndExpandRequestParameter
-import com.egm.stellio.shared.util.parseTimeParameter
-import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -99,6 +89,7 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
@@ -124,7 +115,7 @@ class TemporalEntityHandler(
         return PagingUtils.buildPaginationResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
             temporalEntityCount,
-            false,
+            count,
             prevAndNextLinks,
             mediaType,
             contextLink

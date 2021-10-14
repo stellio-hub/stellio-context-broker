@@ -8,5 +8,6 @@ data class TemporalEntitiesQuery(
     val temporalQuery: TemporalQuery,
     val withTemporalValues: Boolean,
     val limit: Int,
-    val offset: Int
+    val offset: Int,
+    val count: Boolean
 )

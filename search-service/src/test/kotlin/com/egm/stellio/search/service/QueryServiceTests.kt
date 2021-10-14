@@ -104,6 +104,7 @@ class QueryServiceTests {
         queryParams.add("options", "temporalValues")
         queryParams.add("limit", "10")
         queryParams.add("offset", "2")
+        queryParams.add("count", "true")
 
         every { applicationProperties.pagination.limitDefault } returns 30
         every { applicationProperties.pagination.limitMax } returns 100
@@ -124,6 +125,7 @@ class QueryServiceTests {
         assertTrue(temporalEntitiesQuery.withTemporalValues)
         assertEquals(10, temporalEntitiesQuery.limit)
         assertEquals(2, temporalEntitiesQuery.offset)
+        assertEquals(true, temporalEntitiesQuery.count)
     }
 
     @Test
@@ -251,7 +253,8 @@ class QueryServiceTests {
                     ),
                     false,
                     2,
-                    2
+                    2,
+                    count = false
                 ),
                 APIC_COMPOUND_CONTEXT
             )
@@ -321,7 +324,8 @@ class QueryServiceTests {
                     ),
                     false,
                     2,
-                    2
+                    2,
+                    false
                 ),
                 APIC_COMPOUND_CONTEXT
             )

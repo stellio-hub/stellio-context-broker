@@ -62,7 +62,7 @@ class TemporalEntityOperationsHandler(
         return PagingUtils.buildPaginationResponse(
             (serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) })),
             temporalEntityCount,
-            false,
+            temporalEntitiesQuery.count,
             prevAndNextLinks,
             mediaType,
             contextLink

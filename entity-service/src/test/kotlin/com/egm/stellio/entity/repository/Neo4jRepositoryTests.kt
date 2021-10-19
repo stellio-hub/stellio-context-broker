@@ -1089,7 +1089,6 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
         val entityTypesNames = neo4jRepository.getEntityTypesNames()
-
         assertEquals(2, entityTypesNames.size)
         assertTrue(
             entityTypesNames.containsAll(
@@ -1145,6 +1144,44 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                         "geoProperties" to emptySet<String>()
                     )
                 )
+            )
+        )
+    }
+
+    @Test
+    fun `it should retrieve attribute type`() {
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beehive:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            mutableListOf(
+                Property(name = "temperature", value = 36),
+                Property(name = "humidity", value = 65)
+            )
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Sensor:TESTC".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
+            mutableListOf(
+                Property(name = "deviceParameter", value = 30),
+                Property(name = "isContainedIn", value = 61)
+            )
+        )
+        createEntity(
+            "urn:ngsi-ld:Sensor:TESTB".toUri(),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
+            mutableListOf(
+                Property(name = "deviceParameter", value = 30),
+                Property(name = "isContainedIn", value = 61)
+            )
+        )
+
+        createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
+
+        val attributeName = neo4jRepository.getAtrribute()
+        assertEquals(5, attributeName.size)
+        assertTrue(
+            attributeName.containsAll(
+                listOf("Property", "Attribute", "Attribute", "Relationship", "observedBy")
             )
         )
     }

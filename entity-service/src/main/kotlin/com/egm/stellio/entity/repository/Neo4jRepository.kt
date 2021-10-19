@@ -581,6 +581,19 @@ class Neo4jRepository(
         }.flatten()
     }
 
+    fun getAtrribute(): List<String> {
+        val query =
+            """
+                MATCH (a:Attribute)
+                RETURN DISTINCT(labels(a)) as attribute
+            """.trimIndent()
+
+        val result = neo4jClient.query(query).fetch().all()
+        return result.map {
+            (it["attribute"] as List<String>)
+        }.flatten()
+    }
+
     fun filterExistingEntitiesAsIds(entitiesIds: List<URI>): List<URI> {
         if (entitiesIds.isEmpty()) {
             return emptyList()

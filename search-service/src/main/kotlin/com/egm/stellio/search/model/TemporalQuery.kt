@@ -20,7 +20,9 @@ data class TemporalQuery(
     enum class Aggregate {
         AVG,
         SUM,
-        COUNT;
+        COUNT,
+        MIN,
+        MAX;
 
         companion object {
             fun isSupportedAggregate(aggregate: String): Boolean =

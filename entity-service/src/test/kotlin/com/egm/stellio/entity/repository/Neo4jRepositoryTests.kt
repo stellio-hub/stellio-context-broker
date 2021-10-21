@@ -1089,6 +1089,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
         val entityTypesNames = neo4jRepository.getEntityTypesNames()
+
         assertEquals(2, entityTypesNames.size)
         assertTrue(
             entityTypesNames.containsAll(
@@ -1149,7 +1150,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should retrieve attribute type`() {
+    fun `it should retrieve attribute list`() {
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -1177,11 +1178,11 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
-        val attributeName = neo4jRepository.getAtrribute()
-        assertEquals(5, attributeName.size)
+        val attributeName = neo4jRepository.getAttribute()
+        assertEquals(1, attributeName.size)
         assertTrue(
             attributeName.containsAll(
-                listOf("Property", "Attribute", "Attribute", "Relationship", "observedBy")
+                listOf("observedBy")
             )
         )
     }

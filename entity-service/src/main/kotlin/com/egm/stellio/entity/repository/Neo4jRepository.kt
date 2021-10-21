@@ -581,7 +581,7 @@ class Neo4jRepository(
         }.flatten()
     }
 
-    fun getAtrribute(): List<String> {
+    fun getAttribute(): List<String> {
         val query =
             """
                 MATCH (a:Attribute)
@@ -591,6 +591,30 @@ class Neo4jRepository(
         val result = neo4jClient.query(query).fetch().all()
         return result.map {
             (it["attribute"] as List<String>)
+                .filter { it !in listOf("Attribute", "Relationship", "Property") }.toSet()
+        }.flatten()
+    }
+
+    fun getAttributeDetails(): List<Map<String, Any>> {
+        val query =
+            """
+                MATCH (a:Attribute)
+                OPTIONAL MATCH (a)<-[:HAS_VALUE]-(entity:Entity)
+                OPTIONAL MATCH (a)<-[:HAS_OBJECT]-(entity:Entity)
+                RETURN DISTINCT labels(a) as attribute, labels(entity) as typeNames
+            """.trimIndent()
+
+        val result = neo4jClient.query(query).fetch().all()
+        return result.map { rowResult ->
+            val attribute = (rowResult["attribute"] as List<String>)
+                .filter { it !in listOf("Attribute", "Relationship", "Property") }.toSet()
+            attribute.map { attribute ->
+                mapOf(
+                    "attribute" to attribute,
+                    "entity" to (rowResult["entity"] as List<Any>)
+                        .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet(),
+                )
+            }
         }.flatten()
     }
 

@@ -225,6 +225,56 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should return min value of all instances for a day`() {
+        (1..9).forEach { i ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = i.toDouble())
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeBucket = "1 day",
+            aggregate = TemporalQuery.Aggregate.MIN
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0] is SimplifiedAttributeInstanceResult &&
+                    (it[0] as SimplifiedAttributeInstanceResult).value as Double == 1.0
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should return max value of all instances for a day`() {
+        (1..9).forEach { i ->
+            val attributeInstance = gimmeAttributeInstance().copy(measuredValue = i.toDouble())
+            attributeInstanceService.create(attributeInstance).block()
+        }
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeBucket = "1 day",
+            aggregate = TemporalQuery.Aggregate.MAX
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0] is SimplifiedAttributeInstanceResult &&
+                    (it[0] as SimplifiedAttributeInstanceResult).value as Double == 9.0
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should only return the last n aggregates asked in the temporal query`() {
         (1..10).forEachIndexed { index, _ ->
             val attributeInstance =

@@ -11,13 +11,8 @@ import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -869,6 +864,25 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
+    fun `query temporal entities should return 200 and the number of results if count is asked for`() {
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns empty()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "type=BeeHive&limit=0&offset=9&count=true"
+            )
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
+            .expectBody()
+    }
+
+    @Test
     fun `query temporal entity should return 200 with next link header if exists`() {
         val firstTemporalEntity = deserializeObject(
             loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
@@ -1029,6 +1043,7 @@ class TemporalEntityHandlerTests {
             temporalQuery = TemporalQuery(),
             withTemporalValues = false,
             offset = 0,
-            limit = 30
+            limit = 30,
+            count = false
         )
 }

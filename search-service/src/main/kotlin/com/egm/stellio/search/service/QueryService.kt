@@ -32,13 +32,15 @@ class QueryService(
         val withTemporalValues = hasValueInOptionsParam(
             Optional.ofNullable(queryParams.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES
         )
+        val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
         val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
         val temporalQuery = buildTemporalQuery(queryParams, contextLink)
         val (offset, limit) = extractAndValidatePaginationParameters(
             queryParams,
             applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax
+            applicationProperties.pagination.limitMax,
+            count
         )
 
         if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
@@ -50,7 +52,8 @@ class QueryService(
             temporalQuery = temporalQuery,
             withTemporalValues = withTemporalValues,
             limit = limit,
-            offset = offset
+            offset = offset,
+            count = count
         )
     }
 

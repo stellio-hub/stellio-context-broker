@@ -216,12 +216,10 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
-        verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
 
         confirmVerified()
     }
@@ -244,7 +242,7 @@ class EntityServiceTests {
             ]}
             """.trimIndent()
         val datasetSetIds = slot<URI>()
-        val updatedInstances = mutableListOf<NgsiLdPropertyInstance>()
+        val updatedInstances = mutableListOf<Property>()
 
         val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
 
@@ -255,7 +253,7 @@ class EntityServiceTests {
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns true
-        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), capture(updatedInstances)) } returns 1
+        every { neo4jRepository.createPropertyOfSubject(any(), capture(updatedInstances)) } returns true
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
@@ -273,9 +271,9 @@ class EntityServiceTests {
         )
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
-        verify(exactly = 2) {
-            neo4jRepository.updateEntityPropertyInstance(
-                match { it.id == sensorId && it.label == "Entity" }, any(), any()
+        verify {
+            neo4jRepository.createPropertyOfSubject(
+                match { it.id == sensorId && it.label == "Entity" }, any()
             )
         }
 
@@ -304,12 +302,10 @@ class EntityServiceTests {
         every { mockkedSensor.type } returns listOf("Sensor")
 
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
-        every { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) } returns 1
 
         entityService.updateEntityAttributes(sensorId, ngsiLdPayload)
 
         verify { neo4jRepository.hasPropertyInstance(any(), any(), "urn:ngsi-ld:Dataset:fishAge:1".toUri()) }
-        verify { neo4jRepository.updateEntityPropertyInstance(any(), any(), any()) }
 
         confirmVerified()
     }

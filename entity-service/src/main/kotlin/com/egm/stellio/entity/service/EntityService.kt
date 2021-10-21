@@ -531,7 +531,12 @@ class EntityService(
                 EntitySubjectNode(entityId), ngsiLdProperty.name, ngsiLdPropertyInstance.datasetId
             )
         ) {
-            updateEntityAttributeInstance(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
+            neo4jRepository.deleteEntityProperty(
+                EntitySubjectNode(entityId),
+                ngsiLdProperty.name,
+                ngsiLdPropertyInstance.datasetId
+            )
+            createEntityProperty(entityId, ngsiLdProperty.name, ngsiLdPropertyInstance)
             UpdateAttributeResult(
                 ngsiLdProperty.name,
                 ngsiLdPropertyInstance.datasetId,
@@ -629,17 +634,4 @@ class EntityService(
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
-
-    // TODO add support for update relationship instance
-    @Transactional
-    fun updateEntityAttributeInstance(
-        entityId: URI,
-        expandedAttributeName: String,
-        ngsiLdPropertyInstance: NgsiLdPropertyInstance
-    ) =
-        neo4jRepository.updateEntityPropertyInstance(
-            EntitySubjectNode(entityId),
-            expandedAttributeName,
-            ngsiLdPropertyInstance
-        ) >= 1
 }

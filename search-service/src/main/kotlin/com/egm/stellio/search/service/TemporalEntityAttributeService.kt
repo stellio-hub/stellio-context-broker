@@ -304,23 +304,20 @@ class TemporalEntityAttributeService(
         types: Set<String>,
         attrs: Set<String>
     ): String {
-        val formattedIds = ids.joinToString(
-            separator = ",",
-            prefix = "entity_id in(",
-            postfix = ")"
-        ) { "'$it'" }
-        val formattedTypes = types.joinToString(
-            separator = ",",
-            prefix = "type in (",
-            postfix = ")"
-        ) { "'$it'" }
-        val formattedAttrs = attrs.joinToString(
-            separator = ",",
-            prefix = "attribute_name in (",
-            postfix = ")"
-        ) { "'$it'" }
+        val formattedIds =
+            if (ids.isNotEmpty())
+                ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
+            else null
+        val formattedTypes =
+            if (types.isNotEmpty())
+                types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
+            else null
+        val formattedAttrs =
+            if (attrs.isNotEmpty())
+                attrs.joinToString(separator = ",", prefix = "attribute_name in (", postfix = ")") { "'$it'" }
+            else null
 
-        return listOf(formattedIds, formattedTypes, formattedAttrs).joinToString(" AND ")
+        return listOfNotNull(formattedIds, formattedTypes, formattedAttrs).joinToString(" AND ")
     }
 
     fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {

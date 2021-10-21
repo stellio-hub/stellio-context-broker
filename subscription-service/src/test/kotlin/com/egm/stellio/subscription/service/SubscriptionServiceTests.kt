@@ -24,6 +24,7 @@ import reactor.test.StepVerifier
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -87,7 +88,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = "Beehive")
-            )
+            ),
+            expiresAt = Instant.now().atZone(ZoneOffset.UTC).plusDays(1)
         )
         subscription2Id = createSubscription(subscription)
     }
@@ -129,7 +131,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = "smartDoor")
             ),
-            isActive = true
+            isActive = true,
+            expiresAt = null
         )
         subscription5Id = createSubscription(subscription)
     }
@@ -142,9 +145,50 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = "smartDoor")
             ),
-            isActive = false
+            isActive = false,
+            expiresAt = ZonedDateTime.parse("2012-08-12T08:33:38Z")
         )
         subscription6Id = createSubscription(subscription)
+    }
+
+    @Test
+    fun `it should not retrieve an expired subscription matching an id`() {
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:smartDoor:88".toUri(),
+                "smartDoor",
+                "incoming"
+            )
+
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(0)
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should retrieve a subscription matching an id when expired date is not given`() {
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:smartDoor:77".toUri(),
+                "smartDoor",
+                "incoming"
+            )
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(1L)
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should retrieve a subscription matching an id when expired date is in the future`() {
+        val persistedSubscription =
+            subscriptionService.getMatchingSubscriptions(
+                "urn:ngsi-ld:Beehive:1234567890".toUri(),
+                "Beehive",
+                "incoming"
+            )
+        StepVerifier.create(persistedSubscription)
+            .expectNextCount(2L)
+            .verifyComplete()
     }
 
     @Test

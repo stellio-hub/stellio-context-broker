@@ -71,7 +71,8 @@ class TemporalEntityOperationsHandlerTests {
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 limit = 1,
-                offset = 0
+                offset = 0,
+                false
             )
         coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
@@ -105,6 +106,67 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
+                },
+                eq(APIC_COMPOUND_CONTEXT)
+            )
+        }
+
+        confirmVerified(queryService)
+    }
+
+    @Test
+    fun `it should return a 200 and the number of results if count is asked for`() {
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.BETWEEN,
+            time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+            expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
+        )
+
+        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
+        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
+            TemporalEntitiesQuery(
+                ids = emptySet(),
+                types = setOf("BeeHive", "Apiary"),
+                temporalQuery = temporalQuery,
+                withTemporalValues = true,
+                limit = 0,
+                offset = 1,
+                true
+            )
+
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("options", "temporalValues")
+        queryParams.add("timerel", "between")
+        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("type", "BeeHive,Apiary")
+        queryParams.add("attrs", "incoming,outgoing")
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entityOperations/query")
+            .body(BodyInserters.fromValue(queryParams))
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
+
+        verify {
+            queryService.parseAndCheckQueryParams(
+                queryParams,
+                APIC_COMPOUND_CONTEXT
+            )
+        }
+        coVerify {
+            queryService.queryTemporalEntities(
+                match { temporalEntitiesQuery ->
+                    temporalEntitiesQuery.limit == 0 &&
+                        temporalEntitiesQuery.offset == 1 &&
+                        temporalEntitiesQuery.ids.isEmpty() &&
+                        temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
+                        temporalEntitiesQuery.temporalQuery == temporalQuery &&
+                        temporalEntitiesQuery.withTemporalValues &&
+                        temporalEntitiesQuery.count == true
                 },
                 eq(APIC_COMPOUND_CONTEXT)
             )

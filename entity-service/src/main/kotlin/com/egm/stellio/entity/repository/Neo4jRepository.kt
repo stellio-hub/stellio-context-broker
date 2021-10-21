@@ -6,7 +6,6 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
@@ -131,76 +130,6 @@ class Neo4jRepository(
         return neo4jClient.query(query)
             .bind(subjectId.toString()).to("subjectId")
             .run().counters().propertiesSet()
-    }
-
-    fun updateEntityPropertyInstance(
-        subjectNodeInfo: SubjectNodeInfo,
-        propertyName: String,
-        newPropertyInstance: NgsiLdPropertyInstance
-    ): Int {
-        /**
-         * Update a property instance:
-         *
-         * 1. Delete old instance
-         * 2. Create new instance
-         */
-        val datasetId = newPropertyInstance.datasetId
-
-        val matchQuery = if (datasetId == null)
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
-                ->(attribute:Property { name: ${'$'}propertyName })
-            WHERE attribute.datasetId IS NULL
-            """
-        else
-            """
-            MATCH (entity:${subjectNodeInfo.label} { id: ${'$'}entityId })-[:HAS_VALUE]
-                ->(attribute:Property { name: ${'$'}propertyName, datasetId: ${'$'}datasetId})
-            """.trimIndent()
-
-        var createAttributeQuery =
-            """
-            WITH DISTINCT entity
-            CREATE (entity)-[:HAS_VALUE]->(newAttribute:Attribute:Property ${'$'}props)
-            """
-
-        val parameters = mutableMapOf(
-            "entityId" to subjectNodeInfo.id.toString(),
-            "propertyName" to propertyName,
-            "datasetId" to datasetId?.toString(),
-            "props" to Property(propertyName, newPropertyInstance).nodeProperties(),
-            "propertiesOfProperty" to newPropertyInstance.properties
-                .map { Property(it.name, it.instances[0]).nodeProperties() }
-        )
-
-        if (newPropertyInstance.properties.isNotEmpty())
-            createAttributeQuery = createAttributeQuery.plus(
-                """
-                WITH newAttribute
-                UNWIND ${'$'}propertiesOfProperty AS propertyOfProperty
-                CREATE (newAttribute)-[:HAS_VALUE]->(newPropertyOfAttribute:Attribute:Property)
-                SET newPropertyOfAttribute = propertyOfProperty
-                """
-            )
-
-        newPropertyInstance.relationships.forEachIndexed { index, ngsiLdRelationship ->
-            val relationship = Relationship(ngsiLdRelationship.name, ngsiLdRelationship.instances[0])
-            parameters["relationshipOfProperty_$index"] = relationship.nodeProperties()
-            createAttributeQuery = createAttributeQuery.plus(
-                """
-                    WITH DISTINCT newAttribute
-                    MERGE (target { id: "${ngsiLdRelationship.instances[0].objectId}" })
-                    ON CREATE SET target:PartialEntity 
-                    CREATE (newAttribute)-[:HAS_OBJECT]
-                        ->(r:Attribute:Relationship:`${relationship.type[0]}` ${'$'}relationshipOfProperty_$index)
-                        -[:${relationship.type[0].toRelationshipTypeName()}]->(target)
-                    """
-            )
-        }
-
-        return neo4jClient.query(matchQuery + deleteAttributeQuery + createAttributeQuery)
-            .bindAll(parameters)
-            .run().counters().nodesDeleted()
     }
 
     fun updateEntityModifiedDate(entityId: URI): Int {

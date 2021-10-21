@@ -25,7 +25,6 @@ import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.core.bind
 import org.springframework.data.relational.core.query.Criteria.where
 import org.springframework.data.relational.core.query.Query.query
 import org.springframework.data.relational.core.query.Update
@@ -55,9 +54,9 @@ class SubscriptionService(
         val insertStatement =
             """
         INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
-            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, sub)
+            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, expires_at, sub)
         VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
-            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :sub)
+            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
             """.trimIndent()
 
         return databaseClient.sql(insertStatement)
@@ -75,6 +74,7 @@ class SubscriptionService(
             .bind("endpoint_info", Json.of(endpointInfoToString(subscription.notification.endpoint.info)))
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
+            .bind("expires_at", subscription.expiresAt)
             .bind("sub", sub)
             .fetch()
             .rowsUpdated()
@@ -142,7 +142,7 @@ class SubscriptionService(
                    watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, geoproperty
+                   georel, geometry, coordinates, geoproperty, expires_at
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -197,12 +197,15 @@ class SubscriptionService(
                     val entities = it.value as List<Map<String, Any>>
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
-                listOf("name", "description", "watchedAttributes", "q", "isActive", "modifiedAt").contains(it.key) -> {
+                listOf(
+                    "name", "description", "watchedAttributes", "q", "isActive", "modifiedAt",
+                    "expiresAt"
+                ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
                     updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
-                listOf("expiresAt", "timeInterval", "csf", "throttling", "temporalQ").contains(it.key) -> {
+                listOf("timeInterval", "csf", "throttling", "temporalQ").contains(it.key) -> {
                     logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                     throw NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                 }
@@ -357,7 +360,7 @@ class SubscriptionService(
                    watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, geoproperty
+                   georel, geometry, coordinates, geoproperty, expires_at
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -404,7 +407,8 @@ class SubscriptionService(
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
-            WHERE is_active 
+            WHERE is_active
+            AND ( expires_at is null OR expires_at >= :date )
             AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
             AND id IN (
                 SELECT subscription_id
@@ -418,6 +422,7 @@ class SubscriptionService(
             .bind("id", id)
             .bind("type", type)
             .bind("updatedAttributes", updatedAttributes)
+            .bind("date", Instant.now().atZone(ZoneOffset.UTC))
             .map(rowToRawSubscription)
 
             .all()
@@ -502,6 +507,7 @@ class SubscriptionService(
             name = row.get("name", String::class.java),
             createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
             modifiedAt = row.get("modified_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
+            expiresAt = row.get("expires_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             description = row.get("description", String::class.java),
             watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
             q = row.get("q", String::class.java),

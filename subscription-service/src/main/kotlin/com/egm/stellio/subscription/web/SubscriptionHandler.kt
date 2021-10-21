@@ -77,10 +77,12 @@ class SubscriptionHandler(
         @RequestParam params: MultiValueMap<String, String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val (offset, limit) = extractAndValidatePaginationParameters(
             params,
             applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax
+            applicationProperties.pagination.limitMax,
+            count
         )
         val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
@@ -101,7 +103,7 @@ class SubscriptionHandler(
         return PagingUtils.buildPaginationResponse(
             subscriptions,
             subscriptionsCount,
-            false,
+            count,
             prevAndNextLinks,
             mediaType,
             contextLink

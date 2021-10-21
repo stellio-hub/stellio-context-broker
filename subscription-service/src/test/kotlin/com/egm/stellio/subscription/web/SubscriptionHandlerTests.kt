@@ -2,12 +2,8 @@ package com.egm.stellio.subscription.web
 
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.removeNoise
-import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -347,6 +343,22 @@ class SubscriptionHandlerTests {
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
+    }
+
+    @Test
+    fun `query subscriptions should return 200 and the number of results if count is asked for`() {
+        val subscription = gimmeRawSubscription()
+
+        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.getSubscriptionsCount(any()) } returns Mono.just(3)
+        every { subscriptionService.getSubscriptions(any(), any(), any()) } returns Flux.just(subscription)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions?${subscription.id}&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody()
     }
 
     @Test

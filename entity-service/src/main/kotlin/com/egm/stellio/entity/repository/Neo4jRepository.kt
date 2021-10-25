@@ -20,7 +20,6 @@ import java.time.ZoneOffset
 sealed class SubjectNodeInfo(val id: URI, val label: String)
 class EntitySubjectNode(id: URI) : SubjectNodeInfo(id, "Entity")
 class AttributeSubjectNode(id: URI) : SubjectNodeInfo(id, "Attribute")
-
 @Component
 class Neo4jRepository(
     private val neo4jClient: Neo4jClient
@@ -601,17 +600,19 @@ class Neo4jRepository(
                 MATCH (a:Attribute)
                 OPTIONAL MATCH (a)<-[:HAS_VALUE]-(entity:Entity)
                 OPTIONAL MATCH (a)<-[:HAS_OBJECT]-(entity:Entity)
-                RETURN DISTINCT labels(a) as attribute, labels(entity) as typeNames
+                RETURN DISTINCT labels(a) as relation, labels(entity) as typeNames, collect(distinct a.name) as property
             """.trimIndent()
 
         val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
-            val attribute = (rowResult["attribute"] as List<String>)
+            val property = (rowResult["property"] as List<String>)
+            val relation = (rowResult["relation"] as List<String>)
                 .filter { it !in listOf("Attribute", "Relationship", "Property") }.toSet()
+            val attribute: List<String> = property.plus(relation)
             attribute.map { attribute ->
                 mapOf(
                     "attribute" to attribute,
-                    "entity" to (rowResult["entity"] as List<Any>)
+                    "typeNames" to (rowResult["typeNames"] as List<Any>)
                         .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet(),
                 )
             }

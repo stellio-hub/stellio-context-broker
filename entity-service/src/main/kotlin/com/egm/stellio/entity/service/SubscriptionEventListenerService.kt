@@ -28,7 +28,11 @@ class SubscriptionEventListenerService(
         }
     }
 
-    @KafkaListener(topics = ["cim.notification"], groupId = "entity_service_notification")
+    @KafkaListener(
+        topics = ["cim.notification"],
+        groupId = "entity_service_notification",
+        properties = ["max.poll.records:50"]
+    )
     fun processNotification(content: String) {
         logger.debug("Received notification event: $content")
         when (val notificationEvent = deserializeAs<EntityEvent>(content)) {

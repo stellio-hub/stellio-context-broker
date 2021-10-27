@@ -62,5 +62,7 @@ class SubscriptionEventListenerService(
             subscriptionId,
             parsedNotification
         )
+
+        logger.debug("Created new notification for subscription $subscriptionId")
     }
 }

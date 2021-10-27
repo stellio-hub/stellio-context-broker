@@ -104,8 +104,8 @@ class SubscriptionHandlerService(
                 lastNotification.id,
                 notification.id
             )
-            relationshipRepository.save(relationship)
             entityService.deleteEntity(lastNotification.id)
+            logger.debug("Updated link from subscription $subscriptionId to new notification ${notification.id}")
         } else {
             val rawRelationship = Relationship(
                 objectId = notification.id,

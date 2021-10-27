@@ -60,8 +60,8 @@ class SubscriptionHandlerServiceTests {
         subscriptionHandlerService.createSubscriptionEntity(subscriptionId, subscriptionType, properties)
 
         verify { entityService.exists(eq(subscriptionId)) }
-        verify { propertyRepository.save(any<Property>()) }
-        verify { entityRepository.save(any<Entity>()) }
+        verify { propertyRepository.save(any()) }
+        verify { entityRepository.save(any()) }
 
         confirmVerified()
     }
@@ -154,8 +154,8 @@ class SubscriptionHandlerServiceTests {
         )
 
         verify { entityRepository.getEntityCoreById(eq(subscriptionId.toString())) }
-        verify { propertyRepository.save(any<Property>()) }
-        verify { entityRepository.save(any<Entity>()) }
+        verify { propertyRepository.save(any()) }
+        verify { entityRepository.save(any()) }
         verify {
             entityRepository.getRelationshipTargetOfSubject(
                 subscriptionId,
@@ -191,7 +191,6 @@ class SubscriptionHandlerServiceTests {
         every { mockkedNotification.id } returns notificationId
         every { mockkedLastNotification.id } returns lastNotificationId
         every { neo4jRepository.updateTargetOfRelationship(any(), any(), any(), any()) } returns 1
-        every { relationshipRepository.save(any()) } returns mockkedRelationship
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
 
         subscriptionHandlerService.createNotificationEntity(
@@ -199,8 +198,8 @@ class SubscriptionHandlerServiceTests {
         )
 
         verify { entityRepository.getEntityCoreById(eq(subscriptionId.toString())) }
-        verify { propertyRepository.save(any<Property>()) }
-        verify { entityRepository.save(any<Entity>()) }
+        verify { propertyRepository.save(any()) }
+        verify { entityRepository.save(any()) }
         verify {
             entityRepository.getRelationshipTargetOfSubject(
                 subscriptionId,
@@ -221,7 +220,6 @@ class SubscriptionHandlerServiceTests {
                 notificationId
             )
         }
-        verify { relationshipRepository.save(any<Relationship>()) }
         every { entityService.deleteEntity(lastNotificationId) }
 
         confirmVerified()

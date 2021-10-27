@@ -11,14 +11,13 @@
       "stellio/stellio-search-service", 
       "stellio/stellio-subscription-service", 
       "stellio/stellio-entity-service", 
-      "stellio/stellio-api-gateway", 
-      "stellio/stellio-timescale-postgis"
+      "stellio/stellio-api-gateway"
     ],
-    "email": "",
+    "email": "datahub@egm.io",
     "status": "incubating",
-    "compose": "https://github.com/stellio-hub/stellio-context-broker/blob/develop/docker-compose.yml",
-    "exclude": [""],
-    "stackexchange": [""],
+    "compose": "https://raw.githubusercontent.com/stellio-hub/stellio-context-broker/develop/docker-compose.yml",
+    "exclude": ["zookeeper", "kafka", "neo4j", "postgres"],
+    "stackexchange": ["https://stackoverflow.com/questions/tagged/fiware-stellio"],
     "unit-test": "",
     "smoke-test": "",
     "dockerfile": [

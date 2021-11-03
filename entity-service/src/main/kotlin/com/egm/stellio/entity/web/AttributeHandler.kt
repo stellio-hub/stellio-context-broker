@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.service.AttributeService
+import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -33,5 +34,24 @@ class AttributeHandler(
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(JsonUtils.serializeObject(availableEntityTypes))
+    }
+
+    /**
+     * Implements 6.28 - Retrieve Available Attribute Type Information
+     */
+    @GetMapping("/{attrId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getByAttributeId(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @PathVariable attrId: String
+    ): ResponseEntity<*> {
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val expandedType = JsonLdUtils.expandJsonLdKey(attrId.decode(), contextLink)!!
+
+        val attributeTypeInfo = attributeService.getAttributeTypeInfo(expandedType)
+            ?: throw ResourceNotFoundException("No information found for attribute $expandedType")
+
+        return buildGetSuccessResponse(mediaType, contextLink)
+            .body(JsonUtils.serializeObject(attributeTypeInfo))
     }
 }

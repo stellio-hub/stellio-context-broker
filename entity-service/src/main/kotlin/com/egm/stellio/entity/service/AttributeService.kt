@@ -25,4 +25,17 @@ class AttributeService(
                 typeNames = (it["typeNames"] as Set<String>).toList().map { compactTerm(it, contexts) }
             )
         }
+
+    fun getAttributeTypeInfo(expandedType: String): AttributeTypeInfo? {
+        val attributesInformation = neo4jRepository.getAttributeInformation(expandedType)
+        if (attributesInformation.isEmpty()) return null
+
+        return AttributeTypeInfo(
+            id = expandedType.toUri(),
+            attributeName = attributesInformation["attributeName"] as String,
+            attributeTypes = attributesInformation["attributeTypes"] as List<String>,
+            typeNames = attributesInformation["typeNames"] as List<String>,
+            attributeCount = attributesInformation["attributeCount"] as Int
+        )
+    }
 }

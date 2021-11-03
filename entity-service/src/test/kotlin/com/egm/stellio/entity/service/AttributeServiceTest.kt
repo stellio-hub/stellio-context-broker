@@ -81,4 +81,23 @@ class AttributeServiceTest {
 
         assert(attributeName.attributeList == listOf("temperature", "BeeHive"))
     }
+
+    @Test
+    fun `it should return an attribute Information`() {
+        every { neo4jRepository.getAttributeInformation(any()) } returns mapOf(
+            "attributeName" to "temperature",
+            "attributeTypes" to listOf("Property"),
+            "typeNames" to listOf("Beehive"),
+            "attributeCount" to 2
+        )
+
+        val attributeTypeInfo = attributeService.getAttributeTypeInfo(temperature)!!
+
+        assert(attributeTypeInfo.id == temperature.toUri())
+        assert(attributeTypeInfo.type == "Attribute")
+        assert(attributeTypeInfo.attributeName == "temperature")
+        assert(attributeTypeInfo.attributeTypes == listOfNotNull("Property"))
+        assert(attributeTypeInfo.typeNames == listOfNotNull("Beehive"))
+        assert(attributeTypeInfo.attributeCount == 2)
+    }
 }

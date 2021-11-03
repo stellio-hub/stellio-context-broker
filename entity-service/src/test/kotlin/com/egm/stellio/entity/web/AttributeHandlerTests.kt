@@ -29,6 +29,8 @@ class AttributeHandlerTests {
     @MockkBean
     private lateinit var attributeService: AttributeService
 
+    private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+
     private val temperature = "https://ontology.eglobalmark.com/apic#temperature"
     private val deviceParameter = "https://ontology.eglobalmark.com/apic#deviceParameter"
 
@@ -54,6 +56,18 @@ class AttributeHandlerTests {
             ]
         """.trimIndent()
 
+    private val expectedAttributeTypeInfo =
+        """
+            {
+               "id":"https://ontology.eglobalmark.com/apic#temperature",
+               "type":"Attribute",
+               "attributeName": "temperature",
+               "attributeTypes": ["Property"],
+               "typeNames": ["Beehive"],
+               "attributeCount":2
+            }
+        """.trimIndent()
+
     @Test
     fun `get attributes should return a 200 and an AttributeList`() {
         every { attributeService.getAttributeList(any()) } returns AttributeList(
@@ -69,8 +83,8 @@ class AttributeHandlerTests {
             .expectStatus().isOk
             .expectBody()
             .jsonPath("$.id").isNotEmpty
-            .jsonPath("$.type").isNotEmpty
-            .jsonPath("$.attributeList").isNotEmpty
+            .jsonPath("$.type").isEqualTo("AttributeList")
+            .jsonPath("$.attributeList").isEqualTo(listOfNotNull("attributeService", "deviceParameter"))
 
         verify {
             attributeService.getAttributeList(
@@ -80,7 +94,7 @@ class AttributeHandlerTests {
     }
 
     @Test
-    fun `get attributes should return a 200 and an AttributeList with empty attributeList if no attribute was found`() {
+    fun `get attributes should return a 200 and an empty attributeList if no attribute was found`() {
         every { attributeService.getAttributeList(any()) } returns AttributeList(attributeList = emptyList())
 
         webClient.get()
@@ -149,5 +163,79 @@ class AttributeHandlerTests {
                 listOf(NGSILD_CORE_CONTEXT)
             )
         }
+    }
+
+    @Test
+    fun `get attribute type information should return a 200 if attribute of that id exists`() {
+        every { attributeService.getAttributeTypeInfo(any()) } returns
+            mockkClass(AttributeTypeInfo::class, relaxed = true)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes/temperature")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            attributeService.getAttributeTypeInfo(
+                "https://uri.etsi.org/ngsi-ld/default-context/temperature"
+            )
+        }
+    }
+
+    @Test
+    fun `get attribute type information should search on attributes with the expanded id if provided`() {
+        every { attributeService.getAttributeTypeInfo(any()) } returns
+            mockkClass(AttributeTypeInfo::class, relaxed = true)
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes/https%3A%2F%2Fontology.eglobalmark.com%2Fapic%23temperature")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+
+        verify {
+            attributeService.getAttributeTypeInfo(
+                "https://ontology.eglobalmark.com/apic#temperature"
+            )
+        }
+    }
+
+    @Test
+    fun `get attribute type information should correctly serialize an AttributeTypeInfo`() {
+        every { attributeService.getAttributeTypeInfo(any()) } returns
+            AttributeTypeInfo(
+                id = "https://ontology.eglobalmark.com/apic#temperature".toUri(),
+                type = "Attribute",
+                attributeName = "temperature",
+                attributeTypes = listOf("Property"),
+                typeNames = listOf("Beehive"),
+                attributeCount = 2
+            )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes/temperature")
+            .header(HttpHeaders.LINK, apicHeaderLink)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(expectedAttributeTypeInfo)
+
+        verify {
+            attributeService.getAttributeTypeInfo(
+                "https://ontology.eglobalmark.com/apic#temperature"
+            )
+        }
+    }
+
+    @Test
+    fun `get attribute type information should return a 404 if no attribute of that id exists`() {
+        every { attributeService.getAttributeTypeInfo(any()) } returns null
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/attributes/unknown")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNotFound
     }
 }

@@ -1211,11 +1211,11 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         val attribute = neo4jRepository.getAttributeDetails()
         val expectedAttributes = listOf(
             mapOf(
-                "attribute" to "temperature",
+                "attribute" to "humidity",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
             ),
             mapOf(
-                "attribute" to "humidity",
+                "attribute" to "temperature",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
             ),
             mapOf(

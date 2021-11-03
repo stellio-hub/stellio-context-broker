@@ -1174,12 +1174,12 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val attributeName = neo4jRepository.getAttribute()
         val expectedValue = listOf(
-            "temperature",
-            "humidity",
             "deviceParameter",
-            "isContainedIn",
             "https://uri.etsi.org/ngsi-ld/location",
-            "observedBy"
+            "humidity",
+            "isContainedIn",
+            "observedBy",
+            "temperature"
         )
         assertEquals(6, attributeName.size)
         assertArrayEquals(arrayOf(expectedValue), arrayOf(attributeName))
@@ -1211,7 +1211,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         val attribute = neo4jRepository.getAttributeDetails()
         val expectedAttributes = listOf(
             mapOf(
-                "attribute" to "temperature",
+                "attribute" to "HAS_OBJECT",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
             ),
             mapOf(
@@ -1219,15 +1219,15 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
             ),
             mapOf(
-                "attribute" to "HAS_OBJECT",
+                "attribute" to "temperature",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
             ),
             mapOf(
-                "attribute" to "deviceParameter",
+                "attribute" to "HAS_VALUE",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
             ),
             mapOf(
-                "attribute" to "isContainedIn",
+                "attribute" to "deviceParameter",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
             ),
             mapOf(
@@ -1235,7 +1235,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
             ),
             mapOf(
-                "attribute" to "HAS_VALUE",
+                "attribute" to "isContainedIn",
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
             )
         )

@@ -597,7 +597,7 @@ class Neo4jRepository(
                 .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
             if (entityWithLocationCount > 0) { attributeList += NGSILD_LOCATION_PROPERTY }
             attributeList
-        }.flatten()
+        }.flatten().sortedBy { it }
     }
 
     fun getAttributeDetails(): List<Map<String, Any>> {
@@ -623,9 +623,10 @@ class Neo4jRepository(
                 attribute = property.plus(location).plus(relation)
                     .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
             }
-            attribute.map { attribute ->
+            val attributeName = attribute.sortedBy { it }
+            attributeName.map { attributeName ->
                 mapOf(
-                    "attribute" to attribute,
+                    "attribute" to attributeName,
                     "typeNames" to (rowResult["typeNames"] as List<Any>)
                         .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet(),
                 )

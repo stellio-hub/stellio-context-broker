@@ -27,13 +27,13 @@ class AttributeHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val detailedRepresentation = details.orElse(false)
 
-        val availableEntityTypes: Any = if (detailedRepresentation)
+        val availableAttribute: Any = if (detailedRepresentation)
             attributeService.getAttributeDetails(listOf(contextLink))
         else
             attributeService.getAttributeList(listOf(contextLink))
 
         return buildGetSuccessResponse(mediaType, contextLink)
-            .body(JsonUtils.serializeObject(availableEntityTypes))
+            .body(JsonUtils.serializeObject(availableAttribute))
     }
 
     /**

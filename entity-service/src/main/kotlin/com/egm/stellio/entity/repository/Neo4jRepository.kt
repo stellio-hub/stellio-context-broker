@@ -603,24 +603,23 @@ class Neo4jRepository(
     fun getAttributeDetails(): List<Map<String, Any>> {
         val query =
             """
-                OPTIONAL MATCH (prop:Attribute)<-[:HAS_VALUE]-(entity:Entity)
-                OPTIONAL MATCH (rel:Attribute)<-[:HAS_OBJECT]-(entity:Entity)
-                RETURN DISTINCT (labels(rel)) as relation, 
+                MATCH (a:Attribute) <-[:HAS_VALUE|:HAS_OBJECT]-(entity:Entity)
+                RETURN DISTINCT (labels(a)) as relation, 
                 labels(entity) as typeNames,
-                collect(prop.name) as property,
+                collect(distinct a.name) as property,
                 count(entity.location) as entityWithLocationCount
             """.trimIndent()
 
         val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
-            val property = (rowResult["property"] as List<String>)
-            val relation = (rowResult["relation"] as List<String>)
-            var attribute: List<String> = property.plus(relation)
+            val names = (rowResult["property"] as List<String>)
+            val labels = (rowResult["relation"] as List<String>)
+            var attribute: List<String> = names.plus(labels)
                 .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
             if (entityWithLocationCount > 0) {
                 val location: List<String> = listOf(NGSILD_LOCATION_PROPERTY)
-                attribute = property.plus(location).plus(relation)
+                attribute = names.plus(location).plus(labels)
                     .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
             }
             val attributeName = attribute.sortedBy { it }
@@ -636,12 +635,11 @@ class Neo4jRepository(
     fun getAttributeInformation(expandedType: String): Map<String, Any> {
         val relationshipQuery =
             """
-                MATCH (a:Attribute:`$expandedType`)
-                OPTIONAL MATCH (a)<-[:HAS_OBJECT|:HAS_VALUE]-(entity:Entity)
+                MATCH (a:Relationship:`$expandedType`)
+                OPTIONAL MATCH (a)<-[:HAS_OBJECT]-(entity:Entity)
                 return DISTINCT (labels(a)) as attributeTypes,
                 labels(entity) as typeNames,
-                count(a) as attributeCount,
-                count(entity.location) as entityLocationCount
+                count(a) as attributeCount
             """.trimIndent()
         val propertyQuery =
             """
@@ -649,8 +647,7 @@ class Neo4jRepository(
                 OPTIONAL MATCH (a)<-[:HAS_VALUE]-(entity:Entity)
                 return DISTINCT (labels(a)) as attributeTypes,
                 labels(entity) as typeNames,
-                count(a) as attributeCount,
-                count(entity.location) as entityLocationCount
+                count(a) as attributeCount
             """.trimIndent()
 
         var result = neo4jClient.query(relationshipQuery).fetch().all()
@@ -659,10 +656,8 @@ class Neo4jRepository(
         if (result.isEmpty())
             return emptyMap()
         val attributeCount = (result.first()["attributeCount"] as Long).toInt()
-        var attributeType = (result.first()["attributeTypes"] as List<String>)
+        val attributeType = (result.first()["attributeTypes"] as List<String>)
             .filter { it !in listOf("Attribute", expandedType) }.toList()
-        val entityWithLocationCount = (result.first()["entityLocationCount"] as Long).toInt()
-        if (entityWithLocationCount > 0) { attributeType += "GeoProperty" }
         return mapOf(
             "attributeName" to expandedType,
             "attributeTypes" to attributeType,

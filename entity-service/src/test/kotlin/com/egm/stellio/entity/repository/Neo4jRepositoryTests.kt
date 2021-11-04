@@ -1215,34 +1215,37 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
         val attribute = neo4jRepository.getAttributeDetails()
-        val expectedAttributes = listOf(
-            mapOf(
-                "attribute" to "humidity",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
-            ),
-            mapOf(
-                "attribute" to "temperature",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
-            ),
-            mapOf(
-                "attribute" to "deviceParameter",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-            ),
-            mapOf(
-                "attribute" to "https://uri.etsi.org/ngsi-ld/location",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-            ),
-            mapOf(
-                "attribute" to "isContainedIn",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-            ),
-            mapOf(
-                "attribute" to "observedBy",
-                "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
-            ),
-        )
         assertEquals("Got the following types instead: $attribute", 6, attribute.size)
-        assertArrayEquals(arrayOf(expectedAttributes), arrayOf(attribute))
+        assertTrue(
+            attribute.containsAll(
+                listOf(
+                    mapOf(
+                        "attribute" to "humidity",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
+                    ),
+                    mapOf(
+                        "attribute" to "temperature",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
+                    ),
+                    mapOf(
+                        "attribute" to "deviceParameter",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
+                    ),
+                    mapOf(
+                        "attribute" to "https://uri.etsi.org/ngsi-ld/location",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
+                    ),
+                    mapOf(
+                        "attribute" to "isContainedIn",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
+                    ),
+                    mapOf(
+                        "attribute" to "observedBy",
+                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
+                    )
+                )
+            )
+        )
     }
 
     @Test

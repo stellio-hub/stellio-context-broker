@@ -27,7 +27,7 @@ class AttributeServiceTest {
 
     @Test
     fun `it should return a list of AttributeDetails`() {
-        every { neo4jRepository.getAttributeDetails() } returns listOf(
+        every { neo4jRepository.getAttributesDetails() } returns listOf(
             mapOf(
                 "attribute" to temperature,
                 "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
@@ -66,7 +66,7 @@ class AttributeServiceTest {
 
     @Test
     fun `it should return an empty list of AttributeDetails if no attribute was found`() {
-        every { neo4jRepository.getAttributeDetails() } returns emptyList()
+        every { neo4jRepository.getAttributesDetails() } returns emptyList()
 
         val attributeDetail = attributeService.getAttributeDetails(listOf(APIC_COMPOUND_CONTEXT))
 
@@ -75,7 +75,7 @@ class AttributeServiceTest {
 
     @Test
     fun `it should return an AttributeList`() {
-        every { neo4jRepository.getAttribute() } returns listOf(temperature, beeHiveType)
+        every { neo4jRepository.getAttributes() } returns listOf(temperature, beeHiveType)
 
         val attributeName = attributeService.getAttributeList(listOf(APIC_COMPOUND_CONTEXT))
 

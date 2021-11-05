@@ -1172,7 +1172,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
-        val attributeName = neo4jRepository.getAttribute()
+        val attributeName = neo4jRepository.getAttributes()
         val expectedValue = listOf(
             "deviceParameter",
             "https://uri.etsi.org/ngsi-ld/location",
@@ -1200,56 +1200,67 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
                 Property(name = "deviceParameter", value = 30),
+                Property(name = "temperature", value = 36),
                 Property(name = "isContainedIn", value = 61)
             ),
             NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
         )
-        createEntity(
+        val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
                 Property(name = "humidity", value = 65)
-            )
+            ),
+            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(4.30623, 20.07966))
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
+        createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", thirdEntity.id)
 
-        val attribute = neo4jRepository.getAttributeDetails()
-        assertEquals("Got the following types instead: $attribute", 6, attribute.size)
-        assertTrue(
-            attribute.containsAll(
-                listOf(
-                    mapOf(
-                        "attribute" to "humidity",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
-                    ),
-                    mapOf(
-                        "attribute" to "temperature",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
-                    ),
-                    mapOf(
-                        "attribute" to "deviceParameter",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-                    ),
-                    mapOf(
-                        "attribute" to "https://uri.etsi.org/ngsi-ld/location",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-                    ),
-                    mapOf(
-                        "attribute" to "isContainedIn",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
-                    ),
-                    mapOf(
-                        "attribute" to "observedBy",
-                        "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
+        val attributes = neo4jRepository.getAttributesDetails()
+        assertEquals("Got the following types instead: $attributes", 6, attributes.size)
+        assertArrayEquals(
+            arrayOf(
+                mapOf(
+                    "attribute" to "deviceParameter",
+                    "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
+                ),
+                mapOf(
+                    "attribute" to "https://uri.etsi.org/ngsi-ld/location",
+                    "typeNames" to setOf(
+                        "https://ontology.eglobalmark.com/apic#Beehive",
+                        "https://ontology.eglobalmark.com/apic#Sensor"
+                    )
+                ),
+                mapOf(
+                    "attribute" to "humidity",
+                    "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive")
+                ),
+                mapOf(
+                    "attribute" to "isContainedIn",
+                    "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Sensor")
+                ),
+                mapOf(
+                    "attribute" to "observedBy",
+                    "typeNames" to setOf(
+                        "https://ontology.eglobalmark.com/apic#Beehive",
+                        "https://ontology.eglobalmark.com/apic#Sensor"
+                    )
+                ),
+                mapOf(
+                    "attribute" to "temperature",
+                    "typeNames" to setOf(
+                        "https://ontology.eglobalmark.com/apic#Beehive",
+                        "https://ontology.eglobalmark.com/apic#Sensor"
                     )
                 )
-            )
+            ),
+            attributes.toTypedArray()
         )
     }
 
     @Test
-    fun `it should return an emptyMap for unknown attributeType`() {
+    fun `it should return an empty result if attribute is unknown`() {
         createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -1259,15 +1270,14 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             )
         )
 
-        val attributesInformation = neo4jRepository
-            .getAttributeInformation("unKnown")
+        val attributesInformation = neo4jRepository.getAttributeInformation("unknown")
 
         assertTrue(attributesInformation.isEmpty())
     }
 
     @Test
-    fun `it should retrieve attributes information for two entities if attribute is a relationship type`() {
-        createEntity(
+    fun `it should retrieve attribute information for two entities if attribute is a relationship type`() {
+        val firstEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
             mutableListOf(
@@ -1277,22 +1287,25 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
-            listOf("https://ontology.eglobalmark.com/apic#Beehive"),
+            listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
                 Property(name = "temperature", value = 30),
                 Property(name = "humidity", value = 61)
             )
         )
         createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", partialTargetEntityUri)
+        createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
 
-        val actualAttributesInformation = neo4jRepository
-            .getAttributeInformation("observedBy")
+        val actualAttributesInformation = neo4jRepository.getAttributeInformation("observedBy")
 
         val expectedAttributesInformation = mapOf(
             "attributeName" to "observedBy",
-            "attributeTypes" to listOf("Relationship"),
-            "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive"),
-            "attributeCount" to 1
+            "attributeTypes" to setOf("Relationship"),
+            "typeNames" to setOf(
+                "https://ontology.eglobalmark.com/apic#Beehive",
+                "https://ontology.eglobalmark.com/apic#Sensor"
+            ),
+            "attributeCount" to 2
         )
 
         assertEquals("Got the following attributes: $actualAttributesInformation", 4, actualAttributesInformation.size)
@@ -1300,7 +1313,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should retrieve attributes information for two entities if attribute is a property type`() {
+    fun `it should retrieve attribute information for two entities if attribute is a property type`() {
         createEntity(
             "urn:ngsi-ld:Beehive:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Beehive"),
@@ -1309,23 +1322,25 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "humidity", value = 65)
             )
         )
-        val secondEntity = createEntity(
+        createEntity(
             "urn:ngsi-ld:Sensor:TESTC".toUri(),
             listOf("https://ontology.eglobalmark.com/apic#Sensor"),
             mutableListOf(
                 Property(name = "deviceParameter", value = 30),
-                Property(name = "isContainedIn", value = 61)
+                Property(name = "humidity", value = 60)
             )
         )
 
-        val actualAttributesInformation = neo4jRepository
-            .getAttributeInformation("humidity")
+        val actualAttributesInformation = neo4jRepository.getAttributeInformation("humidity")
 
         val expectedAttributesInformation = mapOf(
             "attributeName" to "humidity",
-            "attributeTypes" to listOf("Property"),
-            "typeNames" to setOf("https://ontology.eglobalmark.com/apic#Beehive"),
-            "attributeCount" to 1
+            "attributeTypes" to setOf("Property"),
+            "typeNames" to setOf(
+                "https://ontology.eglobalmark.com/apic#Beehive",
+                "https://ontology.eglobalmark.com/apic#Sensor"
+            ),
+            "attributeCount" to 2
         )
 
         assertEquals("Got the following attributes: $actualAttributesInformation", 4, actualAttributesInformation.size)

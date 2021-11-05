@@ -581,89 +581,117 @@ class Neo4jRepository(
         }.flatten()
     }
 
-    fun getAttribute(): List<String> {
+    fun getAttributes(): List<String> {
         val query =
             """
                 MATCH (a:Attribute)
                 OPTIONAL MATCH (a:Attribute)<-[:HAS_OBJECT|:HAS_VALUE]-(entity:Entity)
                 RETURN DISTINCT(labels(a))+collect(DISTINCT(a.name)) as attribute,
-                count(entity.location) as entityWithLocationCount
+                    count(entity.location) as entityWithLocationCount
             """.trimIndent()
 
         val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
-            var attributeList = (rowResult["attribute"] as List<String>)
-                .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
-            if (entityWithLocationCount > 0) { attributeList += NGSILD_LOCATION_PROPERTY }
-            attributeList
+            (rowResult["attribute"] as List<String>)
+                // filter our internal labels
+                .filter { it !in listOf("Attribute", "Relationship", "Property") }
+                .let {
+                    if (entityWithLocationCount > 0)
+                        it.plus(NGSILD_LOCATION_PROPERTY)
+                    else it
+                }
         }.flatten().sortedBy { it }
     }
 
-    fun getAttributeDetails(): List<Map<String, Any>> {
+    fun getAttributesDetails(): List<Map<String, Any>> {
         val query =
             """
-                MATCH (a:Attribute) <-[:HAS_VALUE|:HAS_OBJECT]-(entity:Entity)
-                RETURN DISTINCT (labels(a)) as relation, 
-                labels(entity) as typeNames,
-                collect(distinct a.name) as property,
-                count(entity.location) as entityWithLocationCount
+                MATCH (a:Attribute)<-[:HAS_VALUE|:HAS_OBJECT]-(entity:Entity)
+                RETURN DISTINCT(labels(a)) as relation, 
+                    labels(entity) as typeNames,
+                    collect(distinct a.name) as property,
+                    count(entity.location) as entityWithLocationCount
             """.trimIndent()
 
         val result = neo4jClient.query(query).fetch().all()
         return result.map { rowResult ->
             val names = (rowResult["property"] as List<String>)
             val labels = (rowResult["relation"] as List<String>)
-            var attribute: List<String> = names.plus(labels)
-                .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
-            if (entityWithLocationCount > 0) {
-                val location: List<String> = listOf(NGSILD_LOCATION_PROPERTY)
-                attribute = names.plus(location).plus(labels)
-                    .filter { it !in listOf("Attribute", "Relationship", "Property") }.toList()
-            }
-            val attributeName = attribute.sortedBy { it }
-            attributeName.map { attributeName ->
-                mapOf(
-                    "attribute" to attributeName,
-                    "typeNames" to (rowResult["typeNames"] as List<Any>)
-                        .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet(),
-                )
-            }
+            names.plus(labels)
+                // filter our internal labels
+                .filter { it !in listOf("Attribute", "Relationship", "Property") }
+                .let {
+                    if (entityWithLocationCount > 0)
+                        it.plus(NGSILD_LOCATION_PROPERTY)
+                    else it
+                }
+                .map { attributeName ->
+                    val typeNames = (rowResult["typeNames"] as List<String>)
+                        .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet()
+                    attributeName to typeNames
+                }
         }.flatten()
+            // an attribute can appear in many entities types so group them by name
+            .groupBy { it.first }
+            .mapValues {
+                mapOf(
+                    "attribute" to it.key,
+                    // and merge all the entities types in one set
+                    "typeNames" to it.value.fold(emptySet()) { acc: Set<String>, pair -> acc.plus(pair.second) }
+                )
+            }.values
+            .sortedBy { it["attribute"] as String }
     }
+
     fun getAttributeInformation(expandedType: String): Map<String, Any> {
         val relationshipQuery =
             """
-                MATCH (a:Relationship:`$expandedType`)
-                OPTIONAL MATCH (a)<-[:HAS_OBJECT]-(entity:Entity)
-                return DISTINCT (labels(a)) as attributeTypes,
-                labels(entity) as typeNames,
-                count(a) as attributeCount
+                MATCH (a:Relationship:`$expandedType`)<-[:HAS_OBJECT]-(entity:Entity)
+                RETURN DISTINCT (labels(a)) as attributeTypes,
+                    labels(entity) as typeNames,
+                    count(a) as attributeCount
             """.trimIndent()
         val propertyQuery =
             """
-                MATCH (a:Attribute{name:"$expandedType"})
-                OPTIONAL MATCH (a)<-[:HAS_VALUE]-(entity:Entity)
-                return DISTINCT (labels(a)) as attributeTypes,
-                labels(entity) as typeNames,
-                count(a) as attributeCount
+                MATCH (a:Attribute { name:"$expandedType" })<-[:HAS_VALUE]-(entity:Entity)
+                RETURN DISTINCT (labels(a)) as attributeTypes,
+                    labels(entity) as typeNames,
+                    count(a) as attributeCount
             """.trimIndent()
 
-        var result = neo4jClient.query(relationshipQuery).fetch().all()
-        if (result.isEmpty())
-            result = neo4jClient.query(propertyQuery).fetch().all()
-        if (result.isEmpty())
+        // here we are making the assumption that an attribute won't be a property and a relationship at the same time
+        // it should if correctly used but nothing can prevent it
+        val results = neo4jClient.query(relationshipQuery).fetch().all()
+            .ifEmpty { neo4jClient.query(propertyQuery).fetch().all() }
+        if (results.isEmpty())
             return emptyMap()
-        val attributeCount = (result.first()["attributeCount"] as Long).toInt()
-        val attributeType = (result.first()["attributeTypes"] as List<String>)
-            .filter { it !in listOf("Attribute", expandedType) }.toList()
+
+        // merge the results from all the matched paths
+        val aggregatedResults = results.fold(
+            Triple<Set<String>, Set<String>, Int>(emptySet(), emptySet(), 0)
+        ) { acc, current ->
+            Triple(
+                acc.first.plus(
+                    (current["attributeTypes"] as List<String>).filter {
+                        it !in listOf("Attribute", expandedType)
+                    }.toSet()
+                ),
+                acc.second.plus(
+                    (current["typeNames"] as List<String>).filter {
+                        !authorizationEntitiesTypes.plus("Entity").contains(it)
+                    }.toSet()
+                ),
+                acc.third.plus((current["attributeCount"] as Long).toInt())
+            )
+        }
+
         return mapOf(
             "attributeName" to expandedType,
-            "attributeTypes" to attributeType,
-            "typeNames" to (result.first()["typeNames"] as List<String>)
-                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet(),
-            "attributeCount" to attributeCount
+            "attributeTypes" to aggregatedResults.first,
+            "typeNames" to aggregatedResults.second,
+            "attributeCount" to aggregatedResults.third
         )
     }
 

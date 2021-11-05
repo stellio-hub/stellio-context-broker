@@ -13,11 +13,11 @@ class AttributeService(
 
     fun getAttributeList(contexts: List<String>): AttributeList =
         AttributeList(
-            attributeList = neo4jRepository.getAttribute().map { compactTerm(it, contexts) }
+            attributeList = neo4jRepository.getAttributes().map { compactTerm(it, contexts) }
         )
 
     fun getAttributeDetails(contexts: List<String>): List<AttributeDetails> =
-        neo4jRepository.getAttributeDetails().map {
+        neo4jRepository.getAttributesDetails().map {
             val attribute = (it["attribute"] as String)
             AttributeDetails(
                 id = attribute.toUri(),

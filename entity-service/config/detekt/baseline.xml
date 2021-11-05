@@ -10,6 +10,7 @@
     <ID>LargeClass:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer</ID>
     <ID>LongMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
+    <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes`()</ID>
     <ID>LongMethod:QueryUtils.kt$QueryUtils$fun prepareQueryForEntitiesWithAuthentication( queryParams: QueryParams, offset: Int, limit: Int, contexts: List&lt;String&gt; ): String</ID>
     <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, userSub: String, offset: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>
     <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, userSub: String, offset: Int, limit: Int, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>

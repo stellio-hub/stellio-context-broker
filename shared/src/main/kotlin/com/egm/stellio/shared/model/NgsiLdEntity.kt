@@ -422,3 +422,6 @@ enum class GeoPropertyType(val value: String) {
     Point("Point"),
     Polygon("Polygon")
 }
+
+// TODO could it be more typed, e.g., URI?
+typealias ExpandedTerm = String

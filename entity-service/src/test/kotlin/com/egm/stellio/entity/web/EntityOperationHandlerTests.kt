@@ -11,9 +11,6 @@ import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -188,9 +185,6 @@ class EntityOperationHandlerTests {
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
-        every {
-            entityOperationService.getFullEntityById(any(), any())
-        } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
             .uri(batchUpdateEndpoint)
@@ -257,9 +251,6 @@ class EntityOperationHandlerTests {
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
-        every {
-            entityOperationService.getFullEntityById(any(), any())
-        } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/update?options=noOverwrite")
@@ -293,9 +284,6 @@ class EntityOperationHandlerTests {
         every { entityOperationService.update(any()) } returns BatchOperationResult(
             success = mutableListOf(), errors = mutableListOf()
         )
-        every {
-            entityOperationService.getFullEntityById(any(), any())
-        } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
             .uri(batchUpdateEndpoint)
@@ -327,16 +315,12 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
-        val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
-            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            entitiesIds
-        )
-        val expandedEntities = slot<List<NgsiLdEntity>>()
-        val events = mutableListOf<EntityEvent>()
-        val entityType = slot<String>()
+        val capturedExpandedEntities = slot<List<NgsiLdEntity>>()
+        val capturedEntitiesIds = mutableListOf<URI>()
+        val capturedEntityType = slot<String>()
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
-        every { entityOperationService.splitEntitiesByExistence(capture(expandedEntities)) } returns Pair(
+        every { entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities)) } returns Pair(
             emptyList(),
             emptyList()
         )
@@ -346,8 +330,10 @@ class EntityOperationHandlerTests {
         )
         every { authorizationService.createAdminLink(any(), eq("mock-user")) } just Runs
         every {
-            entityEventService.publishEntityEvent(capture(events), capture(entityType))
-        } returns true as java.lang.Boolean
+            entityEventService.publishEntityCreateEvent(
+                capture(capturedEntitiesIds), capture(capturedEntityType), any(), any()
+            )
+        } returns true
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -358,20 +344,14 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(entitiesIds.map { it.toString() })
 
-        assertEquals(entitiesIds, expandedEntities.captured.map { it.id })
+        assertEquals(entitiesIds, capturedExpandedEntities.captured.map { it.id })
 
         verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
-        verify(timeout = 1000, exactly = 3) { entityEventService.publishEntityEvent(any(), any()) }
-        events.forEach {
-            it as EntityCreateEvent
-            assertTrue(
-                it.operationType == EventsType.ENTITY_CREATE &&
-                    it.entityId in entitiesIds &&
-                    it.operationPayload in expectedEntitiesPayload &&
-                    it.contexts == hcmrContext
-            )
+        verify(timeout = 1000, exactly = 3) {
+            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
-        assertTrue(entityType.captured in listOf(sensorType, deviceType))
+        capturedEntitiesIds.forEach { assertTrue(it in entitiesIds) }
+        assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
         confirmVerified()
     }
 
@@ -382,13 +362,9 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
-        val expectedEntitiesPayload = getExpectedEntitiesEventsOperationPayload(
-            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            createdEntitiesIds
-        )
         val existingEntity = mockk<NgsiLdEntity>()
-        val events = mutableListOf<EntityEvent>()
-        val entityType = slot<String>()
+        val capturedEntitiesIds = mutableListOf<URI>()
+        val capturedEntityType = slot<String>()
 
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
 
@@ -402,8 +378,10 @@ class EntityOperationHandlerTests {
             arrayListOf()
         )
         every {
-            entityEventService.publishEntityEvent(capture(events), capture(entityType))
-        } returns true as java.lang.Boolean
+            entityEventService.publishEntityCreateEvent(
+                capture(capturedEntitiesIds), capture(capturedEntityType), any(), any()
+            )
+        } returns true
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -413,17 +391,9 @@ class EntityOperationHandlerTests {
             .expectBody().json(batchSomeEntitiesExistsResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityEvent(any(), any()) }
-        events.forEach {
-            it as EntityCreateEvent
-            assertTrue(
-                it.operationType == EventsType.ENTITY_CREATE &&
-                    it.entityId in createdEntitiesIds &&
-                    it.operationPayload in expectedEntitiesPayload &&
-                    it.contexts == hcmrContext
-            )
-        }
-        assertTrue(entityType.captured in listOf(sensorType, deviceType))
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
+        capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
+        assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
         confirmVerified()
     }
 
@@ -504,11 +474,8 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
-        every {
-            entityOperationService.getFullEntityById(any(), any())
-        } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
+        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -520,14 +487,11 @@ class EntityOperationHandlerTests {
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityCreateEvent
-                    it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId in createdEntitiesIds &&
-                        it.contexts == hcmrContext
-                },
-                sensorType
+            entityEventService.publishEntityCreateEvent(
+                match { it in createdEntitiesIds },
+                eq(sensorType),
+                any(),
+                eq(hcmrContext)
             )
         }
         verify(timeout = 1000, exactly = 2) {
@@ -535,7 +499,6 @@ class EntityOperationHandlerTests {
                 match { it in entitiesIds },
                 any(),
                 match { it in upsertUpdateBatchOperationResult.success.map { it.updateResult } },
-                any(),
                 hcmrContext
             )
         }
@@ -563,9 +526,6 @@ class EntityOperationHandlerTests {
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
-        every {
-            entityOperationService.getFullEntityById(any(), any())
-        } returns mockkClass(JsonLdEntity::class, relaxed = true)
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -619,7 +579,7 @@ class EntityOperationHandlerTests {
     }
 
     @Test
-    fun `upsert batch entity without option should replace entities`() {
+    fun `upsert batch entity without option should replace existing entities`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val entitiesIds = arrayListOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
@@ -644,7 +604,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -656,14 +616,11 @@ class EntityOperationHandlerTests {
         verify { entityOperationService.update(any(), any()) wasNot Called }
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify(timeout = 1000, exactly = 2) {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityReplaceEvent
-                    it.operationType == EventsType.ENTITY_REPLACE &&
-                        it.entityId in entitiesIds &&
-                        it.contexts == hcmrContext
-                },
-                sensorType
+            entityEventService.publishEntityReplaceEvent(
+                match { it in entitiesIds },
+                eq(sensorType),
+                any(),
+                eq(hcmrContext)
             )
         }
         confirmVerified()
@@ -751,14 +708,11 @@ class EntityOperationHandlerTests {
 
         verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityReplaceEvent
-                    it.operationType == EventsType.ENTITY_REPLACE &&
-                        it.entityId in entitiesIdToUpdate &&
-                        it.contexts == hcmrContext
-                },
-                sensorType
+            entityEventService.publishEntityReplaceEvent(
+                match { it in entitiesIdToUpdate },
+                eq(sensorType),
+                any(),
+                eq(hcmrContext)
             )
         }
         confirmVerified()
@@ -825,7 +779,7 @@ class EntityOperationHandlerTests {
                 every { contexts } returns listOf(aquacContext!!)
             }
         }
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns true
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
@@ -835,13 +789,10 @@ class EntityOperationHandlerTests {
             .expectStatus().isNoContent
 
         verify(timeout = 1000, exactly = 3) {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityDeleteEvent
-                    it.entityId in deletedEntitiesIds &&
-                        it.contexts == listOf(aquacContext)
-                },
-                "Sensor"
+            entityEventService.publishEntityDeleteEvent(
+                match { it in deletedEntitiesIds },
+                eq("Sensor"),
+                eq(listOf(aquacContext!!))
             )
         }
     }
@@ -933,11 +884,4 @@ class EntityOperationHandlerTests {
                 """.trimIndent()
             )
     }
-
-    private fun getExpectedEntitiesEventsOperationPayload(
-        entitiesPayload: String,
-        createdEntitiesIds: List<URI> = emptyList()
-    ) = JsonUtils.deserializeListOfObjects(entitiesPayload).filter { it["id"].toString().toUri() in createdEntitiesIds }
-        .map { serializeObject(it) }
-        .map { JsonLdUtils.removeContextFromInput(it) }
 }

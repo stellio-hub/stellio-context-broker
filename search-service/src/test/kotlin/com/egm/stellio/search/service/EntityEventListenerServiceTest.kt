@@ -221,6 +221,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ENTITY_CREATE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "operationPayload": "$entity",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
@@ -248,6 +249,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ENTITY_DELETE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent().replace("\n", "")
@@ -270,6 +272,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ATTRIBUTE_DELETE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "updatedEntity": "$updatedEntityTextualValue",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
@@ -307,6 +310,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ATTRIBUTE_DELETE_ALL_INSTANCES",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "updatedEntity": "$updatedEntityTextualValue",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
@@ -752,6 +756,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",
                 "updatedEntity": "$updatedEntity",

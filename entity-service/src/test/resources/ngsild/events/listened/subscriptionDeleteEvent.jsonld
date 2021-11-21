@@ -1,6 +1,7 @@
 {
    "operationType":"ENTITY_DELETE",
    "entityId":"urn:ngsi-ld:Subscription:04",
+   "entityType": "Subscription",
    "contexts":[
        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/shared-jsonld-contexts/egm.jsonld",
        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"

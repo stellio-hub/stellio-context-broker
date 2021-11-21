@@ -23,7 +23,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_TIME_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.hamcrest.core.Is
@@ -79,7 +78,7 @@ class EntityHandlerTests {
             .build()
     }
 
-    private val deadFishesType = "https://ontology.eglobalmark.com/aquac#DeadFishes"
+    private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val hcmrContext = listOf(
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
@@ -96,7 +95,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -115,14 +114,11 @@ class EntityHandlerTests {
             )
         }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityCreateEvent
-                    it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == breedingServiceId &&
-                        it.contexts == hcmrContext
-                },
-                "https://ontology.eglobalmark.com/aquac#BreedingService"
+            entityEventService.publishEntityCreateEvent(
+                eq(breedingServiceId),
+                eq(breedingServiceType),
+                any(),
+                eq(hcmrContext)
             )
         }
 
@@ -1134,8 +1130,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1153,13 +1148,11 @@ class EntityHandlerTests {
                 eq(false)
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
         verify {
             entityEventService.publishAppendEntityAttributesEvents(
                 eq(entityId),
                 any(),
                 appendResult,
-                any(),
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1184,8 +1177,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1211,14 +1203,11 @@ class EntityHandlerTests {
                 eq(false)
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entityEventService.publishAppendEntityAttributesEvents(eq(entityId), any(), any(), any(), any()) }
         verify {
             entityEventService.publishAppendEntityAttributesEvents(
                 eq(entityId),
                 any(),
                 appendResult,
-                any(),
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1289,14 +1278,6 @@ class EntityHandlerTests {
     fun `partial attribute update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val deadFish =
-            """
-                {
-                    "id": "$entityId",
-                    "type": "DeadFishes",
-                    "@context": ["$AQUAC_COMPOUND_CONTEXT"]
-                }
-            """.trimIndent()
         val attrId = "fishNumber"
         val updateResult = UpdateResult(
             updated = arrayListOf(
@@ -1311,9 +1292,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
-        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just
-            Runs
+        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1327,13 +1306,11 @@ class EntityHandlerTests {
         verify {
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
-        verify { entityService.getFullEntityById(entityId, true) }
         verify {
             entityEventService.publishPartialUpdateEntityAttributesEvents(
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
-                any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1345,14 +1322,6 @@ class EntityHandlerTests {
     fun `partial multi attribute update should return a 204 if JSON-LD payload is correct`() {
         val jsonLdFile = loadSampleData("aquac/fragments/DeadFishes_partialMultiAttributeUpdate.json")
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val deadFish =
-            """
-                {
-                    "id": "$entityId",
-                    "type": "DeadFishes",
-                    "@context": ["$AQUAC_COMPOUND_CONTEXT"]
-                }
-            """.trimIndent()
         val attrId = "fishNumber"
         val updateResult = UpdateResult(
             updated = arrayListOf(
@@ -1372,9 +1341,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityService.getFullEntityById(entityId, true) } returns expandJsonLdEntity(deadFish)
-        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just
-            Runs
+        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1388,13 +1355,11 @@ class EntityHandlerTests {
         verify {
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
-        verify { entityService.getFullEntityById(entityId, true) }
         verify {
             entityEventService.publishPartialUpdateEntityAttributesEvents(
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
-                any(),
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
@@ -1537,8 +1502,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1550,8 +1514,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
-        verify { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) }
+        verify { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) }
 
         confirmVerified(entityService)
     }
@@ -1579,14 +1542,7 @@ class EntityHandlerTests {
             )
         } returns updateResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns JsonLdEntity(
-            mapOf(
-                "@id" to "urn:ngsi-ld:DeadFishes:019BN",
-                "@type" to listOf(deadFishesType)
-            ),
-            listOf(NGSILD_CORE_CONTEXT)
-        )
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1596,13 +1552,11 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
         verify {
             entityEventService.publishUpdateEntityAttributesEvents(
                 eq(entityId),
                 any(),
                 updateResult,
-                any(),
                 listOf(AQUAC_COMPOUND_CONTEXT)
             )
         }
@@ -1636,8 +1590,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1649,7 +1602,6 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
 
         confirmVerified(entityService)
     }
@@ -1753,7 +1705,8 @@ class EntityHandlerTests {
         every { authorizationService.userIsAdminOfEntity(entityId, "mock-user") } returns true
         every { entityService.getEntityCoreProperties(any()) } returns entity
         every { entity.type } returns listOf("https://ontology.eglobalmark.com/egm#Sensor")
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entity.contexts } returns hcmrContext
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns true
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
@@ -1765,13 +1718,10 @@ class EntityHandlerTests {
         verify { entityService.deleteEntity(eq(entityId)) }
         verify { entityService.getEntityCoreProperties(eq(entityId)) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityDeleteEvent
-                    it.operationType == EventsType.ENTITY_DELETE &&
-                        it.entityId == entityId
-                },
-                "https://ontology.eglobalmark.com/egm#Sensor"
+            entityEventService.publishEntityDeleteEvent(
+                eq(entityId),
+                eq("https://ontology.eglobalmark.com/egm#Sensor"),
+                eq(hcmrContext)
             )
         }
 
@@ -1846,15 +1796,10 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should return a 204 if the attribute has been successfully deleted`() {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updatedEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
-        every {
-            entityService.getFullEntityById(any(), any())
-        } returns updatedEntity
-        every { updatedEntity.type } returns deadFishesType
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
@@ -1872,18 +1817,13 @@ class EntityHandlerTests {
                 null
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeDeleteEvent
-                    it.operationType == EventsType.ATTRIBUTE_DELETE &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == null &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                "https://ontology.eglobalmark.com/aquac#DeadFishes"
+            entityEventService.publishAttributeDeleteEvent(
+                eq(entityId),
+                eq("fishNumber"),
+                isNull(),
+                eq(false),
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
         confirmVerified(entityService)
@@ -1892,15 +1832,10 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should delete all instances if deleteAll flag is true`() {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updatedEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttribute(any(), any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every {
-            entityService.getFullEntityById(any(), any())
-        } returns updatedEntity
-        every { updatedEntity.type } returns deadFishesType
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
@@ -1917,17 +1852,13 @@ class EntityHandlerTests {
                 eq(fishNumberAttribute)
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeDeleteAllInstancesEvent
-                    it.operationType == EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                "https://ontology.eglobalmark.com/aquac#DeadFishes"
+            entityEventService.publishAttributeDeleteEvent(
+                eq(entityId),
+                eq("fishNumber"),
+                isNull(),
+                eq(true),
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
         confirmVerified(entityService)
@@ -1936,15 +1867,10 @@ class EntityHandlerTests {
     @Test
     fun `delete entity attribute should delete instance with the provided datasetId`() {
         val entityId = "urn:ngsi-ld:DeadFishes:019BN".toUri()
-        val updatedEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every {
-            entityService.getFullEntityById(any(), any())
-        } returns updatedEntity
-        every { updatedEntity.type } returns deadFishesType
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
@@ -1962,18 +1888,13 @@ class EntityHandlerTests {
                 "urn:ngsi-ld:Dataset:fishNumber:1".toUri()
             )
         }
-        verify { entityService.getFullEntityById(eq(entityId), any()) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeDeleteEvent
-                    it.operationType == EventsType.ATTRIBUTE_DELETE &&
-                        it.entityId == entityId &&
-                        it.attributeName == "fishNumber" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:fishNumber:1".toUri() &&
-                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                "https://ontology.eglobalmark.com/aquac#DeadFishes"
+            entityEventService.publishAttributeDeleteEvent(
+                eq(entityId),
+                eq("fishNumber"),
+                eq("urn:ngsi-ld:Dataset:fishNumber:1".toUri()),
+                eq(false),
+                eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
         confirmVerified(entityService)

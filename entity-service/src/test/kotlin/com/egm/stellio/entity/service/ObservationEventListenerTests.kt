@@ -57,14 +57,11 @@ class ObservationEventListenerTests {
         }
 
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityCreateEvent
-                    it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.contexts.contains(APIC_COMPOUND_CONTEXT)
-                },
-                "https://ontology.eglobalmark.com/apic#BeeHive"
+            entityEventService.publishEntityCreateEvent(
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq("https://ontology.eglobalmark.com/apic#BeeHive"),
+                any(),
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 
@@ -86,8 +83,7 @@ class ObservationEventListenerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -100,17 +96,17 @@ class ObservationEventListenerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        verify { entityService.getFullEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), true) }
         verify {
-            entityEventService.publishEntityEvent(
+            entityEventService.publishPartialUpdateEntityAttributesEvents(
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                match { it.containsKey("temperature") },
                 match {
-                    it as AttributeUpdateEvent
-                    it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.attributeName == "temperature" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:temperature:1".toUri() &&
-                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
+                    it.size == 1 &&
+                        it[0].attributeName == "temperature" &&
+                        it[0].datasetId == "urn:ngsi-ld:Dataset:temperature:1".toUri() &&
+                        it[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
-                any()
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 
@@ -133,7 +129,7 @@ class ObservationEventListenerTests {
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
-        every { entityEventService.publishAttributeAppend(any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvent(any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -149,7 +145,7 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishAttributeAppend(
+            entityEventService.publishAttributeAppendEvent(
                 match {
                     it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
                         it.attributeName == "humidity" &&

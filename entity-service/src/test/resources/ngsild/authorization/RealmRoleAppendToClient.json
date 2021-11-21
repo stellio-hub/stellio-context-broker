@@ -1,6 +1,7 @@
 {
   "operationType":"ATTRIBUTE_APPEND",
   "entityId":"urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb",
+  "entityType": "Group",
   "attributeName": "roles",
   "operationPayload":"{\"serviceAccountId\":{\"type\":\"Property\",\"value\":\"a1eec755-c455-4f28-abe4-06558176fcc5\"},\"roles\":{\"type\":\"Property\",\"value\":[\"stellio-admin\"]}}",
   "updatedEntity": "",

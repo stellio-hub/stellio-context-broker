@@ -2,7 +2,6 @@ package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
@@ -86,13 +85,7 @@ class NotificationService(
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
                 }
                 .doOnNext {
-                    subscriptionEventService.publishNotificationEvent(
-                        EntityCreateEvent(
-                            it.second.id,
-                            serializeObject(it.second),
-                            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-                        )
-                    )
+                    subscriptionEventService.publishNotificationCreateEvent(it.second)
                 }
         }
     }
@@ -140,13 +133,7 @@ class NotificationService(
         val success = response != null
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
-                subscriptionEventService.publishNotificationEvent(
-                    EntityCreateEvent(
-                        notification.id,
-                        serializeObject(notification),
-                        listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-                    )
-                )
+                subscriptionEventService.publishNotificationCreateEvent(notification)
             }
             .map {
                 Triple(subscription, notification, success)

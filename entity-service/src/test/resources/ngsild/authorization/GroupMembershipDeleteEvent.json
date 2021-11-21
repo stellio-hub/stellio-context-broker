@@ -1,6 +1,7 @@
 {
   "operationType": "ATTRIBUTE_DELETE",
   "entityId": "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+  "entityType": "Group",
   "attributeName": "isMemberOf",
   "datasetId": "urn:ngsi-ld:Dataset:isMemberOf:7cdad168-96ee-4649-b768-a060ac2ef435",
   "updatedEntity": "",

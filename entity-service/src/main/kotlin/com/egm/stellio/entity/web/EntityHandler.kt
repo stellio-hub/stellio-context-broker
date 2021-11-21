@@ -8,7 +8,6 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -66,9 +65,11 @@ class EntityHandler(
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
-        entityEventService.publishEntityEvent(
-            EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            ngsiLdEntity.type
+        entityEventService.publishEntityCreateEvent(
+            ngsiLdEntity.id,
+            ngsiLdEntity.type,
+            removeContextFromInput(body),
+            contexts
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -236,9 +237,7 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
-        entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
-        )
+        entityEventService.publishEntityDeleteEvent(entityId.toUri(), entity.type[0], entity.contexts)
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -281,7 +280,6 @@ class EntityHandler(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
         }
@@ -326,7 +324,6 @@ class EntityHandler(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
         }
@@ -411,30 +408,8 @@ class EntityHandler(
         else
             entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
 
-        if (result) {
-            val updatedEntity = entityService.getFullEntityById(entityUri, true)
-            if (deleteAll)
-                entityEventService.publishEntityEvent(
-                    AttributeDeleteAllInstancesEvent(
-                        entityId = entityUri,
-                        attributeName = attrId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                        contexts = contexts
-                    ),
-                    updatedEntity.type
-                )
-            else
-                entityEventService.publishEntityEvent(
-                    AttributeDeleteEvent(
-                        entityId = entityUri,
-                        attributeName = attrId,
-                        datasetId = datasetId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                        contexts = contexts
-                    ),
-                    updatedEntity.type
-                )
-        }
+        if (result)
+            entityEventService.publishAttributeDeleteEvent(entityUri, attrId, datasetId, deleteAll, contexts)
 
         return if (result)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

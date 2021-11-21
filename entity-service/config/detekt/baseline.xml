@@ -8,6 +8,7 @@
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests : WithNeo4jContainer</ID>
     <ID>LargeClass:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer</ID>
+    <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`()</ID>
     <ID>LongMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
     <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes`()</ID>
@@ -18,7 +19,6 @@
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
     <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
-    <ID>ReturnCount:ObservationEventListener.kt$ObservationEventListener$fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent)</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService</ID>
     <ID>TooManyFunctions:Neo4jRepository.kt$Neo4jRepository</ID>
     <ID>UnusedPrivateMember:EntityServiceTests.kt$EntityServiceTests$@MockkBean private lateinit var searchRepository: SearchRepository</ID>

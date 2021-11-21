@@ -63,14 +63,13 @@ class EntityOperationHandler(
         authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
         ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                // TODO can be improved wrt to serialization / deserialization
                 val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-                entityEventService.publishEntityEvent(
-                    EntityCreateEvent(
-                        it.id,
-                        removeContextFromInput(entityPayload),
-                        extractContextFromInput(entityPayload)
-                    ),
-                    it.type
+                entityEventService.publishEntityCreateEvent(
+                    it.id,
+                    it.type,
+                    removeContextFromInput(entityPayload),
+                    extractContextFromInput(entityPayload)
                 )
             }
 
@@ -143,14 +142,13 @@ class EntityOperationHandler(
 
         ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
+                // TODO can be improved wrt to serialization / deserialization
                 val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-                entityEventService.publishEntityEvent(
-                    EntityCreateEvent(
-                        it.id,
-                        removeContextFromInput(entityPayload),
-                        extractContextFromInput(entityPayload)
-                    ),
-                    it.type
+                entityEventService.publishEntityCreateEvent(
+                    it.id,
+                    it.type,
+                    removeContextFromInput(entityPayload),
+                    extractContextFromInput(entityPayload)
                 )
             }
         if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
@@ -241,11 +239,7 @@ class EntityOperationHandler(
 
         batchOperationResult.success.map { it.entityId }.forEach { uri ->
             val entity = entitiesBeforeDelete.find { it.id == uri }!!
-            // FIXME The context is not supposed to be retrieved from DB
-            entityEventService.publishEntityEvent(
-                EntityDeleteEvent(uri, entity.contexts),
-                entity.type[0]
-            )
+            entityEventService.publishEntityDeleteEvent(entity.id, entity.type[0], entity.contexts)
         }
 
         return if (batchOperationResult.errors.isEmpty())
@@ -290,13 +284,11 @@ class EntityOperationHandler(
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
             val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-            entityEventService.publishEntityEvent(
-                EntityReplaceEvent(
-                    it.id,
-                    removeContextFromInput(entityPayload),
-                    extractContextFromInput(entityPayload)
-                ),
-                it.type
+            entityEventService.publishEntityReplaceEvent(
+                it.id,
+                it.type,
+                removeContextFromInput(entityPayload),
+                extractContextFromInput(entityPayload)
             )
         }
 
@@ -310,7 +302,6 @@ class EntityOperationHandler(
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,
-                entityOperationService.getFullEntityById(it.entityId, true)!!,
                 jsonLdEntity.contexts
             )
         }

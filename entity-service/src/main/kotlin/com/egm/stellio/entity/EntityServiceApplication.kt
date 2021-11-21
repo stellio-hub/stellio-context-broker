@@ -9,10 +9,6 @@ import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor
 import java.util.concurrent.Executor
 
-const val CORE_POOL_SIZE = 50
-const val MAX_POOL_SIZE = 100
-const val QUEUE_CAPACITY = 500
-
 @SpringBootApplication(scanBasePackages = ["com.egm.stellio.entity", "com.egm.stellio.shared"])
 @EnableConfigurationProperties(ApplicationProperties::class)
 @EnableAsync
@@ -24,11 +20,12 @@ fun main(args: Array<String>) {
 }
 
 @Bean
-fun taskExecutor(): Executor {
+fun taskExecutor(
+    applicationProperties: ApplicationProperties
+): Executor {
     val executor = ThreadPoolTaskExecutor().apply {
-        corePoolSize = CORE_POOL_SIZE
-        maxPoolSize = MAX_POOL_SIZE
-        setQueueCapacity(QUEUE_CAPACITY)
+        corePoolSize = applicationProperties.eventsThreadPool.corePoolSize
+        maxPoolSize = applicationProperties.eventsThreadPool.maxPoolSize
         setThreadNamePrefix("entity-executor-")
     }
     executor.initialize()

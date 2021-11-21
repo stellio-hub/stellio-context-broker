@@ -1,6 +1,7 @@
 {
   "operationType": "ATTRIBUTE_UPDATE",
   "entityId": "urn:ngsi-ld:Beekeeper:01",
+  "entityType": "Beekeeper",
   "attributeName":"name",
   "operationPayload": "{\"value\":\"newName\"}",
   "updatedEntity": "{\"id\":\"urn:ngsi-ld:Beekeeper:01\",\"type\":\"Beekeeper\",\"createdAt\":\"2020-03-03T14:33:08.925873Z\",\"modifiedAt\":\"2020-03-03T14:33:08.958137Z\",\"name\":{\"type\":\"Property\",\"createdAt\":\"2020-03-03T14:33:08.941678Z\",\"value\":\"newName\",\"modifiedAt\":\"2020-03-03T15:23:51.730936Z\"}}",

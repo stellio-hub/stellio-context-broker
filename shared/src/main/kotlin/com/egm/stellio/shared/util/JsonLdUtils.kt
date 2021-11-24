@@ -145,7 +145,6 @@ object JsonLdUtils {
         else
             element.plus(Pair(JSONLD_CONTEXT, contexts))
 
-
     fun extractContextFromInput(input: Map<String, Any>): List<String> {
         return if (!input.containsKey(JSONLD_CONTEXT))
             emptyList()

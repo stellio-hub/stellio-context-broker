@@ -145,25 +145,32 @@ object JsonLdUtils {
         else
             element.plus(Pair(JSONLD_CONTEXT, contexts))
 
-    fun extractContextFromInput(input: String): List<String> {
-        val parsedInput = deserializeObject(input)
 
-        return if (!parsedInput.containsKey(JSONLD_CONTEXT))
+    fun extractContextFromInput(input: Map<String, Any>): List<String> {
+        return if (!input.containsKey(JSONLD_CONTEXT))
             emptyList()
-        else if (parsedInput[JSONLD_CONTEXT] is List<*>)
-            parsedInput[JSONLD_CONTEXT] as List<String>
-        else if (parsedInput[JSONLD_CONTEXT] is String)
-            listOf(parsedInput[JSONLD_CONTEXT] as String)
+        else if (input[JSONLD_CONTEXT] is List<*>)
+            input[JSONLD_CONTEXT] as List<String>
+        else if (input[JSONLD_CONTEXT] is String)
+            listOf(input[JSONLD_CONTEXT] as String)
         else
             emptyList()
     }
 
+    fun extractContextFromInput(input: String): List<String> {
+        val parsedInput = deserializeObject(input)
+        return extractContextFromInput(parsedInput)
+    }
+
+    fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> {
+        return if (input.containsKey(JSONLD_CONTEXT))
+            input.minus(JSONLD_CONTEXT)
+        else input
+    }
+
     fun removeContextFromInput(input: String): String {
         val parsedInput = deserializeObject(input)
-
-        return if (parsedInput.containsKey(JSONLD_CONTEXT))
-            serializeObject(parsedInput.minus(JSONLD_CONTEXT))
-        else input
+        return serializeObject(removeContextFromInput(parsedInput))
     }
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =

@@ -61,14 +61,14 @@ class EntityOperationHandler(
         )
 
         authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
-        ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
+        ngsiLdEntities
+            .filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
-                // TODO can be improved wrt to serialization / deserialization
-                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
+                val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
                 entityEventService.publishEntityCreateEvent(
                     it.id,
                     it.type,
-                    removeContextFromInput(entityPayload),
+                    serializeObject(removeContextFromInput(entityPayload)),
                     extractContextFromInput(entityPayload)
                 )
             }
@@ -140,14 +140,14 @@ class EntityOperationHandler(
             ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
         )
 
-        ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
+        ngsiLdEntities
+            .filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
-                // TODO can be improved wrt to serialization / deserialization
-                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
+                val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
                 entityEventService.publishEntityCreateEvent(
                     it.id,
                     it.type,
-                    removeContextFromInput(entityPayload),
+                    serializeObject(removeContextFromInput(entityPayload)),
                     extractContextFromInput(entityPayload)
                 )
             }

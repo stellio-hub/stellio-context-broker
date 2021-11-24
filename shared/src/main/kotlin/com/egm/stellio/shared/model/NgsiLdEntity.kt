@@ -423,5 +423,5 @@ enum class GeoPropertyType(val value: String) {
     Polygon("Polygon")
 }
 
-// TODO could it be more typed, e.g., URI?
+// basic alias to help identify, mainly in method calls, if the expected value is a compact or expanded one
 typealias ExpandedTerm = String

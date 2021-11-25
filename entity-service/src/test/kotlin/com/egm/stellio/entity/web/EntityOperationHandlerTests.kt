@@ -475,7 +475,7 @@ class EntityOperationHandlerTests {
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -495,7 +495,7 @@ class EntityOperationHandlerTests {
             )
         }
         verify(timeout = 1000, exactly = 2) {
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 match { it in entitiesIds },
                 any(),
                 match { it in upsertUpdateBatchOperationResult.success.map { it.updateResult } },

@@ -192,7 +192,6 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
         val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
-            ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
@@ -276,7 +275,7 @@ class EntityHandler(
         )
 
         if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
@@ -320,7 +319,7 @@ class EntityHandler(
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
         if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishUpdateEntityAttributesEvents(
+            entityEventService.publishAttributeUpdateEvents(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
@@ -369,7 +368,7 @@ class EntityHandler(
         if (updateResult.updated.isEmpty())
             throw ResourceNotFoundException("Unknown attribute in entity $entityId")
         else
-            entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityEventService.publishPartialAttributeUpdateEvents(
                 entityUri,
                 expandedPayload,
                 updateResult.updated,

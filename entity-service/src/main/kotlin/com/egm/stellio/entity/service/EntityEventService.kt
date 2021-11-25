@@ -18,8 +18,10 @@ import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
+import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import org.apache.kafka.common.errors.InvalidTopicException
 import org.apache.kafka.common.internals.Topic
 import org.slf4j.LoggerFactory
@@ -55,7 +57,7 @@ class EntityEventService(
                     false as java.lang.Boolean
                 },
                 { topic ->
-                    kafkaTemplate.send(topic, event.entityId.toString(), JsonUtils.serializeObject(event))
+                    kafkaTemplate.send(topic, event.entityId.toString(), serializeObject(event))
                     return true as java.lang.Boolean
                 }
             )
@@ -103,58 +105,51 @@ class EntityEventService(
 
     @Async
     fun publishAttributeAppendEvent(
-        observationEvent: AttributeAppendEvent,
-        updateOperationResult: UpdateOperationResult
+        entityId: URI,
+        attributeName: String,
+        datasetId: URI? = null,
+        overwrite: Boolean,
+        operationPayload: String,
+        updateOperationResult: UpdateOperationResult,
+        contexts: List<String>
     ) {
-        logger.debug("Sending append event for entity ${observationEvent.entityId}")
-        val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
-        if (updatedEntity!!.type.isEmpty()) {
-            logger.warn("Retrieved entity ${observationEvent.entityId} but it has no type!")
-            return
-        }
+        logger.debug("Sending append event for entity $entityId")
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
         if (updateOperationResult == UpdateOperationResult.APPENDED)
             publishEntityEvent(
                 AttributeAppendEvent(
-                    observationEvent.entityId,
-                    observationEvent.entityType,
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    observationEvent.overwrite,
-                    observationEvent.operationPayload,
-                    compactAndSerialize(
-                        updatedEntity,
-                        observationEvent.contexts,
-                        MediaType.APPLICATION_JSON
-                    ),
-                    observationEvent.contexts
+                    entityId,
+                    compactTerm(updatedEntity.type, contexts),
+                    attributeName,
+                    datasetId,
+                    overwrite,
+                    operationPayload,
+                    compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
+                    contexts
                 )
             )
         else
             publishEntityEvent(
                 AttributeReplaceEvent(
-                    observationEvent.entityId,
-                    observationEvent.entityType,
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    observationEvent.operationPayload,
-                    compactAndSerialize(
-                        updatedEntity,
-                        observationEvent.contexts,
-                        MediaType.APPLICATION_JSON
-                    ),
-                    observationEvent.contexts
+                    entityId,
+                    compactTerm(updatedEntity.type, contexts),
+                    attributeName,
+                    datasetId,
+                    operationPayload,
+                    compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON),
+                    contexts
                 )
             )
     }
 
     @Async
-    fun publishAppendEntityAttributesEvents(
+    fun publishAttributeAppendEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         appendResult: UpdateResult,
         contexts: List<String>
     ) {
-        val updatedEntity = entityService.getFullEntityById(entityId, true)!!
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
         val serializedEntity = compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON)
         appendResult.updated.forEach { updatedDetails ->
             val attributeName = updatedDetails.attributeName
@@ -172,11 +167,7 @@ class EntityEventService(
                         compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
                         true,
-                        JsonLdUtils.compactAndStringifyFragment(
-                            attributeName,
-                            attributePayload!!,
-                            contexts
-                        ),
+                        serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
                         serializedEntity,
                         contexts
                     )
@@ -188,11 +179,7 @@ class EntityEventService(
                         compactTerm(updatedEntity.type, contexts),
                         compactTerm(attributeName, contexts),
                         updatedDetails.datasetId,
-                        JsonLdUtils.compactAndStringifyFragment(
-                            attributeName,
-                            attributePayload!!,
-                            contexts
-                        ),
+                        serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
                         serializedEntity,
                         contexts
                     )
@@ -201,13 +188,13 @@ class EntityEventService(
     }
 
     @Async
-    fun publishUpdateEntityAttributesEvents(
+    fun publishAttributeUpdateEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updateResult: UpdateResult,
         contexts: List<String>
     ) {
-        val updatedEntity = entityService.getFullEntityById(entityId, true)!!
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
         val serializedEntity = compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON)
         updateResult.updated.forEach { updatedDetails ->
             val attributeName = updatedDetails.attributeName
@@ -223,11 +210,7 @@ class EntityEventService(
                     compactTerm(updatedEntity.type, contexts),
                     compactTerm(attributeName, contexts),
                     updatedDetails.datasetId,
-                    JsonLdUtils.compactAndStringifyFragment(
-                        attributeName,
-                        attributePayload!!,
-                        contexts
-                    ),
+                    serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
                     serializedEntity,
                     contexts
                 )
@@ -236,13 +219,13 @@ class EntityEventService(
     }
 
     @Async
-    fun publishPartialUpdateEntityAttributesEvents(
+    fun publishPartialAttributeUpdateEvents(
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updatedDetails: List<UpdatedDetails>,
         contexts: List<String>
     ) {
-        val updatedEntity = entityService.getFullEntityById(entityId, true)!!
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
         val serializedEntity = compactAndSerialize(updatedEntity, contexts, MediaType.APPLICATION_JSON)
         updatedDetails.forEach { updatedDetail ->
             val attributeName = updatedDetail.attributeName
@@ -251,17 +234,14 @@ class EntityEventService(
                     jsonLdAttributes,
                     attributeName,
                     updatedDetail.datasetId
-                ) as Map<String, Any>
+                )
             publishEntityEvent(
                 AttributeUpdateEvent(
                     entityId,
                     compactTerm(updatedEntity.type, contexts),
                     compactTerm(attributeName, contexts),
                     updatedDetail.datasetId,
-                    JsonLdUtils.compactAndStringifyFragment(
-                        attributePayload,
-                        contexts
-                    ),
+                    serializeObject(removeContextFromInput(compactFragment(attributePayload!!, contexts))),
                     serializedEntity,
                     contexts
                 )
@@ -278,7 +258,7 @@ class EntityEventService(
         contexts: List<String>
     ) {
         logger.debug("Sending delete event for attribute $attributeName of entity $entityId")
-        val updatedEntity = entityService.getFullEntityById(entityId, true)!!
+        val updatedEntity = entityService.getFullEntityById(entityId, true)
         if (deleteAll)
             publishEntityEvent(
                 AttributeDeleteAllInstancesEvent(

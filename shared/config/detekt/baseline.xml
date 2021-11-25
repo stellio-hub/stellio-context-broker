@@ -5,6 +5,7 @@
     <ID>LargeClass:NgsiLdEntityTests.kt$NgsiLdEntityTests</ID>
     <ID>LongParameterList:PagingUtils.kt$PagingUtils$( body: String, resourcesCount: Int, count: Boolean, prevAndNextLinks: Pair&lt;String?, String?&gt;, mediaType: MediaType, contextLink: String )</ID>
     <ID>NestedBlockDepth:JsonLdUtils.kt$JsonLdUtils$ fun getPropertyValueFromMap(value: Map&lt;String, List&lt;Any&gt;&gt;, propertyKey: String): Any?</ID>
+    <ID>SpreadOperator:EntityEvent.kt$EntityEvent$( *[ JsonSubTypes.Type(value = EntityCreateEvent::class), JsonSubTypes.Type(value = EntityReplaceEvent::class), JsonSubTypes.Type(value = EntityUpdateEvent::class), JsonSubTypes.Type(value = EntityDeleteEvent::class), JsonSubTypes.Type(value = AttributeAppendEvent::class), JsonSubTypes.Type(value = AttributeReplaceEvent::class), JsonSubTypes.Type(value = AttributeUpdateEvent::class), JsonSubTypes.Type(value = AttributeDeleteEvent::class), JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class) ] )</ID>
     <ID>TooGenericExceptionCaught:HttpUtils.kt$HttpUtils$e: Exception</ID>
     <ID>TooManyFunctions:JsonLdUtils.kt$JsonLdUtils$JsonLdUtils</ID>
     <ID>UnusedPrivateMember:JsonLdUtils.kt$JsonLdUtils$@PostConstruct private fun loadCoreContext()</ID>

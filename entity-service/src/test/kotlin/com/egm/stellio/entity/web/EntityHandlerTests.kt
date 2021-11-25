@@ -1130,7 +1130,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1149,7 +1149,7 @@ class EntityHandlerTests {
             )
         }
         verify {
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 eq(entityId),
                 any(),
                 appendResult,
@@ -1177,7 +1177,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityEventService.publishAppendEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1204,7 +1204,7 @@ class EntityHandlerTests {
             )
         }
         verify {
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 eq(entityId),
                 any(),
                 appendResult,
@@ -1292,7 +1292,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1307,7 +1307,7 @@ class EntityHandlerTests {
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
         verify {
-            entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityEventService.publishPartialAttributeUpdateEvents(
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
@@ -1341,7 +1341,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1356,7 +1356,7 @@ class EntityHandlerTests {
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
         verify {
-            entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityEventService.publishPartialAttributeUpdateEvents(
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
@@ -1502,7 +1502,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1514,7 +1514,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
-        verify { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) }
+        verify { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) }
 
         confirmVerified(entityService)
     }
@@ -1542,7 +1542,7 @@ class EntityHandlerTests {
             )
         } returns updateResult
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1553,7 +1553,7 @@ class EntityHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            entityEventService.publishUpdateEntityAttributesEvents(
+            entityEventService.publishAttributeUpdateEvents(
                 eq(entityId),
                 any(),
                 updateResult,
@@ -1590,7 +1590,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
         every { authorizationService.userCanUpdateEntity(entityId, "mock-user") } returns true
-        every { entityEventService.publishUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")

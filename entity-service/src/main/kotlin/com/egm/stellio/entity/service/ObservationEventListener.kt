@@ -85,7 +85,7 @@ class ObservationEventListener(
             return
         }
 
-        entityEventService.publishPartialUpdateEntityAttributesEvents(
+        entityEventService.publishPartialAttributeUpdateEvents(
             observationEvent.entityId,
             mapOf(observationEvent.attributeName to expandedPayload),
             listOf(
@@ -119,7 +119,13 @@ class ObservationEventListener(
             }
 
             entityEventService.publishAttributeAppendEvent(
-                observationEvent, updateResult.updated[0].updateOperationResult
+                observationEvent.entityId,
+                observationEvent.attributeName,
+                observationEvent.datasetId,
+                observationEvent.overwrite,
+                observationEvent.operationPayload,
+                updateResult.updated[0].updateOperationResult,
+                observationEvent.contexts
             )
         } catch (e: BadRequestDataException) {
             logger.error(e.message)

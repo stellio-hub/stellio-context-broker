@@ -298,7 +298,7 @@ class EntityOperationHandler(
     ) {
         updateBatchOperationResult.success.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,

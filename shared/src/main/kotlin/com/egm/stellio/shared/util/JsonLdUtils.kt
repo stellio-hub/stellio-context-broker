@@ -249,7 +249,7 @@ object JsonLdUtils {
         expandedAttributes: Map<String, Any>,
         expandedAttributeName: String,
         datasetId: URI?
-    ): Any? {
+    ): Map<String, Any>? {
         if (!expandedAttributes.containsKey(expandedAttributeName))
             return null
 
@@ -306,15 +306,6 @@ object JsonLdUtils {
 
     fun compactFragment(value: Map<String, Any>, context: List<String>): Map<String, Any> =
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
-
-    fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String =
-        compactAndStringifyFragment(mapOf(key to value), context)
-
-    fun compactAndStringifyFragment(value: Map<String, Any>, context: List<String>): String {
-        val compactedFragment =
-            JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
-        return mapper.writeValueAsString(compactedFragment.minus(JSONLD_CONTEXT))
-    }
 
     fun compactAndSerialize(
         jsonLdEntity: JsonLdEntity,

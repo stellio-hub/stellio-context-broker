@@ -83,7 +83,7 @@ class ObservationEventListenerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityEventService.publishPartialUpdateEntityAttributesEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -97,7 +97,7 @@ class ObservationEventListenerTests {
             )
         }
         verify {
-            entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityEventService.publishPartialAttributeUpdateEvents(
                 eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 match { it.containsKey("temperature") },
                 match {
@@ -129,7 +129,9 @@ class ObservationEventListenerTests {
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
-        every { entityEventService.publishAttributeAppendEvent(any(), any()) } just Runs
+        every {
+            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any())
+        } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -146,13 +148,13 @@ class ObservationEventListenerTests {
         }
         verify {
             entityEventService.publishAttributeAppendEvent(
-                match {
-                    it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.attributeName == "humidity" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:humidity:1".toUri() &&
-                        it.contexts == listOf(APIC_COMPOUND_CONTEXT) && !it.overwrite
-                },
-                eq(UpdateOperationResult.APPENDED)
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq("humidity"),
+                eq("urn:ngsi-ld:Dataset:humidity:1".toUri()),
+                eq(false),
+                any(),
+                eq(UpdateOperationResult.APPENDED),
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 

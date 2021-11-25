@@ -8,15 +8,17 @@ import java.net.URI
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "operationType")
 @JsonSubTypes(
-    JsonSubTypes.Type(value = EntityCreateEvent::class),
-    JsonSubTypes.Type(value = EntityReplaceEvent::class),
-    JsonSubTypes.Type(value = EntityUpdateEvent::class),
-    JsonSubTypes.Type(value = EntityDeleteEvent::class),
-    JsonSubTypes.Type(value = AttributeAppendEvent::class),
-    JsonSubTypes.Type(value = AttributeReplaceEvent::class),
-    JsonSubTypes.Type(value = AttributeUpdateEvent::class),
-    JsonSubTypes.Type(value = AttributeDeleteEvent::class),
-    JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class)
+    *[
+        JsonSubTypes.Type(value = EntityCreateEvent::class),
+        JsonSubTypes.Type(value = EntityReplaceEvent::class),
+        JsonSubTypes.Type(value = EntityUpdateEvent::class),
+        JsonSubTypes.Type(value = EntityDeleteEvent::class),
+        JsonSubTypes.Type(value = AttributeAppendEvent::class),
+        JsonSubTypes.Type(value = AttributeReplaceEvent::class),
+        JsonSubTypes.Type(value = AttributeUpdateEvent::class),
+        JsonSubTypes.Type(value = AttributeDeleteEvent::class),
+        JsonSubTypes.Type(value = AttributeDeleteAllInstancesEvent::class)
+    ]
 )
 open class EntityEvent(
     val operationType: EventsType,

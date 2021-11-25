@@ -1,0 +1,13 @@
+{
+   "entityId":"urn:ngsi-ld:Vehicle:A4567",
+   "entityType": "Vehicle",
+   "attributeName":"color",
+   "datasetId":"urn:ngsi-ld:Dataset:color:1",
+   "overwrite": true,
+   "operationPayload":"{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
+   "updatedEntity":"",
+   "contexts":[
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+   ],
+   "operationType":"ATTRIBUTE_APPEND"
+}

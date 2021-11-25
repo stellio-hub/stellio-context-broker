@@ -71,6 +71,21 @@ class SubscriptionEventServiceTests {
     }
 
     @Test
+    suspend fun `it should publish an event of type SUBSCRIPTION_DELETE`() {
+        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
+
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        subscriptionEventService.publishSubscriptionDeleteEvent(
+            subscriptionUri,
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should publish an event of type NOTIFICATION_CREATE`() {
         val notification = mockk<Notification>(relaxed = true)
         val notificationUri = "urn:ngsi-ld:Notification:1".toUri()

@@ -24,10 +24,13 @@ class EntityEventListenerService(
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
-            is EntityDeleteEvent -> logger.debug("Nothing to do on entity delete operation")
-            is AttributeAppendEvent -> logger.info("Attribute append operation is not yet implemented")
+            is AttributeAppendEvent -> handleEntityEvent(
+                setOf(entityEvent.attributeName),
+                entityEvent.getEntity(),
+                entityEvent.contexts
+            )
             is AttributeReplaceEvent -> handleEntityEvent(
-                deserializeObject(entityEvent.operationPayload).keys,
+                setOf(entityEvent.attributeName),
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
@@ -36,7 +39,7 @@ class EntityEventListenerService(
                 entityEvent.getEntity(),
                 entityEvent.contexts
             )
-            is AttributeDeleteEvent -> logger.info("Nothing to do on attribute delete operation")
+            else -> logger.debug("Nothing to do for operation of type ${entityEvent.operationType}")
         }
     }
 
@@ -48,10 +51,10 @@ class EntityEventListenerService(
                 entityPayload,
                 parsedEntity.toNgsiLdEntity(),
                 updatedAttributes
-            ).subscribe {
-                val succeeded = it.filter { it.third }.size
-                val failed = it.filter { !it.third }.size
-                logger.debug("Notified ${it.size} subscribers (success : $succeeded / failure : $failed)")
+            ).subscribe { results ->
+                val succeeded = results.count { it.third }
+                val failed = results.count { !it.third }
+                logger.debug("Notified ${results.size} subscribers (success : $succeeded / failure : $failed)")
             }
         } catch (e: BadRequestDataException) {
             logger.error("Received a non-parsable entity", e)

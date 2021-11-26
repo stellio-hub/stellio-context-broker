@@ -248,8 +248,8 @@ class IAMListenerTests {
             entityService.appendEntityAttributes(
                 "urn:ngsi-ld:Client:ab67edf3-238c-4f50-83f4-617c620c62eb".toUri(),
                 match {
-                    it.size == 2 &&
-                        it.map { it.compactName }.containsAll(listOf("roles", "serviceAccountId"))
+                    it.size == 1 &&
+                        it[0].compactName == "roles"
                 },
                 false
             )

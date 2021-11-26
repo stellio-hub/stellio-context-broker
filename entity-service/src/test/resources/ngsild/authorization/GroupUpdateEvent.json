@@ -3,7 +3,7 @@
   "entityId": "urn:ngsi-ld:Group:ab67edf3-238c-4f50-83f4-617c620c62eb",
   "entityType": "Group",
   "attributeName": "name",
-  "operationPayload": "{\"name\":{\"type\":\"Property\",\"value\":\"EGM Team\"}}",
+  "operationPayload": "{\"type\":\"Property\",\"value\":\"EGM Team\"}",
   "updatedEntity": "",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",

@@ -280,6 +280,13 @@ object JsonLdUtils {
             null
     }
 
+    fun expandJsonLdFragment(fragment: Map<String, Map<String, Any>>, contexts: List<String>): Map<String, Any> {
+        val usedContext = addCoreContext(contexts)
+        val jsonLdOptions = JsonLdOptions()
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
+        return parseAndExpandJsonLdFragment(serializeObject(fragment), jsonLdOptions)
+    }
+
     fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()

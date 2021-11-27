@@ -177,7 +177,7 @@ class EntityEventListenerService(
     ) {
         // return early to avoid extra processing if the attribute is not a temporal one
         if (!operationPayload.has("observedAt")) {
-            logger.info("Ignoring append event for $operationPayload, it has no observedAt information")
+            logger.info("Ignoring update event for $operationPayload, it has no observedAt information")
             return
         }
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
@@ -238,6 +238,12 @@ class EntityEventListenerService(
         updatedEntity: String,
         contexts: List<String>
     ) {
+        // return early to avoid extra processing if the attribute is not a temporal one
+        if (!operationPayload.has("observedAt")) {
+            logger.info("Ignoring append event for $operationPayload, it has no observedAt information")
+            return
+        }
+
         when (val extractedAttributeMetadata = toTemporalAttributeMetadata(operationPayload)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)

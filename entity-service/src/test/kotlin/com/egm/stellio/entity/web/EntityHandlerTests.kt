@@ -95,7 +95,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities("mock-user") } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -1706,7 +1706,7 @@ class EntityHandlerTests {
         every { entityService.getEntityCoreProperties(any()) } returns entity
         every { entity.type } returns listOf("https://ontology.eglobalmark.com/egm#Sensor")
         every { entity.contexts } returns hcmrContext
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns true
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")

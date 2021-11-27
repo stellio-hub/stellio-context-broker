@@ -333,7 +333,7 @@ class EntityOperationHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 capture(capturedEntitiesIds), capture(capturedEntityType), any(), any()
             )
-        } returns true
+        } just Runs
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -381,7 +381,7 @@ class EntityOperationHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 capture(capturedEntitiesIds), capture(capturedEntityType), any(), any()
             )
-        } returns true
+        } just Runs
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -474,7 +474,7 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
         every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
@@ -604,7 +604,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } returns true
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -779,7 +779,7 @@ class EntityOperationHandlerTests {
                 every { contexts } returns listOf(aquacContext!!)
             }
         }
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } returns true
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } just Runs
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()

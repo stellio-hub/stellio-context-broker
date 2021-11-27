@@ -24,7 +24,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit user creation event`() {
-        val userCreateEvent = loadSampleData("authorization/UserCreateEvent.json")
+        val userCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
 
         iamListener.processMessage(userCreateEvent)
 
@@ -44,7 +44,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit user deletion event`() {
-        val userDeleteEvent = loadSampleData("authorization/UserDeleteEvent.json")
+        val userDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
 
         iamListener.processMessage(userDeleteEvent)
 
@@ -54,7 +54,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit group creation event`() {
-        val groupCreateEvent = loadSampleData("authorization/GroupCreateEvent.json")
+        val groupCreateEvent = loadSampleData("events/authorization/GroupCreateEvent.json")
 
         iamListener.processMessage(groupCreateEvent)
 
@@ -70,7 +70,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit group update event`() {
-        val groupUpdateEvent = loadSampleData("authorization/GroupUpdateEvent.json")
+        val groupUpdateEvent = loadSampleData("events/authorization/GroupUpdateEvent.json")
 
         iamListener.processMessage(groupUpdateEvent)
 
@@ -91,7 +91,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit group deletion event`() {
-        val groupDeleteEvent = loadSampleData("authorization/GroupDeleteEvent.json")
+        val groupDeleteEvent = loadSampleData("events/authorization/GroupDeleteEvent.json")
 
         iamListener.processMessage(groupDeleteEvent)
 
@@ -101,7 +101,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit client creation event`() {
-        val clientCreateEvent = loadSampleData("authorization/ClientCreateEvent.json")
+        val clientCreateEvent = loadSampleData("events/authorization/ClientCreateEvent.json")
 
         iamListener.processMessage(clientCreateEvent)
 
@@ -121,7 +121,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit client deletion event`() {
-        val clientDeleteEvent = loadSampleData("authorization/ClientDeleteEvent.json")
+        val clientDeleteEvent = loadSampleData("events/authorization/ClientDeleteEvent.json")
 
         iamListener.processMessage(clientDeleteEvent)
 
@@ -131,7 +131,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit group membership append event`() {
-        val groupMembershipAppendEvent = loadSampleData("authorization/GroupMembershipAppendEvent.json")
+        val groupMembershipAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
         iamListener.processMessage(groupMembershipAppendEvent)
 
@@ -155,22 +155,22 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit group membership deletion event`() {
-        val groupMembershipDeleteEvent = loadSampleData("authorization/GroupMembershipDeleteEvent.json")
+        val groupMembershipDeleteEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
         iamListener.processMessage(groupMembershipDeleteEvent)
 
         verify {
             entityService.deleteEntityAttributeInstance(
-                "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri(),
+                "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUri(),
                 "https://ontology.eglobalmark.com/authorization#isMemberOf",
-                "urn:ngsi-ld:Dataset:isMemberOf:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
+                "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
             )
         }
     }
 
     @Test
     fun `it should parse and transmit role update event with two roles`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventTwoRoles.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventTwoRoles.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -194,7 +194,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event with one role`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventOneRole.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventOneRole.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -217,7 +217,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event with no roles`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventNoRole.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventNoRole.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -240,7 +240,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should parse and transmit role update event for a client`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendToClient.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendToClient.json")
 
         iamListener.processMessage(roleAppendEvent)
 

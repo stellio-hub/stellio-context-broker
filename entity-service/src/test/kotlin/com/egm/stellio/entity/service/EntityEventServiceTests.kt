@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -60,15 +59,13 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should not publish an event if topic name is invalid`() {
-        val result =
-            entityEventService.publishEntityCreateEvent(
-                breedingServiceUri,
-                "https://some.host/type",
-                "operationPayload",
-                listOf(AQUAC_COMPOUND_CONTEXT)
-            )
+        entityEventService.publishEntityCreateEvent(
+            breedingServiceUri,
+            "https://some.host/type",
+            "operationPayload",
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
 
-        assertFalse(result)
         verify { kafkaTemplate.send(any(), any(), any()) wasNot Called }
     }
 
@@ -122,6 +119,7 @@ class EntityEventServiceTests {
 
         entityEventService.publishAttributeAppendEvent(
             breedingServiceUri,
+            "BreedingService",
             "fishNumber",
             null,
             true,
@@ -164,6 +162,7 @@ class EntityEventServiceTests {
 
         entityEventService.publishAttributeAppendEvent(
             breedingServiceUri,
+            "BreedingService",
             "fishNumber",
             null,
             true,

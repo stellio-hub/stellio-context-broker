@@ -71,11 +71,11 @@ class EntityEventService(
         entityType: ExpandedTerm,
         entityPayload: String,
         contexts: List<String>
-    ): Boolean {
+    ) {
         logger.debug("Sending create event for entity $entityId")
-        return publishEntityEvent(
+        publishEntityEvent(
             EntityCreateEvent(entityId, compactTerm(entityType, contexts), entityPayload, contexts)
-        ) as Boolean
+        )
     }
 
     @Async
@@ -84,11 +84,11 @@ class EntityEventService(
         entityType: ExpandedTerm,
         entityPayload: String,
         contexts: List<String>
-    ): Boolean {
+    ) {
         logger.debug("Sending replace event for entity $entityId")
-        return publishEntityEvent(
+        publishEntityEvent(
             EntityReplaceEvent(entityId, compactTerm(entityType, contexts), entityPayload, contexts)
-        ) as Boolean
+        )
     }
 
     @Async
@@ -96,16 +96,17 @@ class EntityEventService(
         entityId: URI,
         entityType: ExpandedTerm,
         contexts: List<String>
-    ): Boolean {
+    ) {
         logger.debug("Sending delete event for entity $entityId")
-        return publishEntityEvent(
+        publishEntityEvent(
             EntityDeleteEvent(entityId, compactTerm(entityType, contexts), contexts)
-        ) as Boolean
+        )
     }
 
     @Async
     fun publishAttributeAppendEvent(
         entityId: URI,
+        entityType: String,
         attributeName: String,
         datasetId: URI? = null,
         overwrite: Boolean,
@@ -119,7 +120,7 @@ class EntityEventService(
             publishEntityEvent(
                 AttributeAppendEvent(
                     entityId,
-                    compactTerm(updatedEntity.type, contexts),
+                    entityType,
                     attributeName,
                     datasetId,
                     overwrite,
@@ -132,7 +133,7 @@ class EntityEventService(
             publishEntityEvent(
                 AttributeReplaceEvent(
                     entityId,
-                    compactTerm(updatedEntity.type, contexts),
+                    entityType,
                     attributeName,
                     datasetId,
                     operationPayload,

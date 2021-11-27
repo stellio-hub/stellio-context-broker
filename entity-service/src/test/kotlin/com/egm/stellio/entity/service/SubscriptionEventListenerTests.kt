@@ -26,7 +26,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should parse and create subscription entity`() {
         val subscription =
-            loadSampleData("events/listened/subscriptionCreateEvent.jsonld")
+            loadSampleData("events/subscriptions/subscriptionCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
@@ -45,7 +45,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should delete a subscription entity`() {
         val subscriptionEvent =
-            loadSampleData("events/listened/subscriptionDeleteEvent.jsonld")
+            loadSampleData("events/subscriptions/subscriptionDeleteEvent.jsonld")
 
         every { subscriptionHandlerService.deleteSubscriptionEntity(any()) } just Runs
 
@@ -63,7 +63,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should parse and create notification entity`() {
         val notification =
-            loadSampleData("events/listened/notificationCreateEvent.jsonld")
+            loadSampleData("events/subscriptions/notificationCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 

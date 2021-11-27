@@ -38,7 +38,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ENTITY_CREATE event`() {
-        val observationEvent = loadSampleData("observations/beehiveCreateEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/beehiveCreateEvent.jsonld")
 
         observationEventListener.processMessage(observationEvent)
 
@@ -70,13 +70,13 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ATTRIBUTE_UPDATE event`() {
-        val observationEvent = loadSampleData("observations/temperatureUpdateEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/humidityUpdateEvent.jsonld")
 
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(
-                    "https://ontology.eglobalmark.com/apic#temperature",
-                    "urn:ngsi-ld:Dataset:temperature:1".toUri(),
+                    "https://ontology.eglobalmark.com/apic#humidity",
+                    "urn:ngsi-ld:Dataset:humidity:1".toUri(),
                     UpdateOperationResult.UPDATED
                 )
             ),
@@ -91,7 +91,7 @@ class ObservationEventListenerTests {
             entityAttributeService.partialUpdateEntityAttribute(
                 "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                 match {
-                    it.containsKey("https://ontology.eglobalmark.com/apic#temperature")
+                    it.containsKey("https://ontology.eglobalmark.com/apic#humidity")
                 },
                 listOf(APIC_COMPOUND_CONTEXT)
             )
@@ -99,11 +99,11 @@ class ObservationEventListenerTests {
         verify {
             entityEventService.publishPartialAttributeUpdateEvents(
                 eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
-                match { it.containsKey("temperature") },
+                match { it.containsKey("https://ontology.eglobalmark.com/apic#humidity") },
                 match {
                     it.size == 1 &&
-                        it[0].attributeName == "temperature" &&
-                        it[0].datasetId == "urn:ngsi-ld:Dataset:temperature:1".toUri() &&
+                        it[0].attributeName == "https://ontology.eglobalmark.com/apic#humidity" &&
+                        it[0].datasetId == "urn:ngsi-ld:Dataset:humidity:1".toUri() &&
                         it[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
                 eq(listOf(APIC_COMPOUND_CONTEXT))
@@ -115,7 +115,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ATTRIBUTE_APPEND event`() {
-        val observationEvent = loadSampleData("observations/humidityAppendEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/humidityAppendEvent.jsonld")
 
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
             listOf(
@@ -130,7 +130,7 @@ class ObservationEventListenerTests {
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
         every {
-            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any())
+            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
         } just Runs
 
         observationEventListener.processMessage(observationEvent)
@@ -149,6 +149,7 @@ class ObservationEventListenerTests {
         verify {
             entityEventService.publishAttributeAppendEvent(
                 eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq("BeeHive"),
                 eq("humidity"),
                 eq("urn:ngsi-ld:Dataset:humidity:1".toUri()),
                 eq(false),
@@ -163,7 +164,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should ignore an ATTRIBUTE_APPEND events for unparsable attributes`() {
-        val observationEvent = loadSampleData("observations/unparseable/humidityAppendEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/unparseable/humidityAppendEvent.jsonld")
 
         observationEventListener.processMessage(observationEvent)
 

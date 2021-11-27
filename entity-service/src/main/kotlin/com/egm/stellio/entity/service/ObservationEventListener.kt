@@ -1,7 +1,5 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeUpdateEvent
@@ -80,23 +78,17 @@ class ObservationEventListener(
                 )
                 return
             }
+
+            entityEventService.publishPartialAttributeUpdateEvents(
+                observationEvent.entityId,
+                expandedPayload,
+                updateResult.updated,
+                observationEvent.contexts
+            )
         } catch (e: ResourceNotFoundException) {
             logger.error("Entity or attribute not found in observation : ${e.message}")
             return
         }
-
-        entityEventService.publishPartialAttributeUpdateEvents(
-            observationEvent.entityId,
-            mapOf(observationEvent.attributeName to expandedPayload),
-            listOf(
-                UpdatedDetails(
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    UpdateOperationResult.UPDATED
-                )
-            ),
-            observationEvent.contexts
-        )
     }
 
     fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent) {
@@ -120,6 +112,7 @@ class ObservationEventListener(
 
             entityEventService.publishAttributeAppendEvent(
                 observationEvent.entityId,
+                observationEvent.entityType,
                 observationEvent.attributeName,
                 observationEvent.datasetId,
                 observationEvent.overwrite,

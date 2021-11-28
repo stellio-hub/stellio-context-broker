@@ -159,10 +159,10 @@ class Neo4jAuthorizationRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectId,
-            "targetId" to targetId
+            "entityId" to subjectId.toString(),
+            "targetId" to targetId.toString()
         )
 
-        return session.query(matchQuery, parameters).queryStatistics().nodesDeleted
+        return neo4jClient.query(matchQuery).bindAll(parameters).run().counters().nodesDeleted()
     }
 }

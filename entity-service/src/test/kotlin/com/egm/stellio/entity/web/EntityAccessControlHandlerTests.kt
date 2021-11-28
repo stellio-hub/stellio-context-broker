@@ -4,6 +4,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
 import com.egm.stellio.entity.config.WebSecurityTestConfig
+import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AttributeAppendEvent
@@ -18,6 +19,7 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -51,6 +53,7 @@ class EntityAccessControlHandlerTests {
 
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
+    private val entityType = "https://my.context/Entity"
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -64,6 +67,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to give access to an entity`() {
+        val entity = mockk<Entity>()
         val requestPayload =
             """
             {
@@ -76,6 +80,8 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf(entityType)
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         webClient.post()
@@ -124,6 +130,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to give access to a set of entities`() {
+        val entity = mockk<Entity>()
         val entityUri2 = "urn:ngsi-ld:Entity:entityId2".toUri()
         val entityUri3 = "urn:ngsi-ld:Entity:entityId3".toUri()
         val requestPayload =
@@ -148,6 +155,8 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf(entityType)
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -186,6 +195,7 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should only allow to give access to authorized entities`() {
+        val entity = mockk<Entity>()
         val entityUri2 = "urn:ngsi-ld:Entity:entityId2".toUri()
         val requestPayload =
             """
@@ -206,6 +216,8 @@ class EntityAccessControlHandlerTests {
 
         every { authorizationService.userIsAdminOfEntity(eq(entityUri1), any()) } returns true
         every { authorizationService.userIsAdminOfEntity(eq(entityUri2), any()) } returns false
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf(entityType)
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -230,8 +242,12 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `it should allow an authorized user to remove access to an entity`() {
+        val entity = mockk<Entity>()
+
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
         every { authorizationService.removeUserRightsOnEntity(any(), any()) } returns 1
+        every { entityService.getEntityCoreProperties(any()) } returns entity
+        every { entity.type } returns listOf(entityType)
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         webClient.delete()

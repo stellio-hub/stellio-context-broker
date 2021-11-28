@@ -1,36 +1,34 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.TimescaleBasedTests
 import com.egm.stellio.search.model.SubjectAccessRights
+import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.SubjectType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.data.r2dbc.core.DatabaseClient
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import reactor.test.StepVerifier
 import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubjectAccessRightsServiceTests : TimescaleBasedTests() {
+class SubjectAccessRightsServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var subjectAccessRightsService: SubjectAccessRightsService
 
     @Autowired
-    private lateinit var databaseClient: DatabaseClient
+    private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
 
     @AfterEach
     fun clearUsersAccessRightsTable() {
-        databaseClient.delete()
-            .from("subject_access_rights")
-            .fetch()
-            .rowsUpdated()
+        r2dbcEntityTemplate.delete(SubjectAccessRights::class.java)
+            .all()
             .block()
     }
 

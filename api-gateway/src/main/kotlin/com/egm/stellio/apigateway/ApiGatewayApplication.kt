@@ -38,7 +38,7 @@ class ApiGatewayApplication {
             .route { p ->
                 p.path("/ngsi-ld/v1/entityAccessControl/**")
                     .filters {
-                        it.filter(filterFactory.apply())
+                        it.tokenRelay()
                     }
                     .uri("http://$entityServiceUrl:8082")
             }

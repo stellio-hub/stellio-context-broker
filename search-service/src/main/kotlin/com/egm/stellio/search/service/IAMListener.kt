@@ -67,7 +67,7 @@ class IAMListener(
     private fun addRoleToSubject(attributeAppendEvent: AttributeAppendEvent) {
         if (attributeAppendEvent.attributeName == "roles") {
             val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
-            val updatedRoles = (operationPayloadNode["roles"]["value"] as ArrayNode).elements()
+            val updatedRoles = (operationPayloadNode["value"] as ArrayNode).elements()
             var hasStellioAdminRole = false
             while (updatedRoles.hasNext()) {
                 if (updatedRoles.next().asText().equals("stellio-admin")) {

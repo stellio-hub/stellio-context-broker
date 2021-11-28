@@ -5,6 +5,7 @@ import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
+import java.util.Locale
 import java.util.UUID
 
 fun extractSubjectOrEmpty(): Mono<String> {
@@ -21,7 +22,7 @@ fun String.toUUID(): UUID =
 
 fun getSubjectTypeFromSubjectId(subjectId: URI): SubjectType {
     val type = subjectId.toString().split(":")[2]
-    return SubjectType.valueOf(type.toUpperCase())
+    return SubjectType.valueOf(type.uppercase(Locale.getDefault()))
 }
 
 enum class SubjectType {

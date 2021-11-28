@@ -77,6 +77,8 @@ class EntityAccessControlHandler(
             )
             val attributeAppendEvent = AttributeAppendEvent(
                 entityId = subjectId.toUri(),
+                // TODO costly and not exactly what we want
+                entityType = entityService.getEntityCoreProperties(subjectId.toUri()).type[0],
                 attributeName = ngsiLdRelationship.compactName,
                 datasetId = it.second.datasetId,
                 operationPayload = JsonUtils.serializeObject(operationPayload),
@@ -120,6 +122,8 @@ class EntityAccessControlHandler(
         if (removeResult == 1) {
             val attributeAppendEvent = AttributeDeleteEvent(
                 entityId = subjectId.toUri(),
+                // TODO costly and not exactly what we want
+                entityType = entityService.getEntityCoreProperties(subjectId.toUri()).type[0],
                 attributeName = entityId,
                 datasetId = null,
                 updatedEntity = "",

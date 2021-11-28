@@ -1,9 +1,11 @@
 package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.web.SubjectType
+import org.springframework.data.annotation.Id
 import java.util.UUID
 
 data class SubjectAccessRights(
+    @Id
     val subjectId: UUID,
     val subjectType: SubjectType,
     val globalRole: String? = null,

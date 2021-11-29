@@ -24,7 +24,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle a create event for a subject`() {
-        val subjectCreateEvent = loadSampleData("authorization/UserCreateEvent.json")
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
 
         iamListener.processMessage(subjectCreateEvent)
 
@@ -44,7 +44,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle a delete event for a subject`() {
-        val subjectDeleteEvent = loadSampleData("authorization/UserDeleteEvent.json")
+        val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
 
         iamListener.processMessage(subjectDeleteEvent)
 
@@ -60,7 +60,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an append event adding a stellio-admin role for a group`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventOneRole.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventOneRole.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -76,7 +76,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an append event adding a stellio-admin role for a client`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendToClient.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendToClient.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -92,7 +92,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an append event adding a stellio-admin role within two roles`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventTwoRoles.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventTwoRoles.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -108,7 +108,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an append event removing a stellio-admin role for a group`() {
-        val roleAppendEvent = loadSampleData("authorization/RealmRoleAppendEventNoRole.json")
+        val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventNoRole.json")
 
         iamListener.processMessage(roleAppendEvent)
 
@@ -124,7 +124,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an append event adding a right on an entity`() {
-        val rightAppendEvent = loadSampleData("authorization/RightAddOnEntity.json")
+        val rightAppendEvent = loadSampleData("events/authorization/RightAddOnEntity.json")
 
         iamListener.processIamRights(rightAppendEvent)
 
@@ -139,7 +139,7 @@ class IAMListenerTests {
 
     @Test
     fun `it should handle an delete event removing a right on an entity`() {
-        val rightRemoveEvent = loadSampleData("authorization/RightRemoveOnEntity.json")
+        val rightRemoveEvent = loadSampleData("events/authorization/RightRemoveOnEntity.json")
 
         iamListener.processIamRights(rightRemoveEvent)
 

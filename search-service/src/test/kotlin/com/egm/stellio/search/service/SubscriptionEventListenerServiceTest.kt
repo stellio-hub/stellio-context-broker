@@ -30,7 +30,7 @@ class SubscriptionEventListenerServiceTest {
 
     @Test
     fun `it should parse a subscription and create a temporal entity reference`() {
-        val subscriptionEvent = loadSampleData("events/listened/subscriptionCreateEvent.jsonld")
+        val subscriptionEvent = loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
         every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
 
@@ -41,7 +41,7 @@ class SubscriptionEventListenerServiceTest {
                 match { entityTemporalProperty ->
                     entityTemporalProperty.attributeName == "https://uri.etsi.org/ngsi-ld/notification" &&
                         entityTemporalProperty.attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:1234".toUri() &&
+                        entityTemporalProperty.entityId == "urn:ngsi-ld:Subscription:04".toUri() &&
                         entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
                 }
             )
@@ -52,7 +52,7 @@ class SubscriptionEventListenerServiceTest {
     @Test
     fun `it should parse a notification and create one related observation`() {
         val temporalEntityAttributeUuid = UUID.randomUUID()
-        val notificationEvent = loadSampleData("events/listened/notificationCreateEvent.jsonld")
+        val notificationEvent = loadSampleData("events/subscription/notificationCreateEvent.jsonld")
 
         every { temporalEntityAttributeService.getFirstForEntity(any()) } returns Mono.just(temporalEntityAttributeUuid)
         every { attributeInstanceService.create(any()) } returns Mono.just(1)
@@ -84,14 +84,14 @@ class SubscriptionEventListenerServiceTest {
 
     @Test
     fun `it should delete subscription temporal references`() {
-        val subscriptionEvent = loadSampleData("events/listened/subscriptionDeleteEvent.jsonld")
+        val subscriptionEvent = loadSampleData("events/subscription/subscriptionDeleteEvent.jsonld")
 
         every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Mono.just(10)
 
         subscriptionEventListenerService.processSubscription(subscriptionEvent)
 
         verify {
-            temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:1234".toUri()))
+            temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))
         }
 
         confirmVerified(temporalEntityAttributeService)

@@ -3,6 +3,7 @@ package com.egm.stellio.entity.service
 import arrow.core.Validated
 import arrow.core.invalid
 import arrow.core.valid
+import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
@@ -39,6 +40,8 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    private val iamTopic = "cim.iam.rights"
+
     internal fun composeTopicName(entityType: String): Validated<Unit, String> {
         val topicName = entityChannelName(entityType)
         return try {
@@ -62,8 +65,11 @@ class EntityEventService(
                 }
             )
 
-    private fun entityChannelName(channelSuffix: String) =
-        "cim.entity.$channelSuffix"
+    private fun entityChannelName(entityType: String) =
+        if (AuthorizationService.IAM_LABELS.contains(entityType))
+            iamTopic
+        else
+            "cim.entity.$entityType"
 
     @Async
     fun publishEntityCreateEvent(

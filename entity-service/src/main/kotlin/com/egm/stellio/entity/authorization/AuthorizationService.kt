@@ -8,7 +8,9 @@ interface AuthorizationService {
         const val USER_PREFIX: String = "urn:ngsi-ld:User:"
         const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
         const val USER_LABEL = AUTHORIZATION_ONTOLOGY + "User"
+        const val GROUP_LABEL = AUTHORIZATION_ONTOLOGY + "Group"
         const val CLIENT_LABEL = AUTHORIZATION_ONTOLOGY + "Client"
+        val IAM_LABELS = listOf(USER_LABEL, GROUP_LABEL, CLIENT_LABEL)
         const val EGM_ROLES = AUTHORIZATION_ONTOLOGY + "roles"
         const val R_CAN_READ = AUTHORIZATION_ONTOLOGY + "rCanRead"
         const val R_CAN_WRITE = AUTHORIZATION_ONTOLOGY + "rCanWrite"

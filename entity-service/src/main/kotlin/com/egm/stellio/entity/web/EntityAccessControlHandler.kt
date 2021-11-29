@@ -1,16 +1,15 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.model.updateResultFromDetailedResult
+import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.toUri
@@ -20,7 +19,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -35,7 +33,7 @@ import reactor.core.publisher.Mono
 class EntityAccessControlHandler(
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val entityEventService: EntityEventService
 ) {
 
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
@@ -61,7 +59,7 @@ class EntityAccessControlHandler(
                 authorizationService.userIsAdminOfEntity(targetEntityId, userId)
             }
 
-        authorizedInstances.forEach {
+        val results = authorizedInstances.map {
             val ngsiLdRelationship = it.first as NgsiLdRelationship
             entityService.appendEntityRelationship(
                 subjectId.toUri(),
@@ -69,24 +67,14 @@ class EntityAccessControlHandler(
                 it.second,
                 false
             )
-
-            val operationPayload = mapOf(
-                "type" to "Relationship",
-                "object" to it.second.objectId,
-                "datasetId" to it.second.datasetId
-            )
-            val attributeAppendEvent = AttributeAppendEvent(
-                entityId = subjectId.toUri(),
-                // TODO costly and not exactly what we want
-                entityType = entityService.getEntityCoreProperties(subjectId.toUri()).type[0],
-                attributeName = ngsiLdRelationship.compactName,
-                datasetId = it.second.datasetId,
-                operationPayload = JsonUtils.serializeObject(operationPayload),
-                updatedEntity = "",
-                contexts = contexts
-            )
-            kafkaTemplate.send("cim.iam.rights", subjectId, JsonUtils.serializeObject(attributeAppendEvent))
         }
+
+        entityEventService.publishAttributeAppendEvents(
+            subjectId.toUri(),
+            jsonLdAttributes,
+            updateResultFromDetailedResult(results),
+            contexts
+        )
 
         return if (unauthorizedInstances.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -120,16 +108,12 @@ class EntityAccessControlHandler(
         val removeResult = authorizationService.removeUserRightsOnEntity(entityId.toUri(), subjectId.toUri())
 
         if (removeResult == 1) {
-            val attributeAppendEvent = AttributeDeleteEvent(
+            entityEventService.publishAttributeDeleteEvent(
                 entityId = subjectId.toUri(),
-                // TODO costly and not exactly what we want
-                entityType = entityService.getEntityCoreProperties(subjectId.toUri()).type[0],
                 attributeName = entityId,
-                datasetId = null,
-                updatedEntity = "",
+                deleteAll = false,
                 contexts = contexts
             )
-            kafkaTemplate.send("cim.iam.rights", subjectId, JsonUtils.serializeObject(attributeAppendEvent))
         }
 
         return if (removeResult == 1)

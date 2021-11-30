@@ -26,6 +26,7 @@ import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
+import java.util.Locale
 
 class NgsiLdEntity private constructor(
     val id: URI,
@@ -300,13 +301,13 @@ class NgsiLdGeoPropertyInstance(
 
         fun toWktFormat(geoPropertyType: GeoPropertyType, coordinates: List<Any>): String {
             return if (geoPropertyType == GeoPropertyType.Point) {
-                "${geoPropertyType.value.toUpperCase()} (${coordinates.joinToString(" ")})"
+                "${geoPropertyType.value.uppercase(Locale.getDefault())} (${coordinates.joinToString(" ")})"
             } else {
                 val formattedCoordinates = coordinates.map {
                     it as List<*>
                     it.joinToString(" ")
                 }
-                "${geoPropertyType.value.toUpperCase()} ((${formattedCoordinates.joinToString(", ")}))"
+                "${geoPropertyType.value.uppercase(Locale.getDefault())} ((${formattedCoordinates.joinToString(", ")}))"
             }
         }
     }

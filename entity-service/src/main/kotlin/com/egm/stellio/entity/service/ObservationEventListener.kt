@@ -1,12 +1,18 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
-import org.springframework.http.MediaType
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
@@ -42,9 +48,11 @@ class ObservationEventListener(
             return
         }
 
-        entityEventService.publishEntityEvent(
-            observationEvent,
-            ngsiLdEntity.type
+        entityEventService.publishEntityCreateEvent(
+            ngsiLdEntity.id,
+            ngsiLdEntity.type,
+            observationEvent.operationPayload,
+            observationEvent.contexts
         )
     }
 
@@ -70,26 +78,17 @@ class ObservationEventListener(
                 )
                 return
             }
+
+            entityEventService.publishPartialAttributeUpdateEvents(
+                observationEvent.entityId,
+                expandedPayload,
+                updateResult.updated,
+                observationEvent.contexts
+            )
         } catch (e: ResourceNotFoundException) {
             logger.error("Entity or attribute not found in observation : ${e.message}")
             return
         }
-
-        val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
-        if (updatedEntity == null)
-            logger.warn("Unable to retrieve entity ${observationEvent.entityId} from DB, not sending to Kafka")
-        else
-            entityEventService.publishEntityEvent(
-                AttributeUpdateEvent(
-                    observationEvent.entityId,
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    observationEvent.operationPayload,
-                    compactAndSerialize(updatedEntity, observationEvent.contexts, MediaType.APPLICATION_JSON),
-                    observationEvent.contexts
-                ),
-                updatedEntity.type
-            )
     }
 
     fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent) {
@@ -101,27 +100,25 @@ class ObservationEventListener(
 
         try {
             val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-            entityService.appendEntityAttributes(
+            val updateResult = entityService.appendEntityAttributes(
                 observationEvent.entityId,
                 ngsiLdAttributes,
                 !observationEvent.overwrite
             )
-            val updatedEntity = entityService.getFullEntityById(observationEvent.entityId, true)
-            if (updatedEntity!!.type.isEmpty()) {
-                logger.warn("Retrieved entity ${observationEvent.entityId} but it has no type!")
+            if (updateResult.notUpdated.isNotEmpty()) {
+                logger.warn("Attribute could not be appended: ${updateResult.notUpdated}")
                 return
             }
-            entityEventService.publishEntityEvent(
-                AttributeAppendEvent(
-                    observationEvent.entityId,
-                    observationEvent.attributeName,
-                    observationEvent.datasetId,
-                    observationEvent.operationPayload,
-                    compactAndSerialize(updatedEntity, observationEvent.contexts, MediaType.APPLICATION_JSON),
-                    observationEvent.contexts,
-                    observationEvent.overwrite
-                ),
-                updatedEntity.type
+
+            entityEventService.publishAttributeAppendEvent(
+                observationEvent.entityId,
+                observationEvent.entityType,
+                observationEvent.attributeName,
+                observationEvent.datasetId,
+                observationEvent.overwrite,
+                observationEvent.operationPayload,
+                updateResult.updated[0].updateOperationResult,
+                observationEvent.contexts
             )
         } catch (e: BadRequestDataException) {
             logger.error(e.message)

@@ -8,9 +8,11 @@ import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Runs
 import io.mockk.called
 import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockkClass
 import io.mockk.verify
 import org.junit.jupiter.api.Test
@@ -36,7 +38,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ENTITY_CREATE event`() {
-        val observationEvent = loadSampleData("observations/beehiveCreateEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/beehiveCreateEvent.jsonld")
 
         observationEventListener.processMessage(observationEvent)
 
@@ -55,14 +57,11 @@ class ObservationEventListenerTests {
         }
 
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as EntityCreateEvent
-                    it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.contexts.contains(APIC_COMPOUND_CONTEXT)
-                },
-                "https://ontology.eglobalmark.com/apic#BeeHive"
+            entityEventService.publishEntityCreateEvent(
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq("https://ontology.eglobalmark.com/apic#BeeHive"),
+                any(),
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 
@@ -71,21 +70,20 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ATTRIBUTE_UPDATE event`() {
-        val observationEvent = loadSampleData("observations/temperatureUpdateEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/humidityUpdateEvent.jsonld")
 
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns UpdateResult(
             updated = arrayListOf(
                 UpdatedDetails(
-                    "https://ontology.eglobalmark.com/apic#temperature",
-                    "urn:ngsi-ld:Dataset:temperature:1".toUri(),
+                    "https://ontology.eglobalmark.com/apic#humidity",
+                    "urn:ngsi-ld:Dataset:humidity:1".toUri(),
                     UpdateOperationResult.UPDATED
                 )
             ),
             notUpdated = arrayListOf()
         )
 
-        every { entityService.getFullEntityById(any(), any()) } returns mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -93,22 +91,22 @@ class ObservationEventListenerTests {
             entityAttributeService.partialUpdateEntityAttribute(
                 "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                 match {
-                    it.containsKey("https://ontology.eglobalmark.com/apic#temperature")
+                    it.containsKey("https://ontology.eglobalmark.com/apic#humidity")
                 },
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        verify { entityService.getFullEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), true) }
         verify {
-            entityEventService.publishEntityEvent(
+            entityEventService.publishPartialAttributeUpdateEvents(
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                match { it.containsKey("https://ontology.eglobalmark.com/apic#humidity") },
                 match {
-                    it as AttributeUpdateEvent
-                    it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.attributeName == "temperature" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:temperature:1".toUri() &&
-                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
+                    it.size == 1 &&
+                        it[0].attributeName == "https://ontology.eglobalmark.com/apic#humidity" &&
+                        it[0].datasetId == "urn:ngsi-ld:Dataset:humidity:1".toUri() &&
+                        it[0].updateOperationResult == UpdateOperationResult.UPDATED
                 },
-                any()
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 
@@ -117,7 +115,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should parse and transmit an ATTRIBUTE_APPEND event`() {
-        val observationEvent = loadSampleData("observations/humidityAppendEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/humidityAppendEvent.jsonld")
 
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns UpdateResult(
             listOf(
@@ -131,8 +129,9 @@ class ObservationEventListenerTests {
         )
         val mockedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { mockedJsonLdEntity.type } returns "https://ontology.eglobalmark.com/apic#BeeHive"
-        every { entityService.getFullEntityById(any(), any()) } returns mockedJsonLdEntity
-        every { entityEventService.publishEntityEvent(any(), any()) } returns true as java.lang.Boolean
+        every {
+            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
+        } just Runs
 
         observationEventListener.processMessage(observationEvent)
 
@@ -147,17 +146,16 @@ class ObservationEventListenerTests {
                 true
             )
         }
-        verify { entityService.getFullEntityById("urn:ngsi-ld:BeeHive:TESTC".toUri(), true) }
         verify {
-            entityEventService.publishEntityEvent(
-                match {
-                    it as AttributeAppendEvent
-                    it.entityId == "urn:ngsi-ld:BeeHive:TESTC".toUri() &&
-                        it.attributeName == "humidity" &&
-                        it.datasetId == "urn:ngsi-ld:Dataset:humidity:1".toUri() &&
-                        it.contexts == listOf(APIC_COMPOUND_CONTEXT) && !it.overwrite
-                },
-                any()
+            entityEventService.publishAttributeAppendEvent(
+                eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                eq("BeeHive"),
+                eq("humidity"),
+                eq("urn:ngsi-ld:Dataset:humidity:1".toUri()),
+                eq(false),
+                any(),
+                eq(UpdateOperationResult.APPENDED),
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
 
@@ -166,7 +164,7 @@ class ObservationEventListenerTests {
 
     @Test
     fun `it should ignore an ATTRIBUTE_APPEND events for unparsable attributes`() {
-        val observationEvent = loadSampleData("observations/unparseable/humidityAppendEvent.jsonld")
+        val observationEvent = loadSampleData("events/observations/unparseable/humidityAppendEvent.jsonld")
 
         observationEventListener.processMessage(observationEvent)
 

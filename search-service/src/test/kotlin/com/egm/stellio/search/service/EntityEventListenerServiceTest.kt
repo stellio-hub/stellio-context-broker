@@ -221,6 +221,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ENTITY_CREATE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "operationPayload": "$entity",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
@@ -248,6 +249,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ENTITY_DELETE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
             }
             """.trimIndent().replace("\n", "")
@@ -270,6 +272,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ATTRIBUTE_DELETE",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "updatedEntity": "$updatedEntityTextualValue",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
@@ -307,6 +310,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "ATTRIBUTE_DELETE_ALL_INSTANCES",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "updatedEntity": "$updatedEntityTextualValue",
                 "contexts": ["$NGSILD_CORE_CONTEXT"]
@@ -341,11 +345,9 @@ class EntityEventListenerServiceTest {
         val eventPayload =
             """
             {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869,
-                    \"observedAt\":\"$observedAt\"
-                }
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
         val expectedAttributeInstance =
@@ -405,12 +407,10 @@ class EntityEventListenerServiceTest {
         val eventPayload =
             """
             {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":\"some textual value\",
-                    \"datasetId\":\"urn:ngsi-ld:Dataset:totalDissolvedSolids:01\",
-                    \"observedAt\":\"$observedAt\"
-                }
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"datasetId\":\"urn:ngsi-ld:Dataset:totalDissolvedSolids:01\",
+                \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_APPEND, eventPayload)
@@ -458,11 +458,9 @@ class EntityEventListenerServiceTest {
         val eventPayload =
             """
             {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869,
-                    \"observedAt\":\"$observedAt\"
-                }
+                \"type\":\"Property\",
+                \"value\":33869,
+                \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
         val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
@@ -494,11 +492,9 @@ class EntityEventListenerServiceTest {
         val eventPayload =
             """
             {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":\"some textual value\",
-                    \"observedAt\":\"$observedAt\"
-                }
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\"
             }
             """.trimIndent()
         val expectedAttributeInstance =
@@ -531,15 +527,13 @@ class EntityEventListenerServiceTest {
         val eventPayload =
             """
             {
-                \"totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":\"some textual value\",
-                    \"observedAt\":\"$observedAt\",
-                    \"datasetId\": \"$datasetId\",
-                    \"observedBy\": {
-                      \"type\": \"Relationship\",
-                      \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
-                    }
+                \"type\":\"Property\",
+                \"value\":\"some textual value\",
+                \"observedAt\":\"$observedAt\",
+                \"datasetId\": \"$datasetId\",
+                \"observedBy\": {
+                  \"type\": \"Relationship\",
+                  \"object\": \"urn:ngsi-ld:Sensor:IncomingSensor\"
                 }
             }
             """.trimIndent()
@@ -566,42 +560,6 @@ class EntityEventListenerServiceTest {
         entityEventListenerService.processMessage(content)
 
         verifyAndConfirmMockForValue(temporalEntityAttributeUuid, datasetId, expectedAttributeInstance)
-    }
-
-    @Test
-    fun `it should handle attributeReplace events with an operation payload containing expanded attribute`() {
-        val eventPayload =
-            """
-            {
-                \"https://uri.etsi.org/ngsi-ld/default-context/totalDissolvedSolids\":{
-                    \"type\":\"Property\",
-                    \"value\":33869,
-                    \"observedAt\":\"$observedAt\"
-                }
-            }
-            """.trimIndent()
-        val content = prepareAttributeEventPayload(EventsType.ATTRIBUTE_REPLACE, eventPayload)
-        val temporalEntityAttributeUuid = UUID.randomUUID()
-
-        every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } returns Mono.just(
-            temporalEntityAttributeUuid
-        )
-        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-
-        entityEventListenerService.processMessage(content)
-
-        verify {
-            attributeInstanceService.create(
-                match {
-                    it.value == null &&
-                        it.measuredValue == 33869.0 &&
-                        it.observedAt == ZonedDateTime.parse(observedAt) &&
-                        it.temporalEntityAttribute == temporalEntityAttributeUuid
-                }
-            )
-        }
-
-        verifyAndConfirmMockForMeasuredValue(temporalEntityAttributeUuid)
     }
 
     @Test
@@ -798,6 +756,7 @@ class EntityEventListenerServiceTest {
             {
                 "operationType": "$operationType",
                 "entityId": "$fishContainmentId",
+                "entityType": "FishContainment",
                 "attributeName": "totalDissolvedSolids",
                 "operationPayload": "$payload",
                 "updatedEntity": "$updatedEntity",

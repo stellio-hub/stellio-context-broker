@@ -8,13 +8,11 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -25,12 +23,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.http.MediaType
 
 class JsonLdUtilsTests {
-
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     private val normalizedJson =
         """
@@ -372,6 +364,35 @@ class JsonLdUtilsTests {
             getAttributeFromExpandedAttributes(expandedAttributes, expandedName, "urn:datasetId:1".toUri())
         )
         assertNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedName, null))
+    }
+
+    @Test
+    fun `it should find a JSON-LD @context in an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1",
+            "@context" to "https://some.context"
+        )
+
+        assertEquals(listOf("https://some.context"), extractContextFromInput(input))
+    }
+
+    @Test
+    fun `it should find a list of JSON-LD @contexts in an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1",
+            "@context" to listOf("https://some.context", "https://some.context.2")
+        )
+
+        assertEquals(listOf("https://some.context", "https://some.context.2"), extractContextFromInput(input))
+    }
+
+    @Test
+    fun `it should return an empty list if no JSON-LD @context was found an input map`() {
+        val input = mapOf(
+            "id" to "urn:ngsi-ld:Entity:1"
+        )
+
+        assertEquals(emptyList<String>(), extractContextFromInput(input))
     }
 
     @Test

@@ -1,24 +1,25 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
+import com.egm.stellio.shared.model.AttributeDeleteEvent
+import com.egm.stellio.shared.model.AttributeReplaceEvent
+import com.egm.stellio.shared.model.AttributeUpdateEvent
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityDeleteEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.EntityReplaceEvent
+import com.egm.stellio.shared.model.EntityUpdateEvent
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class JsonUtilsTests {
 
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-
     private val entityId = "urn:ngsi-ld:Vehicle:A4567".toUri()
+    private val entityType = "Vehicle"
     private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
+    private val subscriptionType = "Subscription"
     private val entityPayload =
         """
         {
@@ -106,11 +107,12 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 entityId,
+                entityType,
                 entityPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityCreateEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityCreateEvent.jsonld"))
     }
 
     @Test
@@ -118,11 +120,12 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityReplaceEvent(
                 entityId,
+                entityType,
                 entityPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityReplaceEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityReplaceEvent.jsonld"))
     }
 
     @Test
@@ -130,10 +133,11 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
                 entityId,
+                entityType,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityDeleteEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityDeleteEvent.jsonld"))
     }
 
     @Test
@@ -141,12 +145,13 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityUpdateEvent(
                 subscriptionId,
+                subscriptionType,
                 "{\"q\": \"foodQuantity>=90\"}",
                 subscriptionPayload,
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/entityUpdateEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityUpdateEvent.jsonld"))
     }
 
     @Test
@@ -154,6 +159,7 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             AttributeUpdateEvent(
                 entityId,
+                entityType,
                 "color",
                 "urn:ngsi-ld:Dataset:color:1".toUri(),
                 "{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
@@ -161,7 +167,24 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeUpdateEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeUpdateEvent.jsonld"))
+    }
+
+    @Test
+    fun `it should serialize an event of type ATTRIBUTE_APPEND`() {
+        val event = mapper.writeValueAsString(
+            AttributeAppendEvent(
+                entityId,
+                entityType,
+                "color",
+                "urn:ngsi-ld:Dataset:color:1".toUri(),
+                true,
+                "{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
+                "",
+                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+            )
+        )
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeAppendEvent.jsonld"))
     }
 
     @Test
@@ -169,6 +192,7 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             AttributeReplaceEvent(
                 entityId,
+                entityType,
                 "color",
                 "urn:ngsi-ld:Dataset:color:1".toUri(),
                 "{ \"type\": \"Property\", \"value\": \"red\" }",
@@ -176,7 +200,7 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeReplaceEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeReplaceEvent.jsonld"))
     }
 
     @Test
@@ -184,13 +208,14 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             AttributeDeleteEvent(
                 entityId,
+                entityType,
                 "color",
                 "urn:ngsi-ld:Dataset:color:1".toUri(),
                 "updatedEntity",
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeDeleteEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteEvent.jsonld"))
     }
 
     @Test
@@ -198,11 +223,12 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             AttributeDeleteAllInstancesEvent(
                 entityId,
+                entityType,
                 "color",
                 "updatedEntity",
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        Assertions.assertTrue(event.matchContent(loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld")))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld"))
     }
 }

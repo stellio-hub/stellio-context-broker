@@ -3,7 +3,8 @@ package com.egm.stellio.subscription.web
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
@@ -23,7 +24,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.util.concurrent.SettableListenableFuture
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -144,7 +144,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
+        every { subscriptionEventService.publishSubscriptionCreateEvent(any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -154,15 +154,13 @@ class SubscriptionHandlerTests {
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/subscriptions/urn:ngsi-ld:Subscription:1"))
 
         verify {
-            subscriptionEventService.publishSubscriptionEvent(
+            subscriptionEventService.publishSubscriptionCreateEvent(
+                match { it.id == "urn:ngsi-ld:Subscription:1".toUri() },
                 match {
-                    it is EntityCreateEvent &&
-                        it.operationType == EventsType.ENTITY_CREATE &&
-                        it.entityId == "urn:ngsi-ld:Subscription:1".toUri() &&
-                        it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
-                        .toString(Charsets.UTF_8).removeNoise() &&
-                        it.contexts == listOf(APIC_COMPOUND_CONTEXT)
-                }
+                    it.removeNoise() ==
+                        expectedOperationPayload.inputStream.readBytes().toString(Charsets.UTF_8).removeNoise()
+                },
+                eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
     }
@@ -431,12 +429,10 @@ class SubscriptionHandlerTests {
             jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
             listOf(APIC_COMPOUND_CONTEXT)
         )
-        val updatedSubscription = gimmeRawSubscription()
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
-        every { subscriptionService.getById(any()) } returns Mono.just(updatedSubscription)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
+        coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -447,17 +443,14 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(eq((subscriptionId))) }
         verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
-        verify { subscriptionService.getById(eq(subscriptionId)) }
-        verify {
-            subscriptionEventService.publishSubscriptionEvent(
+        coVerify {
+            subscriptionEventService.publishSubscriptionUpdateEvent(
+                match { it == subscriptionId },
                 match {
-                    it is EntityUpdateEvent &&
-                        it.operationType == EventsType.ENTITY_UPDATE &&
-                        it.entityId == subscriptionId &&
-                        it.operationPayload.removeNoise() == expectedOperationPayload.inputStream.readBytes()
-                        .toString(Charsets.UTF_8).removeNoise() &&
-                        it.updatedEntity == serializeObject(updatedSubscription)
-                }
+                    it.removeNoise() ==
+                        expectedOperationPayload.inputStream.readBytes().toString(Charsets.UTF_8).removeNoise()
+                },
+                any()
             )
         }
         confirmVerified(subscriptionService)
@@ -583,7 +576,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionEvent(any()) } returns SettableListenableFuture()
+        every { subscriptionEventService.publishSubscriptionDeleteEvent(any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -595,13 +588,9 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
         verify { subscriptionService.delete(eq(subscription.id)) }
         verify {
-            subscriptionEventService.publishSubscriptionEvent(
-                match {
-                    it is EntityDeleteEvent &&
-                        it.operationType == EventsType.ENTITY_DELETE &&
-                        it.entityId == subscription.id &&
-                        it.contexts == listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-                }
+            subscriptionEventService.publishSubscriptionDeleteEvent(
+                match { it == subscription.id },
+                eq(listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT))
             )
         }
 

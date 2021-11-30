@@ -23,6 +23,7 @@ import java.net.URI
 open class EntityEvent(
     val operationType: EventsType,
     open val entityId: URI,
+    open val entityType: String,
     open val contexts: List<String>
 ) {
     @JsonIgnore
@@ -32,88 +33,97 @@ open class EntityEvent(
 @JsonTypeName("ENTITY_CREATE")
 data class EntityCreateEvent(
     override val entityId: URI,
+    override val entityType: String,
     val operationPayload: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_CREATE, entityId, contexts) {
+) : EntityEvent(EventsType.ENTITY_CREATE, entityId, entityType, contexts) {
     override fun getEntity() = this.operationPayload
 }
 
 @JsonTypeName("ENTITY_REPLACE")
 data class EntityReplaceEvent(
     override val entityId: URI,
+    override val entityType: String,
     val operationPayload: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_REPLACE, entityId, contexts) {
+) : EntityEvent(EventsType.ENTITY_REPLACE, entityId, entityType, contexts) {
     override fun getEntity() = this.operationPayload
 }
 
 @JsonTypeName("ENTITY_UPDATE")
 data class EntityUpdateEvent(
     override val entityId: URI,
+    override val entityType: String,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_UPDATE, entityId, contexts)
+) : EntityEvent(EventsType.ENTITY_UPDATE, entityId, entityType, contexts)
 
 @JsonTypeName("ENTITY_DELETE")
 data class EntityDeleteEvent(
     override val entityId: URI,
+    override val entityType: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ENTITY_DELETE, entityId, contexts)
+) : EntityEvent(EventsType.ENTITY_DELETE, entityId, entityType, contexts)
 
 @JsonTypeName("ATTRIBUTE_APPEND")
 data class AttributeAppendEvent(
     override val entityId: URI,
+    override val entityType: String,
     val attributeName: String,
     val datasetId: URI?,
+    val overwrite: Boolean = true,
     val operationPayload: String,
     val updatedEntity: String,
-    override val contexts: List<String>,
-    val overwrite: Boolean = true
-) : EntityEvent(EventsType.ATTRIBUTE_APPEND, entityId, contexts) {
+    override val contexts: List<String>
+) : EntityEvent(EventsType.ATTRIBUTE_APPEND, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
 }
 
 @JsonTypeName("ATTRIBUTE_REPLACE")
 data class AttributeReplaceEvent(
     override val entityId: URI,
+    override val entityType: String,
     val attributeName: String,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, entityId, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
 }
 
 @JsonTypeName("ATTRIBUTE_UPDATE")
 data class AttributeUpdateEvent(
     override val entityId: URI,
+    override val entityType: String,
     val attributeName: String,
     val datasetId: URI?,
     val operationPayload: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, entityId, contexts) {
+) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
 }
 
 @JsonTypeName("ATTRIBUTE_DELETE")
 data class AttributeDeleteEvent(
     override val entityId: URI,
+    override val entityType: String,
     val attributeName: String,
     val datasetId: URI?,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE, entityId, contexts)
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE, entityId, entityType, contexts)
 
 @JsonTypeName("ATTRIBUTE_DELETE_ALL_INSTANCES")
 data class AttributeDeleteAllInstancesEvent(
     override val entityId: URI,
+    override val entityType: String,
     val attributeName: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, entityId, contexts)
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, entityId, entityType, contexts)
 
 enum class EventsType {
     ENTITY_CREATE,

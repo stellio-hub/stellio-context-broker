@@ -1,10 +1,14 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.model.Subscription
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,6 +16,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.concurrent.SettableListenableFuture
+import reactor.core.publisher.Mono
+import java.time.Instant
+import java.time.ZoneOffset
 
 @SpringBootTest(classes = [SubscriptionEventService::class])
 @ActiveProfiles("test")
@@ -23,32 +30,72 @@ class SubscriptionEventServiceTests {
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
+    @MockkBean
+    private lateinit var subscriptionService: SubscriptionService
+
     @Test
     fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
+        val subscription = mockk<Subscription>()
         val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
-        val event = EntityCreateEvent(
-            subscriptionUri,
-            "operationPayload",
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+
+        every { subscription.id } returns subscriptionUri
+        every { subscription.type } returns "Subscription"
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
-        subscriptionEventService.publishSubscriptionEvent(event)
+        subscriptionEventService.publishSubscriptionCreateEvent(
+            subscription,
+            "",
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
 
         verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
     }
 
     @Test
-    fun `it should publish an event of type NOTIFICATION_CREATE`() {
-        val notificationUri = "urn:ngsi-ld:Notification:1".toUri()
-        val event = EntityCreateEvent(
-            notificationUri,
-            "operationPayload",
-            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
+    suspend fun `it should publish an event of type SUBSCRIPTION_UPDATE`() {
+        val subscription = mockk<Subscription>()
+        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
+
+        every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
-        subscriptionEventService.publishNotificationEvent(event)
+        subscriptionEventService.publishSubscriptionUpdateEvent(
+            subscriptionUri,
+            "",
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        verify { subscriptionService.getById(eq(subscriptionUri)) }
+        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
+        confirmVerified()
+    }
+
+    @Test
+    suspend fun `it should publish an event of type SUBSCRIPTION_DELETE`() {
+        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
+
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        subscriptionEventService.publishSubscriptionDeleteEvent(
+            subscriptionUri,
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish an event of type NOTIFICATION_CREATE`() {
+        val notification = mockk<Notification>(relaxed = true)
+        val notificationUri = "urn:ngsi-ld:Notification:1".toUri()
+
+        every { notification.id } returns notificationUri
+        every { notification.type } returns "Notification"
+        every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        subscriptionEventService.publishNotificationCreateEvent(notification)
 
         verify { kafkaTemplate.send("cim.notification", notificationUri.toString(), any()) }
     }

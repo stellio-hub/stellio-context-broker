@@ -2,6 +2,8 @@ package com.egm.stellio.search.model
 
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import java.net.URI
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -35,6 +37,27 @@ data class AttributeInstance private constructor(
                 value,
                 measuredValue,
                 serializeObject(parsedPayload)
+            )
+        }
+
+        operator fun invoke(
+            temporalEntityAttribute: UUID,
+            instanceId: URI? = null,
+            observedAt: ZonedDateTime,
+            value: String? = null,
+            measuredValue: Double? = null,
+            jsonNode: JsonNode
+        ): AttributeInstance {
+            val attributeInstanceId = instanceId ?: generateRandomInstanceId()
+            (jsonNode as ObjectNode).put("instanceId", attributeInstanceId.toString())
+
+            return AttributeInstance(
+                temporalEntityAttribute,
+                attributeInstanceId,
+                observedAt,
+                value,
+                measuredValue,
+                serializeObject(jsonNode)
             )
         }
 

@@ -422,3 +422,6 @@ enum class GeoPropertyType(val value: String) {
     Point("Point"),
     Polygon("Polygon")
 }
+
+// basic alias to help identify, mainly in method calls, if the expected value is a compact or expanded one
+typealias ExpandedTerm = String

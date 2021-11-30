@@ -1,10 +1,21 @@
 package com.egm.stellio.subscription.web
 
-import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.model.AccessDeniedException
+import com.egm.stellio.shared.model.AlreadyExistsException
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
+import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.PagingUtils
 import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
+import com.egm.stellio.shared.util.QUERY_PARAM_COUNT
+import com.egm.stellio.shared.util.buildGetSuccessResponse
+import com.egm.stellio.shared.util.checkAndGetContext
+import com.egm.stellio.shared.util.extractAndValidatePaginationParameters
+import com.egm.stellio.shared.util.getApplicableMediaType
+import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
@@ -31,7 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.*
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
@@ -56,13 +67,12 @@ class SubscriptionHandler(
 
         val userId = extractSubjectOrEmpty().awaitFirst()
         subscriptionService.create(parsedSubscription, userId).awaitFirst()
-        subscriptionEventService.publishSubscriptionEvent(
-            EntityCreateEvent(
-                parsedSubscription.id,
-                removeContextFromInput(body),
-                contexts
-            )
+        subscriptionEventService.publishSubscriptionCreateEvent(
+            parsedSubscription,
+            removeContextFromInput(body),
+            contexts
         )
+
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
             .build<String>()
@@ -151,17 +161,14 @@ class SubscriptionHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         val body = requestBody.awaitFirst()
-        val context = checkAndGetContext(httpHeaders, body)
-        val parsedInput = parseSubscriptionUpdate(body, context)
+        val contexts = checkAndGetContext(httpHeaders, body)
+        val parsedInput = parseSubscriptionUpdate(body, contexts)
         subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(
-            EntityUpdateEvent(
-                subscriptionIdUri,
-                removeContextFromInput(body),
-                serializeObject(subscriptionService.getById(subscriptionIdUri).awaitFirst()),
-                context
-            )
+        subscriptionEventService.publishSubscriptionUpdateEvent(
+            subscriptionIdUri,
+            removeContextFromInput(body),
+            contexts
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -178,11 +185,10 @@ class SubscriptionHandler(
         checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionEvent(
-            EntityDeleteEvent(
-                subscriptionIdUri,
-                listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
+        // TODO use JSON-LD contexts provided at creation time
+        subscriptionEventService.publishSubscriptionDeleteEvent(
+            subscriptionIdUri,
+            listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }

@@ -1,7 +1,5 @@
 package com.egm.stellio.shared.model
 
-import arrow.core.extensions.list.foldable.firstOption
-import arrow.core.getOrElse
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 
@@ -24,7 +22,7 @@ data class JsonLdEntity(
         val types =
             (properties[JSONLD_TYPE] ?: InternalErrorException("Could not extract type from JSON-LD entity"))
                 as List<String>
-        types.firstOption().getOrElse { "" }
+        types.firstOrNull() ?: ""
     }
 }
 

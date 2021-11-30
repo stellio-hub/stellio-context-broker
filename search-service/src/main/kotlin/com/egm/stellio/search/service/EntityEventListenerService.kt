@@ -193,11 +193,11 @@ class EntityEventListenerService(
 
         when (val extractedAttributeMetadata = toTemporalAttributeMetadata(operationPayload)) {
             is Invalid -> {
-                logger.info(extractedAttributeMetadata.e)
+                logger.info(extractedAttributeMetadata.value)
                 return
             }
             is Valid -> {
-                val attributeMetadata = extractedAttributeMetadata.a
+                val attributeMetadata = extractedAttributeMetadata.value
                 val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
                 temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId, expandedAttributeName, attributeMetadata.datasetId
@@ -246,11 +246,11 @@ class EntityEventListenerService(
 
         when (val extractedAttributeMetadata = toTemporalAttributeMetadata(operationPayload)) {
             is Invalid -> {
-                logger.info(extractedAttributeMetadata.e)
+                logger.info(extractedAttributeMetadata.value)
                 return
             }
             is Valid -> {
-                val attributeMetadata = extractedAttributeMetadata.a
+                val attributeMetadata = extractedAttributeMetadata.value
                 val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
 
                 val temporalEntityAttribute = TemporalEntityAttribute(

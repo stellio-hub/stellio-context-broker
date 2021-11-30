@@ -18,7 +18,6 @@ plugins {
     kotlin("plugin.spring") version "1.5.31" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
-    kotlin("kapt") version "1.5.31" apply false
     id("io.gitlab.arturbosch.detekt") version "1.18.0" apply false
     id("org.sonarqube") version "3.3"
     jacoco
@@ -27,14 +26,12 @@ plugins {
 subprojects {
     repositories {
         mavenCentral()
-        maven { url = uri("https://dl.bintray.com/arrow-kt/arrow-kt/") }
     }
 
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
-    apply(plugin = "kotlin-kapt")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
@@ -65,12 +62,9 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.3")
 
-        implementation("io.arrow-kt:arrow-fx:0.10.4")
-        implementation("io.arrow-kt:arrow-syntax:0.10.4")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.0.1")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.18.1")
-
-        "kapt"("io.arrow-kt:arrow-meta:0.10.4")
 
         "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
 

@@ -252,7 +252,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create createdAt property with time zone related information equal to the character "Z"`() {
+    fun `it should create createdAt property with time zone related information equal to the Z character`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
@@ -262,7 +262,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should create modifiedAt property with time zone related information equal to the character "Z"`() {
+    fun `it should create modifiedAt property with time zone related information equal to the Z character`() {
         val entity = createEntity(
             "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),

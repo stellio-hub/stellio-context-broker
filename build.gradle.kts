@@ -132,8 +132,8 @@ subprojects {
     tasks.withType<JacocoReport> {
         dependsOn(tasks.test) // tests are required to run before generating the report
         reports {
-            xml.isEnabled = true
-            html.isEnabled = true
+            xml.required.set(true)
+            html.required.set(true)
         }
     }
 

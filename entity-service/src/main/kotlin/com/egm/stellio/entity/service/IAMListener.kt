@@ -25,6 +25,7 @@ class IAMListener(
 
     @KafkaListener(topics = ["cim.iam"], groupId = "entity-iam")
     fun processMessage(content: String) {
+        logger.debug("Received event: $content")
         when (val authorizationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> create(authorizationEvent)
             is EntityDeleteEvent -> delete(authorizationEvent)

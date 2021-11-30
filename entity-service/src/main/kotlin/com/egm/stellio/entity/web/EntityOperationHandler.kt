@@ -61,16 +61,15 @@ class EntityOperationHandler(
         )
 
         authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
-        ngsiLdEntities.filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
+        ngsiLdEntities
+            .filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
-                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-                entityEventService.publishEntityEvent(
-                    EntityCreateEvent(
-                        it.id,
-                        removeContextFromInput(entityPayload),
-                        extractContextFromInput(entityPayload)
-                    ),
-                    it.type
+                val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
+                entityEventService.publishEntityCreateEvent(
+                    it.id,
+                    it.type,
+                    serializeObject(removeContextFromInput(entityPayload)),
+                    extractContextFromInput(entityPayload)
                 )
             }
 
@@ -141,16 +140,15 @@ class EntityOperationHandler(
             ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
         )
 
-        ngsiLdEntities.filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
+        ngsiLdEntities
+            .filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
-                val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-                entityEventService.publishEntityEvent(
-                    EntityCreateEvent(
-                        it.id,
-                        removeContextFromInput(entityPayload),
-                        extractContextFromInput(entityPayload)
-                    ),
-                    it.type
+                val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
+                entityEventService.publishEntityCreateEvent(
+                    it.id,
+                    it.type,
+                    serializeObject(removeContextFromInput(entityPayload)),
+                    extractContextFromInput(entityPayload)
                 )
             }
         if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
@@ -241,11 +239,7 @@ class EntityOperationHandler(
 
         batchOperationResult.success.map { it.entityId }.forEach { uri ->
             val entity = entitiesBeforeDelete.find { it.id == uri }!!
-            // FIXME The context is not supposed to be retrieved from DB
-            entityEventService.publishEntityEvent(
-                EntityDeleteEvent(uri, entity.contexts),
-                entity.type[0]
-            )
+            entityEventService.publishEntityDeleteEvent(entity.id, entity.type[0], entity.contexts)
         }
 
         return if (batchOperationResult.errors.isEmpty())
@@ -290,13 +284,11 @@ class EntityOperationHandler(
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
             val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
-            entityEventService.publishEntityEvent(
-                EntityReplaceEvent(
-                    it.id,
-                    removeContextFromInput(entityPayload),
-                    extractContextFromInput(entityPayload)
-                ),
-                it.type
+            entityEventService.publishEntityReplaceEvent(
+                it.id,
+                it.type,
+                removeContextFromInput(entityPayload),
+                extractContextFromInput(entityPayload)
             )
         }
 
@@ -306,11 +298,10 @@ class EntityOperationHandler(
     ) {
         updateBatchOperationResult.success.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,
-                entityOperationService.getFullEntityById(it.entityId, true)!!,
                 jsonLdEntity.contexts
             )
         }

@@ -12,7 +12,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-class SubscriptionEventListenerService(
+class SubscriptionEventListener(
     private val subscriptionHandlerService: SubscriptionHandlerService
 ) {
 
@@ -20,6 +20,7 @@ class SubscriptionEventListenerService(
 
     @KafkaListener(topics = ["cim.subscription"], groupId = "entity_service_subscription")
     fun processSubscription(content: String) {
+        logger.debug("Received subscription event: $content")
         when (val subscriptionEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleSubscriptionCreateEvent(subscriptionEvent)
             is EntityUpdateEvent -> logger.warn("Subscription update operation is not yet implemented")
@@ -27,8 +28,13 @@ class SubscriptionEventListenerService(
         }
     }
 
-    @KafkaListener(topics = ["cim.notification"], groupId = "entity_service_notification")
+    @KafkaListener(
+        topics = ["cim.notification"],
+        groupId = "entity_service_notification",
+        properties = ["max.poll.records:50"]
+    )
     fun processNotification(content: String) {
+        logger.debug("Received notification event: $content")
         when (val notificationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleNotificationCreateEvent(notificationEvent)
             else -> logger.warn(
@@ -52,7 +58,7 @@ class SubscriptionEventListenerService(
     private fun handleNotificationCreateEvent(notificationCreateEvent: EntityCreateEvent) {
         var parsedNotification = deserializeObject(notificationCreateEvent.operationPayload)
         val subscriptionId = (parsedNotification["subscriptionId"] as String).toUri()
-        parsedNotification = parsedNotification.minus("id").minus("type").minus("subscriptionId")
+        parsedNotification = parsedNotification.minus(setOf("id", "type", "subscriptionId"))
 
         subscriptionHandlerService.createNotificationEntity(
             notificationCreateEvent.entityId,
@@ -60,5 +66,7 @@ class SubscriptionEventListenerService(
             subscriptionId,
             parsedNotification
         )
+
+        logger.debug("Created new notification for subscription $subscriptionId")
     }
 }

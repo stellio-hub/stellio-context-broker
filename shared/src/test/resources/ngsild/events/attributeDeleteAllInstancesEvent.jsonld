@@ -1,5 +1,6 @@
 {
    "entityId":"urn:ngsi-ld:Vehicle:A4567",
+   "entityType": "Vehicle",
    "attributeName":"color",
    "updatedEntity":"updatedEntity",
    "contexts":[

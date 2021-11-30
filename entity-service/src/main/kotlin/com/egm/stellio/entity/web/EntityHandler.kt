@@ -8,7 +8,6 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
-import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -66,9 +65,11 @@ class EntityHandler(
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
         authorizationService.createAdminLink(newEntityUri, userId)
 
-        entityEventService.publishEntityEvent(
-            EntityCreateEvent(newEntityUri, removeContextFromInput(body), contexts),
-            ngsiLdEntity.type
+        entityEventService.publishEntityCreateEvent(
+            ngsiLdEntity.id,
+            ngsiLdEntity.type,
+            removeContextFromInput(body),
+            contexts
         )
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -191,7 +192,6 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
         val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
-            ?: throw ResourceNotFoundException(entityNotFoundMessage(entityId))
 
         val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
         if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
@@ -236,9 +236,7 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
-        entityEventService.publishEntityEvent(
-            EntityDeleteEvent(entityId.toUri(), entity.contexts), entity.type[0]
-        )
+        entityEventService.publishEntityDeleteEvent(entityId.toUri(), entity.type[0], entity.contexts)
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -277,11 +275,10 @@ class EntityHandler(
         )
 
         if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAppendEntityAttributesEvents(
+            entityEventService.publishAttributeAppendEvents(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
         }
@@ -322,11 +319,10 @@ class EntityHandler(
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
         if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishUpdateEntityAttributesEvents(
+            entityEventService.publishAttributeUpdateEvents(
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
         }
@@ -372,11 +368,10 @@ class EntityHandler(
         if (updateResult.updated.isEmpty())
             throw ResourceNotFoundException("Unknown attribute in entity $entityId")
         else
-            entityEventService.publishPartialUpdateEntityAttributesEvents(
+            entityEventService.publishPartialAttributeUpdateEvents(
                 entityUri,
                 expandedPayload,
                 updateResult.updated,
-                entityService.getFullEntityById(entityUri, true)!!,
                 contexts
             )
 
@@ -410,34 +405,10 @@ class EntityHandler(
         val result = if (deleteAll)
             entityService.deleteEntityAttribute(entityUri, expandedAttrId)
         else
-            entityService.deleteEntityAttributeInstance(
-                entityUri, expandedAttrId, datasetId
-            )
+            entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
 
-        if (result) {
-            val updatedEntity = entityService.getFullEntityById(entityUri, true)
-            if (deleteAll)
-                entityEventService.publishEntityEvent(
-                    AttributeDeleteAllInstancesEvent(
-                        entityId = entityUri,
-                        attributeName = attrId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                        contexts = contexts
-                    ),
-                    updatedEntity.type
-                )
-            else
-                entityEventService.publishEntityEvent(
-                    AttributeDeleteEvent(
-                        entityId = entityUri,
-                        attributeName = attrId,
-                        datasetId = datasetId,
-                        updatedEntity = compactAndSerialize(updatedEntity!!, contexts, MediaType.APPLICATION_JSON),
-                        contexts = contexts
-                    ),
-                    updatedEntity.type
-                )
-        }
+        if (result)
+            entityEventService.publishAttributeDeleteEvent(entityUri, attrId, datasetId, deleteAll, contexts)
 
         return if (result)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

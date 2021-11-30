@@ -13,10 +13,9 @@ import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
-import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
@@ -79,7 +78,8 @@ class EntityEventListenerService(
     private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
         val expandedAttributeName = expandJsonLdKey(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
         val compactedJsonLdEntity = addContextsToEntity(
-            JsonUtils.deserializeObject(attributeDeleteEvent.updatedEntity), attributeDeleteEvent.contexts
+            deserializeObject(attributeDeleteEvent.updatedEntity),
+            attributeDeleteEvent.contexts
         )
 
         temporalEntityAttributeService.deleteTemporalAttributeReferences(
@@ -107,9 +107,7 @@ class EntityEventListenerService(
             attributeDeleteAllInstancesEvent.attributeName, attributeDeleteAllInstancesEvent.contexts
         )!!
         val compactedJsonLdEntity = addContextsToEntity(
-            JsonUtils.deserializeObject(
-                attributeDeleteAllInstancesEvent.updatedEntity
-            ),
+            deserializeObject(attributeDeleteAllInstancesEvent.updatedEntity),
             attributeDeleteAllInstancesEvent.contexts
         )
 
@@ -132,51 +130,38 @@ class EntityEventListenerService(
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
         val expandedAttributeName = expandJsonLdKey(attributeAppendEvent.attributeName, attributeAppendEvent.contexts)!!
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
-        val attributeNode = operationPayloadNode[attributeAppendEvent.attributeName]
-            ?: operationPayloadNode[expandedAttributeName]
-
-        if (attributeNode == null) {
-            logger.warn("Unable to extract values from $attributeAppendEvent")
-            return
-        }
 
         handleAttributeAppend(
             attributeAppendEvent.entityId,
+            attributeAppendEvent.entityType,
             expandedAttributeName,
-            attributeNode,
+            operationPayloadNode,
             attributeAppendEvent.updatedEntity,
             attributeAppendEvent.contexts
         )
     }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
-        val expandedAttributeName = expandJsonLdKey(
-            attributeReplaceEvent.attributeName,
-            attributeReplaceEvent.contexts
-        )!!
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeReplaceEvent.operationPayload)
-        val attributeNode = operationPayloadNode[attributeReplaceEvent.attributeName]
-            ?: operationPayloadNode[expandedAttributeName]
 
         handleAttributeUpdate(
             attributeReplaceEvent.entityId,
-            expandedAttributeName,
+            attributeReplaceEvent.attributeName,
             attributeReplaceEvent.datasetId,
-            attributeNode,
+            operationPayloadNode,
             attributeReplaceEvent.updatedEntity,
             attributeReplaceEvent.contexts
         )
     }
 
     private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
-        val expandedAttributeName = expandJsonLdKey(attributeUpdateEvent.attributeName, attributeUpdateEvent.contexts)!!
-        val attributeNode = jacksonObjectMapper().readTree(attributeUpdateEvent.operationPayload)
+        val operationPayloadNode = jacksonObjectMapper().readTree(attributeUpdateEvent.operationPayload)
 
         handleAttributeUpdate(
             attributeUpdateEvent.entityId,
-            expandedAttributeName,
+            attributeUpdateEvent.attributeName,
             attributeUpdateEvent.datasetId,
-            attributeNode,
+            operationPayloadNode,
             attributeUpdateEvent.updatedEntity,
             attributeUpdateEvent.contexts
         )
@@ -184,38 +169,36 @@ class EntityEventListenerService(
 
     private fun handleAttributeUpdate(
         entityId: URI,
-        expandedAttributeName: String,
+        attributeName: String,
         datasetId: URI?,
-        attributeValuesNode: JsonNode,
+        operationPayload: JsonNode,
         updatedEntity: String,
         contexts: List<String>
     ) {
-        // TODO add missing checks:
-        //  - existence of temporal entity attribute
-
         // return early to avoid extra processing if the attribute is not a temporal one
-        if (!attributeValuesNode.has("observedAt")) {
-            logger.info("Ignoring append event for $attributeValuesNode, it has no observedAt information")
+        if (!operationPayload.has("observedAt")) {
+            logger.info("Ignoring update event for $operationPayload, it has no observedAt information")
             return
         }
-        val compactedJsonLdEntity = addContextsToEntity(JsonUtils.deserializeObject(updatedEntity), contexts)
-        val attributeInstancePayload = extractAttributeInstanceFromCompactedEntity(
+        val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
+        val fullAttributeInstance = extractAttributeInstanceFromCompactedEntity(
             compactedJsonLdEntity,
-            compactTerm(expandedAttributeName, contexts),
+            attributeName,
             datasetId
         )
         // Since ATTRIBUTE_UPDATE events payload may not contain the attribute type
-        if (!attributeValuesNode.has("type")) {
-            (attributeValuesNode as ObjectNode).put("type", attributeInstancePayload["type"] as String)
+        if (!operationPayload.has("type")) {
+            (operationPayload as ObjectNode).put("type", fullAttributeInstance["type"] as String)
         }
 
-        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(attributeValuesNode)) {
+        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(operationPayload)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)
                 return
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.a
+                val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
                 temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId, expandedAttributeName, attributeMetadata.datasetId
                 ).zipWhen {
@@ -224,7 +207,7 @@ class EntityEventListenerService(
                         observedAt = attributeMetadata.observedAt,
                         value = attributeMetadata.value,
                         measuredValue = attributeMetadata.measuredValue,
-                        payload = attributeInstancePayload
+                        payload = fullAttributeInstance
                     )
                     attributeInstanceService.create(attributeInstance)
                 }.zipWhen {
@@ -249,23 +232,30 @@ class EntityEventListenerService(
 
     fun handleAttributeAppend(
         entityId: URI,
+        entityType: String,
         expandedAttributeName: String,
-        attributeValuesNode: JsonNode,
+        operationPayload: JsonNode,
         updatedEntity: String,
         contexts: List<String>
     ) {
-        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(attributeValuesNode)) {
+        // return early to avoid extra processing if the attribute is not a temporal one
+        if (!operationPayload.has("observedAt")) {
+            logger.info("Ignoring append event for $operationPayload, it has no observedAt information")
+            return
+        }
+
+        when (val extractedAttributeMetadata = toTemporalAttributeMetadata(operationPayload)) {
             is Invalid -> {
                 logger.info(extractedAttributeMetadata.e)
                 return
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.a
-                val compactedJsonLdEntity = addContextsToEntity(JsonUtils.deserializeObject(updatedEntity), contexts)
+                val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
 
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = entityId,
-                    type = expandJsonLdKey(compactedJsonLdEntity.getType(), contexts)!!,
+                    type = expandJsonLdKey(entityType, contexts)!!,
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,
@@ -276,11 +266,7 @@ class EntityEventListenerService(
                     observedAt = attributeMetadata.observedAt,
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
-                    payload = extractAttributeInstanceFromCompactedEntity(
-                        compactedJsonLdEntity,
-                        compactTerm(expandedAttributeName, contexts),
-                        attributeMetadata.datasetId
-                    )
+                    jsonNode = operationPayload
                 )
 
                 temporalEntityAttributeService.create(temporalEntityAttribute).zipWhen {
@@ -306,17 +292,18 @@ class EntityEventListenerService(
         }
     }
 
-    internal fun toTemporalAttributeMetadata(jsonNode: JsonNode): Validated<String, AttributeMetadata> {
-        val attributeTypeAsText = jsonNode["type"].asText()
+    internal fun toTemporalAttributeMetadata(operationPayload: JsonNode): Validated<String, AttributeMetadata> {
+        val attributeTypeAsText = operationPayload["type"].asText()
         val attributeType = kotlin.runCatching {
             TemporalEntityAttribute.AttributeType.valueOf(attributeTypeAsText)
         }.getOrNull() ?: return "Unsupported attribute type: $attributeTypeAsText".invalid()
         val attributeValue = when (attributeType) {
-            TemporalEntityAttribute.AttributeType.Relationship -> Pair(jsonNode["object"].asText(), null)
+            TemporalEntityAttribute.AttributeType.Relationship -> Pair(operationPayload["object"].asText(), null)
             TemporalEntityAttribute.AttributeType.Property -> {
-                val rawAttributeValue = jsonNode["value"]
+                val rawAttributeValue = operationPayload["value"]
                 when {
-                    rawAttributeValue == null -> return "Unable to get a value from attribute: $jsonNode".invalid()
+                    rawAttributeValue == null ->
+                        return "Unable to get a value from attribute: $operationPayload".invalid()
                     rawAttributeValue.isNumber -> Pair(null, valueToDoubleOrNull(rawAttributeValue.asDouble()))
                     else -> Pair(valueToStringOrNull(rawAttributeValue.asText()), null)
                 }
@@ -330,9 +317,9 @@ class EntityEventListenerService(
             measuredValue = attributeValue.second,
             value = attributeValue.first,
             valueType = attributeValueType,
-            datasetId = jsonNode["datasetId"]?.asText()?.toUri(),
+            datasetId = operationPayload["datasetId"]?.asText()?.toUri(),
             type = attributeType,
-            observedAt = ZonedDateTime.parse(jsonNode["observedAt"].asText())
+            observedAt = ZonedDateTime.parse(operationPayload["observedAt"].asText())
         ).valid()
     }
 }

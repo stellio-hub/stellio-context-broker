@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,8 +29,11 @@ class EntityEventServiceTests {
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
-    private val specieType = "https://ontology.eglobalmark.com/aquac#Specie"
-    private val entityUri = "urn:ngsi-ld:BreedingService:0214".toUri()
+    @MockkBean(relaxed = true)
+    private lateinit var entityService: EntityService
+
+    private val breedingServiceUri = "urn:ngsi-ld:BreedingService:0214".toUri()
+    private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val fishNameAttribute = "https://ontology.eglobalmark.com/aquac#fishName"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val fishName1DatasetUri = "urn:ngsi-ld:Dataset:fishName:1".toUri()
@@ -41,60 +43,162 @@ class EntityEventServiceTests {
     fun `it should not validate a topic name with characters not supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName("https://some.host/type", listOf(AQUAC_COMPOUND_CONTEXT))
+                .composeTopicName("https://some.host/type")
                 .isInvalid
         )
     }
 
     @Test
-    fun `it should validate a topic name with characters not supported by Kafka`() {
+    fun `it should validate a topic name with characters supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName(specieType, listOf(AQUAC_COMPOUND_CONTEXT))
+                .composeTopicName("Specie")
                 .isValid
         )
     }
 
     @Test
-    fun `it should publish an ENTITY_CREATE event`() {
-        val event = EntityCreateEvent(
-            entityUri,
-            "operationPayload",
-            listOf(AQUAC_COMPOUND_CONTEXT)
-        )
-        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
-
-        entityEventService.publishEntityEvent(event, specieType)
-
-        verify { kafkaTemplate.send("cim.entity.Specie", entityUri.toString(), any()) }
-    }
-
-    @Test
     fun `it should not publish an event if topic name is invalid`() {
-        val event = EntityCreateEvent(
-            entityUri,
+        entityEventService.publishEntityCreateEvent(
+            breedingServiceUri,
+            "https://some.host/type",
             "operationPayload",
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
-        val result =
-            entityEventService.publishEntityEvent(event, "https://some.host/type")
-
-        assertFalse(result as Boolean)
         verify { kafkaTemplate.send(any(), any(), any()) wasNot Called }
     }
 
     @Test
-    fun `it should publish an ATTRIBUTE_APPEND event if an attribute were appended`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+    fun `it should publish an ENTITY_CREATE event`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityCreateEvent(
+            breedingServiceUri, breedingServiceType, "operationPayload", listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
+    }
+
+    @Test
+    fun `it should publish an ENTITY_REPLACE event`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityReplaceEvent(
+            breedingServiceUri, breedingServiceType, "operationPayload", listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
+    }
+
+    @Test
+    fun `it should publish an ENTITY_DELETE event`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityDeleteEvent(
+            breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
+    }
+
+    @Test
+    fun `it should publish a single ATTRIBUTE_APPEND event if an attribute was appended`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val fishNumberAttributeFragment =
             """
             {
-                "fishNumber": {
-                    "type": "Property",
-                    "value": 120
-                }
+                "type": "Property",
+                "value": 120
             }            
+            """.trimIndent()
+
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvent(
+            breedingServiceUri,
+            "BreedingService",
+            "fishNumber",
+            null,
+            true,
+            fishNumberAttributeFragment,
+            UpdateOperationResult.APPENDED,
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeAppendEvent> {
+                    it.operationType == EventsType.ATTRIBUTE_APPEND &&
+                        it.entityId == breedingServiceUri &&
+                        it.entityType == "BreedingService" &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(fishNumberAttributeFragment) &&
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                }
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish a single ATTRIBUTE_REPLACE event if an attribute was replaced`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+        val fishNumberAttributeFragment =
+            """
+            {
+                "type": "Property",
+                "value": 120
+            }            
+            """.trimIndent()
+
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvent(
+            breedingServiceUri,
+            "BreedingService",
+            "fishNumber",
+            null,
+            true,
+            fishNumberAttributeFragment,
+            UpdateOperationResult.REPLACED,
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeReplaceEvent> {
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == breedingServiceUri &&
+                        it.entityType == "BreedingService" &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(fishNumberAttributeFragment) &&
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                }
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish an ATTRIBUTE_APPEND event if an attribute was appended`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+        val expectedOperationPayload =
+            """
+                { "type": "Property", "value": 120 }
+            """.trimIndent()
+        val fishNumberAttributeFragment =
+            """
+                { "fishNumber": $expectedOperationPayload }            
             """.trimIndent()
         val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
         val appendResult = UpdateResult(
@@ -102,26 +206,72 @@ class EntityEventServiceTests {
             emptyList()
         )
 
-        entityEventService.publishAppendEntityAttributesEvents(
-            entityUri,
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             appendResult,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    it as AttributeAppendEvent
+                match<AttributeAppendEvent> {
                     it.operationType == EventsType.ATTRIBUTE_APPEND &&
-                        it.entityId == entityUri &&
+                        it.entityId == breedingServiceUri &&
+                        it.entityType == "BreedingService" &&
                         it.attributeName == "fishNumber" &&
                         it.datasetId == null &&
-                        it.operationPayload.matchContent(fishNumberAttributeFragment) &&
+                        it.operationPayload.matchContent(expectedOperationPayload) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                any<String>()
+                }
+            )
+        }
+
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish a ATTRIBUTE_REPLACE event if an attribute was updated`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+        val expectedOperationPayload =
+            """
+                { "type": "Property", "value": 120 }
+            """.trimIndent()
+        val fishNumberAttributeFragment =
+            """
+                { "fishNumber": $expectedOperationPayload }
+            """.trimIndent()
+        val jsonLdAttributes = expandJsonLdFragment(fishNumberAttributeFragment, listOf(AQUAC_COMPOUND_CONTEXT))
+        val appendResult = UpdateResult(
+            listOf(UpdatedDetails(fishNumberAttribute, null, UpdateOperationResult.APPENDED)),
+            emptyList()
+        )
+
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeUpdateEvents(
+            breedingServiceUri,
+            jsonLdAttributes,
+            appendResult,
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeReplaceEvent> {
+                    it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.entityId == breedingServiceUri &&
+                        it.entityType == "BreedingService" &&
+                        it.attributeName == "fishNumber" &&
+                        it.datasetId == null &&
+                        it.operationPayload.matchContent(expectedOperationPayload) &&
+                        it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                }
             )
         }
 
@@ -130,21 +280,23 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+        val expectedFishNumberOperationPayload =
+            """
+                { "type": "Property", "value": 120 }
+            """.trimIndent()
         val fishNumberAttributeFragment =
             """
-            "fishNumber": {
-                "type": "Property",
-                "value": 120
-            }
+                "fishNumber": $expectedFishNumberOperationPayload
+            """.trimIndent()
+        val expectedFishNameOperationPayload =
+            """
+                { "type": "Property", "datasetId": "$fishName1DatasetUri", "value": 50 }
             """.trimIndent()
         val fishNameAttributeFragment =
             """
-            "fishName": {
-                "type": "Property",
-                "datasetId": "$fishName1DatasetUri",
-                "value": 50
-            }
+                "fishName": $expectedFishNameOperationPayload
             """.trimIndent()
         val attributesFragment = "{ $fishNumberAttributeFragment, $fishNameAttributeFragment }"
         val jsonLdAttributes = expandJsonLdFragment(attributesFragment, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -156,36 +308,43 @@ class EntityEventServiceTests {
             emptyList()
         )
 
-        entityEventService.publishAppendEntityAttributesEvents(
-            entityUri,
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             appendResult,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    if (it is AttributeAppendEvent) {
-                        listOf(it).any {
-                            it.entityId == entityUri &&
-                                it.attributeName == "fishNumber" &&
-                                it.datasetId == null &&
-                                it.operationPayload.matchContent("{$fishNumberAttributeFragment}") &&
-                                it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                match<EntityEvent> { entityEvent ->
+                    when (entityEvent) {
+                        is AttributeAppendEvent -> {
+                            listOf(entityEvent).any {
+                                it.entityId == breedingServiceUri &&
+                                    it.entityType == "BreedingService" &&
+                                    it.attributeName == "fishNumber" &&
+                                    it.datasetId == null &&
+                                    it.operationPayload.matchContent(expectedFishNumberOperationPayload) &&
+                                    it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                            }
                         }
-                    } else if (it is AttributeReplaceEvent) {
-                        listOf(it).any {
-                            it.entityId == entityUri &&
-                                it.attributeName == "fishName" &&
-                                it.datasetId == fishName1DatasetUri &&
-                                it.operationPayload.matchContent("{$fishNameAttributeFragment}") &&
-                                it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                        is AttributeReplaceEvent -> {
+                            listOf(entityEvent).any {
+                                it.entityId == breedingServiceUri &&
+                                    it.entityType == "BreedingService" &&
+                                    it.attributeName == "fishName" &&
+                                    it.datasetId == fishName1DatasetUri &&
+                                    it.operationPayload.matchContent(expectedFishNameOperationPayload) &&
+                                    it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                            }
                         }
-                    } else false
-                },
-                any<String>()
+                        else -> false
+                    }
+                }
             )
         }
         confirmVerified()
@@ -193,22 +352,23 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if two attributes are replaced`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+        val expectedFishNumberOperationPayload =
+            """
+                { "type":"Property", "value":600 }
+            """.trimIndent()
         val fishNumberPayload =
             """
-            "fishNumber":{
-                "type":"Property",
-                "value":600
-            }
+                "fishNumber": $expectedFishNumberOperationPayload
+            """.trimIndent()
+        val expectedFishNameOperationPayload =
+            """
+                { "type":"Property", "datasetId": "$fishName1DatasetUri", "value":"Salmon", "unitCode": "C1" }
             """.trimIndent()
         val fishNamePayload =
             """
-            "fishName":{
-                "type":"Property",
-                "datasetId": "$fishName1DatasetUri",
-                "value":"Salmon",
-                "unitCode": "C1"
-            }
+                "fishName": $expectedFishNameOperationPayload
             """.trimIndent()
         val attributePayload = "{ $fishNumberPayload, $fishNamePayload }"
         val jsonLdAttributes = expandJsonLdFragment(attributePayload, listOf(AQUAC_COMPOUND_CONTEXT))
@@ -220,31 +380,32 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        entityEventService.publishAppendEntityAttributesEvents(
-            entityUri,
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             updateResult,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    listOf(it).all {
-                        it as AttributeReplaceEvent
+                match<AttributeReplaceEvent> { entityEvent ->
+                    listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                            it.entityId == entityUri &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityType == "BreedingService" &&
                             (it.attributeName == "fishName" || it.attributeName == "fishNumber") &&
                             (it.datasetId == fishName1DatasetUri || it.datasetId == null) &&
                             (
-                                "{$fishNumberPayload}".matchContent(it.operationPayload) ||
-                                    "{$fishNamePayload}".matchContent(it.operationPayload)
+                                it.operationPayload.matchContent(expectedFishNumberOperationPayload) ||
+                                    it.operationPayload.matchContent(expectedFishNameOperationPayload)
                                 ) &&
                             it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                     }
-                },
-                any<String>()
+                }
             )
         }
         confirmVerified()
@@ -252,7 +413,8 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_REPLACE events if a multi-attribute is replaced`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val fishNamePayload1 =
             """
             {
@@ -281,33 +443,32 @@ class EntityEventServiceTests {
             notUpdated = arrayListOf()
         )
 
-        entityEventService.publishAppendEntityAttributesEvents(
-            entityUri,
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeAppendEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             updateResult,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    listOf(it).all {
-                        it as AttributeReplaceEvent
+                match<AttributeReplaceEvent> { entityEvent ->
+                    listOf(entityEvent).all {
                         it.operationType == EventsType.ATTRIBUTE_REPLACE &&
-                            it.entityId == entityUri &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityType == "BreedingService" &&
                             it.attributeName == "fishName" &&
+                            (it.datasetId == fishName1DatasetUri || it.datasetId == fishName2DatasetUri) &&
                             (
-                                it.datasetId == fishName1DatasetUri || it.datasetId == fishName2DatasetUri
-                                ) &&
-                            (
-                                it.operationPayload.matchContent("{\"fishName\": $fishNamePayload1}") ||
-                                    it.operationPayload.matchContent("{\"fishName\": $fishNamePayload2}")
+                                it.operationPayload.matchContent(fishNamePayload1) ||
+                                    it.operationPayload.matchContent(fishNamePayload2)
                                 ) &&
                             it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                     }
-                },
-                any<String>()
+                }
             )
         }
         confirmVerified()
@@ -315,7 +476,8 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE event if a property is updated`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
         val fishNamePayload =
             """
             {
@@ -329,29 +491,29 @@ class EntityEventServiceTests {
             fishNamePayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
-
         val updatedDetails = listOf(UpdatedDetails(fishNameAttribute, null, UpdateOperationResult.UPDATED))
 
-        entityEventService.publishPartialUpdateEntityAttributesEvents(
-            entityUri,
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishPartialAttributeUpdateEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             updatedDetails,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    it as AttributeUpdateEvent
+                match<AttributeUpdateEvent> {
                     it.operationType == EventsType.ATTRIBUTE_UPDATE &&
-                        it.entityId == entityUri &&
+                        it.entityId == breedingServiceUri &&
+                        it.entityType == "BreedingService" &&
                         it.attributeName == "fishName" &&
                         it.datasetId == null &&
                         it.operationPayload.matchContent(fishNamePayload) &&
                         it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
-                },
-                any<String>()
+                }
             )
         }
         confirmVerified()
@@ -359,7 +521,7 @@ class EntityEventServiceTests {
 
     @Test
     fun `it should publish ATTRIBUTE_UPDATE events if multi instance relationship is updated`() {
-        val entityEventService = spyk(EntityEventService(kafkaTemplate), recordPrivateCalls = true)
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
         val attributeName = "https://ontology.eglobalmark.com/egm#connectsTo"
         val firstRelationshipPayload =
             """
@@ -386,21 +548,20 @@ class EntityEventServiceTests {
             UpdatedDetails(attributeName, null, UpdateOperationResult.UPDATED)
         )
 
-        entityEventService.publishPartialUpdateEntityAttributesEvents(
-            entityUri,
+        entityEventService.publishPartialAttributeUpdateEvents(
+            breedingServiceUri,
             jsonLdAttributes,
             updatedDetails,
-            mockkClass(JsonLdEntity::class, relaxed = true),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify {
             entityEventService["publishEntityEvent"](
-                match<EntityEvent> {
-                    listOf(it).all {
+                match<EntityEvent> { entityEvent ->
+                    listOf(entityEvent).all {
                         it as AttributeUpdateEvent
                         it.operationType == EventsType.ATTRIBUTE_UPDATE &&
-                            it.entityId == entityUri &&
+                            it.entityId == breedingServiceUri &&
                             it.attributeName == "connectsTo" &&
                             (
                                 it.datasetId == null || it.datasetId == "urn:ngsi-ld:Dataset:connectsTo:1".toUri()
@@ -411,8 +572,72 @@ class EntityEventServiceTests {
                                 ) &&
                             it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
                     }
-                },
-                any<String>()
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish ATTRIBUTE_DELETE_ALL_INSTANCE event if all instances of an attribute are deleted`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeDeleteEvent(
+            breedingServiceUri,
+            "fishName",
+            null,
+            true,
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeDeleteAllInstancesEvent> { entityEvent ->
+                    listOf(entityEvent).all {
+                        it.operationType == EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityType == "BreedingService" &&
+                            it.attributeName == "fishName" &&
+                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                    }
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish ATTRIBUTE_DELETE event if an instances of an attribute is deleted`() {
+        val entityEventService = spyk(EntityEventService(kafkaTemplate, entityService), recordPrivateCalls = true)
+        val jsonLdEntity = mockk<JsonLdEntity>(relaxed = true)
+
+        every { entityService.getFullEntityById(breedingServiceUri, true) } returns jsonLdEntity
+        every { jsonLdEntity.type } returns breedingServiceType
+
+        entityEventService.publishAttributeDeleteEvent(
+            breedingServiceUri,
+            "fishName",
+            "urn:ngsi-ld:Dataset:1".toUri(),
+            false,
+            listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            entityEventService["publishEntityEvent"](
+                match<AttributeDeleteEvent> { entityEvent ->
+                    listOf(entityEvent).all {
+                        it.operationType == EventsType.ATTRIBUTE_DELETE &&
+                            it.entityId == breedingServiceUri &&
+                            it.entityType == "BreedingService" &&
+                            it.attributeName == "fishName" &&
+                            it.datasetId == "urn:ngsi-ld:Dataset:1".toUri() &&
+                            it.contexts == listOf(AQUAC_COMPOUND_CONTEXT)
+                    }
+                }
             )
         }
         confirmVerified()

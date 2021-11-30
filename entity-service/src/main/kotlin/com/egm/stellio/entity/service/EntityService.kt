@@ -225,7 +225,7 @@ class EntityService(
      * associated to the entity
      * @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */
-    fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity? {
+    fun getFullEntityById(entityId: URI, includeSysAttrs: Boolean = false): JsonLdEntity {
         val entity = entityRepository.findById(entityId)
             .orElseThrow { ResourceNotFoundException(entityNotFoundMessage(entityId.toString())) }
 

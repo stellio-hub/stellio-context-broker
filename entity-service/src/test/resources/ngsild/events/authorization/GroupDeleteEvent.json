@@ -1,6 +1,7 @@
 {
   "operationType": "ENTITY_DELETE",
-  "entityId":  "urn:ngsi-ld:Client:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0",
+  "entityId": "urn:ngsi-ld:Group:a11c00f9-43bc-47a8-9d23-13d67696bdb8",
+  "entityType": "Group",
   "contexts": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/authorization/jsonld-contexts/authorization.jsonld",
     "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"

@@ -145,25 +145,31 @@ object JsonLdUtils {
         else
             element.plus(Pair(JSONLD_CONTEXT, contexts))
 
-    fun extractContextFromInput(input: String): List<String> {
-        val parsedInput = deserializeObject(input)
-
-        return if (!parsedInput.containsKey(JSONLD_CONTEXT))
+    fun extractContextFromInput(input: Map<String, Any>): List<String> {
+        return if (!input.containsKey(JSONLD_CONTEXT))
             emptyList()
-        else if (parsedInput[JSONLD_CONTEXT] is List<*>)
-            parsedInput[JSONLD_CONTEXT] as List<String>
-        else if (parsedInput[JSONLD_CONTEXT] is String)
-            listOf(parsedInput[JSONLD_CONTEXT] as String)
+        else if (input[JSONLD_CONTEXT] is List<*>)
+            input[JSONLD_CONTEXT] as List<String>
+        else if (input[JSONLD_CONTEXT] is String)
+            listOf(input[JSONLD_CONTEXT] as String)
         else
             emptyList()
     }
 
+    fun extractContextFromInput(input: String): List<String> {
+        val parsedInput = deserializeObject(input)
+        return extractContextFromInput(parsedInput)
+    }
+
+    fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> {
+        return if (input.containsKey(JSONLD_CONTEXT))
+            input.minus(JSONLD_CONTEXT)
+        else input
+    }
+
     fun removeContextFromInput(input: String): String {
         val parsedInput = deserializeObject(input)
-
-        return if (parsedInput.containsKey(JSONLD_CONTEXT))
-            serializeObject(parsedInput.minus(JSONLD_CONTEXT))
-        else input
+        return serializeObject(removeContextFromInput(parsedInput))
     }
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
@@ -243,7 +249,7 @@ object JsonLdUtils {
         expandedAttributes: Map<String, Any>,
         expandedAttributeName: String,
         datasetId: URI?
-    ): Any? {
+    ): Map<String, Any>? {
         if (!expandedAttributes.containsKey(expandedAttributeName))
             return null
 
@@ -274,6 +280,13 @@ object JsonLdUtils {
             null
     }
 
+    fun expandJsonLdFragment(fragment: Map<String, Map<String, Any>>, contexts: List<String>): Map<String, Any> {
+        val usedContext = addCoreContext(contexts)
+        val jsonLdOptions = JsonLdOptions()
+        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
+        return parseAndExpandJsonLdFragment(serializeObject(fragment), jsonLdOptions)
+    }
+
     fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> {
         val usedContext = addCoreContext(contexts)
         val jsonLdOptions = JsonLdOptions()
@@ -300,15 +313,6 @@ object JsonLdUtils {
 
     fun compactFragment(value: Map<String, Any>, context: List<String>): Map<String, Any> =
         JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
-
-    fun compactAndStringifyFragment(key: String, value: Any, context: List<String>): String =
-        compactAndStringifyFragment(mapOf(key to value), context)
-
-    fun compactAndStringifyFragment(value: Map<String, Any>, context: List<String>): String {
-        val compactedFragment =
-            JsonLdProcessor.compact(value, mapOf(JSONLD_CONTEXT to context), JsonLdOptions())
-        return mapper.writeValueAsString(compactedFragment.minus(JSONLD_CONTEXT))
-    }
 
     fun compactAndSerialize(
         jsonLdEntity: JsonLdEntity,

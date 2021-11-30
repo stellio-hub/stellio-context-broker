@@ -1,29 +1,77 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.EntityEvent
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityDeleteEvent
+import com.egm.stellio.shared.model.EntityUpdateEvent
+import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.subscription.model.Subscription
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class SubscriptionEventService(
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val subscriptionService: SubscriptionService
 ) {
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     private val subscriptionChannelName = "cim.subscription"
     private val notificationChannelName = "cim.notification"
 
-    fun publishSubscriptionEvent(event: EntityEvent) =
-        kafkaTemplate.send(subscriptionChannelName, event.entityId.toString(), mapper.writeValueAsString(event))
+    @Async
+    fun publishSubscriptionCreateEvent(
+        subscription: Subscription,
+        serializedSubscription: String,
+        contexts: List<String>
+    ) {
+        val event = EntityCreateEvent(
+            subscription.id,
+            subscription.type,
+            serializedSubscription,
+            contexts
+        )
 
-    fun publishNotificationEvent(event: EntityEvent) =
-        kafkaTemplate.send(notificationChannelName, event.entityId.toString(), mapper.writeValueAsString(event))
+        kafkaTemplate.send(subscriptionChannelName, event.entityId.toString(), serializeObject(event))
+    }
+
+    @Async
+    suspend fun publishSubscriptionUpdateEvent(subscriptionId: URI, operationPayload: String, contexts: List<String>) {
+        val event = EntityUpdateEvent(
+            subscriptionId,
+            "Subscription",
+            operationPayload,
+            serializeObject(subscriptionService.getById(subscriptionId).awaitFirst()),
+            contexts
+        )
+
+        kafkaTemplate.send(subscriptionChannelName, event.entityId.toString(), serializeObject(event))
+    }
+
+    @Async
+    fun publishSubscriptionDeleteEvent(subscriptionId: URI, contexts: List<String>) {
+        val event = EntityDeleteEvent(
+            subscriptionId,
+            "Subscription",
+            contexts
+        )
+
+        kafkaTemplate.send(subscriptionChannelName, event.entityId.toString(), serializeObject(event))
+    }
+
+    @Async
+    fun publishNotificationCreateEvent(notification: Notification) {
+        val event = EntityCreateEvent(
+            notification.id,
+            notification.type,
+            serializeObject(notification),
+            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        kafkaTemplate.send(notificationChannelName, event.entityId.toString(), serializeObject(event))
+    }
 }

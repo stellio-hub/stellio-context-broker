@@ -1,10 +1,18 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.AttributeDeleteEvent
+import com.egm.stellio.shared.model.AttributeReplaceEvent
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.EntityDeleteEvent
+import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -17,6 +25,7 @@ class IAMListener(
 
     @KafkaListener(topics = ["cim.iam"], groupId = "entity-iam")
     fun processMessage(content: String) {
+        logger.debug("Received event: $content")
         when (val authorizationEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> create(authorizationEvent)
             is EntityDeleteEvent -> delete(authorizationEvent)
@@ -38,7 +47,10 @@ class IAMListener(
 
     private fun append(authorizationEvent: AttributeAppendEvent) {
         val expandedJsonLdFragment =
-            expandJsonLdFragment(authorizationEvent.operationPayload, authorizationEvent.contexts)
+            expandJsonLdFragment(
+                mapOf(authorizationEvent.attributeName to deserializeObject(authorizationEvent.operationPayload)),
+                authorizationEvent.contexts
+            )
 
         entityService.appendEntityAttributes(
             authorizationEvent.entityId,
@@ -49,7 +61,10 @@ class IAMListener(
 
     private fun update(authorizationEvent: AttributeReplaceEvent) {
         val expandedJsonLdFragment =
-            expandJsonLdFragment(authorizationEvent.operationPayload, authorizationEvent.contexts)
+            expandJsonLdFragment(
+                mapOf(authorizationEvent.attributeName to deserializeObject(authorizationEvent.operationPayload)),
+                authorizationEvent.contexts
+            )
 
         entityService.updateEntityAttributes(
             authorizationEvent.entityId,

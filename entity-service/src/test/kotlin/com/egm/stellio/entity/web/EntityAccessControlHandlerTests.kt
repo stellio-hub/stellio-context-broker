@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -201,6 +202,13 @@ class EntityAccessControlHandlerTests {
 
         every { authorizationService.userIsAdminOfEntity(eq(entityUri1), any()) } returns true
         every { authorizationService.userIsAdminOfEntity(eq(entityUri2), any()) } returns false
+        every {
+            entityService.appendEntityRelationship(any(), any(), any(), any())
+        } returns UpdateAttributeResult(
+            attributeName = "rCanRead",
+            datasetId = entityUri1,
+            updateOperationResult = UpdateOperationResult.APPENDED
+        )
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -209,7 +217,15 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
                 """
-                    { "unauthorized entities": ["urn:ngsi-ld:Entity:entityId2"]}
+                    {
+                        "updated":["rCanRead"],
+                        "notUpdated":[
+                          {
+                            "attributeName":"rCanRead",
+                            "reason":"User is not authorized to update rights on entity urn:ngsi-ld:Entity:entityId2"
+                          }
+                        ]
+                    }
                 """
             )
 
@@ -221,6 +237,51 @@ class EntityAccessControlHandlerTests {
                 eq(false)
             )
         }
+    }
+
+    @Test
+    fun `it should filter out invalid attributes when adding rights on entities`() {
+        val entityUri2 = "urn:ngsi-ld:Entity:entityId2".toUri()
+        val requestPayload =
+            """
+            {
+                "invalidRelationshipName": [{
+                    "type": "Relationship",
+                    "object": "$entityUri1",
+                    "datasetId": "$entityUri1"
+                }],
+                "aProperty": {
+                    "type": "Property",
+                    "value": "$entityUri2"
+                },
+                "@context": ["$NGSILD_EGM_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+            }
+            """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                    {
+                        "updated":[],
+                        "notUpdated":[
+                          {
+                            "attributeName":"invalidRelationshipName",
+                            "reason":"Not a relationship or not an authorized relationship name"
+                          },
+                          {
+                            "attributeName":"aProperty",
+                            "reason":"Not a relationship or not an authorized relationship name"
+                          }
+                        ]
+                    }
+                """
+            )
+
+        verify { entityService.appendEntityRelationship(any(), any(), any(), any()) wasNot Called }
     }
 
     @Test

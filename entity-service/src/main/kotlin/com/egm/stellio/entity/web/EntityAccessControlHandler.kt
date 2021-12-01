@@ -1,11 +1,11 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.NgsiLdRelationship
-import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
@@ -48,47 +48,56 @@ class EntityAccessControlHandler(
         val jsonLdAttributes = JsonLdUtils.expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
 
-        val (authorizedInstances, unauthorizedInstances) = ngsiLdAttributes
-            .map { ngsiLdAttribute ->
-                (ngsiLdAttribute.getAttributeInstances() as List<NgsiLdRelationshipInstance>)
-                    .map { Pair(ngsiLdAttribute, it) }
-            }.flatten()
+        // ensure payload contains only relationships and that they are of a known type
+        val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
+            it is NgsiLdRelationship &&
+                AuthorizationService.IAM_RIGHTS.contains(it.name)
+        }
+        val invalidAttributesDetails = invalidAttributes.map {
+            NotUpdatedDetails(it.compactName, "Not a relationship or not an authorized relationship name")
+        }
+
+        val (authorizedInstances, unauthorizedInstances) = validAttributes
+            .map { it as NgsiLdRelationship }
+            .map { ngsiLdAttribute -> ngsiLdAttribute.getAttributeInstances().map { Pair(ngsiLdAttribute, it) } }
+            .flatten()
             .partition {
                 // we don't have any sub-relationships here, so let's just take the first
                 val targetEntityId = it.second.getLinkedEntitiesIds().first()
                 authorizationService.userIsAdminOfEntity(targetEntityId, userId)
             }
+        val unauthorizedInstancesDetails = unauthorizedInstances.map {
+            NotUpdatedDetails(
+                it.first.compactName,
+                "User is not authorized to update rights on entity ${it.second.objectId}"
+            )
+        }
 
         val results = authorizedInstances.map {
-            val ngsiLdRelationship = it.first as NgsiLdRelationship
             entityService.appendEntityRelationship(
                 subjectId.toUri(),
-                ngsiLdRelationship,
+                it.first,
                 it.second,
                 false
             )
         }
+        val appendResult = updateResultFromDetailedResult(results)
 
-        entityEventService.publishAttributeAppendEvents(
-            subjectId.toUri(),
-            jsonLdAttributes,
-            updateResultFromDetailedResult(results),
-            contexts
-        )
+        if (appendResult.updated.isNotEmpty())
+            entityEventService.publishAttributeAppendEvents(
+                subjectId.toUri(),
+                jsonLdAttributes,
+                appendResult,
+                contexts
+            )
 
-        return if (unauthorizedInstances.isEmpty())
+        return if (invalidAttributes.isEmpty() && unauthorizedInstances.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else {
-            val unauthorizedEntities =
-                unauthorizedInstances.map { it.second.objectId }
-                    .joinToString(",") { "\"$it\"" }
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(
-                """
-                    {
-                        "unauthorized entities": [$unauthorizedEntities]
-                    }
-                """.trimIndent()
+            val fullAppendResult = appendResult.copy(
+                notUpdated = appendResult.notUpdated.plus(invalidAttributesDetails).plus(unauthorizedInstancesDetails)
             )
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(fullAppendResult)
         }
     }
 

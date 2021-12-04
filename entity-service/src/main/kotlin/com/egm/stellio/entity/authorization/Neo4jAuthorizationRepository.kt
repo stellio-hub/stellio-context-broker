@@ -153,13 +153,13 @@ class Neo4jAuthorizationRepository(
     ): Int {
         val matchQuery =
             """
-            MATCH (subject:Entity { id: ${'$'}entityId })-[:HAS_OBJECT]-(relNode)
+            MATCH (subject:Entity { id: ${'$'}subjectId })-[:HAS_OBJECT]-(relNode)
                     -[]->(target:Entity { id: ${'$'}targetId })
             DETACH DELETE relNode
             """.trimIndent()
 
         val parameters = mapOf(
-            "entityId" to subjectId.toString(),
+            "subjectId" to subjectId.toString(),
             "targetId" to targetId.toString()
         )
 

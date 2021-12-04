@@ -69,7 +69,7 @@ class EntityAccessControlHandler(
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
                 it.first.compactName,
-                "User is not authorized to update rights on entity ${it.second.objectId}"
+                "User is not authorized to manage rights on entity ${it.second.objectId}"
             )
         }
 
@@ -114,18 +114,19 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body("User is not authorized to manage rights on entity $entityId")
 
-        val removeResult = authorizationService.removeUserRightsOnEntity(entityId.toUri(), subjectId.toUri())
+        val removeResult =
+            authorizationService.removeUserRightsOnEntity(entityId.toUri(), subjectId.toUri())
+                .also {
+                    if (it != 0)
+                        entityEventService.publishAttributeDeleteEvent(
+                            entityId = subjectId.toUri(),
+                            attributeName = entityId,
+                            deleteAll = false,
+                            contexts = contexts
+                        )
+                }
 
-        if (removeResult == 1) {
-            entityEventService.publishAttributeDeleteEvent(
-                entityId = subjectId.toUri(),
-                attributeName = entityId,
-                deleteAll = false,
-                contexts = contexts
-            )
-        }
-
-        return if (removeResult == 1)
+        return if (removeResult != 0)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             throw ResourceNotFoundException("Subject $subjectId has no right on entity $entityId")

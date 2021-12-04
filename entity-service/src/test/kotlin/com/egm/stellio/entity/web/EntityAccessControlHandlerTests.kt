@@ -222,7 +222,7 @@ class EntityAccessControlHandlerTests {
                         "notUpdated":[
                           {
                             "attributeName":"rCanRead",
-                            "reason":"User is not authorized to update rights on entity urn:ngsi-ld:Entity:entityId2"
+                            "reason":"User is not authorized to manage rights on entity urn:ngsi-ld:Entity:entityId2"
                           }
                         ]
                     }

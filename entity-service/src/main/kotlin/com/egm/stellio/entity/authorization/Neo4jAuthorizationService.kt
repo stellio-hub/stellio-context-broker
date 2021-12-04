@@ -35,9 +35,9 @@ class Neo4jAuthorizationService(
                 entitiesId,
                 listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ)
             )
-        // remove the already authorized entities from the list to avoid double checking them
+        // remove the already authorized entities from the list to avoid double-checking them
         val grantedEntities = filterEntitiesUserHaveOneOfGivenRights(
-            entitiesId.minus(authorizedBySpecificPolicyEntities),
+            entitiesId.minus(authorizedBySpecificPolicyEntities.toSet()),
             READ_RIGHT,
             userSub
         )
@@ -47,9 +47,9 @@ class Neo4jAuthorizationService(
     override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userSub: String): List<URI> {
         val authorizedBySpecificPolicyEntities =
             filterEntitiesWithSpecificAccessPolicy(entitiesId, listOf(SpecificAccessPolicy.AUTH_WRITE))
-        // remove the already authorized entities from the list to avoid double checking them
+        // remove the already authorized entities from the list to avoid double-checking them
         val grantedEntities = filterEntitiesUserHaveOneOfGivenRights(
-            entitiesId.minus(authorizedBySpecificPolicyEntities),
+            entitiesId.minus(authorizedBySpecificPolicyEntities.toSet()),
             WRITE_RIGHT,
             userSub
         )

@@ -33,6 +33,8 @@ class AttributeInstanceService(
             INSERT INTO attribute_instance 
                 (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
                 VALUES (:observed_at, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+            ON CONFLICT (observed_at, temporal_entity_attribute)
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload
             """
         )
             .bind("observed_at", attributeInstance.observedAt)

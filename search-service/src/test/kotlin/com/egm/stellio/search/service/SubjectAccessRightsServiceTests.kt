@@ -2,8 +2,9 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.SubjectAccessRights
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
+import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.SubjectType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -37,7 +38,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666", "urn:ngsi-ld:Entity:0000")
         )
@@ -57,7 +58,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = allowedReadEntities,
             allowedWriteEntities = allowedWriteEntities
         )
@@ -70,7 +71,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.subjectId == subjectUuid &&
                     it.subjectType == SubjectType.USER &&
-                    it.globalRole == "stellio-admin" &&
+                    it.globalRole == ADMIN_ROLE_LABEL &&
                     it.allowedReadEntities?.contentEquals(allowedReadEntities) == true &&
                     it.allowedWriteEntities?.contentEquals(allowedWriteEntities) == true
             }
@@ -83,7 +84,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
         )
 
@@ -109,7 +110,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678")
         )
 
@@ -152,7 +153,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
             subjectAccessRightsService.retrieve(subjectUuid)
         )
             .expectNextMatches {
-                it.globalRole == "stellio-admin"
+                it.globalRole == ADMIN_ROLE_LABEL
             }
             .expectComplete()
             .verify()
@@ -179,7 +180,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666")
         )
@@ -213,7 +214,7 @@ class SubjectAccessRightsServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectAccessRights(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRole = "stellio-admin",
+            globalRole = ADMIN_ROLE_LABEL,
             allowedReadEntities = arrayOf("urn:ngsi-ld:Entity:1234", "urn:ngsi-ld:Entity:5678"),
             allowedWriteEntities = arrayOf("urn:ngsi-ld:Entity:6666", "urn:ngsi-ld:Entity:0000")
         )

@@ -1,11 +1,11 @@
 package com.egm.stellio.entity.util
 
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CREATION_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.shared.util.CREATION_ROLE_LABEL
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.toUri
 import org.springframework.beans.factory.annotation.Value

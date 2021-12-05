@@ -1,9 +1,9 @@
 package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.authorization.AuthorizationService.*
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLE_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
+import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean

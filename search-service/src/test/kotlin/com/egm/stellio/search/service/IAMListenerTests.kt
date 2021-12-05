@@ -1,9 +1,9 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUUID
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.SubjectType
-import com.egm.stellio.shared.web.toUUID
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.verify

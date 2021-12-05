@@ -18,10 +18,6 @@ interface AuthorizationService {
         val IAM_RIGHTS = setOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN)
         const val R_IS_MEMBER_OF = AUTHORIZATION_ONTOLOGY + "isMemberOf"
         const val SERVICE_ACCOUNT_ID = AUTHORIZATION_ONTOLOGY + "serviceAccountId"
-        const val ADMIN_ROLE_LABEL = "stellio-admin"
-        const val CREATION_ROLE_LABEL = "stellio-creator"
-        val ADMIN_ROLES: Set<String> = setOf(ADMIN_ROLE_LABEL)
-        val CREATION_ROLES: Set<String> = setOf(CREATION_ROLE_LABEL).plus(ADMIN_ROLES)
         val ADMIN_RIGHT: Set<String> = setOf(R_CAN_ADMIN)
         val WRITE_RIGHT: Set<String> = setOf(R_CAN_WRITE).plus(ADMIN_RIGHT)
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)

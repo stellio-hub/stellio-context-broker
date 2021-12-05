@@ -21,6 +21,7 @@ import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.Called
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.confirmVerified
@@ -91,6 +92,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -132,6 +134,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -173,6 +176,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -217,6 +221,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -257,8 +262,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+
         webClient.post()
-            .uri("/ngsi-ld/v1/temporal/entities/entityId/attrs")
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
             .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
             .contentType(MediaType.APPLICATION_JSON)
             .body(BodyInserters.fromValue("{ \"id\": \"bad\" }"))
@@ -273,6 +280,24 @@ class TemporalEntityHandlerTests {
                 }
                 """
             )
+    }
+
+    @Test
+    fun `it should return a 403 is user is not authorized to write on the entity`() {
+        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(false) }
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
+            .header("Link", buildContextLinkHeader(APIC_COMPOUND_CONTEXT))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(""))
+            .exchange()
+            .expectStatus().isForbidden
+
+        verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
+        verify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
+        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService)
     }
 
     @Test

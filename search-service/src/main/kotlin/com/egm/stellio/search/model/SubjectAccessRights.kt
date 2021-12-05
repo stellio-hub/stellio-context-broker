@@ -1,6 +1,6 @@
 package com.egm.stellio.search.model
 
-import com.egm.stellio.shared.web.SubjectType
+import com.egm.stellio.shared.util.SubjectType
 import org.springframework.data.annotation.Id
 import java.util.UUID
 

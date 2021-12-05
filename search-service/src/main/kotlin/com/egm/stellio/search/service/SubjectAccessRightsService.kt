@@ -1,7 +1,8 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.SubjectAccessRights
-import com.egm.stellio.shared.web.SubjectType
+import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
+import com.egm.stellio.shared.util.SubjectType
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
@@ -111,7 +112,7 @@ class SubjectAccessRightsService(
         databaseClient.sql(
             """
                 UPDATE subject_access_rights
-                SET global_role = 'stellio-admin'
+                SET global_role = '$ADMIN_ROLE_LABEL'
                 WHERE subject_id = :subject_id
             """
         )
@@ -143,6 +144,24 @@ class SubjectAccessRightsService(
                 FROM subject_access_rights
                 WHERE subject_id = :subject_id
                 AND (:entity_id = ANY(allowed_read_entities) OR :entity_id = ANY(allowed_write_entities))
+            """
+        )
+            .bind("subject_id", subjectId)
+            .bind("entity_id", entityId)
+            .fetch()
+            .one()
+            .map {
+                it["count"] as Long == 1L
+            }
+            .onErrorReturn(false)
+
+    fun hasWriteRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
+        databaseClient.sql(
+            """
+                SELECT COUNT(subject_id) as count
+                FROM subject_access_rights
+                WHERE subject_id = :subject_id
+                AND (:entity_id = ANY(allowed_write_entities))
             """
         )
             .bind("subject_id", subjectId)

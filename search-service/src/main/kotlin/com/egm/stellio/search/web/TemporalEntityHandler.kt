@@ -20,7 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.extractSubjectOrEmpty
+import com.egm.stellio.shared.util.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -58,6 +58,12 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        val canWriteEntity =
+            subjectAccessRightsService.hasWriteRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+        if (!canWriteEntity)
+            throw AccessDeniedException("User forbidden write access to entity $entityId")
+
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)

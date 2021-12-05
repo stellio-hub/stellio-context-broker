@@ -7,10 +7,11 @@ import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
+import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.extractSubjectUuid
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.extractSubjectUuid
-import com.egm.stellio.shared.web.getSubjectTypeFromSubjectId
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
@@ -48,7 +49,7 @@ class IAMListener(
     private fun createSubjectAccessRights(entityCreateEvent: EntityCreateEvent) {
         val userAccessRights = SubjectAccessRights(
             subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
-            subjectType = getSubjectTypeFromSubjectId(entityCreateEvent.entityId)
+            subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase())
         )
 
         subjectAccessRightsService.create(userAccessRights)
@@ -70,7 +71,7 @@ class IAMListener(
             val updatedRoles = (operationPayloadNode["value"] as ArrayNode).elements()
             var hasStellioAdminRole = false
             while (updatedRoles.hasNext()) {
-                if (updatedRoles.next().asText().equals("stellio-admin")) {
+                if (updatedRoles.next().asText().equals(ADMIN_ROLE_LABEL)) {
                     hasStellioAdminRole = true
                     break
                 }

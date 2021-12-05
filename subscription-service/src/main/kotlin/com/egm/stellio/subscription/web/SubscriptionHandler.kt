@@ -13,10 +13,10 @@ import com.egm.stellio.shared.util.QUERY_PARAM_COUNT
 import com.egm.stellio.shared.util.buildGetSuccessResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.extractAndValidatePaginationParameters
+import com.egm.stellio.shared.util.extractSubjectOrEmpty
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson

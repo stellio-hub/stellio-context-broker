@@ -424,7 +424,6 @@ class SubscriptionService(
             .bind("updatedAttributes", updatedAttributes)
             .bind("date", Instant.now().atZone(ZoneOffset.UTC))
             .map(rowToRawSubscription)
-
             .all()
     }
 

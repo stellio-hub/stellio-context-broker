@@ -946,7 +946,11 @@ class EntityHandlerTests {
                     {
                         "id":"urn:ngsi-ld:Beehive:4567",
                         "type":"Beehive",
-                        "managedBy":{"type":"Relationship", "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215", "object":"urn:ngsi-ld:Beekeeper:1230"},
+                        "managedBy": {
+                          "type":"Relationship",
+                           "datasetId":"urn:ngsi-ld:Dataset:managedBy:0215",
+                            "object":"urn:ngsi-ld:Beekeeper:1230"
+                        },
                         "@context": ["$NGSILD_CORE_CONTEXT"]
                     }
                 """.trimIndent()
@@ -1242,6 +1246,7 @@ class EntityHandlerTests {
     }
 
     @Test
+    @SuppressWarnings("MaxLineLength")
     fun `append entity attribute should return a 400 if the attribute is not NGSI-LD valid`() {
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val invalidPayload =
@@ -1607,6 +1612,7 @@ class EntityHandlerTests {
     }
 
     @Test
+    @SuppressWarnings("MaxLineLength")
     fun `entity attributes update should return a 503 if JSON-LD context is not correct`() {
         val payload =
             """

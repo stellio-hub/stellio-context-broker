@@ -14,7 +14,7 @@ plugins {
     id("org.springframework.boot") version "2.5.7" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
     kotlin("jvm") version "1.5.31" apply false
-    kotlin("plugin.spring") version "1.5.31" apply false
+    kotlin("plugin.spring") version "1.6.0" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.2.0"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
     id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false

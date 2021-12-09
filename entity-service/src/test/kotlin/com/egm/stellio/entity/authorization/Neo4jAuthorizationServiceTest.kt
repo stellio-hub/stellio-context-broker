@@ -3,7 +3,7 @@ package com.egm.stellio.entity.authorization
 import com.egm.stellio.entity.authorization.AuthorizationService.*
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
-import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -106,7 +106,7 @@ class Neo4jAuthorizationServiceTest {
     fun `it should find admin user has admin, read or write right entity`() {
         every {
             neo4jAuthorizationRepository.getUserRoles(mockUserUri)
-        } returns setOf(ADMIN_ROLE_LABEL)
+        } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(neo4jAuthorizationService.userIsAdminOfEntity(entityUri, mockUserSub))
         assert(neo4jAuthorizationService.userCanReadEntity(entityUri, mockUserSub))
@@ -200,7 +200,7 @@ class Neo4jAuthorizationServiceTest {
         } returns emptyList()
         every {
             neo4jAuthorizationRepository.getUserRoles(mockUserUri)
-        } returns setOf(ADMIN_ROLE_LABEL)
+        } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(
             neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesIds, mockUserSub) == entitiesIds

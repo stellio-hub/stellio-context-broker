@@ -7,8 +7,8 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.SubjectAccessRightsService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -46,7 +46,7 @@ class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
-    private val subjectAccessRightsService: SubjectAccessRightsService
+    private val entityAccessRightsService: EntityAccessRightsService
 ) {
 
     /**
@@ -60,7 +60,7 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val canWriteEntity =
-            subjectAccessRightsService.hasWriteRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+            entityAccessRightsService.hasWriteRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
         if (!canWriteEntity)
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
@@ -145,7 +145,7 @@ class TemporalEntityHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         val canReadEntity =
-            subjectAccessRightsService.hasReadRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+            entityAccessRightsService.hasReadRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 

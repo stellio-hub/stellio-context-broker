@@ -1,5 +1,7 @@
 package com.egm.stellio.search.service
 
+import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.loadSampleData
 import com.egm.stellio.shared.util.toUUID
@@ -20,7 +22,10 @@ class IAMListenerTests {
     private lateinit var iamListener: IAMListener
 
     @MockkBean(relaxed = true)
-    private lateinit var subjectAccessRightsService: SubjectAccessRightsService
+    private lateinit var subjectReferentialService: SubjectReferentialService
+
+    @MockkBean(relaxed = true)
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @Test
     fun `it should handle a create event for a subject`() {
@@ -29,13 +34,11 @@ class IAMListenerTests {
         iamListener.processMessage(subjectCreateEvent)
 
         verify {
-            subjectAccessRightsService.create(
+            subjectReferentialService.create(
                 match {
                     it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUUID() &&
                         it.subjectType == SubjectType.USER &&
-                        it.globalRole == null &&
-                        it.allowedReadEntities.isNullOrEmpty() &&
-                        it.allowedWriteEntities.isNullOrEmpty()
+                        it.globalRoles == null
                 }
             )
         }
@@ -49,7 +52,7 @@ class IAMListenerTests {
         iamListener.processMessage(subjectDeleteEvent)
 
         verify {
-            subjectAccessRightsService.delete(
+            subjectReferentialService.delete(
                 match {
                     it == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUUID()
                 }
@@ -65,10 +68,11 @@ class IAMListenerTests {
         iamListener.processMessage(roleAppendEvent)
 
         verify {
-            subjectAccessRightsService.addAdminGlobalRole(
+            subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
-                }
+                },
+                eq(listOf(GlobalRole.STELLIO_ADMIN))
             )
         }
         confirmVerified()
@@ -81,10 +85,11 @@ class IAMListenerTests {
         iamListener.processMessage(roleAppendEvent)
 
         verify {
-            subjectAccessRightsService.addAdminGlobalRole(
+            subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
-                }
+                },
+                eq(listOf(GlobalRole.STELLIO_ADMIN))
             )
         }
         confirmVerified()
@@ -97,10 +102,11 @@ class IAMListenerTests {
         iamListener.processMessage(roleAppendEvent)
 
         verify {
-            subjectAccessRightsService.addAdminGlobalRole(
+            subjectReferentialService.setGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
-                }
+                },
+                eq(listOf(GlobalRole.STELLIO_ADMIN, GlobalRole.STELLIO_CREATOR))
             )
         }
         confirmVerified()
@@ -113,7 +119,7 @@ class IAMListenerTests {
         iamListener.processMessage(roleAppendEvent)
 
         verify {
-            subjectAccessRightsService.removeAdminGlobalRole(
+            subjectReferentialService.resetGlobalRoles(
                 match {
                     it == "ab67edf3-238c-4f50-83f4-617c620c62eb".toUUID()
                 }
@@ -129,22 +135,23 @@ class IAMListenerTests {
         iamListener.processIamRights(rightAppendEvent)
 
         verify {
-            subjectAccessRightsService.addReadRoleOnEntity(
+            entityAccessRightsService.setRoleOnEntity(
                 eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUUID()),
-                eq("urn:ngsi-ld:Beekeeper:01".toUri())
+                eq("urn:ngsi-ld:Beekeeper:01".toUri()),
+                eq(AccessRight.R_CAN_READ)
             )
         }
         confirmVerified()
     }
 
     @Test
-    fun `it should handle an delete event removing a right on an entity`() {
+    fun `it should handle a delete event removing a right on an entity`() {
         val rightRemoveEvent = loadSampleData("events/authorization/RightRemoveOnEntity.json")
 
         iamListener.processIamRights(rightRemoveEvent)
 
         verify {
-            subjectAccessRightsService.removeRoleOnEntity(
+            entityAccessRightsService.removeRoleOnEntity(
                 eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d".toUUID()),
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )

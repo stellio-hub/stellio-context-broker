@@ -5,7 +5,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.shared.util.CREATION_ROLE_LABEL
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.toUri
 import org.springframework.beans.factory.annotation.Value
@@ -28,7 +28,7 @@ class ApiTestsBootstrapper(
             "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
         )
         const val USER_TYPE = "User"
-        val USER_ROLES = listOf(CREATION_ROLE_LABEL)
+        val USER_ROLES = listOf(GlobalRole.STELLIO_CREATOR.key)
     }
 
     override fun run(vararg args: String?) {

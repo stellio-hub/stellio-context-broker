@@ -6,8 +6,8 @@ import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.SubjectAccessRightsService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -70,7 +70,7 @@ class TemporalEntityHandlerTests {
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @MockkBean
-    private lateinit var subjectAccessRightsService: SubjectAccessRightsService
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     private val entityUri = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
@@ -92,7 +92,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -134,7 +134,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_one_attribute_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -176,7 +176,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_one_instance.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -221,7 +221,7 @@ class TemporalEntityHandlerTests {
             loadSampleData("fragments/temporal_entity_fragment_many_attributes_many_instances.jsonld")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         every { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) } answers {
             Mono.just(temporalEntityAttributeUuid)
         }
@@ -262,7 +262,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 400 if temporal entity fragment is badly formed`() {
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -284,7 +284,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 403 is user is not authorized to write on the entity`() {
-        every { subjectAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(false) }
+        every { entityAccessRightsService.hasWriteRoleOnEntity(any(), any()) } answers { Mono.just(false) }
 
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri/attrs")
@@ -302,7 +302,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is present without time query param`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before")
@@ -321,7 +321,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is present without timerel query param`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?time=2020-10-29T18:00:00Z")
@@ -341,7 +341,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         coEvery { queryService.queryTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
@@ -351,7 +351,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is between and no endTime provided`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&time=startTime")
@@ -370,7 +370,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is not parsable`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&time=badTime")
@@ -389,7 +389,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is not a valid value`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&time=badTime")
@@ -408,7 +408,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is between and endTime is not parseable`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -430,7 +430,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if one of time bucket or aggregate is missing`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -452,7 +452,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if aggregate function is unknown`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -474,7 +474,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
@@ -499,8 +499,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
         coEvery { queryService.queryTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -529,7 +529,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -550,7 +550,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a json entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -573,7 +573,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
         mockWithIncomingAndOutgoingTemporalProperties(true)
-        every { subjectAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
+        every { entityAccessRightsService.hasReadRoleOnEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(

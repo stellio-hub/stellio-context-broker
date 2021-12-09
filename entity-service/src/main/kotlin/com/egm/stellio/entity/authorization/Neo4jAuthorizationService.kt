@@ -9,6 +9,7 @@ import com.egm.stellio.entity.authorization.AuthorizationService.SpecificAccessP
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.ADMIN_ROLES
 import com.egm.stellio.shared.util.CREATION_ROLES
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -24,8 +25,9 @@ class Neo4jAuthorizationService(
 
     override fun userCanCreateEntities(userSub: String): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, userSub)
 
-    private fun userIsOneOfGivenRoles(roles: Set<String>, userSub: String): Boolean =
+    private fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, userSub: String): Boolean =
         neo4jAuthorizationRepository.getUserRoles((USER_PREFIX + userSub).toUri())
+            .map { GlobalRole.forKey(it) }
             .intersect(roles)
             .isNotEmpty()
 

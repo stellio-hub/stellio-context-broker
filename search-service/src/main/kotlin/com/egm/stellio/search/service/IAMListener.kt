@@ -1,13 +1,14 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.SubjectAccessRights
+import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.util.ADMIN_ROLE_LABEL
+import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSubjectUuid
@@ -20,7 +21,8 @@ import org.springframework.stereotype.Component
 
 @Component
 class IAMListener(
-    private val subjectAccessRightsService: SubjectAccessRightsService
+    private val subjectReferentialService: SubjectReferentialService,
+    private val entityAccessRightsService: EntityAccessRightsService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -28,8 +30,8 @@ class IAMListener(
     @KafkaListener(topics = ["cim.iam"], groupId = "search-iam")
     fun processMessage(content: String) {
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
-            is EntityCreateEvent -> createSubjectAccessRights(authorizationEvent)
-            is EntityDeleteEvent -> deleteSubjectAccessRights(authorizationEvent)
+            is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
+            is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
             is AttributeAppendEvent -> addRoleToSubject(authorizationEvent)
             is AttributeReplaceEvent -> TODO()
             is AttributeDeleteEvent -> TODO()
@@ -46,20 +48,20 @@ class IAMListener(
         }
     }
 
-    private fun createSubjectAccessRights(entityCreateEvent: EntityCreateEvent) {
-        val userAccessRights = SubjectAccessRights(
+    private fun createSubjectReferential(entityCreateEvent: EntityCreateEvent) {
+        val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
             subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase())
         )
 
-        subjectAccessRightsService.create(userAccessRights)
+        subjectReferentialService.create(subjectReferential)
             .subscribe {
                 logger.debug("Created subject ${entityCreateEvent.entityId}")
             }
     }
 
-    private fun deleteSubjectAccessRights(entityDeleteEvent: EntityDeleteEvent) {
-        subjectAccessRightsService.delete(entityDeleteEvent.entityId.extractSubjectUuid())
+    private fun deleteSubjectReferential(entityDeleteEvent: EntityDeleteEvent) {
+        subjectReferentialService.delete(entityDeleteEvent.entityId.extractSubjectUuid())
             .subscribe {
                 logger.debug("Deleted subject ${entityDeleteEvent.entityId}")
             }
@@ -69,42 +71,28 @@ class IAMListener(
         if (attributeAppendEvent.attributeName == "roles") {
             val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
             val updatedRoles = (operationPayloadNode["value"] as ArrayNode).elements()
-            var hasStellioAdminRole = false
-            while (updatedRoles.hasNext()) {
-                if (updatedRoles.next().asText().equals(ADMIN_ROLE_LABEL)) {
-                    hasStellioAdminRole = true
-                    break
-                }
-            }
-            if (hasStellioAdminRole)
-                subjectAccessRightsService.addAdminGlobalRole(attributeAppendEvent.entityId.extractSubjectUuid())
+            val newRoles = updatedRoles.asSequence().map {
+                GlobalRole.forKey(it.asText())
+            }.toList()
+            if (newRoles.isNotEmpty())
+                subjectReferentialService.setGlobalRoles(attributeAppendEvent.entityId.extractSubjectUuid(), newRoles)
             else
-                subjectAccessRightsService.removeAdminGlobalRole(attributeAppendEvent.entityId.extractSubjectUuid())
+                subjectReferentialService.resetGlobalRoles(attributeAppendEvent.entityId.extractSubjectUuid())
         }
     }
 
     private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
         val entityId = operationPayloadNode["object"].asText()
-        when (attributeAppendEvent.attributeName) {
-            "rCanRead" -> {
-                subjectAccessRightsService.addReadRoleOnEntity(
-                    attributeAppendEvent.entityId.extractSubjectUuid(),
-                    entityId.toUri()
-                )
-            }
-            "rCanWrite" -> {
-                subjectAccessRightsService.addWriteRoleOnEntity(
-                    attributeAppendEvent.entityId.extractSubjectUuid(),
-                    entityId.toUri()
-                )
-            }
-            else -> logger.warn("Unrecognized attribute name ${attributeAppendEvent.attributeName}")
-        }
+        entityAccessRightsService.setRoleOnEntity(
+            attributeAppendEvent.entityId.extractSubjectUuid(),
+            entityId.toUri(),
+            AccessRight.forAttributeName(attributeAppendEvent.attributeName)
+        )
     }
 
     private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
-        subjectAccessRightsService.removeRoleOnEntity(
+        entityAccessRightsService.removeRoleOnEntity(
             attributeDeleteEvent.entityId.extractSubjectUuid(),
             attributeDeleteEvent.attributeName.toUri()
         )

@@ -1,9 +1,8 @@
-import io.gitlab.arturbosch.detekt.detekt
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
-
-val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
 
 extra["springCloudVersion"] = "2020.0.4"
 extra["testcontainersVersion"] = "1.16.0"
@@ -18,7 +17,7 @@ plugins {
     kotlin("plugin.spring") version "1.5.31" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.2.0"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.18.0" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
     id("org.sonarqube") version "3.3"
     jacoco
 }
@@ -66,8 +65,6 @@ subprojects {
 
         implementation("org.locationtech.jts.io:jts-io-common:1.18.1")
 
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
-
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
         runtimeOnly("de.siegmar:logback-gelf:4.0.0")
@@ -78,7 +75,7 @@ subprojects {
             exclude(module = "mockito-core")
         }
         testImplementation("com.ninja-squad:springmockk:3.0.1")
-        testImplementation("io.mockk:mockk:1.12.0")
+        testImplementation("io.mockk:mockk:1.12.1")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")
@@ -108,18 +105,21 @@ subprojects {
         }
     }
 
-    detekt {
-        toolVersion = "1.18.0"
-        source = files("src/main/kotlin", "src/test/kotlin")
-        config = files(detektConfigFile)
+    tasks.withType<Detekt>().configureEach {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
-        baseline = file("$projectDir/config/detekt/baseline.xml")
+        baseline.set(file("$projectDir/config/detekt/baseline.xml"))
 
         reports {
-            xml.enabled = true
-            txt.enabled = false
-            html.enabled = true
+            xml.required.set(true)
+            txt.required.set(false)
+            html.required.set(true)
         }
+    }
+    tasks.withType<DetektCreateBaselineTask>().configureEach {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+        buildUponDefaultConfig.set(true)
+        baseline.set(file("$projectDir/config/detekt/baseline.xml"))
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions

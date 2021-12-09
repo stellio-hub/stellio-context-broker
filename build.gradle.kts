@@ -75,7 +75,7 @@ subprojects {
             exclude(module = "mockito-core")
         }
         testImplementation("com.ninja-squad:springmockk:3.0.1")
-        testImplementation("io.mockk:mockk:1.12.0")
+        testImplementation("io.mockk:mockk:1.12.1")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")

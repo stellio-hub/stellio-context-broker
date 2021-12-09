@@ -1,6 +1,7 @@
 CREATE TABLE subject_referential(
     subject_id              UUID NOT NULL PRIMARY KEY,
     subject_type            VARCHAR(64) NOT NULL,
+    service_account_id      UUID,
     global_roles            TEXT[],
     groups_memberships      TEXT[]
 );

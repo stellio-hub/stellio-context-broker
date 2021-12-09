@@ -24,6 +24,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
+    private val groupUuid = UUID.fromString("52A916AB-19E6-4D3B-B629-936BC8E5B640")
 
     @AfterEach
     fun clearSubjectReferentialTable() {
@@ -101,6 +102,106 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             .create(subjectReferentialService.retrieve(subjectUuid))
             .expectNextMatches {
                 it.globalRoles == null
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should add a group membership to an user`() {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER
+        )
+
+        subjectReferentialService.create(userAccessRights).block()
+
+        StepVerifier
+            .create(subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(subjectReferentialService.retrieve(subjectUuid))
+            .expectNextMatches {
+                it.groupsMemberships == listOf(groupUuid)
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should add a group membership to an user inside an existing list`() {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER
+        )
+
+        subjectReferentialService.create(userAccessRights).block()
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid).block()
+
+        val newGroupUuid = UUID.randomUUID()
+        StepVerifier
+            .create(subjectReferentialService.addGroupMembershipToUser(subjectUuid, newGroupUuid))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(subjectReferentialService.retrieve(subjectUuid))
+            .expectNextMatches {
+                it.groupsMemberships == listOf(groupUuid, newGroupUuid)
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should remove a group membership to an user`() {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER
+        )
+
+        subjectReferentialService.create(userAccessRights).block()
+        subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid).block()
+
+        StepVerifier
+            .create(subjectReferentialService.removeGroupMembershipToUser(subjectUuid, groupUuid))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(subjectReferentialService.retrieve(subjectUuid))
+            .expectNextMatches {
+                it.groupsMemberships?.isEmpty() ?: false
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should add a service account id to a client`() {
+        val userAccessRights = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER
+        )
+
+        subjectReferentialService.create(userAccessRights).block()
+
+        val serviceAccountId = UUID.randomUUID()
+        StepVerifier
+            .create(subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(subjectReferentialService.retrieve(subjectUuid))
+            .expectNextMatches {
+                it.serviceAccountId == serviceAccountId
             }
             .expectComplete()
             .verify()

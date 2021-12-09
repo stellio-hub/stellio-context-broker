@@ -9,6 +9,7 @@ data class SubjectReferential(
     @Id
     val subjectId: UUID,
     val subjectType: SubjectType,
+    val serviceAccountId: UUID? = null,
     val globalRoles: List<GlobalRole>? = null,
     val groupsMemberships: List<UUID>? = null
 ) {

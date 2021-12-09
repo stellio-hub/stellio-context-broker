@@ -129,6 +129,63 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should handle an append event adding an user to a group`() {
+        val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
+
+        iamListener.processMessage(roleAppendEvent)
+
+        verify {
+            subjectReferentialService.addGroupMembershipToUser(
+                match {
+                    it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUUID()
+                },
+                match {
+                    it == "7cdad168-96ee-4649-b768-a060ac2ef435".toUUID()
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should handle a delete event removing an user from a group`() {
+        val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
+
+        iamListener.processMessage(roleAppendEvent)
+
+        verify {
+            subjectReferentialService.removeGroupMembershipToUser(
+                match {
+                    it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUUID()
+                },
+                match {
+                    it == "7cdad168-96ee-4649-b768-a060ac2ef435".toUUID()
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should handle an append event adding a service account id to a client`() {
+        val roleAppendEvent = loadSampleData("events/authorization/ServiceAccountIdAppendEvent.json")
+
+        iamListener.processMessage(roleAppendEvent)
+
+        verify {
+            subjectReferentialService.addServiceAccountIdToClient(
+                match {
+                    it == "96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUUID()
+                },
+                match {
+                    it == "7cdad168-96ee-4649-b768-a060ac2ef435".toUUID()
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should handle an append event adding a right on an entity`() {
         val rightAppendEvent = loadSampleData("events/authorization/RightAddOnEntity.json")
 

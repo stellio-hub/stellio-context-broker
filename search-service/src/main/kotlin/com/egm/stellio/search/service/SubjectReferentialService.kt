@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
+import com.egm.stellio.shared.util.toUUID
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
@@ -98,6 +99,63 @@ class SubjectReferentialService(
             }
 
     @Transactional
+    fun addGroupMembershipToUser(subjectId: UUID, groupId: UUID): Mono<Int> =
+        databaseClient
+            .sql(
+                """
+                    UPDATE subject_referential
+                    SET groups_memberships = array_append(groups_memberships, :group_id::text)
+                    WHERE subject_id = :subject_id
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectId)
+            .bind("group_id", groupId)
+            .fetch()
+            .rowsUpdated()
+            .onErrorResume {
+                logger.error("Error while adding group membership to user: $it")
+                Mono.just(-1)
+            }
+
+    @Transactional
+    fun removeGroupMembershipToUser(subjectId: UUID, groupId: UUID): Mono<Int> =
+        databaseClient
+            .sql(
+                """
+                    UPDATE subject_referential
+                    SET groups_memberships = array_remove(groups_memberships, :group_id::text)
+                    WHERE subject_id = :subject_id
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectId)
+            .bind("group_id", groupId)
+            .fetch()
+            .rowsUpdated()
+            .onErrorResume {
+                logger.error("Error while removing group membership to user: $it")
+                Mono.just(-1)
+            }
+
+    @Transactional
+    fun addServiceAccountIdToClient(subjectId: UUID, serviceAccountId: UUID): Mono<Int> =
+        databaseClient
+            .sql(
+                """
+                    UPDATE subject_referential
+                    SET service_account_id = :service_account_id
+                    WHERE subject_id = :subject_id
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectId)
+            .bind("service_account_id", serviceAccountId)
+            .fetch()
+            .rowsUpdated()
+            .onErrorResume {
+                logger.error("Error while setting service account id to client: $it")
+                Mono.just(-1)
+            }
+
+    @Transactional
     fun delete(subjectId: UUID): Mono<Int> =
         r2dbcEntityTemplate.delete(SubjectReferential::class.java)
             .matching(Query.query(Criteria.where("subject_id").`is`(subjectId)))
@@ -107,7 +165,8 @@ class SubjectReferentialService(
         SubjectReferential(
             subjectId = row["subject_id"] as UUID,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
+            serviceAccountId = row["service_account_id"] as UUID?,
             globalRoles = (row["global_roles"] as Array<String>?)?.map { GlobalRole.valueOf(it) },
-            groupsMemberships = (row["groups_memberships"] as Array<UUID>?)?.toList()
+            groupsMemberships = (row["groups_memberships"] as Array<String>?)?.map { it.toUUID() }
         )
 }

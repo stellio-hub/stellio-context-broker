@@ -32,9 +32,9 @@ class IAMListener(
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
             is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
-            is AttributeAppendEvent -> addRoleToSubject(authorizationEvent)
-            is AttributeReplaceEvent -> TODO()
-            is AttributeDeleteEvent -> TODO()
+            is AttributeAppendEvent -> updateSubjectProfile(authorizationEvent)
+            is AttributeReplaceEvent -> logger.debug("Not interested in attribute replace events for IAM events")
+            is AttributeDeleteEvent -> removeSubjectFromGroup(authorizationEvent)
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
     }
@@ -67,18 +67,38 @@ class IAMListener(
             }
     }
 
-    private fun addRoleToSubject(attributeAppendEvent: AttributeAppendEvent) {
+    private fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent) {
+        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val subjectUuid = attributeAppendEvent.entityId.extractSubjectUuid()
         if (attributeAppendEvent.attributeName == "roles") {
-            val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
             val updatedRoles = (operationPayloadNode["value"] as ArrayNode).elements()
             val newRoles = updatedRoles.asSequence().map {
                 GlobalRole.forKey(it.asText())
             }.toList()
             if (newRoles.isNotEmpty())
-                subjectReferentialService.setGlobalRoles(attributeAppendEvent.entityId.extractSubjectUuid(), newRoles)
+                subjectReferentialService.setGlobalRoles(subjectUuid, newRoles)
             else
-                subjectReferentialService.resetGlobalRoles(attributeAppendEvent.entityId.extractSubjectUuid())
+                subjectReferentialService.resetGlobalRoles(subjectUuid)
+        } else if (attributeAppendEvent.attributeName == "serviceAccountId") {
+            val serviceAccountId = operationPayloadNode["value"].asText()
+            subjectReferentialService.addServiceAccountIdToClient(
+                subjectUuid,
+                serviceAccountId.extractSubjectUuid()
+            )
+        } else if (attributeAppendEvent.attributeName == "isMemberOf") {
+            val groupId = operationPayloadNode["object"].asText()
+            subjectReferentialService.addGroupMembershipToUser(
+                subjectUuid,
+                groupId.extractSubjectUuid()
+            )
         }
+    }
+
+    private fun removeSubjectFromGroup(attributeDeleteEvent: AttributeDeleteEvent) {
+        subjectReferentialService.removeGroupMembershipToUser(
+            attributeDeleteEvent.entityId.extractSubjectUuid(),
+            attributeDeleteEvent.datasetId!!.extractSubjectUuid()
+        )
     }
 
     private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {

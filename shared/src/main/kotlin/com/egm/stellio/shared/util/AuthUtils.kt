@@ -21,6 +21,9 @@ fun extractSubjectOrEmpty(): Mono<String> {
 fun URI.extractSubjectUuid(): UUID =
     UUID.fromString(this.toString().substringAfterLast(":"))
 
+fun String.extractSubjectUuid(): UUID =
+    UUID.fromString(this.substringAfterLast(":"))
+
 fun String.toUUID(): UUID =
     UUID.fromString(this)
 

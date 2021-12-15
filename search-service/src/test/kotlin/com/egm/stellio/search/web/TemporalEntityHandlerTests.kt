@@ -1,6 +1,5 @@
 package com.egm.stellio.search.web
 
-import arrow.core.extensions.listk.align.empty
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntitiesQuery
@@ -850,7 +849,7 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns empty()
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(
@@ -868,7 +867,7 @@ class TemporalEntityHandlerTests {
 
         every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns empty()
+        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
 
         webClient.get()
             .uri(

@@ -10,11 +10,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonParseException
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
@@ -74,12 +70,6 @@ object JsonLdUtils {
 
     val logger = LoggerFactory.getLogger(javaClass)
 
-    private val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-
     private val localCoreContextPayload =
         ClassPathResource("/contexts/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)
     private var BASE_CONTEXT: Map<String, Any> = mapOf()
@@ -110,13 +100,13 @@ object JsonLdUtils {
 
     fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> {
         return entities.map {
-            expandJsonLdEntity(mapper.writeValueAsString(it))
+            expandJsonLdEntity(serializeObject(it))
         }
     }
 
     fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> {
         return entities.map {
-            expandJsonLdEntity(mapper.writeValueAsString(it), contexts)
+            expandJsonLdEntity(serializeObject(it), contexts)
         }
     }
 
@@ -319,7 +309,7 @@ object JsonLdUtils {
         contexts: List<String>,
         mediaType: MediaType = JSON_LD_MEDIA_TYPE
     ): String =
-        mapper.writeValueAsString(compact(jsonLdEntity, contexts, mediaType))
+        serializeObject(compact(jsonLdEntity, contexts, mediaType))
 
     /**
      * Utility but basic method to find if given contexts can resolve a known term from the core context.

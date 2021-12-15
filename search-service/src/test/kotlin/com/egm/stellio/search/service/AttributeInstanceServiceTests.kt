@@ -402,17 +402,32 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should not allow to create two attribute instances with same observation date`() {
+    fun `it should update an existing attribute instance with same observation date`() {
         val attributeInstance = gimmeAttributeInstance()
 
         attributeInstanceService.create(attributeInstance).block()
 
-        StepVerifier.create(attributeInstanceService.create(attributeInstance))
-            .expectNextMatches {
-                it == -1
-            }
+        StepVerifier
+            .create(attributeInstanceService.create(attributeInstance.copy(measuredValue = 100.0)))
+            .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
+
+        StepVerifier
+            .create(
+                attributeInstanceService.search(
+                    TemporalQuery(
+                        timerel = TemporalQuery.Timerel.AFTER,
+                        time = now.minusHours(1)
+                    ),
+                    temporalEntityAttribute,
+                    true
+                )
+            )
+            .expectNextMatches {
+                it.size == 1 &&
+                    (it[0] as SimplifiedAttributeInstanceResult).value == 100.0
+            }
     }
 
     @Test

@@ -15,7 +15,7 @@ interface WithNeo4jContainer {
     companion object {
 
         @Container
-        val neo4jContainer = Neo4jContainer<Nothing>("neo4j:4.3").apply {
+        val neo4jContainer = Neo4jContainer<Nothing>("neo4j:4.4").apply {
             withNeo4jConfig("dbms.default_database", "stellio")
             withEnv("NEO4JLABS_PLUGINS", "[\"apoc\"]")
             withAdminPassword("neo4j_password")

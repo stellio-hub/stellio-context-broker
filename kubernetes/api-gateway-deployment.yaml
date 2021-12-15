@@ -39,11 +39,6 @@ spec:
             configMapKeyRef:
               name: stellio-conf
               key: ENVIRONMENT
-        - name: APPLICATION_SUBSCRIPTION_SERVICE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: stellio-conf
-              key: APPLICATION_SUBSCRIPTION_SERVICE_URL
         image: 'stellio/stellio-api-gateway:latest'
         name: stellio-api-gateway
         ports:

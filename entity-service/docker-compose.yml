@@ -23,7 +23,7 @@ services:
     depends_on:
       - zookeeper
   neo4j:
-    image: neo4j:4.2
+    image: neo4j:4.4
     volumes:
       - stellio-entity-neo4j-storage:/data
     environment:

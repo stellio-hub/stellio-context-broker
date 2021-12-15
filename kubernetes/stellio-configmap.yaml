@@ -16,7 +16,6 @@ data:
   STELLIO_SUBSCRIPTION_DB_DATABASE: stellio_subscription
   STELLIO_SUBSCRIPTION_DB_PASSWORD: stellio_subscription_db_password
   STELLIO_SUBSCRIPTION_DB_USER: stellio_subscription
-  APPLICATION_SUBSCRIPTION_SERVICE_URL: subscription
   KAFKA_URL: stellio-kafka:9092
 kind: ConfigMap
 metadata:

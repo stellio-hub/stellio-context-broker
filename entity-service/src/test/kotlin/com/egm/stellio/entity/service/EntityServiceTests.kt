@@ -273,7 +273,8 @@ class EntityServiceTests {
         verify { neo4jRepository.hasPropertyInstance(any(), any(), any()) }
         verify {
             neo4jRepository.createPropertyOfSubject(
-                match { it.id == sensorId && it.label == "Entity" }, any()
+                match { it.id == sensorId && it.label == "Entity" },
+                any()
             )
         }
 
@@ -531,19 +532,14 @@ class EntityServiceTests {
 
         val mockkedEntity = mockkClass(Entity::class)
         val mockkedRelationship = mockkClass(Relationship::class)
-
         every { mockkedEntity.relationships } returns mutableListOf()
         every { mockkedEntity.id } returns entityId
         every { mockkedRelationship.id } returns relationshipId
-
         val datasetSetIds = mutableListOf<URI>()
         val createdRelationships = mutableListOf<Relationship>()
-
         every { neo4jRepository.hasRelationshipInstance(any(), any(), capture(datasetSetIds)) } returns false
         every {
-            neo4jRepository.createRelationshipOfSubject(
-                any(), capture(createdRelationships), any()
-            )
+            neo4jRepository.createRelationshipOfSubject(any(), capture(createdRelationships), any())
         } returns true
 
         entityService.appendEntityAttributes(entityId, expandedNewRelationship, false)
@@ -566,7 +562,9 @@ class EntityServiceTests {
         }
         verify(exactly = 2) {
             neo4jRepository.createRelationshipOfSubject(
-                match { it.id == entityId && it.label == "Entity" }, any(), any()
+                match { it.id == entityId && it.label == "Entity" },
+                any(),
+                any()
             )
         }
         verify { neo4jRepository.updateEntityModifiedDate(eq(entityId)) }

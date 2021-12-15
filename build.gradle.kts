@@ -1,25 +1,23 @@
-import io.gitlab.arturbosch.detekt.detekt
+import io.gitlab.arturbosch.detekt.Detekt
+import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
-val detektConfigFile = file("$rootDir/config/detekt/detekt.yml")
-
-extra["springCloudVersion"] = "2020.0.3"
-extra["testcontainersVersion"] = "1.15.3"
+extra["springCloudVersion"] = "2020.0.4"
+extra["testcontainersVersion"] = "1.16.0"
 
 plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.5.4" apply false
+    id("org.springframework.boot") version "2.5.7" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
-    kotlin("jvm") version "1.5.21" apply false
-    kotlin("plugin.spring") version "1.5.21" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "10.1.0"
+    kotlin("jvm") version "1.5.31" apply false
+    kotlin("plugin.spring") version "1.5.31" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "10.2.0"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
-    kotlin("kapt") version "1.5.21" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.18.0" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
     id("org.sonarqube") version "3.3"
     jacoco
 }
@@ -27,14 +25,12 @@ plugins {
 subprojects {
     repositories {
         mavenCentral()
-        maven { url = uri("https://dl.bintray.com/arrow-kt/arrow-kt/") }
     }
 
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.spring")
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
-    apply(plugin = "kotlin-kapt")
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
@@ -63,20 +59,15 @@ subprojects {
         implementation("org.springframework.kafka:spring-kafka")
 
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-        implementation("com.github.jsonld-java:jsonld-java:0.13.3")
+        implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx:0.10.4")
-        implementation("io.arrow-kt:arrow-syntax:0.10.4")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.0.1")
 
-        implementation("org.locationtech.jts.io:jts-io-common:1.18.1")
-
-        "kapt"("io.arrow-kt:arrow-meta:0.10.4")
-
-        "detektPlugins"("io.gitlab.arturbosch.detekt:detekt-formatting:1.18.0")
+        implementation("org.locationtech.jts.io:jts-io-common:1.18.2")
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:3.0.0")
+        runtimeOnly("de.siegmar:logback-gelf:4.0.0")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
@@ -84,7 +75,7 @@ subprojects {
             exclude(module = "mockito-core")
         }
         testImplementation("com.ninja-squad:springmockk:3.0.1")
-        testImplementation("io.mockk:mockk:1.12.0")
+        testImplementation("io.mockk:mockk:1.12.1")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")
@@ -114,18 +105,21 @@ subprojects {
         }
     }
 
-    detekt {
-        toolVersion = "1.18.0"
-        source = files("src/main/kotlin", "src/test/kotlin")
-        config = files(detektConfigFile)
+    tasks.withType<Detekt>().configureEach {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
         buildUponDefaultConfig = true
-        baseline = file("$projectDir/config/detekt/baseline.xml")
+        baseline.set(file("$projectDir/config/detekt/baseline.xml"))
 
         reports {
-            xml.enabled = true
-            txt.enabled = false
-            html.enabled = true
+            xml.required.set(true)
+            txt.required.set(false)
+            html.required.set(true)
         }
+    }
+    tasks.withType<DetektCreateBaselineTask>().configureEach {
+        config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
+        buildUponDefaultConfig.set(true)
+        baseline.set(file("$projectDir/config/detekt/baseline.xml"))
     }
 
     // see https://docs.gradle.org/current/userguide/jacoco_plugin.html for configuration instructions
@@ -138,8 +132,8 @@ subprojects {
     tasks.withType<JacocoReport> {
         dependsOn(tasks.test) // tests are required to run before generating the report
         reports {
-            xml.isEnabled = true
-            html.isEnabled = true
+            xml.required.set(true)
+            html.required.set(true)
         }
     }
 
@@ -168,7 +162,7 @@ subprojects {
 
 allprojects {
     group = "com.egm.stellio"
-    version = "1.12.0-dev"
+    version = "1.4.0-dev"
 
     repositories {
         mavenCentral()

@@ -67,7 +67,7 @@ subprojects {
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:4.0.0")
+        runtimeOnly("de.siegmar:logback-gelf:4.0.1")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {

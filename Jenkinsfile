@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Notify build in Slack') {
             steps {
-                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
+                slackSend (color: '#D4DADF', message: "Starting: Stellio on branch ${env.BRANCH_NAME} (<${env.BUILD_URL}|Open>)")
             }
         }
         stage('Clean previous build') {
@@ -190,10 +190,10 @@ pipeline {
                 else if (env.BRANCH_NAME == 'develop')
                     build job: '../DataHub.Api-Tests.Launcher'
             }
-            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#36b37e', message: "Success: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }
         failure {
-            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#FF0000', message: "Fail: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }
     }
 }

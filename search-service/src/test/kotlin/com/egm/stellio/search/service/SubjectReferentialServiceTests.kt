@@ -2,7 +2,9 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.support.WithKafkaContainer
+import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
+import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.SubjectType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
@@ -15,7 +17,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubjectReferentialServiceTests : WithTimescaleContainer {
+class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var subjectReferentialService: SubjectReferentialService
@@ -38,7 +40,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRoles = listOf(GlobalRole.STELLIO_ADMIN)
+            globalRoles = listOf(STELLIO_ADMIN)
         )
 
         StepVerifier
@@ -53,7 +55,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRoles = listOf(GlobalRole.STELLIO_ADMIN)
+            globalRoles = listOf(STELLIO_ADMIN)
         )
 
         subjectReferentialService.create(subjectReferential).block()
@@ -63,7 +65,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.subjectId == subjectUuid &&
                     it.subjectType == SubjectType.USER &&
-                    it.globalRoles == listOf(GlobalRole.STELLIO_ADMIN)
+                    it.globalRoles == listOf(STELLIO_ADMIN)
             }
             .expectComplete()
             .verify()
@@ -79,7 +81,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         subjectReferentialService.create(subjectReferential).block()
 
         StepVerifier
-            .create(subjectReferentialService.setGlobalRoles(subjectUuid, listOf(GlobalRole.STELLIO_ADMIN)))
+            .create(subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN)))
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
@@ -87,7 +89,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         StepVerifier
             .create(subjectReferentialService.retrieve(subjectUuid))
             .expectNextMatches {
-                it.globalRoles == listOf(GlobalRole.STELLIO_ADMIN)
+                it.globalRoles == listOf(STELLIO_ADMIN)
             }
             .expectComplete()
             .verify()
@@ -102,6 +104,45 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             .create(subjectReferentialService.retrieve(subjectUuid))
             .expectNextMatches {
                 it.globalRoles == null
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should find if an user is a stellio admin or not`() {
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            globalRoles = listOf(STELLIO_ADMIN)
+        )
+
+        subjectReferentialService.create(subjectReferential).block()
+
+        StepVerifier
+            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .expectNextMatches {
+                it
+            }
+            .expectComplete()
+            .verify()
+
+        subjectReferentialService.resetGlobalRoles(subjectUuid).block()
+
+        StepVerifier
+            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .expectNextMatches {
+                !it
+            }
+            .expectComplete()
+            .verify()
+
+        subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR)).block()
+
+        StepVerifier
+            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .expectNextMatches {
+                it
             }
             .expectComplete()
             .verify()
@@ -212,7 +253,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
         val userAccessRights = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
-            globalRoles = listOf(GlobalRole.STELLIO_ADMIN)
+            globalRoles = listOf(STELLIO_ADMIN)
         )
 
         subjectReferentialService.create(userAccessRights).block()

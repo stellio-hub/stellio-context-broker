@@ -20,6 +20,7 @@ import java.util.UUID
 class EntityAccessRightsService(
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
+    private val subjectReferentialService: SubjectReferentialService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -44,7 +45,7 @@ class EntityAccessRightsService(
             )
             .bind("subject_id", subjectId)
             .bind("entity_id", entityId)
-            .bind("access_right", accessRight.toString())
+            .bind("access_right", accessRight.attributeName)
             .fetch()
             .rowsUpdated()
             .thenReturn(1)
@@ -70,30 +71,51 @@ class EntityAccessRightsService(
             .thenReturn(1)
             .onErrorReturn(-1)
 
-    fun hasReadRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
-        hasRoleOnEntity(subjectId, entityId, listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN))
+    fun canReadEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
+        checkHasAccessRight(subjectId, entityId, listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN))
 
-    fun hasWriteRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
-        hasRoleOnEntity(subjectId, entityId, listOf(R_CAN_WRITE, R_CAN_ADMIN))
+    fun canWriteEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
+        checkHasAccessRight(subjectId, entityId, listOf(R_CAN_WRITE, R_CAN_ADMIN))
 
-    fun hasRoleOnEntity(subjectId: UUID, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
+    private fun checkHasAccessRight(subjectId: UUID, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
+        subjectReferentialService.hasStellioAdminRole(subjectId)
+            .flatMap {
+                // if user has stellio-admin role, no need to check further
+                if (it) Mono.just(true)
+                else {
+                    // create a list with user id and its groups memberships ...
+                    subjectReferentialService.retrieve(subjectId)
+                        .map { subjectReferential ->
+                            subjectReferential.groupsMemberships ?: emptyList()
+                        }
+                        .map { groups ->
+                            groups.plus(subjectId)
+                        }
+                        .flatMap { uuids ->
+                            // ... and check if it has the required role with at least one of them
+                            hasRoleOnEntity(uuids, entityId, accessRights)
+                        }
+                }
+            }
+
+    private fun hasRoleOnEntity(uuids: List<UUID>, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
         databaseClient
             .sql(
                 """
                 SELECT COUNT(subject_id) as count
                 FROM entity_access_rights
-                WHERE subject_id = :subject_id
+                WHERE subject_id IN(:uuids)
                 AND entity_id = :entity_id
                 AND access_right IN(:access_rights)
                 """
             )
-            .bind("subject_id", subjectId)
+            .bind("uuids", uuids)
             .bind("entity_id", entityId)
-            .bind("access_rights", accessRights.map { it.toString() })
+            .bind("access_rights", accessRights.map { it.attributeName })
             .fetch()
             .one()
             .map {
-                it["count"] as Long == 1L
+                it["count"] as Long >= 1L
             }
             .onErrorResume {
                 logger.error("Error while checking role on entity: $it")

@@ -15,7 +15,10 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import java.util.UUID
 
-@SpringBootTest(classes = [SubscriptionEventListenerService::class])
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    classes = [SubscriptionEventListenerService::class]
+)
 @ActiveProfiles("test")
 class SubscriptionEventListenerServiceTest {
 

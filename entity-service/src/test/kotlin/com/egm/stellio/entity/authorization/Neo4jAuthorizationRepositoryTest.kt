@@ -17,6 +17,7 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
+import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
@@ -29,7 +30,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
+class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository

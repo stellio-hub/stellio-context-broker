@@ -60,7 +60,7 @@ class TemporalEntityHandler(
     ): ResponseEntity<*> {
         val userId = extractSubjectOrEmpty().awaitFirst()
         val canWriteEntity =
-            entityAccessRightsService.hasWriteRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+            entityAccessRightsService.canWriteEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
         if (!canWriteEntity)
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
@@ -145,7 +145,7 @@ class TemporalEntityHandler(
         val userId = extractSubjectOrEmpty().awaitFirst()
 
         val canReadEntity =
-            entityAccessRightsService.hasReadRoleOnEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+            entityAccessRightsService.canReadEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 

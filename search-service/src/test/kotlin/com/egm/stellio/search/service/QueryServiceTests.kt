@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.time.ZonedDateTime
 
-@SpringBootTest(classes = [QueryService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryService::class])
 @ActiveProfiles("test")
 @ExperimentalCoroutinesApi
 class QueryServiceTests {

@@ -4,6 +4,7 @@ import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -27,7 +28,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
+class TemporalEntityAttributeServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     @SpykBean

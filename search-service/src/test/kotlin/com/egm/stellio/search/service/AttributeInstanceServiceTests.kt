@@ -7,6 +7,7 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
@@ -37,7 +38,7 @@ import kotlin.random.Random
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AttributeInstanceServiceTests : WithTimescaleContainer {
+class AttributeInstanceServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var attributeInstanceService: AttributeInstanceService

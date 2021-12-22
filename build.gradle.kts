@@ -78,8 +78,6 @@ subprojects {
         testImplementation("io.mockk:mockk:1.12.2")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
-        testImplementation("org.testcontainers:testcontainers")
-        testImplementation("org.testcontainers:junit-jupiter")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 

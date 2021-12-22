@@ -35,7 +35,7 @@ class SubjectReferentialService(
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
-            .bind("global_roles", subjectReferential.globalRoles?.map { it.toString() }?.toTypedArray())
+            .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .fetch()
             .rowsUpdated()
@@ -57,7 +57,29 @@ class SubjectReferentialService(
             .bind("subject_id", subjectId)
             .fetch()
             .one()
-            .map { rowToUserAccessRights(it) }
+            .map { rowToSubjectReferential(it) }
+
+    fun hasStellioAdminRole(subjectId: UUID): Mono<Boolean> =
+        databaseClient
+            .sql(
+                """
+                SELECT COUNT(subject_id) as count
+                FROM subject_referential
+                WHERE subject_id = :subject_id
+                AND '${GlobalRole.STELLIO_ADMIN.key}' = ANY(global_roles)
+                """
+            )
+            .bind("subject_id", subjectId)
+            .fetch()
+            .one()
+            .log()
+            .map {
+                it["count"] as Long == 1L
+            }
+            .onErrorResume {
+                logger.error("Error while checking stellio-admin role for user: $it")
+                Mono.just(false)
+            }
 
     @Transactional
     fun setGlobalRoles(subjectId: UUID, newRoles: List<GlobalRole>): Mono<Int> =
@@ -70,7 +92,7 @@ class SubjectReferentialService(
                 """
             )
             .bind("subject_id", subjectId)
-            .bind("global_roles", newRoles.map { it.toString() }.toTypedArray())
+            .bind("global_roles", newRoles.map { it.key }.toTypedArray())
             .fetch()
             .rowsUpdated()
             .thenReturn(1)
@@ -161,12 +183,12 @@ class SubjectReferentialService(
             .matching(Query.query(Criteria.where("subject_id").`is`(subjectId)))
             .all()
 
-    private fun rowToUserAccessRights(row: Map<String, Any>) =
+    private fun rowToSubjectReferential(row: Map<String, Any>) =
         SubjectReferential(
             subjectId = row["subject_id"] as UUID,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
             serviceAccountId = row["service_account_id"] as UUID?,
-            globalRoles = (row["global_roles"] as Array<String>?)?.map { GlobalRole.valueOf(it) },
+            globalRoles = (row["global_roles"] as Array<String>?)?.map { GlobalRole.forKey(it) },
             groupsMemberships = (row["groups_memberships"] as Array<String>?)?.map { it.toUUID() }
         )
 }

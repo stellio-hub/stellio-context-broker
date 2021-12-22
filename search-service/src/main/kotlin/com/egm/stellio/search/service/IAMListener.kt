@@ -91,6 +91,8 @@ class IAMListener(
                 subjectUuid,
                 groupId.extractSubjectUuid()
             )
+        } else {
+            logger.info("Received unknown attribute name: ${attributeAppendEvent.attributeName}")
         }
     }
 

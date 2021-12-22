@@ -40,7 +40,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-@SpringBootTest(classes = [NotificationService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [NotificationService::class])
 @ActiveProfiles("test")
 class NotificationServiceTests {
 

@@ -26,5 +26,8 @@ dependencies {
         // to ensure we are using mocks and spies from springmockk lib instead
         exclude(module = "mockito-core")
     }
+    testFixturesApi("org.testcontainers:testcontainers")
+    testFixturesApi("org.testcontainers:junit-jupiter")
+    testFixturesApi("org.testcontainers:kafka")
     testImplementation("org.hamcrest:hamcrest:2.2")
 }

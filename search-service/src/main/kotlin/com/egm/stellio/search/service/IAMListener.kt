@@ -14,6 +14,7 @@ import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSubjectUuid
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -49,9 +50,16 @@ class IAMListener(
     }
 
     private fun createSubjectReferential(entityCreateEvent: EntityCreateEvent) {
+        val operationPayloadNode = jacksonObjectMapper().readTree(entityCreateEvent.operationPayload)
+        val defaultRole =
+            if (operationPayloadNode.has("roles")) {
+                val roleAsText = (operationPayloadNode["roles"] as ObjectNode)["value"].asText()
+                listOf(GlobalRole.forKey(roleAsText))
+            } else null
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
-            subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase())
+            subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase()),
+            globalRoles = defaultRole
         )
 
         subjectReferentialService.create(subjectReferential)

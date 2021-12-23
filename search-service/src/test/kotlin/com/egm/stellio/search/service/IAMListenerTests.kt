@@ -46,6 +46,24 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should handle a create event for a subject with a default role`() {
+        val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventDefaultRole.json")
+
+        iamListener.processMessage(subjectCreateEvent)
+
+        verify {
+            subjectReferentialService.create(
+                match {
+                    it.subjectId == "6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUUID() &&
+                        it.subjectType == SubjectType.USER &&
+                        it.globalRoles == listOf(GlobalRole.STELLIO_CREATOR)
+                }
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should handle a delete event for a subject`() {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
 

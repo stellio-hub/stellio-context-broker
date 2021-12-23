@@ -31,7 +31,7 @@ class SubjectReferentialService(
                 INSERT INTO subject_referential
                     (subject_id, subject_type, global_roles, groups_memberships)
                 VALUES (:subject_id, :subject_type, :global_roles, :groups_memberships)
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
@@ -52,7 +52,7 @@ class SubjectReferentialService(
                 SELECT *
                 FROM subject_referential
                 WHERE subject_id = :subject_id                
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .fetch()
@@ -65,14 +65,13 @@ class SubjectReferentialService(
                 """
                 SELECT COUNT(subject_id) as count
                 FROM subject_referential
-                WHERE subject_id = :subject_id
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 AND '${GlobalRole.STELLIO_ADMIN.key}' = ANY(global_roles)
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .fetch()
             .one()
-            .log()
             .map {
                 it["count"] as Long == 1L
             }
@@ -89,7 +88,7 @@ class SubjectReferentialService(
                 UPDATE subject_referential
                 SET global_roles = :global_roles
                 WHERE subject_id = :subject_id
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .bind("global_roles", newRoles.map { it.key }.toTypedArray())
@@ -109,7 +108,7 @@ class SubjectReferentialService(
                 UPDATE subject_referential
                 SET global_roles = null
                 WHERE subject_id = :subject_id
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .fetch()
@@ -127,7 +126,7 @@ class SubjectReferentialService(
                 """
                     UPDATE subject_referential
                     SET groups_memberships = array_append(groups_memberships, :group_id::text)
-                    WHERE subject_id = :subject_id
+                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)
@@ -146,7 +145,7 @@ class SubjectReferentialService(
                 """
                     UPDATE subject_referential
                     SET groups_memberships = array_remove(groups_memberships, :group_id::text)
-                    WHERE subject_id = :subject_id
+                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)

@@ -41,7 +41,7 @@ class EntityAccessRightsService(
                     VALUES (:subject_id, :entity_id, :access_right)
                 ON CONFLICT (subject_id, entity_id, access_right)
                     DO UPDATE SET access_right = :access_right
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .bind("entity_id", entityId)
@@ -62,7 +62,7 @@ class EntityAccessRightsService(
                 DELETE from entity_access_rights
                 WHERE subject_id = :subject_id
                 AND entity_id = :entity_id
-                """
+                """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .bind("entity_id", entityId)
@@ -107,7 +107,7 @@ class EntityAccessRightsService(
                 WHERE subject_id IN(:uuids)
                 AND entity_id = :entity_id
                 AND access_right IN(:access_rights)
-                """
+                """.trimIndent()
             )
             .bind("uuids", uuids)
             .bind("entity_id", entityId)

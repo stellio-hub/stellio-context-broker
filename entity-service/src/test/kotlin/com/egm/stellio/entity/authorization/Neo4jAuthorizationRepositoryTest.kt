@@ -313,6 +313,37 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should get all user's roles from user and group`() {
+        val userEntity = createEntity(
+            userUri,
+            listOf(USER_LABEL),
+            mutableListOf(
+                Property(
+                    name = EGM_ROLES,
+                    value = "admin"
+                )
+            )
+        )
+
+        val groupEntity = createEntity(
+            groupUri,
+            listOf("Group"),
+            mutableListOf(
+                Property(
+                    name = EGM_ROLES,
+                    value = listOf("creator")
+                )
+            )
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
+
+        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+
+        assertEquals(setOf("admin", "creator"), roles)
+    }
+
+    @Test
     fun `it should get a user's single role from group`() {
         val userEntity = createEntity(userUri, listOf(USER_LABEL), mutableListOf())
 

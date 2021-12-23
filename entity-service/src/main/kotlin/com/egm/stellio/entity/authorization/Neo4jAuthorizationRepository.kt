@@ -101,10 +101,12 @@ class Neo4jAuthorizationRepository(
         return result
             .flatMap {
                 val roles = it["roles"] as List<*>
-                when {
-                    roles.isEmpty() -> emptyList()
-                    roles[0] is String -> listOf(roles[0] as String)
-                    else -> (roles[0] as List<String>)
+                roles.flatMap { rolesEntry ->
+                    when (rolesEntry) {
+                        is String -> listOf(rolesEntry)
+                        is List<*> -> rolesEntry as List<String>
+                        else -> null
+                    }
                 }
             }
             .toSet()

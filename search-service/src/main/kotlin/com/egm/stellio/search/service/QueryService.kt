@@ -91,14 +91,16 @@ class QueryService(
 
     suspend fun queryTemporalEntities(
         temporalEntitiesQuery: TemporalEntitiesQuery,
-        contextLink: String
+        contextLink: String,
+        accessRightFilter: () -> String?
     ): List<CompactedJsonLdEntity> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             temporalEntitiesQuery.limit,
             temporalEntitiesQuery.offset,
             temporalEntitiesQuery.ids,
             temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs
+            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            accessRightFilter
         ).awaitFirstOrDefault(emptyList())
 
         val temporalEntityAttributesWithMatchingInstances =

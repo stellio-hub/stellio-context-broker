@@ -3,8 +3,10 @@ package com.egm.stellio.search.web
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -15,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.security.test.context.support.WithAnonymousUser
-import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.util.LinkedMultiValueMap
@@ -26,7 +27,7 @@ import java.time.ZonedDateTime
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityOperationsHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockUser
+@WithMockCustomUser(name = "Mock User", username = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class TemporalEntityOperationsHandlerTests {
 
     private lateinit var apicHeaderLink: String
@@ -39,6 +40,9 @@ class TemporalEntityOperationsHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var queryService: QueryService
+
+    @MockkBean
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
 
     @BeforeAll
     fun configureWebClientDefaults() {
@@ -63,7 +67,6 @@ class TemporalEntityOperationsHandlerTests {
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
         )
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
             TemporalEntitiesQuery(
                 ids = emptySet(),
@@ -74,7 +77,11 @@ class TemporalEntityOperationsHandlerTests {
                 offset = 0,
                 false
             )
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns emptyList()
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -107,7 +114,8 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(APIC_COMPOUND_CONTEXT),
+                any()
             )
         }
 
@@ -123,7 +131,6 @@ class TemporalEntityOperationsHandlerTests {
             expandedAttrs = setOf(incomingAttrExpandedName, outgoingAttrExpandedName)
         )
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
             TemporalEntitiesQuery(
                 ids = emptySet(),
@@ -134,6 +141,10 @@ class TemporalEntityOperationsHandlerTests {
                 offset = 1,
                 true
             )
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
@@ -165,10 +176,10 @@ class TemporalEntityOperationsHandlerTests {
                         temporalEntitiesQuery.ids.isEmpty() &&
                         temporalEntitiesQuery.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
-                        temporalEntitiesQuery.withTemporalValues &&
-                        temporalEntitiesQuery.count == true
+                        temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.count
                 },
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(APIC_COMPOUND_CONTEXT),
+                any()
             )
         }
 

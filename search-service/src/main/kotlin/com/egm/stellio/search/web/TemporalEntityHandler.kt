@@ -38,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.Optional
-import java.util.UUID
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -58,9 +57,9 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
         val canWriteEntity =
-            entityAccessRightsService.canWriteEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
+            entityAccessRightsService.canWriteEntity(userId, entityId.toUri()).awaitFirst()
         if (!canWriteEntity)
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
@@ -100,19 +99,24 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
+
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
 
+        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(userId)
         val temporalEntities = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
-            contextLink
+            contextLink,
+            accessRightFilter
         )
         val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
             temporalEntitiesQuery.ids,
             temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs
+            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            accessRightFilter
         ).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
@@ -142,12 +146,7 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
-
-        val canReadEntity =
-            entityAccessRightsService.canReadEntity(UUID.fromString(userId), entityId.toUri()).awaitFirst()
-        if (!canReadEntity)
-            throw AccessDeniedException("User forbidden read access to entity $entityId")
+        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
 
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
@@ -160,6 +159,11 @@ class TemporalEntityHandler(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(BadRequestDataResponse(e.message))
         }
+
+        val canReadEntity =
+            entityAccessRightsService.canReadEntity(userId, entityId.toUri()).awaitFirst()
+        if (!canReadEntity)
+            throw AccessDeniedException("User forbidden read access to entity $entityId")
 
         val temporalEntity =
             queryService.queryTemporalEntity(entityId.toUri(), temporalQuery, withTemporalValues, contextLink)

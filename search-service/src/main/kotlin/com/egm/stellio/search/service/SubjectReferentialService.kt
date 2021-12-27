@@ -59,6 +59,22 @@ class SubjectReferentialService(
             .one()
             .map { rowToSubjectReferential(it) }
 
+    fun getSubjectAndGroupsUUID(subjectId: UUID): Mono<List<UUID>> =
+        databaseClient
+            .sql(
+                """
+                SELECT groups_memberships
+                FROM subject_referential
+                WHERE subject_id = :subject_id                
+                """.trimIndent()
+            )
+            .bind("subject_id", subjectId)
+            .fetch()
+            .one()
+            .map {
+                ((it["groups_memberships"] as Array<String>?)?.map { it.toUUID() } ?: emptyList()).plus(subjectId)
+            }
+
     fun hasStellioAdminRole(subjectId: UUID): Mono<Boolean> =
         databaseClient
             .sql(

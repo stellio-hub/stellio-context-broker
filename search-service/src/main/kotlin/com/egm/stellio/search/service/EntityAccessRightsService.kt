@@ -5,6 +5,7 @@ import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
 import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
 import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
@@ -83,22 +84,19 @@ class EntityAccessRightsService(
                 // if user has stellio-admin role, no need to check further
                 if (it) Mono.just(true)
                 else {
-                    // create a list with user id and its groups memberships ...
-                    subjectReferentialService.retrieve(subjectId)
-                        .map { subjectReferential ->
-                            subjectReferential.groupsMemberships ?: emptyList()
-                        }
-                        .map { groups ->
-                            groups.plus(subjectId)
-                        }
+                    subjectReferentialService.getSubjectAndGroupsUUID(subjectId)
                         .flatMap { uuids ->
                             // ... and check if it has the required role with at least one of them
-                            hasRoleOnEntity(uuids, entityId, accessRights)
+                            hasAccessRightOnEntity(uuids, entityId, accessRights)
                         }
                 }
             }
 
-    private fun hasRoleOnEntity(uuids: List<UUID>, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
+    private fun hasAccessRightOnEntity(
+        uuids: List<UUID>,
+        entityId: URI,
+        accessRights: List<AccessRight>
+    ): Mono<Boolean> =
         databaseClient
             .sql(
                 """
@@ -121,6 +119,24 @@ class EntityAccessRightsService(
                 logger.error("Error while checking role on entity: $it")
                 Mono.just(false)
             }
+
+    suspend fun computeAccessRightFilter(subjectId: UUID): () -> String? {
+        if (subjectReferentialService.hasStellioAdminRole(subjectId).awaitFirst())
+            return { null }
+        else {
+            val subjectAndGroupsUUID = subjectReferentialService.getSubjectAndGroupsUUID(subjectId).awaitFirst()
+            val formattedSubjectAndGroupsUUID = subjectAndGroupsUUID.joinToString(",") { "'$it'" }
+            return {
+                """
+                    entity_id IN (
+                        SELECT entity_id
+                        FROM entity_access_rights
+                        WHERE subject_id IN ($formattedSubjectAndGroupsUUID)
+                    )
+                """.trimIndent()
+            }
+        }
+    }
 
     @Transactional
     fun delete(subjectId: UUID): Mono<Int> =

@@ -72,6 +72,44 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     }
 
     @Test
+    fun `it should retrieve UUIDs from user and groups memberships`() {
+        val groupsUuids = List(3) { UUID.randomUUID() }
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER,
+            groupsMemberships = groupsUuids
+        )
+
+        subjectReferentialService.create(subjectReferential).block()
+
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+            .expectNextMatches {
+                it.size == 4 &&
+                    it.containsAll(groupsUuids.plus(subjectUuid))
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve UUIDs from user when it has no groups memberships`() {
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.USER
+        )
+
+        subjectReferentialService.create(subjectReferential).block()
+
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+            .expectNextMatches {
+                it.size == 1 &&
+                    it.contains(subjectUuid)
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should update the global role of a subject`() {
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,

@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
+import com.egm.stellio.shared.util.toUUID
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -302,8 +303,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is present without time query param`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before")
             .exchange()
@@ -321,8 +320,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is present without timerel query param`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?time=2020-10-29T18:00:00Z")
             .exchange()
@@ -347,12 +344,14 @@ class TemporalEntityHandlerTests {
             .uri("/ngsi-ld/v1/temporal/entities/$entityUri")
             .exchange()
             .expectStatus().isOk
+
+        coVerify {
+            entityAccessRightsService.canReadEntity(eq("0768A6D5-D87B-4209-9A22-8C40A8961A79".toUUID()), eq(entityUri))
+        }
     }
 
     @Test
     fun `it should raise a 400 if timerel is between and no endTime provided`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&time=startTime")
             .exchange()
@@ -370,8 +369,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if time is not parsable`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&time=badTime")
             .exchange()
@@ -389,8 +386,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is not a valid value`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&time=badTime")
             .exchange()
@@ -408,8 +403,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if timerel is between and endTime is not parseable`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -430,8 +423,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if one of time bucket or aggregate is missing`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -452,8 +443,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 if aggregate function is unknown`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
@@ -609,10 +598,11 @@ class TemporalEntityHandlerTests {
             "beehive_with_two_temporal_attributes_evolution.jsonld"
 
         val entityWith2temporalEvolutions = deserializeObject(loadSampleData(entityFileName))
-        every { temporalEntityAttributeService.getForEntity(any(), any()) } returns Flux.just(
-            entityTemporalProperties[0],
-            entityTemporalProperties[1]
-        )
+        every {
+            temporalEntityAttributeService.getForEntity(any(), any())
+        } answers {
+            Flux.just(entityTemporalProperties[0], entityTemporalProperties[1])
+        }
 
         val attributes = listOf(
             incomingAttrExpandedName,
@@ -642,9 +632,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 and return an error response`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } throws BadRequestDataException(
-            "'timerel' and 'time' must be used in conjunction"
-        )
+        every {
+            queryService.parseAndCheckQueryParams(any(), any())
+        } throws BadRequestDataException("'timerel' and 'time' must be used in conjunction")
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
@@ -669,13 +659,15 @@ class TemporalEntityHandlerTests {
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns
             buildDefaultQueryParams().copy(types = setOf("BeeHive"), temporalQuery = temporalQuery)
-
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } returns emptyList()
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -709,7 +701,8 @@ class TemporalEntityHandlerTests {
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(APIC_COMPOUND_CONTEXT),
+                any()
             )
         }
 
@@ -723,11 +716,14 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } returns listOf(firstTemporalEntity, secondTemporalEntity)
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -752,11 +748,14 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } answers { Mono.just(2) }
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } returns listOf(firstTemporalEntity, secondTemporalEntity)
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -883,13 +882,16 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().copy(limit = 1, offset = 2)
+        every {
+            queryService.parseAndCheckQueryParams(any(), any())
+        } returns buildDefaultQueryParams().copy(limit = 1, offset = 2)
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
-        } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+            queryService.queryTemporalEntities(any(), any(), any())
+        } returns listOf(firstTemporalEntity, secondTemporalEntity)
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -909,11 +911,13 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `query temporal entity should return 200 and empty response if requested offset does not exists`() {
-
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
+    fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns emptyList()
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -928,10 +932,12 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
-
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
-        coEvery { queryService.queryTemporalEntities(any(), any()) } returns emptyList()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns emptyList()
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -952,13 +958,16 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(2)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().copy(limit = 1, offset = 0)
+        every {
+            queryService.parseAndCheckQueryParams(any(), any())
+        } returns buildDefaultQueryParams().copy(limit = 1, offset = 0)
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
-        } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+            queryService.queryTemporalEntities(any(), any(), any())
+        } returns listOf(firstTemporalEntity, secondTemporalEntity)
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(2) }
 
         webClient.get()
             .uri(
@@ -984,13 +993,16 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { temporalEntityAttributeService.getCountForEntities(any(), any(), any()) } returns Mono.just(3)
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().copy(limit = 1, offset = 1)
+        every {
+            queryService.parseAndCheckQueryParams(any(), any())
+        } returns buildDefaultQueryParams().copy(limit = 1, offset = 1)
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
-        } returns
-            listOf(firstTemporalEntity, secondTemporalEntity)
+            queryService.queryTemporalEntities(any(), any(), any())
+        } returns listOf(firstTemporalEntity, secondTemporalEntity)
+        every {
+            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+        } answers { Mono.just(3) }
 
         webClient.get()
             .uri(
@@ -1014,10 +1026,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
-
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -1043,10 +1055,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
-
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
             "Offset must be greater than zero and limit must be strictly greater than zero"
         )
@@ -1072,10 +1084,10 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
-
         every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
-            queryService.queryTemporalEntities(any(), any())
+            queryService.queryTemporalEntities(any(), any(), any())
         } throws BadRequestDataException(
             "You asked for 200 results, but the supported maximum limit is 100"
         )

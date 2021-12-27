@@ -1,17 +1,17 @@
 package com.egm.stellio.search.service
 
 import com.egm.stellio.search.model.EntityAccessRights
-import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.support.WithKafkaContainer
-import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.every
-import io.mockk.mockkClass
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,13 +38,13 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
     private val groupUuid = UUID.fromString("220FC854-3609-404B-BC77-F2DFE332B27B")
     private val entityId = "urn:ngsi-ld:Entity:1111".toUri()
-    private val defaultMockSubjectReferential = mockkClass(SubjectReferential::class)
 
     @BeforeEach
     fun setDefaultBehaviorOnSubjectReferential() {
         every { subjectReferentialService.hasStellioAdminRole(subjectUuid) } answers { Mono.just(false) }
-        every { subjectReferentialService.retrieve(subjectUuid) } answers { Mono.just(defaultMockSubjectReferential) }
-        every { defaultMockSubjectReferential.groupsMemberships } returns emptyList()
+        every {
+            subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid)
+        } answers { Mono.just(listOf(subjectUuid)) }
     }
 
     @AfterEach
@@ -126,16 +126,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     fun `it should allow an user having a read role on a entity via a group membership`() {
         every {
-            subjectReferentialService.retrieve(subjectUuid)
-        } answers {
-            Mono.just(
-                SubjectReferential(
-                    subjectId = subjectUuid,
-                    subjectType = SubjectType.USER,
-                    groupsMemberships = listOf(groupUuid, UUID.randomUUID())
-                )
-            )
-        }
+            subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid)
+        } answers { Mono.just(listOf(groupUuid, subjectUuid)) }
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId).block()
 
@@ -155,16 +147,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Test
     fun `it should allow an user having a read role on a entity both directly and via a group membership`() {
         every {
-            subjectReferentialService.retrieve(subjectUuid)
-        } answers {
-            Mono.just(
-                SubjectReferential(
-                    subjectId = subjectUuid,
-                    subjectType = SubjectType.USER,
-                    groupsMemberships = listOf(groupUuid, UUID.randomUUID())
-                )
-            )
-        }
+            subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid)
+        } answers { Mono.just(listOf(groupUuid, subjectUuid)) }
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId).block()
         entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId).block()
@@ -199,5 +183,37 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
             .verify()
 
         verify { subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called }
+    }
+
+    @Test
+    fun `it should return a null filter is user has the stellio-admin role`() {
+        every { subjectReferentialService.hasStellioAdminRole(subjectUuid) } answers { Mono.just(true) }
+
+        runBlocking {
+            val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(subjectUuid)
+            assertNull(accessRightFilter())
+        }
+    }
+
+    @Test
+    fun `it should return a valid entity filter is user does not have the stellio-admin role`() {
+        every { subjectReferentialService.hasStellioAdminRole(subjectUuid) } answers { Mono.just(false) }
+        every { subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid) } answers {
+            Mono.just(listOf(subjectUuid, groupUuid))
+        }
+
+        runBlocking {
+            val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(subjectUuid)
+            assertEquals(
+                """
+                entity_id IN (
+                    SELECT entity_id
+                    FROM entity_access_rights
+                    WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                )
+                """.trimIndent(),
+                accessRightFilter()
+            )
+        }
     }
 }

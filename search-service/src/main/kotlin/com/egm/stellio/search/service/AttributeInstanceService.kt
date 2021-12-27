@@ -35,7 +35,7 @@ class AttributeInstanceService(
                 VALUES (:observed_at, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
             ON CONFLICT (observed_at, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload
-            """
+            """.trimIndent()
         )
             .bind("observed_at", attributeInstance.observedAt)
             .bind("measured_value", attributeInstance.measuredValue)

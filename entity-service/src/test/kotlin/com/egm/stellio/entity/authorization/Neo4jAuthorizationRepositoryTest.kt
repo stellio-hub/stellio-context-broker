@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.*
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CLIENT_LABEL
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
+import com.egm.stellio.entity.authorization.AuthorizationService.SpecificAccessPolicy
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -240,7 +240,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf(USER_LABEL),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = listOf("admin", "creator")
                 )
             )
@@ -258,7 +258,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf(CLIENT_LABEL),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = listOf("admin", "creator")
                 ),
                 Property(
@@ -280,7 +280,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf(USER_LABEL),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = "admin"
                 )
             )
@@ -300,7 +300,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf("Group"),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = listOf("admin")
                 )
             )
@@ -320,7 +320,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf(USER_LABEL),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = "admin"
                 )
             )
@@ -331,7 +331,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf("Group"),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = listOf("creator")
                 )
             )
@@ -353,7 +353,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             listOf("Group"),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = "admin"
                 )
             )
@@ -404,7 +404,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
                     value = "some-uuid"
                 ),
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = listOf("admin", "creator")
                 )
             )

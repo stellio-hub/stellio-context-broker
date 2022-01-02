@@ -1,12 +1,15 @@
 package com.egm.stellio.entity.util
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHORIZATION_ONTOLOGY
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_ROLES
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_USERNAME
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
@@ -22,15 +25,6 @@ class ApiTestsBootstrapper(
     @Value("\${application.apitests.userid}")
     val apiTestUserId: String? = null
 
-    companion object {
-        val AUTHORIZATION_CONTEXTS: List<String> = listOf(
-            "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld",
-            "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-        )
-        const val USER_TYPE = "User"
-        val USER_ROLES = listOf(GlobalRole.STELLIO_CREATOR.key)
-    }
-
     override fun run(vararg args: String?) {
         // well, this should not happen in api-tests profile as we start from a fresh database on each run
         val ngsiLdUserId = (USER_PREFIX + apiTestUserId!!).toUri()
@@ -38,15 +32,18 @@ class ApiTestsBootstrapper(
         if (apiTestsUser == null) {
             val entity = Entity(
                 id = ngsiLdUserId,
-                type = listOf(AUTHORIZATION_ONTOLOGY + USER_TYPE),
-                contexts = AUTHORIZATION_CONTEXTS,
+                type = listOf(USER_LABEL),
+                contexts = listOf(
+                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    NGSILD_CORE_CONTEXT
+                ),
                 properties = mutableListOf(
                     Property(
-                        name = AUTHORIZATION_ONTOLOGY + "roles",
-                        value = USER_ROLES
+                        name = AUTHZ_PROP_ROLES,
+                        value = listOf(GlobalRole.STELLIO_CREATOR.key)
                     ),
                     Property(
-                        name = AUTHORIZATION_ONTOLOGY + "username",
+                        name = AUTHZ_PROP_USERNAME,
                         value = "API Tests"
                     )
                 )

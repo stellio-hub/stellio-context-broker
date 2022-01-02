@@ -40,8 +40,6 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val iamTopic = "cim.iam.rights"
-
     internal fun composeTopicName(entityType: String): Validated<Unit, String> {
         val topicName = entityChannelName(entityType)
         return try {
@@ -67,7 +65,7 @@ class EntityEventService(
 
     private fun entityChannelName(entityType: String) =
         if (AuthorizationService.IAM_LABELS.contains(entityType))
-            iamTopic
+            "cim.iam.rights"
         else
             "cim.entity.$entityType"
 

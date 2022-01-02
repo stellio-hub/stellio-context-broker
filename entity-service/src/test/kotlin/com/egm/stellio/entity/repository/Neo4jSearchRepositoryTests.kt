@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
@@ -198,7 +198,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
             listOf(AuthorizationService.USER_LABEL),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTHZ_PROP_ROLES,
                     value = "admin"
                 )
             )

@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CLIENT_LABEL
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
@@ -80,15 +80,15 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             MATCH (userEntity:Entity { id: ${'$'}userId })
-            OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$AUTHZ_PROP_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTHZ_PROP_ROLES" })
             RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             UNION
             MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
-            OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$AUTHZ_PROP_ROLES" })
             OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTHZ_PROP_ROLES" })
             RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             """.trimIndent()
 

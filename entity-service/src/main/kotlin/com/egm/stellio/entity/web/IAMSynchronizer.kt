@@ -4,9 +4,11 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
+import com.egm.stellio.entity.authorization.AuthorizationService.Companion.toCompactTerm
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
@@ -69,11 +71,13 @@ class IAMSynchronizer(
             .map { it.second }
             .flatten()
             .map { jsonLdEntity ->
+                // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
-                    generateAttributeAppendEvents(jsonLdEntity, authorizationContexts, R_CAN_ADMIN)
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, authorizationContexts, R_CAN_WRITE))
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, authorizationContexts, R_CAN_READ))
+                    generateAttributeAppendEvents(jsonLdEntity, R_CAN_ADMIN, authorizationContexts)
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, R_CAN_WRITE, authorizationContexts))
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, R_CAN_READ, authorizationContexts))
 
+                // remove the rCanXXX relationships as they are sent separately
                 val updatedEntity = compactAndSerialize(
                     jsonLdEntity.copy(
                         properties = jsonLdEntity.properties.minus(listOf(R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)),
@@ -83,7 +87,7 @@ class IAMSynchronizer(
                 )
                 val iamEvent = EntityCreateEvent(
                     jsonLdEntity.id.toUri(),
-                    jsonLdEntity.type.substringAfterLast("#"),
+                    jsonLdEntity.type.toCompactTerm(),
                     updatedEntity,
                     authorizationContexts
                 )
@@ -102,41 +106,43 @@ class IAMSynchronizer(
 
     private fun generateAttributeAppendEvents(
         jsonLdEntity: JsonLdEntity,
-        authorizationContexts: List<String>,
-        accessRight: String
-    ) = if (jsonLdEntity.properties.containsKey(accessRight)) {
-        when (val rCanAdmin = jsonLdEntity.properties[accessRight]) {
-            is Map<*, *> ->
-                listOf(
-                    AttributeAppendEvent(
-                        jsonLdEntity.id.toUri(),
-                        jsonLdEntity.type.substringAfterLast("#"),
-                        accessRight.substringAfterLast("#"),
-                        (rCanAdmin[NGSILD_DATASET_ID_PROPERTY] as String).toUri(),
-                        true,
-                        serializeObject(compactFragment(rCanAdmin as Map<String, Any>, authorizationContexts)),
-                        "",
-                        authorizationContexts
-                    )
-                )
-            is List<*> ->
-                rCanAdmin.map { rCanAdminItem ->
-                    rCanAdminItem as Map<String, Any>
-                    AttributeAppendEvent(
-                        jsonLdEntity.id.toUri(),
-                        jsonLdEntity.type.substringAfterLast("#"),
-                        accessRight.substringAfterLast("#"),
-                        ((rCanAdminItem[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri(),
-                        true,
-                        serializeObject(compactFragment(rCanAdminItem, authorizationContexts)),
-                        "",
-                        authorizationContexts
-                    )
+        accessRight: ExpandedTerm,
+        authorizationContexts: List<String>
+    ): List<AttributeAppendEvent> =
+        if (jsonLdEntity.properties.containsKey(accessRight)) {
+            when (val rightRel = jsonLdEntity.properties[accessRight]) {
+                is Map<*, *> ->
+                    listOf(rightRelToAttributeAppendEvent(jsonLdEntity, rightRel, accessRight, authorizationContexts))
+                is List<*> ->
+                    rightRel.map { rightRelInstance ->
+                        rightRelToAttributeAppendEvent(
+                            jsonLdEntity,
+                            rightRelInstance as Map<*, *>,
+                            accessRight,
+                            authorizationContexts
+                        )
+                    }
+                else -> {
+                    logger.warn("Unsupported representation for $accessRight: $rightRel")
+                    emptyList()
                 }
-            else -> {
-                logger.warn("Unsupported representation for $accessRight: $rCanAdmin")
-                emptyList()
             }
-        }
-    } else emptyList()
+        } else emptyList()
+
+    private fun rightRelToAttributeAppendEvent(
+        jsonLdEntity: JsonLdEntity,
+        rightRel: Map<*, *>,
+        accessRight: ExpandedTerm,
+        authorizationContexts: List<String>
+    ): AttributeAppendEvent =
+        AttributeAppendEvent(
+            jsonLdEntity.id.toUri(),
+            jsonLdEntity.type.toCompactTerm(),
+            accessRight.toCompactTerm(),
+            ((rightRel[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri(),
+            true,
+            serializeObject(compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
+            "",
+            authorizationContexts
+        )
 }

@@ -129,6 +129,6 @@ class EntityAccessControlHandler(
         return if (removeResult != 0)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
-            throw ResourceNotFoundException("Subject $subjectId has no right on entity $entityId")
+            throw ResourceNotFoundException("No right found for subject $subjectId on entity $entityId")
     }
 }

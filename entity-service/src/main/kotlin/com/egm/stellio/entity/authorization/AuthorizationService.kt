@@ -22,6 +22,9 @@ interface AuthorizationService {
         val ADMIN_RIGHT: Set<String> = setOf(R_CAN_ADMIN)
         val WRITE_RIGHT: Set<String> = setOf(R_CAN_WRITE).plus(ADMIN_RIGHT)
         val READ_RIGHT: Set<String> = setOf(R_CAN_READ).plus(WRITE_RIGHT)
+
+        // specific to authz terms where we know the compacted term is what is after the last # character
+        fun String.toCompactTerm(): String = this.substringAfterLast("#")
     }
 
     enum class SpecificAccessPolicy {

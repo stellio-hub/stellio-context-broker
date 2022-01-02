@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/admin")
+@RequestMapping("/entity/admin")
 class IAMSynchronizer(
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,

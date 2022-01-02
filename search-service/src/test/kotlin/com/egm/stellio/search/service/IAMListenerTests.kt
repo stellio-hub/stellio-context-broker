@@ -31,7 +31,7 @@ class IAMListenerTests {
     fun `it should handle a create event for a subject`() {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
 
-        iamListener.processMessage(subjectCreateEvent)
+        iamListener.processIam(subjectCreateEvent)
 
         verify {
             subjectReferentialService.create(
@@ -49,7 +49,7 @@ class IAMListenerTests {
     fun `it should handle a create event for a subject with a default role`() {
         val subjectCreateEvent = loadSampleData("events/authorization/UserCreateEventDefaultRole.json")
 
-        iamListener.processMessage(subjectCreateEvent)
+        iamListener.processIam(subjectCreateEvent)
 
         verify {
             subjectReferentialService.create(
@@ -67,7 +67,7 @@ class IAMListenerTests {
     fun `it should handle a delete event for a subject`() {
         val subjectDeleteEvent = loadSampleData("events/authorization/UserDeleteEvent.json")
 
-        iamListener.processMessage(subjectDeleteEvent)
+        iamListener.processIam(subjectDeleteEvent)
 
         verify {
             subjectReferentialService.delete(
@@ -83,7 +83,7 @@ class IAMListenerTests {
     fun `it should handle an append event adding a stellio-admin role for a group`() {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventOneRole.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.setGlobalRoles(
@@ -100,7 +100,7 @@ class IAMListenerTests {
     fun `it should handle an append event adding a stellio-admin role for a client`() {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendToClient.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.setGlobalRoles(
@@ -117,7 +117,7 @@ class IAMListenerTests {
     fun `it should handle an append event adding a stellio-admin role within two roles`() {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventTwoRoles.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.setGlobalRoles(
@@ -134,7 +134,7 @@ class IAMListenerTests {
     fun `it should handle an append event removing a stellio-admin role for a group`() {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventNoRole.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.resetGlobalRoles(
@@ -150,7 +150,7 @@ class IAMListenerTests {
     fun `it should handle an append event adding an user to a group`() {
         val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipAppendEvent.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.addGroupMembershipToUser(
@@ -169,7 +169,7 @@ class IAMListenerTests {
     fun `it should handle a delete event removing an user from a group`() {
         val roleAppendEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.removeGroupMembershipToUser(
@@ -188,7 +188,7 @@ class IAMListenerTests {
     fun `it should handle an append event adding a service account id to a client`() {
         val roleAppendEvent = loadSampleData("events/authorization/ServiceAccountIdAppendEvent.json")
 
-        iamListener.processMessage(roleAppendEvent)
+        iamListener.processIam(roleAppendEvent)
 
         verify {
             subjectReferentialService.addServiceAccountIdToClient(

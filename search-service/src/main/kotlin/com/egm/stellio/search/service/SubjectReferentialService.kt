@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import arrow.core.getOrElse
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.SubjectType
@@ -29,12 +30,17 @@ class SubjectReferentialService(
             .sql(
                 """
                 INSERT INTO subject_referential
-                    (subject_id, subject_type, global_roles, groups_memberships)
-                VALUES (:subject_id, :subject_type, :global_roles, :groups_memberships)
+                    (subject_id, subject_type, service_account_id, global_roles, groups_memberships)
+                    VALUES (:subject_id, :subject_type, :service_account_id, :global_roles, :groups_memberships)
+                ON CONFLICT (subject_id)
+                    DO UPDATE SET service_account_id = :service_account_id,
+                        global_roles = :global_roles,
+                        groups_memberships = :groups_memberships
                 """.trimIndent()
             )
             .bind("subject_id", subjectReferential.subjectId)
             .bind("subject_type", subjectReferential.subjectType.toString())
+            .bind("service_account_id", subjectReferential.serviceAccountId)
             .bind("global_roles", subjectReferential.globalRoles?.map { it.key }?.toTypedArray())
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .fetch()
@@ -63,16 +69,17 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT groups_memberships
+                SELECT subject_id, groups_memberships
                 FROM subject_referential
-                WHERE subject_id = :subject_id                
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)
             .fetch()
             .one()
             .map {
-                ((it["groups_memberships"] as Array<String>?)?.map { it.toUUID() } ?: emptyList()).plus(subjectId)
+                ((it["groups_memberships"] as Array<String>?)?.map { it.toUUID() } ?: emptyList())
+                    .plus(it["subject_id"] as UUID)
             }
 
     fun hasStellioAdminRole(subjectId: UUID): Mono<Boolean> =
@@ -203,7 +210,8 @@ class SubjectReferentialService(
             subjectId = row["subject_id"] as UUID,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
             serviceAccountId = row["service_account_id"] as UUID?,
-            globalRoles = (row["global_roles"] as Array<String>?)?.map { GlobalRole.forKey(it) },
+            globalRoles = (row["global_roles"] as Array<String>?)
+                ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },
             groupsMemberships = (row["groups_memberships"] as Array<String>?)?.map { it.toUUID() }
         )
 }

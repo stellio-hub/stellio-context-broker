@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import arrow.core.flattenOption
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_RIGHT
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
 import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
@@ -28,6 +29,7 @@ class Neo4jAuthorizationService(
     private fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, userSub: String): Boolean =
         neo4jAuthorizationRepository.getUserRoles((USER_PREFIX + userSub).toUri())
             .map { GlobalRole.forKey(it) }
+            .flattenOption()
             .intersect(roles)
             .isNotEmpty()
 

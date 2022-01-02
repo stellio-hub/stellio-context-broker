@@ -1,5 +1,7 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.Option
+import arrow.core.toOption
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -38,8 +40,8 @@ enum class GlobalRole(val key: String) {
     STELLIO_ADMIN("stellio-admin");
 
     companion object {
-        fun forKey(key: String): GlobalRole =
-            values().find { it.key == key } ?: throw IllegalArgumentException("Unrecognized key $key")
+        fun forKey(key: String): Option<GlobalRole> =
+            values().find { it.key == key }.toOption()
     }
 }
 

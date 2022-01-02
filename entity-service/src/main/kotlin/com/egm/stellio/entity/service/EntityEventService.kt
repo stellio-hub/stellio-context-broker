@@ -3,7 +3,6 @@ package com.egm.stellio.entity.service
 import arrow.core.Validated
 import arrow.core.invalid
 import arrow.core.valid
-import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
@@ -17,6 +16,7 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
@@ -64,7 +64,7 @@ class EntityEventService(
             )
 
     private fun entityChannelName(entityType: String) =
-        if (AuthorizationService.IAM_LABELS.contains(entityType))
+        if (IAM_TYPES.contains(entityType))
             "cim.iam.rights"
         else
             "cim.entity.$entityType"

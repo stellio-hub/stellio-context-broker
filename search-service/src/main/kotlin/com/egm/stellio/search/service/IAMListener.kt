@@ -9,7 +9,11 @@ import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSubjectUuid
@@ -34,7 +38,7 @@ class IAMListener(
 
     @KafkaListener(topics = ["cim.iam"], groupId = "search-iam")
     fun processIam(content: String) {
-        logger.debug("Received event: $content")
+        logger.debug("Received IAM event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> createSubjectReferential(authorizationEvent)
             is EntityDeleteEvent -> deleteSubjectReferential(authorizationEvent)
@@ -47,6 +51,7 @@ class IAMListener(
 
     @KafkaListener(topics = ["cim.iam.rights"], groupId = "search-iam-rights")
     fun processIamRights(content: String) {
+        logger.debug("Received IAM rights event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is AttributeAppendEvent -> addEntityToSubject(authorizationEvent)
             is AttributeDeleteEvent -> removeEntityFromSubject(authorizationEvent)
@@ -56,7 +61,7 @@ class IAMListener(
 
     @KafkaListener(topics = ["cim.iam.replay"], groupId = "search-iam-replay")
     fun processIamReplay(content: String) {
-        logger.debug("Received event: $content")
+        logger.debug("Received IAM replay event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
             is AttributeAppendEvent -> addEntityToSubject(authorizationEvent)
@@ -68,8 +73,8 @@ class IAMListener(
         val operationPayloadNode = jacksonObjectMapper().readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val serviceAccountId =
-            if (operationPayloadNode.has("serviceAccountId"))
-                (operationPayloadNode["serviceAccountId"] as ObjectNode)["value"].asText()
+            if (operationPayloadNode.has(AUTH_TERM_SID))
+                (operationPayloadNode[AUTH_TERM_SID] as ObjectNode)[JSONLD_VALUE].asText()
             else null
         val groupsMemberships = extractGroupsMemberships(operationPayloadNode)
         val subjectReferential = SubjectReferential(
@@ -102,8 +107,8 @@ class IAMListener(
     }
 
     private fun extractGroupsMemberships(operationPayloadNode: JsonNode): List<UUID>? =
-        if (operationPayloadNode.has("isMemberOf")) {
-            when (val isMemberOf = operationPayloadNode["isMemberOf"]) {
+        if (operationPayloadNode.has(AUTH_TERM_IS_MEMBER_OF)) {
+            when (val isMemberOf = operationPayloadNode[AUTH_TERM_IS_MEMBER_OF]) {
                 is ObjectNode -> listOf(isMemberOf["object"].asText().extractSubjectUuid())
                 is ArrayNode ->
                     isMemberOf.map {
@@ -114,8 +119,8 @@ class IAMListener(
         } else null
 
     private fun extractRoles(operationPayloadNode: JsonNode): List<GlobalRole>? =
-        if (operationPayloadNode.has("roles")) {
-            when (val rolesValue = (operationPayloadNode["roles"] as ObjectNode)["value"]) {
+        if (operationPayloadNode.has(AUTH_TERM_ROLES)) {
+            when (val rolesValue = (operationPayloadNode[AUTH_TERM_ROLES] as ObjectNode)[JSONLD_VALUE]) {
                 is TextNode -> GlobalRole.forKey(rolesValue.asText()).map { listOf(it) }.orNull()
                 is ArrayNode ->
                     rolesValue.map {
@@ -135,21 +140,21 @@ class IAMListener(
     private fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent) {
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
         val subjectUuid = attributeAppendEvent.entityId.extractSubjectUuid()
-        if (attributeAppendEvent.attributeName == "roles") {
-            val newRoles = (operationPayloadNode["value"] as ArrayNode).map {
+        if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
+            val newRoles = (operationPayloadNode[JSONLD_VALUE] as ArrayNode).map {
                 GlobalRole.forKey(it.asText())
             }.flattenOption()
             if (newRoles.isNotEmpty())
                 subjectReferentialService.setGlobalRoles(subjectUuid, newRoles).subscribe()
             else
                 subjectReferentialService.resetGlobalRoles(subjectUuid).subscribe()
-        } else if (attributeAppendEvent.attributeName == "serviceAccountId") {
-            val serviceAccountId = operationPayloadNode["value"].asText()
+        } else if (attributeAppendEvent.attributeName == AUTH_TERM_SID) {
+            val serviceAccountId = operationPayloadNode[JSONLD_VALUE].asText()
             subjectReferentialService.addServiceAccountIdToClient(
                 subjectUuid,
                 serviceAccountId.extractSubjectUuid()
             ).subscribe()
-        } else if (attributeAppendEvent.attributeName == "isMemberOf") {
+        } else if (attributeAppendEvent.attributeName == AUTH_TERM_IS_MEMBER_OF) {
             val groupId = operationPayloadNode["object"].asText()
             subjectReferentialService.addGroupMembershipToUser(
                 subjectUuid,
@@ -174,13 +179,17 @@ class IAMListener(
             attributeAppendEvent.entityId.extractSubjectUuid(),
             entityId.toUri(),
             AccessRight.forAttributeName(attributeAppendEvent.attributeName)
-        ).subscribe()
+        ).subscribe {
+            logger.debug("Set role on entity returned with result: $it")
+        }
     }
 
     private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
         entityAccessRightsService.removeRoleOnEntity(
             attributeDeleteEvent.entityId.extractSubjectUuid(),
             attributeDeleteEvent.attributeName.toUri()
-        ).subscribe()
+        ).subscribe {
+            logger.debug("Remove role on entity returned with result: $it")
+        }
     }
 }

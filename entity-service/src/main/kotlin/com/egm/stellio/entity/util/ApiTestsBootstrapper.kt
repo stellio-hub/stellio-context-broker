@@ -1,12 +1,12 @@
 package com.egm.stellio.entity.util
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_ROLES
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.AUTHZ_PROP_USERNAME
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
+import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
@@ -32,18 +32,18 @@ class ApiTestsBootstrapper(
         if (apiTestsUser == null) {
             val entity = Entity(
                 id = ngsiLdUserId,
-                type = listOf(USER_LABEL),
+                type = listOf(USER_TYPE),
                 contexts = listOf(
                     NGSILD_EGM_AUTHORIZATION_CONTEXT,
                     NGSILD_CORE_CONTEXT
                 ),
                 properties = mutableListOf(
                     Property(
-                        name = AUTHZ_PROP_ROLES,
+                        name = AUTH_PROP_ROLES,
                         value = listOf(GlobalRole.STELLIO_CREATOR.key)
                     ),
                     Property(
-                        name = AUTHZ_PROP_USERNAME,
+                        name = AUTH_PROP_USERNAME,
                         value = "API Tests"
                     )
                 )

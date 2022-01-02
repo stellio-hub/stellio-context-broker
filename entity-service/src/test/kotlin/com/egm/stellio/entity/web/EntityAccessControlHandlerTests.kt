@@ -1,14 +1,14 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.UpdateAttributeResult
 import com.egm.stellio.entity.model.UpdateOperationResult
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
@@ -77,7 +77,7 @@ class EntityAccessControlHandlerTests {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
         every {
             entityService.appendEntityRelationship(any(), any(), any(), any())
-        } returns UpdateAttributeResult(R_CAN_READ, null, UpdateOperationResult.APPENDED)
+        } returns UpdateAttributeResult(AUTH_REL_CAN_READ, null, UpdateOperationResult.APPENDED)
         every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
 
         webClient.post()
@@ -97,7 +97,7 @@ class EntityAccessControlHandlerTests {
             entityService.appendEntityRelationship(
                 eq(subjectId),
                 match {
-                    it.name == R_CAN_READ &&
+                    it.name == AUTH_REL_CAN_READ &&
                         it.instances.size == 1
                 },
                 match { it.objectId == entityUri1 },
@@ -161,19 +161,19 @@ class EntityAccessControlHandlerTests {
         verify {
             entityService.appendEntityRelationship(
                 eq(subjectId),
-                match { it.name == R_CAN_READ },
+                match { it.name == AUTH_REL_CAN_READ },
                 match { it.objectId == entityUri1 },
                 eq(false)
             )
             entityService.appendEntityRelationship(
                 eq(subjectId),
-                match { it.name == R_CAN_READ },
+                match { it.name == AUTH_REL_CAN_READ },
                 match { it.objectId == entityUri2 },
                 eq(false)
             )
             entityService.appendEntityRelationship(
                 eq(subjectId),
-                match { it.name == R_CAN_WRITE },
+                match { it.name == AUTH_REL_CAN_WRITE },
                 match { it.objectId == entityUri3 },
                 eq(false)
             )
@@ -232,7 +232,7 @@ class EntityAccessControlHandlerTests {
         verify(exactly = 1) {
             entityService.appendEntityRelationship(
                 eq(subjectId),
-                match { it.name == R_CAN_READ },
+                match { it.name == AUTH_REL_CAN_READ },
                 match { it.objectId == entityUri1 },
                 eq(false)
             )
@@ -347,7 +347,7 @@ class EntityAccessControlHandlerTests {
             .expectBody().json(
                 """
                     {
-                        "detail": "Subject urn:ngsi-ld:User:0123 has no right on entity urn:ngsi-ld:Entity:entityId1",
+                        "detail": "No right found for urn:ngsi-ld:User:0123 on urn:ngsi-ld:Entity:entityId1",
                         "type": "https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                         "title": "The referred resource has not been found"
                     }

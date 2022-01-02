@@ -2,6 +2,7 @@ package com.egm.stellio.shared.util
 
 import arrow.core.Option
 import arrow.core.toOption
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
@@ -14,6 +15,39 @@ import java.util.UUID
 val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
+object AuthContextModel {
+    private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
+
+    const val USER_PREFIX = "urn:ngsi-ld:User:"
+
+    const val USER_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "User"
+    const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Group"
+    const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Client"
+    val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
+
+    const val AUTH_TERM_SID = "serviceAccountId"
+    const val AUTH_PROP_SID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SID
+    const val AUTH_TERM_ROLES = "roles"
+    const val AUTH_PROP_ROLES: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_ROLES
+    const val AUTH_TERM_USERNAME = "username"
+    const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
+
+    const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
+    const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF
+    const val AUTH_REL_CAN_READ: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanRead"
+    const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanWrite"
+    const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanAdmin"
+    val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
+    val ADMIN_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_ADMIN)
+    val WRITE_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_WRITE).plus(ADMIN_RIGHTS)
+    val READ_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_READ).plus(WRITE_RIGHTS)
+
+    enum class SpecificAccessPolicy {
+        AUTH_READ,
+        AUTH_WRITE
+    }
+}
+
 fun extractSubjectOrEmpty(): Mono<String> {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
@@ -21,13 +55,16 @@ fun extractSubjectOrEmpty(): Mono<String> {
 }
 
 fun URI.extractSubjectUuid(): UUID =
-    UUID.fromString(this.toString().substringAfterLast(":"))
+    this.toString().extractSubjectUuid()
 
 fun String.extractSubjectUuid(): UUID =
     UUID.fromString(this.substringAfterLast(":"))
 
 fun String.toUUID(): UUID =
     UUID.fromString(this)
+
+// specific to authz terms where we know the compacted term is what is after the last # character
+fun ExpandedTerm.toCompactTerm(): String = this.substringAfterLast("#")
 
 enum class SubjectType {
     USER,

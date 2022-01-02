@@ -1,16 +1,18 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.toCompactTerm
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
@@ -19,6 +21,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.extractSubjectOrEmpty
+import com.egm.stellio.shared.util.toCompactTerm
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
@@ -47,7 +50,7 @@ class IAMSynchronizer(
                 .body("User is not authorized to sync user referential")
 
         val authorizationContexts = listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
-        listOf(AuthorizationService.USER_LABEL, AuthorizationService.GROUP_LABEL, AuthorizationService.CLIENT_LABEL)
+        listOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
             .asSequence()
             .map {
                 // do a first search without asking for a result in order to get the total count
@@ -73,14 +76,16 @@ class IAMSynchronizer(
             .map { jsonLdEntity ->
                 // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
-                    generateAttributeAppendEvents(jsonLdEntity, R_CAN_ADMIN, authorizationContexts)
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, R_CAN_WRITE, authorizationContexts))
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, R_CAN_READ, authorizationContexts))
+                    generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_ADMIN, authorizationContexts)
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_WRITE, authorizationContexts))
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_READ, authorizationContexts))
 
                 // remove the rCanXXX relationships as they are sent separately
                 val updatedEntity = compactAndSerialize(
                     jsonLdEntity.copy(
-                        properties = jsonLdEntity.properties.minus(listOf(R_CAN_ADMIN, R_CAN_WRITE, R_CAN_READ)),
+                        properties = jsonLdEntity.properties.minus(
+                            listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
+                        ),
                     ),
                     authorizationContexts,
                     MediaType.APPLICATION_JSON

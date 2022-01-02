@@ -8,6 +8,7 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.NgsiLdRelationship
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.checkAndGetContext
@@ -51,7 +52,7 @@ class EntityAccessControlHandler(
         // ensure payload contains only relationships and that they are of a known type
         val (validAttributes, invalidAttributes) = ngsiLdAttributes.partition {
             it is NgsiLdRelationship &&
-                AuthorizationService.IAM_RIGHTS.contains(it.name)
+                ALL_IAM_RIGHTS.contains(it.name)
         }
         val invalidAttributesDetails = invalidAttributes.map {
             NotUpdatedDetails(it.compactName, "Not a relationship or not an authorized relationship name")
@@ -129,6 +130,6 @@ class EntityAccessControlHandler(
         return if (removeResult != 0)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
-            throw ResourceNotFoundException("No right found for subject $subjectId on entity $entityId")
+            throw ResourceNotFoundException("No right found for $subjectId on $entityId")
     }
 }

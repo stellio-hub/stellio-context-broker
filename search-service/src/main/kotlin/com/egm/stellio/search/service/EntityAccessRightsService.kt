@@ -49,7 +49,6 @@ class EntityAccessRightsService(
             .bind("access_right", accessRight.attributeName)
             .fetch()
             .rowsUpdated()
-            .thenReturn(1)
             .onErrorResume {
                 logger.error("Error while setting access right on entity: $it")
                 Mono.just(-1)
@@ -57,20 +56,18 @@ class EntityAccessRightsService(
 
     @Transactional
     fun removeRoleOnEntity(subjectId: UUID, entityId: URI): Mono<Int> =
-        databaseClient
-            .sql(
-                """
-                DELETE from entity_access_rights
-                WHERE subject_id = :subject_id
-                AND entity_id = :entity_id
-                """.trimIndent()
+        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
+            .matching(
+                Query.query(
+                    Criteria.where("subject_id").`is`(subjectId)
+                        .and(Criteria.where("entity_id").`is`(entityId))
+                )
             )
-            .bind("subject_id", subjectId)
-            .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
-            .thenReturn(1)
-            .onErrorReturn(-1)
+            .all()
+            .onErrorResume {
+                logger.error("Error while removing access right on entity: $it")
+                Mono.just(-1)
+            }
 
     fun canReadEntity(subjectId: UUID, entityId: URI): Mono<Boolean> =
         checkHasAccessRight(subjectId, entityId, listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN))

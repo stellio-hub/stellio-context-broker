@@ -5,21 +5,31 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
+import com.egm.stellio.shared.model.AttributeAppendEvent
+import com.egm.stellio.shared.model.EntityCreateEvent
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdRelationship
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.extractSubjectOrEmpty
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.toCompactTerm
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.reactive.awaitFirst
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -34,8 +44,11 @@ import reactor.core.publisher.Mono
 class EntityAccessControlHandler(
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,
-    private val entityEventService: EntityEventService
+    private val entityEventService: EntityEventService,
+    private val kafkaTemplate: KafkaTemplate<String, String>,
 ) {
+
+    private val logger = LoggerFactory.getLogger(javaClass)
 
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(
@@ -132,4 +145,123 @@ class EntityAccessControlHandler(
         else
             throw ResourceNotFoundException("No right found for $subjectId on $entityId")
     }
+
+    @PostMapping("/sync")
+    suspend fun syncIam(): ResponseEntity<*> {
+        val userId = extractSubjectOrEmpty().awaitFirst()
+        if (!authorizationService.userIsAdmin(userId))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("User is not authorized to sync user referential")
+
+        val authorizationContexts = listOf(
+            AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
+        )
+        listOf(AuthContextModel.USER_TYPE, AuthContextModel.GROUP_TYPE, AuthContextModel.CLIENT_TYPE)
+            .asSequence()
+            .map {
+                // do a first search without asking for a result in order to get the total count
+                val total = entityService.searchEntities(
+                    QueryParams(expandedType = it),
+                    userId,
+                    0,
+                    0,
+                    AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    false
+                ).first
+                entityService.searchEntities(
+                    QueryParams(expandedType = it),
+                    userId,
+                    0,
+                    total,
+                    AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    false
+                )
+            }
+            .map { it.second }
+            .flatten()
+            .map { jsonLdEntity ->
+                // generate an attribute append event per rCanXXX relationship
+                val entitiesRightsEvents =
+                    generateAttributeAppendEvents(jsonLdEntity,
+                        AuthContextModel.AUTH_REL_CAN_ADMIN, authorizationContexts)
+                        .plus(generateAttributeAppendEvents(jsonLdEntity,
+                            AuthContextModel.AUTH_REL_CAN_WRITE, authorizationContexts))
+                        .plus(generateAttributeAppendEvents(jsonLdEntity,
+                            AuthContextModel.AUTH_REL_CAN_READ, authorizationContexts))
+
+                // remove the rCanXXX relationships as they are sent separately
+                val updatedEntity = JsonLdUtils.compactAndSerialize(
+                    jsonLdEntity.copy(
+                        properties = jsonLdEntity.properties.minus(
+                            listOf(
+                                AuthContextModel.AUTH_REL_CAN_ADMIN,
+                                AuthContextModel.AUTH_REL_CAN_WRITE,
+                                AuthContextModel.AUTH_REL_CAN_READ
+                            )
+                        ),
+                    ),
+                    authorizationContexts,
+                    MediaType.APPLICATION_JSON
+                )
+                val iamEvent = EntityCreateEvent(
+                    jsonLdEntity.id.toUri(),
+                    jsonLdEntity.type.toCompactTerm(),
+                    updatedEntity,
+                    authorizationContexts
+                )
+                listOf(iamEvent).plus(entitiesRightsEvents)
+            }
+            .flatten()
+            .toList()
+            .forEach {
+                val serializedEvent = JsonUtils.serializeObject(it)
+                logger.debug("Sending event: $serializedEvent")
+                kafkaTemplate.send("cim.iam.replay", it.entityId.toString(), serializedEvent)
+            }
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }
+
+    private fun generateAttributeAppendEvents(
+        jsonLdEntity: JsonLdEntity,
+        accessRight: ExpandedTerm,
+        authorizationContexts: List<String>
+    ): List<AttributeAppendEvent> =
+        if (jsonLdEntity.properties.containsKey(accessRight)) {
+            when (val rightRel = jsonLdEntity.properties[accessRight]) {
+                is Map<*, *> ->
+                    listOf(rightRelToAttributeAppendEvent(jsonLdEntity, rightRel, accessRight, authorizationContexts))
+                is List<*> ->
+                    rightRel.map { rightRelInstance ->
+                        rightRelToAttributeAppendEvent(
+                            jsonLdEntity,
+                            rightRelInstance as Map<*, *>,
+                            accessRight,
+                            authorizationContexts
+                        )
+                    }
+                else -> {
+                    logger.warn("Unsupported representation for $accessRight: $rightRel")
+                    emptyList()
+                }
+            }
+        } else emptyList()
+
+    private fun rightRelToAttributeAppendEvent(
+        jsonLdEntity: JsonLdEntity,
+        rightRel: Map<*, *>,
+        accessRight: ExpandedTerm,
+        authorizationContexts: List<String>
+    ): AttributeAppendEvent =
+        AttributeAppendEvent(
+            jsonLdEntity.id.toUri(),
+            jsonLdEntity.type.toCompactTerm(),
+            accessRight.toCompactTerm(),
+            ((rightRel[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JsonLdUtils.JSONLD_ID] as String).toUri(),
+            true,
+            JsonUtils.serializeObject(JsonLdUtils.compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
+            "",
+            authorizationContexts
+        )
 }

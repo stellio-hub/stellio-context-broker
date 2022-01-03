@@ -26,8 +26,7 @@ class ApiGatewayApplication {
                     "/ngsi-ld/v1/entities/**",
                     "/ngsi-ld/v1/entityOperations/**",
                     "/ngsi-ld/v1/entityAccessControl/**",
-                    "/ngsi-ld/v1/types/**",
-                    "/entity/admin/**"
+                    "/ngsi-ld/v1/types/**"
                 )
                     .filters {
                         it.tokenRelay()

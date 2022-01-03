@@ -8,11 +8,11 @@ import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
 
@@ -72,7 +72,7 @@ object QueryUtils {
 
         val matchAuthorizedPerAccessPolicyClause =
             """
-            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$AUTH_PROP_SAP" })
             WHERE prop.value IN [
                 '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
                 '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'

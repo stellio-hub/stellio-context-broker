@@ -5,6 +5,7 @@ import arrow.core.toOption
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
+import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
@@ -16,6 +17,7 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
+    val NGSILD_EGM_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_PREFIX = "urn:ngsi-ld:User:"
@@ -31,6 +33,8 @@ object AuthContextModel {
     const val AUTH_PROP_ROLES: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_ROLES
     const val AUTH_TERM_USERNAME = "username"
     const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
+    const val AUTH_TERM_SAP = "specificAccessPolicy"
+    const val AUTH_PROP_SAP = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SAP
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF

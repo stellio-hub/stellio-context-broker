@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
@@ -17,7 +18,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -240,7 +240,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
             mutableListOf(
                 Property(name = expandedNameProperty, value = "Scalpa"),
                 Property(
-                    name = JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY,
+                    name = AUTH_PROP_SAP,
                     value = AuthContextModel.SpecificAccessPolicy.AUTH_READ.name
                 )
             )

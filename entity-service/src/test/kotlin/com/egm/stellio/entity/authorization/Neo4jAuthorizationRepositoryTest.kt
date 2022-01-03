@@ -9,6 +9,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.support.WithKafkaContainer
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
@@ -18,7 +19,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -166,7 +166,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             apiaryUri, listOf("Apiary"),
             mutableListOf(
                 Property(
-                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    name = AuthContextModel.AUTH_PROP_SAP,
                     value = SpecificAccessPolicy.AUTH_READ.name
                 )
             )
@@ -188,7 +188,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             apiaryUri, listOf("Apiary"),
             mutableListOf(
                 Property(
-                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    name = AuthContextModel.AUTH_PROP_SAP,
                     value = SpecificAccessPolicy.AUTH_WRITE.name
                 )
             )
@@ -209,7 +209,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             apiaryUri, listOf("Apiary"),
             mutableListOf(
                 Property(
-                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    name = AuthContextModel.AUTH_PROP_SAP,
                     value = SpecificAccessPolicy.AUTH_WRITE.name
                 )
             )
@@ -218,7 +218,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer 
             apiary02Uri, listOf("Apiary"),
             mutableListOf(
                 Property(
-                    name = EGM_SPECIFIC_ACCESS_POLICY,
+                    name = AuthContextModel.AUTH_PROP_SAP,
                     value = SpecificAccessPolicy.AUTH_READ.name
                 )
             )

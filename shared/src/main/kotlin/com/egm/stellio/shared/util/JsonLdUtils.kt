@@ -35,7 +35,6 @@ object JsonLdUtils {
     const val EGM_BASE_CONTEXT_URL =
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master"
     val NGSILD_EGM_CONTEXT = "$EGM_BASE_CONTEXT_URL/shared-jsonld-contexts/egm.jsonld"
-    val NGSILD_EGM_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
 
     val NGSILD_PROPERTY_TYPE = AttributeType("https://uri.etsi.org/ngsi-ld/Property")
     const val NGSILD_PROPERTY_VALUE = "https://uri.etsi.org/ngsi-ld/hasValue"
@@ -68,7 +67,6 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
-    const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
     val logger = LoggerFactory.getLogger(javaClass)
 

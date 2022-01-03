@@ -2,11 +2,11 @@ package com.egm.stellio.entity.authorization
 
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.springframework.data.neo4j.core.Neo4jClient
@@ -61,7 +61,7 @@ class Neo4jAuthorizationRepository(
             """
             MATCH (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
-            MATCH (entity)-[:HAS_VALUE]->(p:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            MATCH (entity)-[:HAS_VALUE]->(p:Property { name: "$AUTH_PROP_SAP" })
             WHERE p.value IN ${'$'}specificAccessPolicies
             RETURN entity.id as id
             """.trimIndent()

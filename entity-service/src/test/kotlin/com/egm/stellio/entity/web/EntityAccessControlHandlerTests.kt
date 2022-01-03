@@ -9,9 +9,9 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean

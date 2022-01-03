@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 extra["springCloudVersion"] = "2020.0.4"
-extra["testcontainersVersion"] = "1.16.0"
+extra["testcontainersVersion"] = "1.16.2"
 
 plugins {
     java // why did I have to add that ?!

@@ -3,11 +3,8 @@ package com.egm.stellio.subscription.support
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 
-@Testcontainers
 interface WithTimescaleContainer {
 
     companion object {
@@ -20,10 +17,10 @@ interface WithTimescaleContainer {
             DockerImageName.parse("stellio/stellio-timescale-postgis:2.3.0-pg13")
                 .asCompatibleSubstituteFor("postgres")
 
-        @Container
-        val timescaleContainer = PostgreSQLContainer<Nothing>(timescaleImage).apply {
+        private val timescaleContainer = PostgreSQLContainer<Nothing>(timescaleImage).apply {
             withEnv("POSTGRES_PASSWORD", "password")
             withEnv("POSTGRES_MULTIPLE_DATABASES", "$DB_NAME,$DB_USER,$DB_PASSWORD")
+            withReuse(true)
         }
 
         @JvmStatic

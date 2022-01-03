@@ -15,7 +15,7 @@ plugins {
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
     kotlin("jvm") version "1.5.31" apply false
     kotlin("plugin.spring") version "1.5.31" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "10.2.0"
+    id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
     id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
     id("org.sonarqube") version "3.3"
@@ -67,15 +67,15 @@ subprojects {
 
         annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-        runtimeOnly("de.siegmar:logback-gelf:4.0.0")
+        runtimeOnly("de.siegmar:logback-gelf:4.0.2")
         runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
         testImplementation("org.springframework.boot:spring-boot-starter-test") {
             // to ensure we are using mocks and spies from springmockk lib instead
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:3.0.1")
-        testImplementation("io.mockk:mockk:1.12.1")
+        testImplementation("com.ninja-squad:springmockk:3.1.0")
+        testImplementation("io.mockk:mockk:1.12.2")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
         testImplementation("org.testcontainers:testcontainers")

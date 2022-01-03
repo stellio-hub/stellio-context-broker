@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Notify build in Slack') {
             steps {
-                slackSend (color: '#D4DADF', message: "Started ${env.BUILD_URL}")
+                slackSend (color: '#D4DADF', message: "Starting: Stellio on branch ${env.BRANCH_NAME} (<${env.BUILD_URL}|Open>)")
             }
         }
         stage('Clean previous build') {
@@ -161,13 +161,15 @@ pipeline {
         stage('Build tagger Docker images') {
             steps {
                 script {
-                    env.CURRENT_TAG = sh(returnStdout: true, script: "git tag --points-at=HEAD").trim()
-
-                    if (env.CURRENT_TAG != "") {
-                        sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
-                        sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
-                        sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
-                        sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
+                    def currentTags = sh(returnStdout: true, script: "git tag --points-at | tr -d \" *\" | xargs").trim().split(" ")
+                    if (currentTags.size() > 0 && currentTags[0].trim() != "") {
+                        for (int i = 0; i < currentTags.size(); ++i) {
+                            env.CURRENT_TAG = currentTags[i]
+                            sh './gradlew jib -Djib.to.image=stellio/stellio-api-gateway:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p api-gateway'
+                            sh './gradlew jib -Djib.to.image=stellio/stellio-entity-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p entity-service'
+                            sh './gradlew jib -Djib.to.image=stellio/stellio-search-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p search-service'
+                            sh './gradlew jib -Djib.to.image=stellio/stellio-subscription-service:$CURRENT_TAG -Djib.to.auth.username=$EGM_CI_DH_USR -Djib.to.auth.password=$EGM_CI_DH_PSW -p subscription-service'
+                        }
                     }
                 }
             }
@@ -188,10 +190,10 @@ pipeline {
                 else if (env.BRANCH_NAME == 'develop')
                     build job: '../DataHub.Api-Tests.Launcher'
             }
-            slackSend (color: '#36b37e', message: "Success: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#36b37e', message: "Success: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }
         failure {
-            slackSend (color: '#FF0000', message: "Fail: ${env.BUILD_URL} after ${currentBuild.durationString.replace(' and counting', '')}")
+            slackSend (color: '#FF0000', message: "Fail: Stellio on branch ${env.BRANCH_NAME} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)")
         }
     }
 }

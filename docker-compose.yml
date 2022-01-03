@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.1
+    image: kymeric/cp-zookeeper
     container_name: stellio-zookeeper
     ports:
       - 2181:2181
@@ -10,7 +10,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
   kafka:
-    image: confluentinc/cp-kafka:5.4.1
+    image: kymeric/cp-kafka
     container_name: stellio-kafka
     ports:
       - 29092:29092
@@ -51,56 +51,56 @@ services:
       - 5432:5432
     volumes:
       - stellio-postgres-storage:/var/lib/postgresql/data
-  api-gateway:
-    container_name: stellio-api-gateway
-    image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
-    environment:
-      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-    ports:
-      - 8080:8080
-  entity-service:
-    container_name: stellio-entity-service
-    image: stellio/stellio-entity-service:${STELLIO_DOCKER_TAG}
-    environment:
-      - SPRING_DATA_NEO4J_PASSWORD=${NEO4J_PASSWORD}
-      - ORG_NEO4J_DRIVER_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD}
-      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-    ports:
-      - 8082:8082
-    depends_on:
-      - neo4j
-      - kafka
-  search-service:
-    container_name: stellio-search-service
-    image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
-    environment:
-      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
-      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
-      - SPRING_R2DBC_USERNAME=${STELLIO_SEARCH_DB_USER}
-      - SPRING_R2DBC_PASSWORD=${STELLIO_SEARCH_DB_PASSWORD}
-      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-    ports:
-      - 8083:8083
-    depends_on:
-      - postgres
-      - kafka
-  subscription-service:
-    container_name: stellio-subscription-service
-    image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
-    environment:
-      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
-      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
-      - SPRING_R2DBC_USERNAME=${STELLIO_SUBSCRIPTION_DB_USER}
-      - SPRING_R2DBC_PASSWORD=${STELLIO_SUBSCRIPTION_DB_PASSWORD}
-      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
-    ports:
-      - 8084:8084
-    depends_on:
-      - postgres
-      - kafka
+#  api-gateway:
+#    container_name: stellio-api-gateway
+#    image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+#    ports:
+#      - 8080:8080
+#  entity-service:
+#    container_name: stellio-entity-service
+#    image: stellio/stellio-entity-service:${STELLIO_DOCKER_TAG}
+#    environment:
+#      - SPRING_DATA_NEO4J_PASSWORD=${NEO4J_PASSWORD}
+#      - ORG_NEO4J_DRIVER_AUTHENTICATION_PASSWORD=${NEO4J_PASSWORD}
+#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+#      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+#    ports:
+#      - 8082:8082
+#    depends_on:
+#      - neo4j
+#      - kafka
+#  search-service:
+#    container_name: stellio-search-service
+#    image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+#      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+#      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SEARCH_DB_DATABASE}
+#      - SPRING_R2DBC_USERNAME=${STELLIO_SEARCH_DB_USER}
+#      - SPRING_R2DBC_PASSWORD=${STELLIO_SEARCH_DB_PASSWORD}
+#      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+#    ports:
+#      - 8083:8083
+#    depends_on:
+#      - postgres
+#      - kafka
+#  subscription-service:
+#    container_name: stellio-subscription-service
+#    image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
+#    environment:
+#      - SPRING_PROFILES_ACTIVE=${ENVIRONMENT}
+#      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+#      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres/${STELLIO_SUBSCRIPTION_DB_DATABASE}
+#      - SPRING_R2DBC_USERNAME=${STELLIO_SUBSCRIPTION_DB_USER}
+#      - SPRING_R2DBC_PASSWORD=${STELLIO_SUBSCRIPTION_DB_PASSWORD}
+#      - APPLICATION_AUTHENTICATION_ENABLED=${STELLIO_AUTHENTICATION_ENABLED}
+#    ports:
+#      - 8084:8084
+#    depends_on:
+#      - postgres
+#      - kafka
 
 volumes:
   stellio-neo4j-storage:

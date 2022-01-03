@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   zookeeper:
-    image: confluentinc/cp-zookeeper:5.4.1
+    image: kymeric/cp-zookeeper
     ports:
       - 2181:2181
     environment:
@@ -9,7 +9,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
   kafka:
-    image: confluentinc/cp-kafka:5.4.1
+    image: kymeric/cp-kafka
     ports:
       - 29092:29092
     environment:

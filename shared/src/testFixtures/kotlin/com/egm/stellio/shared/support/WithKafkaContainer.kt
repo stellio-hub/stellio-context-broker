@@ -9,7 +9,8 @@ interface WithKafkaContainer {
 
     companion object {
 
-        private val kafkaImage: DockerImageName = DockerImageName.parse("confluentinc/cp-kafka:5.4.1")
+        private val kafkaImage: DockerImageName = DockerImageName.parse("kymeric/cp-kafka")
+            .asCompatibleSubstituteFor("confluentinc/cp-kafka:5.4.1")
 
         private val kafkaContainer = KafkaContainer(kafkaImage).apply {
             withReuse(true)

@@ -15,8 +15,13 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.extractSubjectOrEmpty
@@ -183,22 +188,15 @@ class EntityAccessControlHandler(
             .map { jsonLdEntity ->
                 // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
-                    generateAttributeAppendEvents(jsonLdEntity,
-                        AuthContextModel.AUTH_REL_CAN_ADMIN, authorizationContexts)
-                        .plus(generateAttributeAppendEvents(jsonLdEntity,
-                            AuthContextModel.AUTH_REL_CAN_WRITE, authorizationContexts))
-                        .plus(generateAttributeAppendEvents(jsonLdEntity,
-                            AuthContextModel.AUTH_REL_CAN_READ, authorizationContexts))
+                    generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_ADMIN, authorizationContexts)
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_WRITE, authorizationContexts))
+                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_READ, authorizationContexts))
 
                 // remove the rCanXXX relationships as they are sent separately
                 val updatedEntity = JsonLdUtils.compactAndSerialize(
                     jsonLdEntity.copy(
                         properties = jsonLdEntity.properties.minus(
-                            listOf(
-                                AuthContextModel.AUTH_REL_CAN_ADMIN,
-                                AuthContextModel.AUTH_REL_CAN_WRITE,
-                                AuthContextModel.AUTH_REL_CAN_READ
-                            )
+                            listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
                         ),
                     ),
                     authorizationContexts,
@@ -258,7 +256,7 @@ class EntityAccessControlHandler(
             jsonLdEntity.id.toUri(),
             jsonLdEntity.type.toCompactTerm(),
             accessRight.toCompactTerm(),
-            ((rightRel[JsonLdUtils.NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JsonLdUtils.JSONLD_ID] as String).toUri(),
+            ((rightRel[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri(),
             true,
             JsonUtils.serializeObject(JsonLdUtils.compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
             "",

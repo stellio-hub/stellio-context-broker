@@ -89,9 +89,7 @@ subprojects {
     }
     tasks.withType<Test> {
         environment("SPRING_PROFILES_ACTIVE", "test")
-        useJUnitPlatform {
-            maxParallelForks = 1
-        }
+        useJUnitPlatform()
         testLogging {
             events("passed", "skipped", "failed")
         }

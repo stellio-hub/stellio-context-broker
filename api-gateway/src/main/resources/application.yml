@@ -64,14 +64,6 @@ management:
     health:
       enabled: true
 
-application:
-  entity-service:
-    url: localhost
-  search-service:
-    url: localhost
-  subscription-service:
-    url: localhost
-
 # Default values for sending log data to a Gelf compatible endpoint
 # Log data is sent only if the 'gelflogs' Spring profile is active
 # application.graylog.host: localhost

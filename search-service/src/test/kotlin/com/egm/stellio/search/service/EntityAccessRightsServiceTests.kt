@@ -216,4 +216,15 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
             )
         }
     }
+
+    @Test
+    fun `it should delete entity access rights associated to an user`() {
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId).block()
+
+        StepVerifier
+            .create(entityAccessRightsService.delete(subjectUuid))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+    }
 }

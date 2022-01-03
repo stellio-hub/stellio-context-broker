@@ -92,9 +92,7 @@ enum class AccessRight(val attributeName: String) {
     R_CAN_ADMIN("rCanAdmin");
 
     companion object {
-        fun forAttributeName(attributeName: String): AccessRight =
-            values().find {
-                it.attributeName == attributeName
-            } ?: throw IllegalArgumentException("Unrecognized attribute name $attributeName")
+        fun forAttributeName(attributeName: String): Option<AccessRight> =
+            values().find { it.attributeName == attributeName }.toOption()
     }
 }

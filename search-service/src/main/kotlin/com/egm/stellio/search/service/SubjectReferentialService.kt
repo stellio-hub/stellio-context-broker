@@ -45,7 +45,6 @@ class SubjectReferentialService(
             .bind("groups_memberships", subjectReferential.groupsMemberships?.toTypedArray())
             .fetch()
             .rowsUpdated()
-            .thenReturn(1)
             .onErrorResume {
                 logger.error("Error while creating a new subject referential : ${it.message}", it)
                 Mono.just(-1)
@@ -117,7 +116,6 @@ class SubjectReferentialService(
             .bind("global_roles", newRoles.map { it.key }.toTypedArray())
             .fetch()
             .rowsUpdated()
-            .thenReturn(1)
             .onErrorResume {
                 logger.error("Error while setting global roles: $it")
                 Mono.just(-1)
@@ -136,7 +134,6 @@ class SubjectReferentialService(
             .bind("subject_id", subjectId)
             .fetch()
             .rowsUpdated()
-            .thenReturn(1)
             .onErrorResume {
                 logger.error("Error while resetting global roles: $it")
                 Mono.just(-1)
@@ -147,9 +144,9 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                    UPDATE subject_referential
-                    SET groups_memberships = array_append(groups_memberships, :group_id::text)
-                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                UPDATE subject_referential
+                SET groups_memberships = array_append(groups_memberships, :group_id::text)
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)
@@ -166,9 +163,9 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                    UPDATE subject_referential
-                    SET groups_memberships = array_remove(groups_memberships, :group_id::text)
-                    WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
+                UPDATE subject_referential
+                SET groups_memberships = array_remove(groups_memberships, :group_id::text)
+                WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)
@@ -185,9 +182,9 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                    UPDATE subject_referential
-                    SET service_account_id = :service_account_id
-                    WHERE subject_id = :subject_id
+                UPDATE subject_referential
+                SET service_account_id = :service_account_id
+                WHERE subject_id = :subject_id
                 """.trimIndent()
             )
             .bind("subject_id", subjectId)

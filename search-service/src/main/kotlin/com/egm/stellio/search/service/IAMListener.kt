@@ -1,5 +1,7 @@
 package com.egm.stellio.search.service
 
+import arrow.core.None
+import arrow.core.Some
 import arrow.core.flattenOption
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.model.AttributeAppendEvent
@@ -85,10 +87,7 @@ class IAMListener(
             groupsMemberships = groupsMemberships
         )
 
-        subjectReferentialService.create(subjectReferential)
-            .subscribe {
-                logger.debug("Created subject ${entityCreateEvent.entityId}")
-            }
+        subjectReferentialService.create(subjectReferential).subscribe()
     }
 
     private fun createSubjectReferential(entityCreateEvent: EntityCreateEvent) {
@@ -100,10 +99,7 @@ class IAMListener(
             globalRoles = roles
         )
 
-        subjectReferentialService.create(subjectReferential)
-            .subscribe {
-                logger.debug("Created subject ${entityCreateEvent.entityId}")
-            }
+        subjectReferentialService.create(subjectReferential).subscribe()
     }
 
     private fun extractGroupsMemberships(operationPayloadNode: JsonNode): List<UUID>? =
@@ -175,12 +171,14 @@ class IAMListener(
     private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
         val entityId = operationPayloadNode["object"].asText()
-        entityAccessRightsService.setRoleOnEntity(
-            attributeAppendEvent.entityId.extractSubjectUuid(),
-            entityId.toUri(),
-            AccessRight.forAttributeName(attributeAppendEvent.attributeName)
-        ).subscribe {
-            logger.debug("Set role on entity returned with result: $it")
+        when (val accessRight = AccessRight.forAttributeName(attributeAppendEvent.attributeName)) {
+            is Some ->
+                entityAccessRightsService.setRoleOnEntity(
+                    attributeAppendEvent.entityId.extractSubjectUuid(),
+                    entityId.toUri(),
+                    accessRight.value
+                ).subscribe()
+            is None -> logger.warn("Unable to extract a known access right from $accessRight")
         }
     }
 
@@ -188,8 +186,6 @@ class IAMListener(
         entityAccessRightsService.removeRoleOnEntity(
             attributeDeleteEvent.entityId.extractSubjectUuid(),
             attributeDeleteEvent.attributeName.toUri()
-        ).subscribe {
-            logger.debug("Remove role on entity returned with result: $it")
-        }
+        ).subscribe()
     }
 }

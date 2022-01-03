@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-@SpringBootTest(classes = [SubscriptionEventListener::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionEventListener::class])
 @ActiveProfiles("test")
 class SubscriptionEventListenerTests {
 
@@ -26,7 +26,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should parse and create subscription entity`() {
         val subscription =
-            loadSampleData("events/subscriptions/subscriptionCreateEvent.jsonld")
+            loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createSubscriptionEntity(any(), any(), any()) } just Runs
 
@@ -45,7 +45,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should delete a subscription entity`() {
         val subscriptionEvent =
-            loadSampleData("events/subscriptions/subscriptionDeleteEvent.jsonld")
+            loadSampleData("events/subscription/subscriptionDeleteEvent.jsonld")
 
         every { subscriptionHandlerService.deleteSubscriptionEntity(any()) } just Runs
 
@@ -63,7 +63,7 @@ class SubscriptionEventListenerTests {
     @Test
     fun `it should parse and create notification entity`() {
         val notification =
-            loadSampleData("events/subscriptions/notificationCreateEvent.jsonld")
+            loadSampleData("events/subscription/notificationCreateEvent.jsonld")
 
         every { subscriptionHandlerService.createNotificationEntity(any(), any(), any(), any()) } just Runs
 
@@ -74,7 +74,11 @@ class SubscriptionEventListenerTests {
                 "urn:ngsi-ld:Notification:1234".toUri(),
                 "Notification",
                 "urn:ngsi-ld:Subscription:1234".toUri(),
-                mapOf("notifiedAt" to "2020-03-10T00:00:00Z")
+                match {
+                    it.containsKey("notifiedAt") &&
+                        it["notifiedAt"] == "2020-03-10T00:00:00Z" &&
+                        it.containsKey("data")
+                }
             )
         }
         confirmVerified(subscriptionHandlerService)

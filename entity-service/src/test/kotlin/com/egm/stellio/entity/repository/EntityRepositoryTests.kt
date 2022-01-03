@@ -3,6 +3,7 @@ package com.egm.stellio.entity.repository
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
+import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -13,7 +14,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityRepositoryTests : WithNeo4jContainer {
+class EntityRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var entityRepository: EntityRepository

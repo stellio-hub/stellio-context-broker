@@ -1,26 +1,31 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.authorization.AuthorizationService
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_READ
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_WRITE
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_IS_MEMBER_OF
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.support.WithKafkaContainer
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import junit.framework.TestCase.*
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -33,7 +38,7 @@ import java.net.URI
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
-class Neo4jSearchRepositoryTests : WithNeo4jContainer {
+class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository
@@ -64,7 +69,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should return matching entities that user can access`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -80,9 +85,9 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_ADMIN, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
@@ -97,9 +102,9 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should return matching entities that user can access by it's group`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
-        createRelationship(EntitySubjectNode(userEntity.id), R_IS_MEMBER_OF, groupEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -110,8 +115,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(groupEntity.id), R_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
@@ -126,7 +131,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should not return a matching entity that user cannot access`() {
-        createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val entity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
@@ -147,10 +152,10 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     fun `it should return matching entities that client can access`() {
         val clientEntity = createEntity(
             clientUri,
-            listOf(AuthorizationService.CLIENT_LABEL),
+            listOf(CLIENT_TYPE),
             mutableListOf(
                 Property(
-                    name = SERVICE_ACCOUNT_ID,
+                    name = AUTH_PROP_SID,
                     value = serviceAccountUri
                 )
             )
@@ -165,8 +170,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
-        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, firstEntity.id)
-        createRelationship(EntitySubjectNode(clientEntity.id), R_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
 
         val queryParams = QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\"")
         var entities = searchRepository.getEntities(
@@ -194,10 +199,10 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     fun `it should return all matching entities for admin users`() {
         createEntity(
             userUri,
-            listOf(AuthorizationService.USER_LABEL),
+            listOf(USER_TYPE),
             mutableListOf(
                 Property(
-                    name = EGM_ROLES,
+                    name = AUTH_PROP_ROLES,
                     value = "admin"
                 )
             )
@@ -228,15 +233,15 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should return matching entities as the specific access policy`() {
-        createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
             listOf("Beekeeper"),
             mutableListOf(
                 Property(name = expandedNameProperty, value = "Scalpa"),
                 Property(
-                    name = JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY,
-                    value = AuthorizationService.SpecificAccessPolicy.AUTH_READ.name
+                    name = AUTH_PROP_SAP,
+                    value = AuthContextModel.SpecificAccessPolicy.AUTH_READ.name
                 )
             )
         )
@@ -260,7 +265,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Test
     fun `it should return matching entities count`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -276,9 +281,9 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
@@ -288,12 +293,12 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             DEFAULT_CONTEXTS
         ).first
 
-        assertEquals(entitiesCount, 2)
+        Assertions.assertEquals(entitiesCount, 2)
     }
 
     @Test
     fun `it should return matching entities count when only the count is requested`() {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -304,8 +309,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_WRITE, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
 
         val countAndEntities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
@@ -315,8 +320,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             DEFAULT_CONTEXTS
         )
 
-        assertEquals(countAndEntities.first, 1)
-        assertEquals(countAndEntities.second, emptyList<URI>())
+        Assertions.assertEquals(countAndEntities.first, 1)
+        Assertions.assertEquals(countAndEntities.second, emptyList<URI>())
     }
 
     @ParameterizedTest
@@ -327,7 +332,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         limit: Int,
         expectedEntitiesIds: List<URI>
     ) {
-        val userEntity = createEntity(userUri, listOf(AuthorizationService.USER_LABEL), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:01231".toUri(),
             listOf("Beekeeper"),
@@ -343,9 +348,9 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa3"))
         )
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, firstEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, secondEntity.id)
-        createRelationship(EntitySubjectNode(userEntity.id), R_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = idPattern),

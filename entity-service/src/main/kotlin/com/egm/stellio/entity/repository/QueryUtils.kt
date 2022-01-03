@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
 import com.egm.stellio.entity.util.isDate
 import com.egm.stellio.entity.util.isDateTime
@@ -8,7 +7,12 @@ import com.egm.stellio.entity.util.isFloat
 import com.egm.stellio.entity.util.isRelationshipTarget
 import com.egm.stellio.entity.util.isTime
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
 
@@ -29,12 +33,12 @@ object QueryUtils {
         val matchUserClause =
             """
             CALL {
-                MATCH (userEntity:Entity:`${AuthorizationService.USER_LABEL}`)
+                MATCH (userEntity:Entity:`$USER_TYPE`)
                     WHERE userEntity.id = ${'$'}userId RETURN userEntity
                 UNION 
-                MATCH (userEntity:Entity:`${AuthorizationService.CLIENT_LABEL}`)
+                MATCH (userEntity:Entity:`$CLIENT_TYPE`)
                     WHERE (userEntity)-[:HAS_VALUE]
-                        ->(:Property { name: "${AuthorizationService.SERVICE_ACCOUNT_ID}", value: ${'$'}userId})
+                        ->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId})
                 RETURN userEntity
             }
             with userEntity
@@ -52,7 +56,7 @@ object QueryUtils {
         val matchEntitiesClause =
             """
             MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->$matchEntityClause
-            WHERE any(r IN labels(right) WHERE r IN ${AuthorizationService.READ_RIGHT.map { "'$it'" }})
+            WHERE any(r IN labels(right) WHERE r IN ${READ_RIGHTS.map { "'$it'" }})
             $finalFilterClause
             return entity.id as entityId
             """.trimIndent()
@@ -61,17 +65,17 @@ object QueryUtils {
             """
             MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)
             -[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$matchEntityClause
-	        WHERE any(r IN labels(grpRight) WHERE r IN ${AuthorizationService.READ_RIGHT.map { "'$it'" }})
+	        WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHTS.map { "'$it'" }})
             $finalFilterClause
             return entity.id as entityId
         """.trimIndent()
 
         val matchAuthorizedPerAccessPolicyClause =
             """
-            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$AUTH_PROP_SAP" })
             WHERE prop.value IN [
-                '${AuthorizationService.SpecificAccessPolicy.AUTH_WRITE.name}',
-                '${AuthorizationService.SpecificAccessPolicy.AUTH_READ.name}'
+                '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
+                '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
             ]
             $finalFilterClause
             return entity.id as entityId

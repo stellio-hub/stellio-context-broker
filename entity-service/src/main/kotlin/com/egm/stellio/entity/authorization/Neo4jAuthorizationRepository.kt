@@ -1,12 +1,12 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CLIENT_LABEL
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.EGM_ROLES
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.SERVICE_ACCOUNT_ID
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_LABEL
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
 import org.springframework.data.neo4j.core.Neo4jClient
@@ -27,7 +27,7 @@ class Neo4jAuthorizationRepository(
             """
             MATCH (userEntity:Entity)
             WHERE (userEntity.id = ${'$'}userId
-                OR (userEntity)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId }))
+                OR (userEntity)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId }))
             WITH userEntity 
             MATCH (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
@@ -61,7 +61,7 @@ class Neo4jAuthorizationRepository(
             """
             MATCH (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
-            MATCH (entity)-[:HAS_VALUE]->(p:Property { name: "$EGM_SPECIFIC_ACCESS_POLICY" })
+            MATCH (entity)-[:HAS_VALUE]->(p:Property { name: "$AUTH_PROP_SAP" })
             WHERE p.value IN ${'$'}specificAccessPolicies
             RETURN entity.id as id
             """.trimIndent()
@@ -80,15 +80,15 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             MATCH (userEntity:Entity { id: ${'$'}userId })
-            OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$AUTH_PROP_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTH_PROP_ROLES" })
             RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             UNION
-            MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
-            OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$EGM_ROLES" })
+            MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId })
+            OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$AUTH_PROP_ROLES" })
             OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$EGM_ROLES" })
+                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTH_PROP_ROLES" })
             RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             """.trimIndent()
 
@@ -116,18 +116,18 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             CALL {
-                MATCH (user:Entity:`$USER_LABEL`)
+                MATCH (user:Entity:`$USER_TYPE`)
                 WHERE user.id = ${'$'}userId
                 RETURN user
                 UNION
-                MATCH (user:Entity:`$CLIENT_LABEL`)
-                WHERE (user)-[:HAS_VALUE]->(:Property { name: "$SERVICE_ACCOUNT_ID", value: ${'$'}userId })
+                MATCH (user:Entity:`$CLIENT_TYPE`)
+                WHERE (user)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId })
                 RETURN user
             }
             WITH user
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
             MATCH (target:Entity { id: relPropAndTarget.targetEntityId })
-            CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$R_CAN_ADMIN`)-[:rCanAdmin]->(target)
+            CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$AUTH_REL_CAN_ADMIN`)-[:rCanAdmin]->(target)
             SET r = relPropAndTarget.props
             RETURN r.id as id
         """
@@ -145,5 +145,24 @@ class Neo4jAuthorizationRepository(
         return neo4jClient.query(query).bindAll(parameters)
             .fetch().all()
             .map { (it["id"] as String).toUri() }
+    }
+
+    fun removeUserRightsOnEntity(
+        subjectId: URI,
+        targetId: URI
+    ): Int {
+        val matchQuery =
+            """
+            MATCH (subject:Entity { id: ${'$'}subjectId })-[:HAS_OBJECT]-(relNode)
+                    -[]->(target:Entity { id: ${'$'}targetId })
+            DETACH DELETE relNode
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "subjectId" to subjectId.toString(),
+            "targetId" to targetId.toString()
+        )
+
+        return neo4jClient.query(matchQuery).bindAll(parameters).run().counters().nodesDeleted()
     }
 }

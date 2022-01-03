@@ -3,6 +3,7 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
+import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -28,7 +29,7 @@ import java.time.ZonedDateTime
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubscriptionServiceTests : WithTimescaleContainer {
+class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
@@ -62,8 +63,11 @@ class EntityEventService(
                 }
             )
 
-    private fun entityChannelName(channelSuffix: String) =
-        "cim.entity.$channelSuffix"
+    private fun entityChannelName(entityType: String) =
+        if (IAM_TYPES.contains(entityType))
+            "cim.iam.rights"
+        else
+            "cim.entity.$entityType"
 
     @Async
     fun publishEntityCreateEvent(

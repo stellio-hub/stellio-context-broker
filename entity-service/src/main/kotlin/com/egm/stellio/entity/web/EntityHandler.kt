@@ -7,7 +7,6 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.EGM_SPECIFIC_ACCESS_POLICY
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -16,7 +15,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.web.extractSubjectOrEmpty
+import com.egm.stellio.shared.util.extractSubjectOrEmpty
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -423,7 +422,7 @@ class EntityHandler(
         }
 
     private fun checkAttributeIsAuthorized(expandedAttributeName: String, entityUri: URI, userId: String) {
-        if (expandedAttributeName == EGM_SPECIFIC_ACCESS_POLICY &&
+        if (expandedAttributeName == AuthContextModel.AUTH_PROP_SAP &&
             !authorizationService.userIsAdminOfEntity(entityUri, userId)
         )
             throw AccessDeniedException("User forbidden to update access policy of entity $entityUri")

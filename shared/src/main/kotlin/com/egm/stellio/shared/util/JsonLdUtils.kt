@@ -46,6 +46,7 @@ object JsonLdUtils {
 
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
+    const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
@@ -66,7 +67,6 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
-    const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
     val logger = LoggerFactory.getLogger(javaClass)
 

@@ -114,7 +114,7 @@ class NgsiLdProperty private constructor(
     override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
 
-    override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
+    override fun getAttributeInstances(): List<NgsiLdPropertyInstance> = instances
 }
 
 class NgsiLdRelationship private constructor(
@@ -139,7 +139,7 @@ class NgsiLdRelationship private constructor(
     override fun getLinkedEntitiesIds(): List<URI> =
         instances.flatMap { it.getLinkedEntitiesIds() }
 
-    override fun getAttributeInstances(): List<NgsiLdAttributeInstance> = instances
+    override fun getAttributeInstances(): List<NgsiLdRelationshipInstance> = instances
 }
 
 class NgsiLdGeoProperty private constructor(

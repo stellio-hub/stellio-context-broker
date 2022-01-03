@@ -10,7 +10,7 @@
     <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt; )</ID>
     <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, attributeName: String, datasetId: URI?, operationPayload: JsonNode, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, entityType: String, expandedAttributeName: String, operationPayload: JsonNode, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, withEntityPayload: Boolean = false )</ID>
+    <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, accessRightFilter: () -&gt; String? )</ID>
     <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMetadata(operationPayload: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toTemporalAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>SwallowedException:TemporalEntityHandler.kt$e: IllegalArgumentException</ID>

@@ -1,9 +1,10 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.*
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLE_LABEL
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
+import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -106,7 +107,7 @@ class Neo4jAuthorizationServiceTest {
     fun `it should find admin user has admin, read or write right entity`() {
         every {
             neo4jAuthorizationRepository.getUserRoles(mockUserUri)
-        } returns setOf(ADMIN_ROLE_LABEL)
+        } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(neo4jAuthorizationService.userIsAdminOfEntity(entityUri, mockUserSub))
         assert(neo4jAuthorizationService.userCanReadEntity(entityUri, mockUserSub))
@@ -128,7 +129,7 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
                 entitiesId,
-                READ_RIGHT
+                READ_RIGHTS
             )
         } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:3", "urn:ngsi-ld:Entity:4").toListOfUri()
 
@@ -153,7 +154,7 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
                 listOf("urn:ngsi-ld:Entity:2", "urn:ngsi-ld:Entity:3", "urn:ngsi-ld:Entity:5").toListOfUri(),
-                READ_RIGHT
+                READ_RIGHTS
             )
         } returns emptyList()
 
@@ -178,7 +179,7 @@ class Neo4jAuthorizationServiceTest {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
                 listOf("urn:ngsi-ld:Entity:2", "urn:ngsi-ld:Entity:3", "urn:ngsi-ld:Entity:5").toListOfUri(),
-                WRITE_RIGHT
+                WRITE_RIGHTS
             )
         } returns listOf("urn:ngsi-ld:Entity:3").toListOfUri()
 
@@ -200,7 +201,7 @@ class Neo4jAuthorizationServiceTest {
         } returns emptyList()
         every {
             neo4jAuthorizationRepository.getUserRoles(mockUserUri)
-        } returns setOf(ADMIN_ROLE_LABEL)
+        } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(
             neo4jAuthorizationService.filterEntitiesUserCanRead(entitiesIds, mockUserSub) == entitiesIds
@@ -220,7 +221,7 @@ class Neo4jAuthorizationServiceTest {
                 mockUserUri,
                 match {
                     it.size == 1 &&
-                        it[0].type == listOf(AuthorizationService.R_CAN_ADMIN) &&
+                        it[0].type == listOf(AUTH_REL_CAN_ADMIN) &&
                         it[0].datasetId == "urn:ngsi-ld:Dataset:rCanAdmin:$entityUri".toUri()
                 },
                 listOf(entityUri)

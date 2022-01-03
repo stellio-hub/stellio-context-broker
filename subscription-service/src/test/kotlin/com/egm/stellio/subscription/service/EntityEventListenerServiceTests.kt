@@ -14,7 +14,7 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 
-@SpringBootTest(classes = [EntityEventListenerService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
 class EntityEventListenerServiceTests {
 

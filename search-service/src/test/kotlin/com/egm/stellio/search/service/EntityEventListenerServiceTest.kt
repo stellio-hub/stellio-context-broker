@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
 import java.util.UUID
 
-@SpringBootTest(classes = [EntityEventListenerService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventListenerService::class])
 @ActiveProfiles("test")
 class EntityEventListenerServiceTest {
 

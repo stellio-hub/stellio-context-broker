@@ -27,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 
@@ -47,6 +48,9 @@ class EntityAccessControlHandlerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
+
+    @MockkBean(relaxed = true)
+    private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()

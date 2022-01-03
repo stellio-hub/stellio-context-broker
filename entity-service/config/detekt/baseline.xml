@@ -22,6 +22,7 @@
     <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>TooManyFunctions:EntityService.kt$EntityService</ID>
     <ID>TooManyFunctions:Neo4jRepository.kt$Neo4jRepository</ID>
+    <ID>UnusedPrivateMember:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$@MockkBean(relaxed = true) private lateinit var kafkaTemplate: KafkaTemplate&lt;String, String&gt;</ID>
     <ID>UnusedPrivateMember:EntityServiceTests.kt$EntityServiceTests$@MockkBean private lateinit var searchRepository: SearchRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

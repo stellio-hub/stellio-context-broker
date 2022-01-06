@@ -216,6 +216,6 @@ class TemporalEntityOperationsHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/temporal/entityOperations/query")
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isUnauthorized
     }
 }

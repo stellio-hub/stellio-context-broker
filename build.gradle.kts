@@ -4,17 +4,17 @@ import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
-extra["springCloudVersion"] = "2020.0.4"
+extra["springCloudVersion"] = "2021.0.0"
 extra["testcontainersVersion"] = "1.16.2"
 
 plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.5.7" apply false
+    id("org.springframework.boot") version "2.6.2" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
-    kotlin("jvm") version "1.5.31" apply false
-    kotlin("plugin.spring") version "1.5.31" apply false
+    kotlin("jvm") version "1.6.10" apply false
+    kotlin("plugin.spring") version "1.6.10" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
     id("com.google.cloud.tools.jib") version "3.1.4" apply false
     id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
@@ -34,7 +34,7 @@ subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_11
+    java.sourceCompatibility = JavaVersion.VERSION_17
 
     the<DependencyManagementExtension>().apply {
         imports {

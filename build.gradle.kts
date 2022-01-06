@@ -1,3 +1,4 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
@@ -135,7 +136,14 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "adoptopenjdk:11-jre")
+    project.ext.set("jibFromImage", "eclipse-temurin:17-jre")
+    project.ext.set(
+        "jibFromPlatforms",
+        listOf(
+            PlatformParameters().apply { os = "linux"; architecture = "arm64" },
+            PlatformParameters().apply { os = "linux"; architecture = "amd64" }
+        )
+    )
     project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(
@@ -153,7 +161,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_11}"
+            "com.java.version" to "${JavaVersion.VERSION_17}"
         )
     )
 }

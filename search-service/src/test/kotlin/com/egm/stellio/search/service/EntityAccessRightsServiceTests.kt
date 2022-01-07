@@ -3,7 +3,6 @@ package com.egm.stellio.search.service
 import arrow.core.Some
 import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -24,7 +23,7 @@ import reactor.test.StepVerifier
 
 @SpringBootTest
 @ActiveProfiles("test")
-class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var entityAccessRightsService: EntityAccessRightsService

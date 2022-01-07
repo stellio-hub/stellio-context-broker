@@ -3,7 +3,6 @@ package com.egm.stellio.search.service
 import arrow.core.Some
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.SubjectType
@@ -18,7 +17,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class SubjectReferentialServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var subjectReferentialService: SubjectReferentialService

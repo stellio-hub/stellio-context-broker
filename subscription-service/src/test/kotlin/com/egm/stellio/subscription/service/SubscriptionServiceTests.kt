@@ -4,7 +4,6 @@ import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
@@ -31,7 +30,7 @@ import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
-class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
+class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Autowired
     private lateinit var subscriptionService: SubscriptionService

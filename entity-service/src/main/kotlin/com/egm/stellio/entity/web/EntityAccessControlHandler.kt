@@ -24,8 +24,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.checkAndGetContext
-import com.egm.stellio.shared.util.extractSubjectOrEmpty
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.toCompactTerm
 import com.egm.stellio.shared.util.toUri
 import kotlinx.coroutines.reactive.awaitFirst
@@ -61,7 +61,7 @@ class EntityAccessControlHandler(
         @PathVariable subjectId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = JsonLdUtils.expandJsonLdFragment(body, contexts)
@@ -83,7 +83,7 @@ class EntityAccessControlHandler(
             .partition {
                 // we don't have any sub-relationships here, so let's just take the first
                 val targetEntityId = it.second.getLinkedEntitiesIds().first()
-                authorizationService.userIsAdminOfEntity(targetEntityId, userId)
+                authorizationService.userIsAdminOfEntity(targetEntityId, sub)
             }
         val unauthorizedInstancesDetails = unauthorizedInstances.map {
             NotUpdatedDetails(
@@ -126,10 +126,10 @@ class EntityAccessControlHandler(
         @PathVariable subjectId: String,
         @PathVariable entityId: String
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val sub = getSubFromSecurityContext()
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
 
-        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), userId))
+        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), sub))
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body("User is not authorized to manage rights on entity $entityId")
 
@@ -153,8 +153,8 @@ class EntityAccessControlHandler(
 
     @PostMapping("/sync")
     suspend fun syncIam(): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        if (!authorizationService.userIsAdmin(userId))
+        val sub = getSubFromSecurityContext()
+        if (!authorizationService.userIsAdmin(sub))
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body("User is not authorized to sync user referential")
 
@@ -168,7 +168,7 @@ class EntityAccessControlHandler(
                 // do a first search without asking for a result in order to get the total count
                 val total = entityService.searchEntities(
                     QueryParams(expandedType = it),
-                    userId,
+                    sub,
                     0,
                     0,
                     AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
@@ -176,7 +176,7 @@ class EntityAccessControlHandler(
                 ).first
                 entityService.searchEntities(
                     QueryParams(expandedType = it),
-                    userId,
+                    sub,
                     0,
                     total,
                     AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,

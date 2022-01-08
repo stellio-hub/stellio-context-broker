@@ -15,8 +15,8 @@
     <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes`()</ID>
     <ID>LongMethod:QueryUtils.kt$QueryUtils$fun prepareQueryForEntitiesWithAuthentication( queryParams: QueryParams, offset: Int, limit: Int, contexts: List&lt;String&gt; ): String</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( entityId: URI, entityType: String, attributeName: String, datasetId: URI? = null, overwrite: Boolean, operationPayload: String, updateOperationResult: UpdateOperationResult, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, userSub: String, offset: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>
-    <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, userSub: String, offset: Int, limit: Int, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>
+    <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, sub: Option&lt;UUID&gt;, offset: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>
+    <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, sub: Option&lt;UUID&gt;, offset: Int, limit: Int, contexts: List&lt;String&gt;, includeSysAttrs: Boolean )</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (a:</ID>
     <ID>MaxLineLength:Neo4jRepository.kt$Neo4jRepository$ MATCH (entity:</ID>
     <ID>ReturnCount:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>

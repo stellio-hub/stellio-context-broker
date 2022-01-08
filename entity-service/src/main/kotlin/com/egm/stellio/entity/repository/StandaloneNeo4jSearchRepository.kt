@@ -1,11 +1,13 @@
 package com.egm.stellio.entity.repository
 
+import arrow.core.Option
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
 import java.net.URI
+import java.util.UUID
 
 @Component
 @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
@@ -15,7 +17,7 @@ class StandaloneNeo4jSearchRepository(
 
     override fun getEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<UUID>,
         offset: Int,
         limit: Int,
         contexts: List<String>

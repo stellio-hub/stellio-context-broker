@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.web
 
+import arrow.core.Some
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -26,12 +27,13 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.UUID
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(SubscriptionHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "mock-user")
+@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class SubscriptionHandlerTests {
 
     @Autowired
@@ -53,6 +55,7 @@ class SubscriptionHandlerTests {
             .build()
     }
 
+    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
     private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
 
     @Test
@@ -72,7 +75,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").doesNotExist()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscription.id, sub) }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -93,7 +96,7 @@ class SubscriptionHandlerTests {
             .jsonPath("$..modifiedAt").exists()
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscription.id, sub) }
         verify { subscriptionService.getById(subscription.id) }
     }
 
@@ -134,7 +137,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(subscriptionId) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
     }
 
     @Test
@@ -441,7 +444,7 @@ class SubscriptionHandlerTests {
             .expectStatus().isNoContent
 
         verify { subscriptionService.exists(eq((subscriptionId))) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         coVerify {
             subscriptionEventService.publishSubscriptionUpdateEvent(
@@ -485,7 +488,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         verify { subscriptionEventService wasNot called }
 
@@ -538,7 +541,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
     }
 
     @Test
@@ -565,7 +568,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
 
         confirmVerified(subscriptionService)
     }
@@ -585,7 +588,7 @@ class SubscriptionHandlerTests {
             .expectBody().isEmpty
 
         verify { subscriptionService.exists(subscription.id) }
-        verify { subscriptionService.isCreatorOf(subscription.id, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscription.id, sub) }
         verify { subscriptionService.delete(eq(subscription.id)) }
         verify {
             subscriptionEventService.publishSubscriptionDeleteEvent(
@@ -642,7 +645,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(subscriptionId) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
         verify { subscriptionService.delete(eq(subscriptionId)) }
     }
 
@@ -666,7 +669,7 @@ class SubscriptionHandlerTests {
             )
 
         verify { subscriptionService.exists(subscriptionId) }
-        verify { subscriptionService.isCreatorOf(subscriptionId, "mock-user") }
+        verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
     }
 
     @Test

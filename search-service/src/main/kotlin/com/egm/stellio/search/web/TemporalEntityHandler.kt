@@ -20,7 +20,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.extractSubjectOrEmpty
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -57,9 +57,9 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
+        val sub = getSubFromSecurityContext()
         val canWriteEntity =
-            entityAccessRightsService.canWriteEntity(userId, entityId.toUri()).awaitFirst()
+            entityAccessRightsService.canWriteEntity(sub, entityId.toUri()).awaitFirst()
         if (!canWriteEntity)
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
@@ -99,14 +99,14 @@ class TemporalEntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
+        val sub = getSubFromSecurityContext()
 
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
 
-        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(userId)
+        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val temporalEntities = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             contextLink,
@@ -146,7 +146,7 @@ class TemporalEntityHandler(
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst().toUUID()
+        val sub = getSubFromSecurityContext()
 
         val withTemporalValues =
             hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
@@ -161,7 +161,7 @@ class TemporalEntityHandler(
         }
 
         val canReadEntity =
-            entityAccessRightsService.canReadEntity(userId, entityId.toUri()).awaitFirst()
+            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 

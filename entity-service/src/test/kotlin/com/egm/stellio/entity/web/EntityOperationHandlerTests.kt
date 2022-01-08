@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.web
 
+import arrow.core.Some
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.Entity
@@ -28,12 +29,13 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
+import java.util.UUID
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @WebFluxTest(EntityOperationHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "mock-user")
+@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class EntityOperationHandlerTests {
 
     @Value("\${application.jsonld.aquac_context}")
@@ -61,6 +63,7 @@ class EntityOperationHandlerTests {
             .build()
     }
 
+    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
     private val batchSomeEntitiesExistsResponse =
         """
         {
@@ -176,7 +179,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
         } returns entitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
@@ -213,7 +216,7 @@ class EntityOperationHandlerTests {
             emptyList()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(),
@@ -242,7 +245,7 @@ class EntityOperationHandlerTests {
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
         } returns entitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
@@ -275,7 +278,7 @@ class EntityOperationHandlerTests {
 
         every { nonExistingEntity.id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX200".toUri()
         every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
         } returns updatedEntitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
@@ -319,7 +322,7 @@ class EntityOperationHandlerTests {
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityType = slot<String>()
 
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities)) } returns Pair(
             emptyList(),
             emptyList()
@@ -328,7 +331,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { authorizationService.createAdminLink(any(), eq("mock-user")) } just Runs
+        every { authorizationService.createAdminLink(any(), eq(sub)) } just Runs
         every {
             entityEventService.publishEntityCreateEvent(
                 capture(capturedEntitiesIds), capture(capturedEntityType), any(), any()
@@ -346,7 +349,7 @@ class EntityOperationHandlerTests {
 
         assertEquals(entitiesIds, capturedExpandedEntities.captured.map { it.id })
 
-        verify { authorizationService.createAdminLinks(entitiesIds, "mock-user") }
+        verify { authorizationService.createAdminLinks(entitiesIds, sub) }
         verify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
@@ -368,7 +371,7 @@ class EntityOperationHandlerTests {
 
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
 
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(existingEntity),
             emptyList()
@@ -390,7 +393,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(batchSomeEntitiesExistsResponse)
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
         verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
@@ -401,7 +404,7 @@ class EntityOperationHandlerTests {
     fun `create batch entity should not authorize user without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities(sub) } returns false
 
         webClient.post()
             .uri(batchCreateEndpoint)
@@ -424,13 +427,13 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `create batch entity should return a 400 if JSON-LD payload is not correct`() {
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         shouldReturn400WithBadPayload("create")
     }
 
     @Test
     fun `create batch entity should return a 400 if one JSON-LD entity misses a context`() {
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_one_entity_missing_context.json")
         webClient.post()
             .uri("/ngsi-ld/v1/entityOperations/create")
@@ -468,10 +471,10 @@ class EntityOperationHandlerTests {
             emptyList(),
             listOf(mockedCreatedEntity)
         )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.create(any()) } returns createdBatchResult
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
@@ -485,7 +488,7 @@ class EntityOperationHandlerTests {
             .jsonPath("$").isArray
             .jsonPath("$[*]").isEqualTo(createdEntitiesIds.map { it.toString() })
 
-        verify { authorizationService.createAdminLinks(createdEntitiesIds, "mock-user") }
+        verify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
         verify {
             entityEventService.publishEntityCreateEvent(
                 match { it in createdEntitiesIds },
@@ -521,7 +524,7 @@ class EntityOperationHandlerTests {
             emptyList()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
         } returns entitiesIds
         every {
             entityOperationService.update(any(), any())
@@ -553,13 +556,13 @@ class EntityOperationHandlerTests {
             emptyList(),
             emptyList()
         )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             arrayListOf(),
             arrayListOf()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             arrayListOf(),
@@ -573,7 +576,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(batchUpsertOrUpdateWithUpdateErrorsResponse)
 
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify { entityEventService wasNot called }
         confirmVerified()
     }
@@ -592,13 +595,13 @@ class EntityOperationHandlerTests {
             existingEntities,
             emptyList()
         )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns true
+        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             arrayListOf(),
             arrayListOf()
         )
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.replace(existingEntities) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
@@ -614,7 +617,7 @@ class EntityOperationHandlerTests {
 
         verify { entityOperationService.replace(existingEntities) }
         verify { entityOperationService.update(any(), any()) wasNot Called }
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
                 match { it in entitiesIds },
@@ -637,9 +640,9 @@ class EntityOperationHandlerTests {
             emptyList(),
             nonExistingEntities
         )
-        every { authorizationService.userCanCreateEntities("mock-user") } returns false
+        every { authorizationService.userCanCreateEntities(sub) } returns false
         every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), "mock-user")
+            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.replace(emptyList()) } returns BatchOperationResult(
             arrayListOf(),
@@ -691,7 +694,7 @@ class EntityOperationHandlerTests {
         every {
             authorizationService.filterEntitiesUserCanUpdate(
                 entitiesId,
-                "mock-user"
+                sub
             )
         } returns entitiesIdToUpdate
         every { entityOperationService.replace(listOf(expandedEntity)) } returns BatchOperationResult(
@@ -706,7 +709,7 @@ class EntityOperationHandlerTests {
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(batchUpsertWithoutWriteRightResponse)
 
-        verify { authorizationService.createAdminLinks(emptyList(), "mock-user") }
+        verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify {
             entityEventService.publishEntityReplaceEvent(
                 match { it in entitiesIdToUpdate },

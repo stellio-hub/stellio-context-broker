@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Option
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.repository.AttributeSubjectNode
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.util.UUID
 
 @Component
 class EntityService(
@@ -244,13 +246,13 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<UUID>,
         offset: Int,
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(queryParams, userSub, offset, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(queryParams, sub, offset, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -263,7 +265,7 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<UUID>,
         offset: Int,
         limit: Int,
         contexts: List<String>,
@@ -271,7 +273,7 @@ class EntityService(
     ): Pair<Int, List<JsonLdEntity>> {
         val result = searchRepository.getEntities(
             queryParams,
-            userSub,
+            sub,
             offset,
             limit,
             contexts

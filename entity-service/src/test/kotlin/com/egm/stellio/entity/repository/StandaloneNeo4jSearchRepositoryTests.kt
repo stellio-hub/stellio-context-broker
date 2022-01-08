@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import arrow.core.None
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -45,7 +46,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
     private val deadFishUri = "urn:ngsi-ld:DeadFishes:019BN".toUri()
     private val partialTargetEntityUri = "urn:ngsi-ld:Entity:4567".toUri()
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
-    private val userId = ""
+    private val sub = None
     private val offset = 0
     private val limit = 20
 
@@ -64,7 +65,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -83,7 +84,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"ScalpaXYZ\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -102,7 +103,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishNumber==500"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -121,7 +122,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishNumber==499"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -140,7 +141,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight==120.50"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -159,7 +160,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight==-120"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -177,7 +178,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight>180.9"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -195,7 +196,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "fishWeight>=255"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -213,7 +214,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "DeadFishes", q = "name!=\"ScalpaXYZ\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -231,7 +232,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name!=\"ScalpaXYZ\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -258,7 +259,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
                 expandedType = "Beekeeper",
                 q = "testedAt.observedAt>2018-12-04T00:00:00Z;testedAt.observedAt<2018-12-04T18:00:00Z"
             ),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -280,7 +281,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04T12:00:00Z"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -303,7 +304,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-04"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -326,7 +327,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==2018-12-07"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -349,7 +350,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -373,7 +374,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeper\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -398,7 +399,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         var entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==13:00:00;name==\"beekeeper\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -408,7 +409,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;name==\"beekeeperx\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -433,7 +434,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         var entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\""),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -445,7 +446,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
                 expandedType = "Beekeeper",
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\");name==\"beekeeper\""
             ),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -457,7 +458,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
                 expandedType = "Beekeeper",
                 q = "(testedAt==12:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -469,7 +470,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
                 expandedType = "Beekeeper",
                 q = "(testedAt==13:00:00;observedBy==\"urn:ngsi-ld:Entity:4567\")|name==\"beekeeper\""
             ),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -492,7 +493,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), expandedType = "Beekeeper"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -514,7 +515,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231")),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -539,7 +540,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entitiesCount = searchRepository.getEntities(
             QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), q = "createdAt>2021-07-10T00:00:00Z"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -564,7 +565,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entitiesCount = searchRepository.getEntities(
             QueryParams(q = "createdAt>$now"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -598,7 +599,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
                 id = listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
                 expandedType = "Beekeeper"
             ),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -628,7 +629,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -658,7 +659,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:BeeHive:*"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -681,7 +682,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entities = searchRepository.getEntities(
             QueryParams(expandedAttrs = setOf(expandedNameProperty)),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -701,7 +702,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedAttrs = setOf("observedBy")),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -721,7 +722,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(q = "name==\"Scalpa\"", expandedAttrs = setOf("observedBy")),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -741,7 +742,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", expandedAttrs = setOf("observedBy")),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -769,7 +770,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
         )
         val entitiesCount = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = "^urn:ngsi-ld:Beekeeper:0.*2$"),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS
@@ -804,7 +805,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContai
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", idPattern = idPattern),
-            userId,
+            sub,
             offset,
             limit,
             DEFAULT_CONTEXTS

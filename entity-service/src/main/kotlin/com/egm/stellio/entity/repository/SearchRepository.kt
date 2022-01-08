@@ -1,8 +1,10 @@
 package com.egm.stellio.entity.repository
 
+import arrow.core.Option
 import com.egm.stellio.shared.model.QueryParams
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
+import java.util.UUID
 
 interface SearchRepository {
 
@@ -10,7 +12,7 @@ interface SearchRepository {
      * Searches the requested entities and applies permissions checks in authentication enabled mode.
      *
      * @param queryParams query parameters.
-     * @param userSub to be used in authentication enabled mode to apply permissions checks.
+     * @param sub to be used in authentication enabled mode to apply permissions checks.
      * @param offset offset for pagination.
      * @param limit limit for pagination.
      * @param contexts list of JSON-LD contexts for term to URI expansion.
@@ -21,7 +23,7 @@ interface SearchRepository {
     @Transactional(readOnly = true)
     fun getEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<UUID>,
         offset: Int,
         limit: Int,
         contexts: List<String>

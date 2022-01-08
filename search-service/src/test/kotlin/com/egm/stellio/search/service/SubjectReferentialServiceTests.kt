@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Some
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.support.WithKafkaContainer
@@ -82,7 +83,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential).block()
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
             .expectNextMatches {
                 it.size == 4 &&
                     it.containsAll(groupsUuids.plus(subjectUuid))
@@ -100,7 +101,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential).block()
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
             .expectNextMatches {
                 it.size == 1 &&
                     it.contains(subjectUuid)
@@ -158,7 +159,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.create(subjectReferential).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 it
             }
@@ -168,7 +169,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.resetGlobalRoles(subjectUuid).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 !it
             }
@@ -178,7 +179,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR)).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 it
             }

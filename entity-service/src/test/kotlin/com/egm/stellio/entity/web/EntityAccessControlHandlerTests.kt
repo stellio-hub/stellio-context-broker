@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.web
 
+import arrow.core.Some
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.UpdateAttributeResult
@@ -30,11 +31,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "mock-user")
+@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class EntityAccessControlHandlerTests {
 
     @Autowired
@@ -52,6 +54,7 @@ class EntityAccessControlHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
+    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
 
@@ -93,7 +96,7 @@ class EntityAccessControlHandlerTests {
         verify {
             authorizationService.userIsAdminOfEntity(
                 eq(entityUri1),
-                eq("mock-user")
+                eq(sub)
             )
         }
 
@@ -158,7 +161,7 @@ class EntityAccessControlHandlerTests {
         verify {
             authorizationService.userIsAdminOfEntity(
                 eq(entityUri1),
-                eq("mock-user")
+                eq(sub)
             )
         }
 
@@ -303,7 +306,7 @@ class EntityAccessControlHandlerTests {
         verify {
             authorizationService.userIsAdminOfEntity(
                 eq(entityUri1),
-                eq("mock-user")
+                eq(sub)
             )
         }
 
@@ -334,7 +337,7 @@ class EntityAccessControlHandlerTests {
         verify {
             authorizationService.userIsAdminOfEntity(
                 eq(entityUri1),
-                eq("mock-user")
+                eq(sub)
             )
         }
     }

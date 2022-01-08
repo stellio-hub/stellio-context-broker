@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import arrow.core.Some
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
 import com.egm.stellio.search.model.TemporalEntitiesQuery
@@ -50,7 +51,7 @@ import java.util.UUID
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
+@WithMockCustomUser(name = "Mock User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class TemporalEntityHandlerTests {
 
     private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
@@ -346,7 +347,10 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            entityAccessRightsService.canReadEntity(eq("0768A6D5-D87B-4209-9A22-8C40A8961A79".toUUID()), eq(entityUri))
+            entityAccessRightsService.canReadEntity(
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79".toUUID())),
+                eq(entityUri)
+            )
         }
     }
 

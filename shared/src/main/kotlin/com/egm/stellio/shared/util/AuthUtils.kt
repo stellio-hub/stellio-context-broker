@@ -1,11 +1,15 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.None
 import arrow.core.Option
+import arrow.core.Some
+import arrow.core.getOrElse
 import arrow.core.toOption
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
@@ -52,11 +56,16 @@ object AuthContextModel {
     }
 }
 
-fun extractSubjectOrEmpty(): Mono<String> {
+suspend fun getSubFromSecurityContext(): Option<UUID> {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
-        .map { context -> context.authentication?.principal?.let { (it as Jwt).subject } ?: "" }
+        .map { context ->
+            context.authentication?.principal?.let { Some((it as Jwt).subject.toUUID()) } ?: None
+        }
+        .awaitFirst()
 }
+
+fun Option<UUID>.toStringValue(): String = this.getOrElse { "" }.toString()
 
 fun URI.extractSubjectUuid(): UUID =
     this.toString().extractSubjectUuid()

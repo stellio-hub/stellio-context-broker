@@ -1,5 +1,7 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Option
+import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.util.GlobalRole
@@ -64,7 +66,7 @@ class SubjectReferentialService(
             .one()
             .map { rowToSubjectReferential(it) }
 
-    fun getSubjectAndGroupsUUID(subjectId: UUID): Mono<List<UUID>> =
+    fun getSubjectAndGroupsUUID(subjectId: Option<UUID>): Mono<List<UUID>> =
         databaseClient
             .sql(
                 """
@@ -73,7 +75,7 @@ class SubjectReferentialService(
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", (subjectId as Some).value)
             .fetch()
             .one()
             .map {
@@ -81,7 +83,7 @@ class SubjectReferentialService(
                     .plus(it["subject_id"] as UUID)
             }
 
-    fun hasStellioAdminRole(subjectId: UUID): Mono<Boolean> =
+    fun hasStellioAdminRole(subjectId: Option<UUID>): Mono<Boolean> =
         databaseClient
             .sql(
                 """
@@ -91,7 +93,7 @@ class SubjectReferentialService(
                 AND '${GlobalRole.STELLIO_ADMIN.key}' = ANY(global_roles)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", (subjectId as Some).value)
             .fetch()
             .one()
             .map {

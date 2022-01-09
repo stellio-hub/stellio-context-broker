@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.utils
 
+import arrow.core.Some
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
@@ -11,10 +12,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 @Profile("dev")
-
 class SubscriptionBootstrapper(
     private val subscriptionService: SubscriptionService
 ) : CommandLineRunner {
@@ -56,7 +57,7 @@ class SubscriptionBootstrapper(
             )
         )
 
-        subscriptionService.create(subscription, "subscription-bootstrapper")
+        subscriptionService.create(subscription, Some(UUID.randomUUID().toString()))
             .thenEmpty {
                 logger.debug("Created subscription !")
             }

@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.repository
 
+import arrow.core.Some
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
@@ -23,7 +24,7 @@ import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -34,6 +35,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -52,13 +54,13 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
     @MockkBean(relaxed = true)
     private lateinit var neo4jAuthorizationService: Neo4jAuthorizationService
 
+    private val sub = Some(UUID.randomUUID().toString())
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val groupUri = "urn:ngsi-ld:Group:01".toUri()
-    private val userUri = "urn:ngsi-ld:User:01".toUri()
+    private val userUri = (AuthContextModel.USER_PREFIX + sub.value).toUri()
     private val clientUri = "urn:ngsi-ld:Client:01".toUri()
-    private val serviceAccountUri = "urn:ngsi-ld:User:01".toUri()
+    private val serviceAccountUri = userUri
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
-    private val sub = "01"
     private val offset = 0
     private val limit = 20
 
@@ -154,10 +156,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
             clientUri,
             listOf(CLIENT_TYPE),
             mutableListOf(
-                Property(
-                    name = AUTH_PROP_SID,
-                    value = serviceAccountUri
-                )
+                Property(name = AUTH_PROP_SID, value = serviceAccountUri)
             )
         )
         val firstEntity = createEntity(
@@ -293,7 +292,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
             DEFAULT_CONTEXTS
         ).first
 
-        Assertions.assertEquals(entitiesCount, 2)
+        assertEquals(2, entitiesCount)
     }
 
     @Test
@@ -320,8 +319,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
             DEFAULT_CONTEXTS
         )
 
-        Assertions.assertEquals(countAndEntities.first, 1)
-        Assertions.assertEquals(countAndEntities.second, emptyList<URI>())
+        assertEquals(1, countAndEntities.first)
+        assertEquals(emptyList<URI>(), countAndEntities.second)
     }
 
     @ParameterizedTest

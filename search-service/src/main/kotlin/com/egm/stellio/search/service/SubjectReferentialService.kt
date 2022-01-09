@@ -1,10 +1,12 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Option
+import arrow.core.Some
 import arrow.core.getOrElse
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.toUUID
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
@@ -14,7 +16,6 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 @Service
 class SubjectReferentialService(
@@ -50,7 +51,7 @@ class SubjectReferentialService(
                 Mono.just(-1)
             }
 
-    fun retrieve(subjectId: UUID): Mono<SubjectReferential> =
+    fun retrieve(sub: Sub): Mono<SubjectReferential> =
         databaseClient
             .sql(
                 """
@@ -59,12 +60,12 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id                
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", sub)
             .fetch()
             .one()
             .map { rowToSubjectReferential(it) }
 
-    fun getSubjectAndGroupsUUID(subjectId: UUID): Mono<List<UUID>> =
+    fun getSubjectAndGroupsUUID(sub: Option<Sub>): Mono<List<Sub>> =
         databaseClient
             .sql(
                 """
@@ -73,15 +74,15 @@ class SubjectReferentialService(
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", (sub as Some).value)
             .fetch()
             .one()
             .map {
-                ((it["groups_memberships"] as Array<String>?)?.map { it.toUUID() } ?: emptyList())
-                    .plus(it["subject_id"] as UUID)
+                ((it["groups_memberships"] as Array<Sub>?)?.toList() ?: emptyList())
+                    .plus(it["subject_id"] as Sub)
             }
 
-    fun hasStellioAdminRole(subjectId: UUID): Mono<Boolean> =
+    fun hasStellioAdminRole(sub: Option<Sub>): Mono<Boolean> =
         databaseClient
             .sql(
                 """
@@ -91,7 +92,7 @@ class SubjectReferentialService(
                 AND '${GlobalRole.STELLIO_ADMIN.key}' = ANY(global_roles)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", (sub as Some).value)
             .fetch()
             .one()
             .map {
@@ -103,7 +104,7 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun setGlobalRoles(subjectId: UUID, newRoles: List<GlobalRole>): Mono<Int> =
+    fun setGlobalRoles(sub: Sub, newRoles: List<GlobalRole>): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -112,7 +113,7 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", sub)
             .bind("global_roles", newRoles.map { it.key }.toTypedArray())
             .fetch()
             .rowsUpdated()
@@ -122,7 +123,7 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun resetGlobalRoles(subjectId: UUID): Mono<Int> =
+    fun resetGlobalRoles(sub: Sub): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -131,7 +132,7 @@ class SubjectReferentialService(
                 WHERE subject_id = :subject_id
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", sub)
             .fetch()
             .rowsUpdated()
             .onErrorResume {
@@ -140,7 +141,7 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun addGroupMembershipToUser(subjectId: UUID, groupId: UUID): Mono<Int> =
+    fun addGroupMembershipToUser(sub: Sub, groupId: Sub): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -149,7 +150,7 @@ class SubjectReferentialService(
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", sub)
             .bind("group_id", groupId)
             .fetch()
             .rowsUpdated()
@@ -159,7 +160,7 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun removeGroupMembershipToUser(subjectId: UUID, groupId: UUID): Mono<Int> =
+    fun removeGroupMembershipToUser(sub: Sub, groupId: Sub): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -168,7 +169,7 @@ class SubjectReferentialService(
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
             )
-            .bind("subject_id", subjectId)
+            .bind("subject_id", sub)
             .bind("group_id", groupId)
             .fetch()
             .rowsUpdated()
@@ -178,7 +179,7 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun addServiceAccountIdToClient(subjectId: UUID, serviceAccountId: UUID): Mono<Int> =
+    fun addServiceAccountIdToClient(subjectId: Sub, serviceAccountId: Sub): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -197,18 +198,18 @@ class SubjectReferentialService(
             }
 
     @Transactional
-    fun delete(subjectId: UUID): Mono<Int> =
+    fun delete(sub: Sub): Mono<Int> =
         r2dbcEntityTemplate.delete(SubjectReferential::class.java)
-            .matching(Query.query(Criteria.where("subject_id").`is`(subjectId)))
+            .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
             .all()
 
     private fun rowToSubjectReferential(row: Map<String, Any>) =
         SubjectReferential(
-            subjectId = row["subject_id"] as UUID,
+            subjectId = row["subject_id"] as Sub,
             subjectType = SubjectType.valueOf(row["subject_type"] as String),
-            serviceAccountId = row["service_account_id"] as UUID?,
+            serviceAccountId = row["service_account_id"] as Sub?,
             globalRoles = (row["global_roles"] as Array<String>?)
                 ?.mapNotNull { GlobalRole.forKey(it).getOrElse { null } },
-            groupsMemberships = (row["groups_memberships"] as Array<String>?)?.map { it.toUUID() }
+            groupsMemberships = (row["groups_memberships"] as Array<Sub>?)?.toList()
         )
 }

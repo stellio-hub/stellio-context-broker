@@ -5,7 +5,6 @@ import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.model.AttributeType
 import com.egm.stellio.entity.service.EntityTypeService
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
@@ -22,7 +21,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(EntityTypeHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "mock-user")
+@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class EntityTypeHandlerTests {
 
     @Autowired

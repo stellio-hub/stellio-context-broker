@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
@@ -26,6 +27,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -38,7 +40,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
-    private val mockUserSub = "mock-user-sub"
+    private val mockUserSub = Some(UUID.randomUUID().toString())
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI

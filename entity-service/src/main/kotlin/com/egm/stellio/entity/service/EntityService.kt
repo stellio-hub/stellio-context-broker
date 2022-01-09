@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Option
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
 import com.egm.stellio.entity.repository.AttributeSubjectNode
@@ -8,6 +9,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
@@ -244,13 +246,13 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> =
-        searchEntities(queryParams, userSub, offset, limit, listOf(contextLink), includeSysAttrs)
+        searchEntities(queryParams, sub, offset, limit, listOf(contextLink), includeSysAttrs)
 
     /**
      * Search entities by type and query parameters
@@ -263,7 +265,7 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        userSub: String,
+        sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contexts: List<String>,
@@ -271,7 +273,7 @@ class EntityService(
     ): Pair<Int, List<JsonLdEntity>> {
         val result = searchRepository.getEntities(
             queryParams,
-            userSub,
+            sub,
             offset,
             limit,
             contexts

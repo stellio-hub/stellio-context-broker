@@ -17,8 +17,9 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
 import com.egm.stellio.shared.util.GlobalRole
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.extractSubjectUuid
+import com.egm.stellio.shared.util.extractSub
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
@@ -28,7 +29,6 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
-import java.util.UUID
 
 @Component
 class IAMListener(
@@ -80,10 +80,10 @@ class IAMListener(
             else null
         val groupsMemberships = extractGroupsMemberships(operationPayloadNode)
         val subjectReferential = SubjectReferential(
-            subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
+            subjectId = entityCreateEvent.entityId.extractSub(),
             subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase()),
             globalRoles = roles,
-            serviceAccountId = serviceAccountId?.extractSubjectUuid(),
+            serviceAccountId = serviceAccountId?.extractSub(),
             groupsMemberships = groupsMemberships
         )
 
@@ -94,7 +94,7 @@ class IAMListener(
         val operationPayloadNode = jacksonObjectMapper().readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val subjectReferential = SubjectReferential(
-            subjectId = entityCreateEvent.entityId.extractSubjectUuid(),
+            subjectId = entityCreateEvent.entityId.extractSub(),
             subjectType = SubjectType.valueOf(entityCreateEvent.entityType.uppercase()),
             globalRoles = roles
         )
@@ -102,13 +102,13 @@ class IAMListener(
         subjectReferentialService.create(subjectReferential).subscribe()
     }
 
-    private fun extractGroupsMemberships(operationPayloadNode: JsonNode): List<UUID>? =
+    private fun extractGroupsMemberships(operationPayloadNode: JsonNode): List<Sub>? =
         if (operationPayloadNode.has(AUTH_TERM_IS_MEMBER_OF)) {
             when (val isMemberOf = operationPayloadNode[AUTH_TERM_IS_MEMBER_OF]) {
-                is ObjectNode -> listOf(isMemberOf["object"].asText().extractSubjectUuid())
+                is ObjectNode -> listOf(isMemberOf["object"].asText().extractSub())
                 is ArrayNode ->
                     isMemberOf.map {
-                        it["object"].asText().extractSubjectUuid()
+                        it["object"].asText().extractSub()
                     }.ifEmpty { null }
                 else -> null
             }
@@ -127,7 +127,7 @@ class IAMListener(
         } else null
 
     private fun deleteSubjectReferential(entityDeleteEvent: EntityDeleteEvent) {
-        subjectReferentialService.delete(entityDeleteEvent.entityId.extractSubjectUuid())
+        subjectReferentialService.delete(entityDeleteEvent.entityId.extractSub())
             .subscribe {
                 logger.debug("Deleted subject ${entityDeleteEvent.entityId}")
             }
@@ -135,7 +135,7 @@ class IAMListener(
 
     private fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent) {
         val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
-        val subjectUuid = attributeAppendEvent.entityId.extractSubjectUuid()
+        val subjectUuid = attributeAppendEvent.entityId.extractSub()
         if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
             val newRoles = (operationPayloadNode[JSONLD_VALUE] as ArrayNode).map {
                 GlobalRole.forKey(it.asText())
@@ -148,13 +148,13 @@ class IAMListener(
             val serviceAccountId = operationPayloadNode[JSONLD_VALUE].asText()
             subjectReferentialService.addServiceAccountIdToClient(
                 subjectUuid,
-                serviceAccountId.extractSubjectUuid()
+                serviceAccountId.extractSub()
             ).subscribe()
         } else if (attributeAppendEvent.attributeName == AUTH_TERM_IS_MEMBER_OF) {
             val groupId = operationPayloadNode["object"].asText()
             subjectReferentialService.addGroupMembershipToUser(
                 subjectUuid,
-                groupId.extractSubjectUuid()
+                groupId.extractSub()
             ).subscribe()
         } else {
             logger.info("Received unknown attribute name: ${attributeAppendEvent.attributeName}")
@@ -163,8 +163,8 @@ class IAMListener(
 
     private fun removeSubjectFromGroup(attributeDeleteEvent: AttributeDeleteEvent) {
         subjectReferentialService.removeGroupMembershipToUser(
-            attributeDeleteEvent.entityId.extractSubjectUuid(),
-            attributeDeleteEvent.datasetId!!.extractSubjectUuid()
+            attributeDeleteEvent.entityId.extractSub(),
+            attributeDeleteEvent.datasetId!!.extractSub()
         ).subscribe()
     }
 
@@ -174,7 +174,7 @@ class IAMListener(
         when (val accessRight = AccessRight.forAttributeName(attributeAppendEvent.attributeName)) {
             is Some ->
                 entityAccessRightsService.setRoleOnEntity(
-                    attributeAppendEvent.entityId.extractSubjectUuid(),
+                    attributeAppendEvent.entityId.extractSub(),
                     entityId.toUri(),
                     accessRight.value
                 ).subscribe()
@@ -184,7 +184,7 @@ class IAMListener(
 
     private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {
         entityAccessRightsService.removeRoleOnEntity(
-            attributeDeleteEvent.entityId.extractSubjectUuid(),
+            attributeDeleteEvent.entityId.extractSub(),
             attributeDeleteEvent.attributeName.toUri()
         ).subscribe()
     }

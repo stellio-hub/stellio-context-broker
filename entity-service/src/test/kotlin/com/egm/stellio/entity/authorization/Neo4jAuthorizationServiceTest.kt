@@ -1,10 +1,14 @@
 package com.egm.stellio.entity.authorization
 
+import arrow.core.Option
+import arrow.core.Some
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
 import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -16,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
 @ActiveProfiles("test")
@@ -27,8 +32,8 @@ class Neo4jAuthorizationServiceTest {
     @MockkBean
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 
-    private val mockUserSub = "mock-user"
-    private val mockUserUri = "urn:ngsi-ld:User:$mockUserSub".toUri()
+    private val mockUserSub = Some(UUID.randomUUID().toString())
+    private val mockUserUri = (USER_PREFIX + mockUserSub.value).toUri()
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
 
     @Test
@@ -231,7 +236,7 @@ class Neo4jAuthorizationServiceTest {
     }
 
     private fun assertUserHasRightOnEntity(
-        userHasRightOnEntity: (URI, String) -> Boolean,
+        userHasRightOnEntity: (URI, Option<Sub>) -> Boolean,
         hasGrantedAccess: Boolean,
         hasSpecificPolicyAccess: Boolean
     ) {

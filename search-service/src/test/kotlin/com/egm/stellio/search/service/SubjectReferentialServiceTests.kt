@@ -1,5 +1,6 @@
 package com.egm.stellio.search.service
 
+import arrow.core.Some
 import com.egm.stellio.search.model.SubjectReferential
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.support.WithKafkaContainer
@@ -25,8 +26,8 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
-    private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
-    private val groupUuid = UUID.fromString("52A916AB-19E6-4D3B-B629-936BC8E5B640")
+    private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
+    private val groupUuid = "52A916AB-19E6-4D3B-B629-936BC8E5B640"
 
     @AfterEach
     fun clearSubjectReferentialTable() {
@@ -73,7 +74,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
     @Test
     fun `it should retrieve UUIDs from user and groups memberships`() {
-        val groupsUuids = List(3) { UUID.randomUUID() }
+        val groupsUuids = List(3) { UUID.randomUUID().toString() }
         val subjectReferential = SubjectReferential(
             subjectId = subjectUuid,
             subjectType = SubjectType.USER,
@@ -82,7 +83,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential).block()
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
             .expectNextMatches {
                 it.size == 4 &&
                     it.containsAll(groupsUuids.plus(subjectUuid))
@@ -100,7 +101,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(subjectReferential).block()
 
-        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(subjectUuid))
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
             .expectNextMatches {
                 it.size == 1 &&
                     it.contains(subjectUuid)
@@ -158,7 +159,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.create(subjectReferential).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 it
             }
@@ -168,7 +169,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.resetGlobalRoles(subjectUuid).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 !it
             }
@@ -178,7 +179,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.setGlobalRoles(subjectUuid, listOf(STELLIO_ADMIN, STELLIO_CREATOR)).block()
 
         StepVerifier
-            .create(subjectReferentialService.hasStellioAdminRole(subjectUuid))
+            .create(subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)))
             .expectNextMatches {
                 it
             }
@@ -220,7 +221,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
         subjectReferentialService.create(userAccessRights).block()
         subjectReferentialService.addGroupMembershipToUser(subjectUuid, groupUuid).block()
 
-        val newGroupUuid = UUID.randomUUID()
+        val newGroupUuid = UUID.randomUUID().toString()
         StepVerifier
             .create(subjectReferentialService.addGroupMembershipToUser(subjectUuid, newGroupUuid))
             .expectNextMatches { it == 1 }
@@ -270,7 +271,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer, WithKafkaContaine
 
         subjectReferentialService.create(userAccessRights).block()
 
-        val serviceAccountId = UUID.randomUUID()
+        val serviceAccountId = UUID.randomUUID().toString()
         StepVerifier
             .create(subjectReferentialService.addServiceAccountIdToClient(subjectUuid, serviceAccountId))
             .expectNextMatches { it == 1 }

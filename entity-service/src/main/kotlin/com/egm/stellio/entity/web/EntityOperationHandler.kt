@@ -10,7 +10,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.extractSubjectOrEmpty
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -42,8 +42,8 @@ class EntityOperationHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        if (!authorizationService.userCanCreateEntities(userId))
+        val sub = getSubFromSecurityContext()
+        if (!authorizationService.userCanCreateEntities(sub))
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst()
@@ -60,7 +60,7 @@ class EntityOperationHandler(
             }
         )
 
-        authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), userId)
+        authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), sub)
         ngsiLdEntities
             .filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
             .forEach {
@@ -94,7 +94,7 @@ class EntityOperationHandler(
         @RequestBody requestBody: Mono<String>,
         @RequestParam(required = false) options: String?
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
@@ -105,7 +105,7 @@ class EntityOperationHandler(
 
         val createBatchOperationResult = when {
             newEntities.isEmpty() -> BatchOperationResult()
-            authorizationService.userCanCreateEntities(userId) -> entityOperationService.create(newEntities)
+            authorizationService.userCanCreateEntities(sub) -> entityOperationService.create(newEntities)
             else -> BatchOperationResult(
                 errors = ArrayList(
                     newEntities.map { BatchEntityError(it.id, arrayListOf("User forbidden to create entities")) }
@@ -113,12 +113,12 @@ class EntityOperationHandler(
             )
         }
 
-        authorizationService.createAdminLinks(createBatchOperationResult.getSuccessfulEntitiesIds(), userId)
+        authorizationService.createAdminLinks(createBatchOperationResult.getSuccessfulEntitiesIds(), sub)
 
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
                 existingEntities.map { it.id },
-                userId
+                sub
             )
 
         val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
@@ -171,7 +171,7 @@ class EntityOperationHandler(
         @RequestBody requestBody: Mono<String>,
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
@@ -184,7 +184,7 @@ class EntityOperationHandler(
         val existingEntitiesIdsAuthorized =
             authorizationService.filterEntitiesUserCanUpdate(
                 existingEntities.map { it.id },
-                userId
+                sub
             )
         val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
             existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
@@ -216,14 +216,14 @@ class EntityOperationHandler(
      */
     @PostMapping("/delete", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
-        val userId = extractSubjectOrEmpty().awaitFirst()
+        val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
 
         val (existingEntities, unknownEntities) = entityOperationService
             .splitEntitiesIdsByExistence(body.toListOfUri())
 
         val (entitiesUserCanAdmin, entitiesUserCannotAdmin) = authorizationService
-            .splitEntitiesByUserCanAdmin(existingEntities, userId)
+            .splitEntitiesByUserCanAdmin(existingEntities, sub)
 
         val entitiesIdsToDelete = entitiesUserCanAdmin.toSet()
         val entitiesBeforeDelete = entitiesIdsToDelete.map {

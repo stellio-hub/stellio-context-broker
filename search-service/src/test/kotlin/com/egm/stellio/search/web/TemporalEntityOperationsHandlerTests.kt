@@ -27,7 +27,7 @@ import java.time.ZonedDateTime
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityOperationsHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
+@WithMockCustomUser(name = "Mock User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class TemporalEntityOperationsHandlerTests {
 
     private lateinit var apicHeaderLink: String

@@ -1,17 +1,20 @@
 package com.egm.stellio.shared.util
 
+import arrow.core.None
 import arrow.core.Option
+import arrow.core.Some
+import arrow.core.getOrElse
 import arrow.core.toOption
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.UUID
 
 val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
@@ -52,20 +55,25 @@ object AuthContextModel {
     }
 }
 
-fun extractSubjectOrEmpty(): Mono<String> {
+// sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+typealias Sub = String
+
+suspend fun getSubFromSecurityContext(): Option<Sub> {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
-        .map { context -> context.authentication?.principal?.let { (it as Jwt).subject } ?: "" }
+        .map { context ->
+            context.authentication?.principal?.let { Some((it as Jwt).subject) } ?: None
+        }
+        .awaitFirst()
 }
 
-fun URI.extractSubjectUuid(): UUID =
-    this.toString().extractSubjectUuid()
+fun Option<Sub>.toStringValue(): String = this.getOrElse { "" }
 
-fun String.extractSubjectUuid(): UUID =
-    UUID.fromString(this.substringAfterLast(":"))
+fun URI.extractSub(): Sub =
+    this.toString().extractSub()
 
-fun String.toUUID(): UUID =
-    UUID.fromString(this)
+fun String.extractSub(): Sub =
+    this.substringAfterLast(":")
 
 // specific to authz terms where we know the compacted term is what is after the last # character
 fun ExpandedTerm.toCompactTerm(): String = this.substringAfterLast("#")

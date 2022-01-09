@@ -54,7 +54,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
     @MockkBean(relaxed = true)
     private lateinit var neo4jAuthorizationService: Neo4jAuthorizationService
 
-    private val sub = Some(UUID.randomUUID())
+    private val sub = Some(UUID.randomUUID().toString())
     private val beekeeperUri = "urn:ngsi-ld:Beekeeper:1230".toUri()
     private val groupUri = "urn:ngsi-ld:Group:01".toUri()
     private val userUri = (AuthContextModel.USER_PREFIX + sub.value).toUri()

@@ -57,7 +57,7 @@ class SubscriptionBootstrapper(
             )
         )
 
-        subscriptionService.create(subscription, Some(UUID.randomUUID()))
+        subscriptionService.create(subscription, Some(UUID.randomUUID().toString()))
             .thenEmpty {
                 logger.debug("Created subscription !")
             }

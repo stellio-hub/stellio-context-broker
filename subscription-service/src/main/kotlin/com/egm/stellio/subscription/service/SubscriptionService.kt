@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
@@ -41,7 +42,6 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
 
 @Component
 class SubscriptionService(
@@ -53,7 +53,7 @@ class SubscriptionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(subscription: Subscription, sub: Option<UUID>): Mono<Int> {
+    fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
         val insertStatement =
             """
         INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
@@ -161,7 +161,7 @@ class SubscriptionService(
             }
     }
 
-    fun isCreatorOf(subscriptionId: URI, sub: Option<UUID>): Mono<Boolean> {
+    fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Mono<Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -356,7 +356,7 @@ class SubscriptionService(
             EntityInfo::class.java
         )
 
-    fun getSubscriptions(limit: Int, offset: Int, sub: Option<UUID>): Flux<Subscription> {
+    fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
@@ -392,7 +392,7 @@ class SubscriptionService(
             }
     }
 
-    fun getSubscriptionsCount(sub: Option<UUID>): Mono<Int> {
+    fun getSubscriptionsCount(sub: Option<Sub>): Mono<Int> {
         val selectStatement =
             """
             SELECT count(*) from subscription

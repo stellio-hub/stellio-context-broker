@@ -2,9 +2,9 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.Sub
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.util.UUID
 
 interface SearchRepository {
 
@@ -23,7 +23,7 @@ interface SearchRepository {
     @Transactional(readOnly = true)
     fun getEntities(
         queryParams: QueryParams,
-        sub: Option<UUID>,
+        sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contexts: List<String>

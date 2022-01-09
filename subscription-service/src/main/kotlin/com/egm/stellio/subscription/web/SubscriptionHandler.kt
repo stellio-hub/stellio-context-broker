@@ -11,6 +11,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.PagingUtils
 import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.shared.util.QUERY_PARAM_COUNT
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildGetSuccessResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.extractAndValidatePaginationParameters
@@ -44,7 +45,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.util.Optional
-import java.util.UUID
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/subscriptions")
@@ -213,7 +213,7 @@ class SubscriptionHandler(
                     Mono.just(subscription)
             }
 
-    private fun checkIsAllowed(subscriptionId: URI, sub: Option<UUID>): Mono<URI> =
+    private fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Mono<URI> =
         subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)

@@ -15,7 +15,6 @@ import org.springframework.security.core.context.SecurityContextImpl
 import org.springframework.security.oauth2.jwt.Jwt
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.UUID
 
 val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
@@ -56,25 +55,25 @@ object AuthContextModel {
     }
 }
 
-suspend fun getSubFromSecurityContext(): Option<UUID> {
+// sub as per https://openid.net/specs/openid-connect-core-1_0.html#IDToken
+typealias Sub = String
+
+suspend fun getSubFromSecurityContext(): Option<Sub> {
     return ReactiveSecurityContextHolder.getContext()
         .switchIfEmpty(Mono.just(SecurityContextImpl()))
         .map { context ->
-            context.authentication?.principal?.let { Some((it as Jwt).subject.toUUID()) } ?: None
+            context.authentication?.principal?.let { Some((it as Jwt).subject) } ?: None
         }
         .awaitFirst()
 }
 
-fun Option<UUID>.toStringValue(): String = this.getOrElse { "" }.toString()
+fun Option<Sub>.toStringValue(): String = this.getOrElse { "" }
 
-fun URI.extractSubjectUuid(): UUID =
-    this.toString().extractSubjectUuid()
+fun URI.extractSub(): Sub =
+    this.toString().extractSub()
 
-fun String.extractSubjectUuid(): UUID =
-    UUID.fromString(this.substringAfterLast(":"))
-
-fun String.toUUID(): UUID =
-    UUID.fromString(this)
+fun String.extractSub(): Sub =
+    this.substringAfterLast(":")
 
 // specific to authz terms where we know the compacted term is what is after the last # character
 fun ExpandedTerm.toCompactTerm(): String = this.substringAfterLast("#")

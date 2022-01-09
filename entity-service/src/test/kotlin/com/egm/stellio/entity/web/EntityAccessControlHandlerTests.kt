@@ -31,7 +31,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
@@ -54,7 +53,7 @@ class EntityAccessControlHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var kafkaTemplate: KafkaTemplate<String, String>
 
-    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val subjectId = "urn:ngsi-ld:User:0123".toUri()
     private val entityUri1 = "urn:ngsi-ld:Entity:entityId1".toUri()
 

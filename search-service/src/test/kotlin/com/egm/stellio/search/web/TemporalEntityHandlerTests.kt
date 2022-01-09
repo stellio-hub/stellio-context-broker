@@ -20,7 +20,6 @@ import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
 import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUUID
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -348,7 +347,7 @@ class TemporalEntityHandlerTests {
 
         coVerify {
             entityAccessRightsService.canReadEntity(
-                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79".toUUID())),
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
                 eq(entityUri)
             )
         }

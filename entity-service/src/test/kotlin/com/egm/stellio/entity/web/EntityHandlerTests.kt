@@ -45,7 +45,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
-import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityHandler::class)
@@ -80,7 +79,7 @@ class EntityHandlerTests {
             .build()
     }
 
-    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val hcmrContext = listOf(

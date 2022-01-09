@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.net.URI
 import java.util.Optional
-import java.util.UUID
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -421,12 +420,12 @@ class EntityHandler(
     private fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>,
         entityUri: URI,
-        sub: Option<UUID>
+        sub: Option<Sub>
     ) = ngsiLdAttributes.forEach { ngsiLdAttribute ->
         checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri, sub)
     }
 
-    private fun checkAttributeIsAuthorized(expandedAttributeName: String, entityUri: URI, sub: Option<UUID>) {
+    private fun checkAttributeIsAuthorized(expandedAttributeName: String, entityUri: URI, sub: Option<Sub>) {
         if (expandedAttributeName == AuthContextModel.AUTH_PROP_SAP &&
             !authorizationService.userIsAdminOfEntity(entityUri, sub)
         )

@@ -29,7 +29,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.net.URI
-import java.util.UUID
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
@@ -63,7 +62,7 @@ class EntityOperationHandlerTests {
             .build()
     }
 
-    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val batchSomeEntitiesExistsResponse =
         """
         {

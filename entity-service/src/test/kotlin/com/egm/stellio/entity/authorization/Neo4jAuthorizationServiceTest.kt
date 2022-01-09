@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
 import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -31,7 +32,7 @@ class Neo4jAuthorizationServiceTest {
     @MockkBean
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 
-    private val mockUserSub = Some(UUID.randomUUID())
+    private val mockUserSub = Some(UUID.randomUUID().toString())
     private val mockUserUri = (USER_PREFIX + mockUserSub.value).toUri()
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
 
@@ -235,7 +236,7 @@ class Neo4jAuthorizationServiceTest {
     }
 
     private fun assertUserHasRightOnEntity(
-        userHasRightOnEntity: (URI, Option<UUID>) -> Boolean,
+        userHasRightOnEntity: (URI, Option<Sub>) -> Boolean,
         hasGrantedAccess: Boolean,
         hasSpecificPolicyAccess: Boolean
     ) {

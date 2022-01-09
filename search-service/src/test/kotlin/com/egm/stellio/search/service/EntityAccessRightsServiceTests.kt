@@ -21,7 +21,6 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -36,8 +35,8 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer, WithKafkaContaine
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
 
-    private val subjectUuid = UUID.fromString("0768A6D5-D87B-4209-9A22-8C40A8961A79")
-    private val groupUuid = UUID.fromString("220FC854-3609-404B-BC77-F2DFE332B27B")
+    private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
+    private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
     private val entityId = "urn:ngsi-ld:Entity:1111".toUri()
 
     @BeforeEach

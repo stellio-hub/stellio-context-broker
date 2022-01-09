@@ -27,7 +27,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
@@ -55,7 +54,7 @@ class SubscriptionHandlerTests {
             .build()
     }
 
-    private val sub = Some(UUID.fromString("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
+    private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
     private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
 
     @Test

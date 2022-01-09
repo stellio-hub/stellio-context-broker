@@ -7,24 +7,23 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.util.UUID
 
 @ActiveProfiles("test")
 class AuthUtilsTests {
 
     @Test
-    fun `it should extract UUID from an entity URI`() {
+    fun `it should extract sub from an entity URI`() {
         assertEquals(
-            UUID.fromString("3693C62A-D5B2-4F9E-9D3A-F82814984D5C"),
-            URI.create("urn:ngsi-ld:Entity:3693C62A-D5B2-4F9E-9D3A-F82814984D5C").extractSubjectUuid()
+            "3693C62A-D5B2-4F9E-9D3A-F82814984D5C",
+            URI.create("urn:ngsi-ld:Entity:3693C62A-D5B2-4F9E-9D3A-F82814984D5C").extractSub()
         )
     }
 
     @Test
-    fun `it should extract UUID from a string version of an entity URI`() {
+    fun `it should extract sub from a string version of an entity URI`() {
         assertEquals(
-            UUID.fromString("3693C62A-D5B2-4F9E-9D3A-F82814984D5C"),
-            "urn:ngsi-ld:Entity:3693C62A-D5B2-4F9E-9D3A-F82814984D5C".extractSubjectUuid()
+            "3693C62A-D5B2-4F9E-9D3A-F82814984D5C",
+            "urn:ngsi-ld:Entity:3693C62A-D5B2-4F9E-9D3A-F82814984D5C".extractSub()
         )
     }
 

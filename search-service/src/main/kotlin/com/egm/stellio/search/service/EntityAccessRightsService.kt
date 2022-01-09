@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
 import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
 import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import com.egm.stellio.shared.util.Sub
 import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -16,8 +17,8 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
-import java.util.UUID
 
 @Service
 class EntityAccessRightsService(
@@ -29,15 +30,15 @@ class EntityAccessRightsService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun setReadRoleOnEntity(sub: UUID, entityId: URI): Mono<Int> =
+    fun setReadRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
         setRoleOnEntity(sub, entityId, R_CAN_READ)
 
     @Transactional
-    fun setWriteRoleOnEntity(sub: UUID, entityId: URI): Mono<Int> =
+    fun setWriteRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
-    fun setRoleOnEntity(sub: UUID, entityId: URI, accessRight: AccessRight): Mono<Int> =
+    fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Mono<Int> =
         databaseClient
             .sql(
                 """
@@ -58,7 +59,7 @@ class EntityAccessRightsService(
             }
 
     @Transactional
-    fun removeRoleOnEntity(sub: UUID, entityId: URI): Mono<Int> =
+    fun removeRoleOnEntity(sub: Sub, entityId: URI): Mono<Int> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(
                 Query.query(
@@ -72,13 +73,13 @@ class EntityAccessRightsService(
                 Mono.just(-1)
             }
 
-    fun canReadEntity(sub: Option<UUID>, entityId: URI): Mono<Boolean> =
+    fun canReadEntity(sub: Option<Sub>, entityId: URI): Mono<Boolean> =
         checkHasAccessRight(sub, entityId, listOf(R_CAN_READ, R_CAN_WRITE, R_CAN_ADMIN))
 
-    fun canWriteEntity(sub: Option<UUID>, entityId: URI): Mono<Boolean> =
+    fun canWriteEntity(sub: Option<Sub>, entityId: URI): Mono<Boolean> =
         checkHasAccessRight(sub, entityId, listOf(R_CAN_WRITE, R_CAN_ADMIN))
 
-    private fun checkHasAccessRight(sub: Option<UUID>, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
+    private fun checkHasAccessRight(sub: Option<Sub>, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
         Mono.just(!applicationProperties.authentication.enabled)
             .flatMap {
                 if (it) Mono.just(true)
@@ -93,11 +94,12 @@ class EntityAccessRightsService(
                             // ... and check if it has the required role with at least one of them
                             hasAccessRightOnEntity(uuids, entityId, accessRights)
                         }
+                        .switchIfEmpty { Mono.just(false) }
                 }
             }
 
     private fun hasAccessRightOnEntity(
-        uuids: List<UUID>,
+        uuids: List<Sub>,
         entityId: URI,
         accessRights: List<AccessRight>
     ): Mono<Boolean> =
@@ -124,28 +126,35 @@ class EntityAccessRightsService(
                 Mono.just(false)
             }
 
-    suspend fun computeAccessRightFilter(sub: Option<UUID>): () -> String? {
+    suspend fun computeAccessRightFilter(sub: Option<Sub>): () -> String? {
         if (!applicationProperties.authentication.enabled ||
             subjectReferentialService.hasStellioAdminRole(sub).awaitFirst()
         )
             return { null }
         else {
-            val subjectAndGroupsUUID = subjectReferentialService.getSubjectAndGroupsUUID(sub).awaitFirst()
-            val formattedSubjectAndGroupsUUID = subjectAndGroupsUUID.joinToString(",") { "'$it'" }
-            return {
-                """
-                    entity_id IN (
-                        SELECT entity_id
-                        FROM entity_access_rights
-                        WHERE subject_id IN ($formattedSubjectAndGroupsUUID)
-                    )
-                """.trimIndent()
-            }
+            return subjectReferentialService.getSubjectAndGroupsUUID(sub)
+                .map {
+                    {
+                        """
+                        entity_id IN (
+                            SELECT entity_id
+                            FROM entity_access_rights
+                            WHERE subject_id IN (${it.toListOfString()})
+                        )
+                        """.trimIndent()
+                    }
+                }.switchIfEmpty {
+                    Mono.just {
+                        "entity_id IN ('None')"
+                    }
+                }.awaitFirst()
         }
     }
 
+    private fun <T> List<T>.toListOfString() = this.joinToString(",") { "'$it'" }
+
     @Transactional
-    fun delete(sub: UUID): Mono<Int> =
+    fun delete(sub: Sub): Mono<Int> =
         r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
             .matching(Query.query(Criteria.where("subject_id").`is`(sub)))
             .all()

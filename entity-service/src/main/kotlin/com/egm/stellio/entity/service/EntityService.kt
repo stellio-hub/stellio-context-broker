@@ -9,13 +9,13 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
 import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
-import java.util.UUID
 
 @Component
 class EntityService(
@@ -246,7 +246,7 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        sub: Option<UUID>,
+        sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contextLink: String,
@@ -265,7 +265,7 @@ class EntityService(
     @Transactional(readOnly = true)
     fun searchEntities(
         queryParams: QueryParams,
-        sub: Option<UUID>,
+        sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contexts: List<String>,

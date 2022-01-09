@@ -40,7 +40,7 @@ class SubscriptionServiceTests : WithTimescaleContainer, WithKafkaContainer {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
-    private val mockUserSub = Some(UUID.randomUUID())
+    private val mockUserSub = Some(UUID.randomUUID().toString())
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI

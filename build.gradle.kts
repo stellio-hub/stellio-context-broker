@@ -5,6 +5,12 @@ import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
+buildscript {
+    dependencies {
+        classpath("com.google.cloud.tools:jib-spring-boot-extension-gradle:0.1.0")
+    }
+}
+
 extra["springCloudVersion"] = "2021.0.0"
 extra["testcontainersVersion"] = "1.16.2"
 

@@ -3,10 +3,10 @@ package com.egm.stellio.subscription.utils
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.GeoQuery
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 object QueryUtils {
 
@@ -31,7 +31,6 @@ object QueryUtils {
      *     (@.executes.object=="urn:ngsi-ld:Feeder:018z5"||@.executes["createdAt"]=="2018-11-26T21:32:52.98601Z")
      */
     fun createQueryStatement(query: String?, entity: String): String {
-        val mapper = jacksonObjectMapper()
         val parsedEntity = mapper.readTree(entity) as ObjectNode
 
         var jsonPathQuery = query
@@ -113,7 +112,6 @@ object QueryUtils {
     }
 
     fun parseCoordinates(geometryType: String, initialCoordinates: String): List<List<Double>> {
-        val mapper = jacksonObjectMapper()
         val coordinates = StringBuilder()
         if (geometryType == GeoPropertyType.Point.value)
             coordinates.append("[").append(initialCoordinates).append("]")

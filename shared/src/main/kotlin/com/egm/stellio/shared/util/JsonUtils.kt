@@ -8,13 +8,13 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
-object JsonUtils {
+val mapper: ObjectMapper =
+    jacksonObjectMapper()
+        .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+        .findAndRegisterModules()
+        .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-    @PublishedApi internal val mapper: ObjectMapper =
-        jacksonObjectMapper()
-            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-            .findAndRegisterModules()
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+object JsonUtils {
 
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue(content, T::class.java)

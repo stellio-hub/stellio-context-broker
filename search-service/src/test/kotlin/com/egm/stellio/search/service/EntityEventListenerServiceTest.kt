@@ -5,9 +5,9 @@ import com.egm.stellio.shared.model.EventsType
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.confirmVerified
@@ -109,7 +109,7 @@ class EntityEventListenerServiceTest {
                 }
             }                
             """.trimIndent()
-        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val jsonNode = mapper.readTree(operationPayload)
         val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {
@@ -133,7 +133,7 @@ class EntityEventListenerServiceTest {
                 "observedAt": "2021-04-12T09:00:00Z"
             }                
             """.trimIndent()
-        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val jsonNode = mapper.readTree(operationPayload)
         val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {
@@ -160,7 +160,7 @@ class EntityEventListenerServiceTest {
                 "datasetId": "urn:ngsi-ld:Dataset:1234"
             }                
             """.trimIndent()
-        val jsonNode = jacksonObjectMapper().readTree(operationPayload)
+        val jsonNode = mapper.readTree(operationPayload)
         val result = entityEventListenerService.toTemporalAttributeMetadata(jsonNode)
         result.bimap(
             {

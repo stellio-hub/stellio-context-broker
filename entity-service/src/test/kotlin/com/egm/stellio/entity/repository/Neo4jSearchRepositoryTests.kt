@@ -7,7 +7,6 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -40,7 +39,7 @@ import java.util.UUID
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=true"])
-class Neo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
+class Neo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository

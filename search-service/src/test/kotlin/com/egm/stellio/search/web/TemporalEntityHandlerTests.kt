@@ -784,7 +784,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Sensor:0022CCC")
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isUnauthorized
     }
 
     @Test

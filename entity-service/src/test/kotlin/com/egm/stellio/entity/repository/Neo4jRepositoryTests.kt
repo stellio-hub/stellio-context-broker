@@ -8,7 +8,6 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.toUri
 import junit.framework.TestCase.assertEquals
@@ -29,7 +28,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class Neo4jRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
+class Neo4jRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var neo4jRepository: Neo4jRepository

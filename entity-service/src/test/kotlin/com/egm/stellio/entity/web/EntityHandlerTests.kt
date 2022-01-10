@@ -2026,6 +2026,6 @@ class EntityHandlerTests {
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:Sensor:0022CCC")
             .header(HttpHeaders.LINK, aquacHeaderLink)
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isUnauthorized
     }
 }

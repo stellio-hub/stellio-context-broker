@@ -8,7 +8,6 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
@@ -30,7 +29,7 @@ import java.net.URI
 
 @SpringBootTest
 @ActiveProfiles("test")
-class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer, WithKafkaContainer {
+class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Autowired
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository

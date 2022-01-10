@@ -677,6 +677,6 @@ class SubscriptionHandlerTests {
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isUnauthorized
     }
 }

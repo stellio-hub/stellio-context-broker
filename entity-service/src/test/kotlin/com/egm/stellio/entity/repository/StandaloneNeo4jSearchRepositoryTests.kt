@@ -6,7 +6,6 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.support.WithKafkaContainer
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.toUri
@@ -31,7 +30,7 @@ import java.time.ZonedDateTime
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = ["application.authentication.enabled=false"])
-class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer, WithKafkaContainer {
+class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
 
     @Autowired
     private lateinit var searchRepository: SearchRepository

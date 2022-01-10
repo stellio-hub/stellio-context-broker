@@ -19,10 +19,10 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -129,7 +129,7 @@ class EntityEventListenerService(
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
         val expandedAttributeName = expandJsonLdKey(attributeAppendEvent.attributeName, attributeAppendEvent.contexts)!!
-        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
 
         handleAttributeAppend(
             attributeAppendEvent.entityId,
@@ -142,7 +142,7 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(attributeReplaceEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(attributeReplaceEvent.operationPayload)
 
         handleAttributeUpdate(
             attributeReplaceEvent.entityId,
@@ -155,7 +155,7 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(attributeUpdateEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(attributeUpdateEvent.operationPayload)
 
         handleAttributeUpdate(
             attributeUpdateEvent.entityId,

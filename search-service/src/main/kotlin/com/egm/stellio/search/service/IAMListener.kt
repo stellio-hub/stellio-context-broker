@@ -20,12 +20,12 @@ import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.SubjectType
 import com.egm.stellio.shared.util.extractSub
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.databind.node.TextNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -72,7 +72,7 @@ class IAMListener(
     }
 
     private fun createFullSubjectReferential(entityCreateEvent: EntityCreateEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(entityCreateEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val serviceAccountId =
             if (operationPayloadNode.has(AUTH_TERM_SID))
@@ -91,7 +91,7 @@ class IAMListener(
     }
 
     private fun createSubjectReferential(entityCreateEvent: EntityCreateEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(entityCreateEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(entityCreateEvent.operationPayload)
         val roles = extractRoles(operationPayloadNode)
         val subjectReferential = SubjectReferential(
             subjectId = entityCreateEvent.entityId.extractSub(),
@@ -134,7 +134,7 @@ class IAMListener(
     }
 
     private fun updateSubjectProfile(attributeAppendEvent: AttributeAppendEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
         val subjectUuid = attributeAppendEvent.entityId.extractSub()
         if (attributeAppendEvent.attributeName == AUTH_TERM_ROLES) {
             val newRoles = (operationPayloadNode[JSONLD_VALUE] as ArrayNode).map {
@@ -169,7 +169,7 @@ class IAMListener(
     }
 
     private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
-        val operationPayloadNode = jacksonObjectMapper().readTree(attributeAppendEvent.operationPayload)
+        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
         val entityId = operationPayloadNode["object"].asText()
         when (val accessRight = AccessRight.forAttributeName(attributeAppendEvent.attributeName)) {
             is Some ->

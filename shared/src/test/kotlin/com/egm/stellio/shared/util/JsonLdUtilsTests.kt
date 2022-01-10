@@ -12,7 +12,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
-import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -86,7 +85,6 @@ class JsonLdUtilsTests {
 
     @Test
     fun `it should simplify a JSON-LD Map`() {
-        val mapper = ObjectMapper()
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
         val simplifiedMap = mapper.readValue(simplifiedJson, Map::class.java)
 
@@ -97,7 +95,6 @@ class JsonLdUtilsTests {
 
     @Test
     fun `it should filter a JSON-LD Map on the attributes specified as well as the mandatory attributes`() {
-        val mapper = ObjectMapper()
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
 
         val resultMap = JsonLdUtils.filterCompactedEntityOnAttributes(

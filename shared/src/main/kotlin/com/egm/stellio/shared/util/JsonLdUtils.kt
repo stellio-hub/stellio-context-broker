@@ -76,8 +76,7 @@ object JsonLdUtils {
 
     @PostConstruct
     private fun loadCoreContext() {
-        val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
-        val coreContext: Map<String, Any> = deserializeObject(coreContextPayload)
+        val coreContext: Map<String, Any> = deserializeObject(localCoreContextPayload)
         BASE_CONTEXT = coreContext[JSONLD_CONTEXT] as Map<String, Any>
         logger.info("Core context loaded")
     }

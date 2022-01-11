@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3.9'
 services:
   zookeeper:
     image: wurstmeister/zookeeper
@@ -40,6 +40,13 @@ services:
     ports:
       - 7474:7474
       - 7687:7687
+    # following https://github.com/neo4j/neo4j/issues/7203#issuecomment-898511474
+    healthcheck:
+      test: wget http://localhost:7474 || exit 1
+      interval: 1s
+      timeout: 10s
+      retries: 20
+      start_period: 3s
   postgres:
     image: stellio/stellio-timescale-postgis:2.3.0-pg13
     container_name: stellio-postgres
@@ -70,8 +77,10 @@ services:
     ports:
       - 8082:8082
     depends_on:
-      - neo4j
-      - kafka
+      neo4j:
+        condition: service_healthy
+      kafka:
+        condition: service_started
   search-service:
     container_name: stellio-search-service
     image: stellio/stellio-search-service:${STELLIO_DOCKER_TAG}

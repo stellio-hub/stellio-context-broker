@@ -18,7 +18,6 @@ dependencies {
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-    testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.testcontainers:neo4j")
     testImplementation(testFixtures(project(":shared")))
 }

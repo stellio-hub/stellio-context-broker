@@ -10,14 +10,14 @@ import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.toUri
-import junit.framework.TestCase.assertEquals
-import junit.framework.TestCase.assertFalse
-import junit.framework.TestCase.assertNotNull
-import junit.framework.TestCase.assertNull
-import junit.framework.TestCase.assertTrue
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -791,7 +791,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val propertiesInformation = attributesInformation["properties"] as Set<*>
 
-        assertEquals("Got the following attributes: $propertiesInformation", 3, propertiesInformation.size)
+        assertEquals(3, propertiesInformation.size, "Got the following attributes: $propertiesInformation")
         assertTrue(propertiesInformation.containsAll(listOf("humidity", "temperature", "incoming")))
         assertEquals(attributesInformation["relationships"], emptySet<String>())
         assertEquals(attributesInformation["geoProperties"], emptySet<String>())
@@ -939,7 +939,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
         val entityTypes = neo4jRepository.getEntityTypes()
 
-        assertEquals("Got the following types instead: $entityTypes", 2, entityTypes.size)
+        assertEquals(2, entityTypes.size, "Got the following types instead: $entityTypes")
         assertTrue(
             entityTypes.containsAll(
                 listOf(
@@ -1028,7 +1028,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(secondEntity.id), "observedBy", thirdEntity.id)
 
         val attributes = neo4jRepository.getAttributesDetails()
-        assertEquals("Got the following types instead: $attributes", 6, attributes.size)
+        assertEquals(6, attributes.size, "Got the following types instead: $attributes")
         assertArrayEquals(
             arrayOf(
                 mapOf(
@@ -1118,7 +1118,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             "attributeCount" to 2
         )
 
-        assertEquals("Got the following attributes: $actualAttributesInformation", 4, actualAttributesInformation.size)
+        assertEquals(4, actualAttributesInformation.size, "Got the following attributes: $actualAttributesInformation")
         assertArrayEquals(arrayOf(expectedAttributesInformation), arrayOf(actualAttributesInformation))
     }
 
@@ -1153,7 +1153,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             "attributeCount" to 2
         )
 
-        assertEquals("Got the following attributes: $actualAttributesInformation", 4, actualAttributesInformation.size)
+        assertEquals(4, actualAttributesInformation.size, "Got the following attributes: $actualAttributesInformation")
         assertArrayEquals(arrayOf(expectedAttributesInformation), arrayOf(actualAttributesInformation))
     }
 

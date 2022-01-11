@@ -14,8 +14,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import junit.framework.TestCase.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired

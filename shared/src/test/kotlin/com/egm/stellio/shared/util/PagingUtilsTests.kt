@@ -1,6 +1,6 @@
 package com.egm.stellio.shared.util
 
-import junit.framework.TestCase.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.util.LinkedMultiValueMap
 

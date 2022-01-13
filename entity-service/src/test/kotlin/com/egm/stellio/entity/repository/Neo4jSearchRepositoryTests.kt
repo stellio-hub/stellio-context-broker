@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -104,7 +105,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     @Test
     fun `it should return matching entities that user can access by it's group`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
+        val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE), mutableListOf())
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
         val firstEntity = createEntity(
             beekeeperUri,

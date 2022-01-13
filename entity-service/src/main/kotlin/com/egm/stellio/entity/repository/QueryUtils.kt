@@ -10,8 +10,12 @@ import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
-import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import java.util.regex.Pattern
@@ -34,14 +38,17 @@ object QueryUtils {
             """
             CALL {
                 MATCH (userEntity:Entity:`$USER_TYPE`)
-                    WHERE userEntity.id = ${'$'}userId RETURN userEntity
+                WHERE userEntity.id = ${'$'}userId
+                RETURN userEntity
                 UNION 
                 MATCH (userEntity:Entity:`$CLIENT_TYPE`)
-                    WHERE (userEntity)-[:HAS_VALUE]
-                        ->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId})
+                WHERE (userEntity)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId})
                 RETURN userEntity
             }
-            with userEntity
+            WITH userEntity
+            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
+                [:$AUTH_TERM_IS_MEMBER_OF]->(group:`$GROUP_TYPE`)
+            WITH apoc.coll.union(collect(group.id), collect(userEntity.id)) as userAndGroupIds
             """.trimIndent()
 
         val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
@@ -55,20 +62,12 @@ object QueryUtils {
 
         val matchEntitiesClause =
             """
-            MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->$matchEntityClause
-            WHERE any(r IN labels(right) WHERE r IN ${READ_RIGHTS.map { "'$it'" }})
+            MATCH (user)-[:HAS_OBJECT]->(right:Attribute:Relationship)-
+                [:$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN]->$matchEntityClause
+            WHERE user.id IN userAndGroupIds
             $finalFilterClause
             return entity.id as entityId
             """.trimIndent()
-
-        val matchEntitiesFromGroupClause =
-            """
-            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)
-            -[:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->$matchEntityClause
-	        WHERE any(r IN labels(grpRight) WHERE r IN ${READ_RIGHTS.map { "'$it'" }})
-            $finalFilterClause
-            return entity.id as entityId
-        """.trimIndent()
 
         val matchAuthorizedPerAccessPolicyClause =
             """
@@ -100,9 +99,6 @@ object QueryUtils {
                 UNION
                 $matchUserClause
                 $matchEntitiesClause
-                UNION
-                $matchUserClause
-                $matchEntitiesFromGroupClause
             }
             $pagingClause
             """

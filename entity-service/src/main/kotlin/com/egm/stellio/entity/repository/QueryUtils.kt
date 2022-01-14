@@ -33,24 +33,6 @@ object QueryUtils {
         val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
         val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
         val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
-
-        val matchUserClause =
-            """
-            CALL {
-                MATCH (userEntity:Entity:`$USER_TYPE`)
-                WHERE userEntity.id = ${'$'}userId
-                RETURN userEntity
-                UNION 
-                MATCH (userEntity:Entity:`$CLIENT_TYPE`)
-                WHERE (userEntity)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId})
-                RETURN userEntity
-            }
-            WITH userEntity
-            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
-                [:$AUTH_TERM_IS_MEMBER_OF]->(group:`$GROUP_TYPE`)
-            WITH apoc.coll.union(collect(group.id), collect(userEntity.id)) as userAndGroupIds
-            """.trimIndent()
-
         val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
         val idClause = buildIdClause(id)
         val idPatternClause = buildIdPatternClause(idPattern)
@@ -60,22 +42,43 @@ object QueryUtils {
             .joinToString(separator = " AND ", prefix = " AND ")
             .takeIf { it.trim() != "AND" } ?: ""
 
-        val matchEntitiesClause =
+        val matchUserClause =
             """
-            MATCH (user)-[:HAS_OBJECT]->(right:Attribute:Relationship)-
-                [:$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN]->$matchEntityClause
-            WHERE user.id IN userAndGroupIds
-            $finalFilterClause
-            return entity.id as entityId
+            CALL {
+                MATCH (userEntity:`$USER_TYPE`)
+                WHERE userEntity.id = ${'$'}userId
+                RETURN userEntity
+                UNION 
+                MATCH (userEntity:`$CLIENT_TYPE`)-[:HAS_VALUE]->(p:Property { name: "$AUTH_PROP_SID" })
+                WHERE p.value = ${'$'}userId
+                RETURN userEntity
+            }
+            WITH userEntity
+            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT|$AUTH_TERM_IS_MEMBER_OF*2]->(group:`$GROUP_TYPE`)
+            WITH apoc.coll.union(collect(id(group)), collect(id(userEntity))) as userAndGroupIds
             """.trimIndent()
 
-        val matchAuthorizedPerAccessPolicyClause =
+        val matchAuthorizedEntitiesClause =
             """
-            MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: "$AUTH_PROP_SAP" })
-            WHERE prop.value IN [
-                '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
-                '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
-            ]
+            CALL {
+                WITH userAndGroupIds
+                MATCH (user)
+                WHERE id(user) IN userAndGroupIds
+                WITH user
+                MATCH (user)-[]->()-
+                    [:$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN]->$matchEntityClause
+                RETURN collect(id(entity)) as entitiesIds
+                UNION
+                MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
+                WHERE prop.value IN [
+                    '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
+                    '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
+                ]
+                RETURN collect(id(entity)) as entitiesIds
+            }
+            WITH entitiesIds
+            MATCH (entity)
+            WHERE id(entity) IN entitiesIds
             $finalFilterClause
             return entity.id as entityId
             """.trimIndent()
@@ -95,10 +98,8 @@ object QueryUtils {
 
         return """
             CALL {
-                $matchAuthorizedPerAccessPolicyClause
-                UNION
                 $matchUserClause
-                $matchEntitiesClause
+                $matchAuthorizedEntitiesClause
             }
             $pagingClause
             """
@@ -168,7 +169,7 @@ object QueryUtils {
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """
                     EXISTS {
-                        MATCH (entity:Entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
+                        MATCH (entity)-[:HAS_OBJECT]-()-[:${parsedQueryTerm.first}]->(e)
                         WHERE e.id ${parsedQueryTerm.second} ${parsedQueryTerm.third}
                     }
                 """.trimIndent()
@@ -192,7 +193,7 @@ object QueryUtils {
                 else
                     """
                        EXISTS {
-                           MATCH (entity:Entity)-[:HAS_VALUE]->(p:Property)
+                           MATCH (entity)-[:HAS_VALUE]->(p:Property)
                            WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
                            AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                        }
@@ -208,11 +209,10 @@ object QueryUtils {
         ) { expandedAttr ->
             """
                EXISTS {
-                   MATCH (entity:Entity)
+                   MATCH (entity)
                    WHERE (
-                        (entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })
-                        OR 
-                        (entity)-[:HAS_OBJECT]-(:Relationship:`$expandedAttr`)
+                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })) OR 
+                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$expandedAttr`))
                    ) 
                }
             """.trimIndent()

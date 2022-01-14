@@ -293,6 +293,68 @@ class NotificationServiceTests {
     }
 
     @Test
+    fun `it should notify the second subscriber even if the first notification has failed`() {
+        // the notification for this one is expected to fail as we don't listen on port 8088
+        val subscription1 = gimmeRawSubscription()
+            .copy(
+                notification = NotificationParams(
+                    attributes = emptyList(),
+                    format = FormatType.KEY_VALUES,
+                    endpoint = Endpoint(
+                        uri = "http://localhost:8088/notification".toUri(),
+                        accept = Endpoint.AcceptType.JSONLD,
+                        info = null
+                    ),
+                    status = null,
+                    lastNotification = null,
+                    lastFailure = null,
+                    lastSuccess = null
+                )
+            )
+        val subscription2 = gimmeRawSubscription()
+
+        every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
+            Flux.just(subscription1, subscription2)
+        }
+        every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
+        every { subscriptionService.isMatchingGeoQuery(any(), any()) } answers { Mono.just(true) }
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { subscriptionEventService.publishNotificationCreateEvent(any()) } just Runs
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        val notificationResult = notificationService.notifyMatchingSubscribers(rawEntity, parsedEntity, setOf("name"))
+
+        StepVerifier.create(notificationResult)
+            .expectNextMatches { results ->
+                results.size == 2 &&
+                    results.all {
+                        (it.first.id == subscription1.id && !it.third) ||
+                            (it.first.id == subscription2.id && it.third)
+                    }
+            }
+            .expectComplete()
+            .verify()
+
+        verify {
+            subscriptionService.getMatchingSubscriptions(
+                apiaryId.toUri(),
+                "https://ontology.eglobalmark.com/apic#Apiary",
+                "name"
+            )
+        }
+        verify { subscriptionService.isMatchingQuery(subscription1.q, any()) }
+        verify { subscriptionService.isMatchingQuery(subscription2.q, any()) }
+        verify { subscriptionService.isMatchingGeoQuery(subscription1.id, any()) }
+        verify { subscriptionService.isMatchingGeoQuery(subscription2.id, any()) }
+        verify(exactly = 2) { subscriptionService.updateSubscriptionNotification(any(), any(), any()) }
+        confirmVerified(subscriptionService)
+    }
+
+    @Test
     fun `it should notify the subscriber that matches the geoQuery`() {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()

@@ -64,8 +64,7 @@ class NotificationService(
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {
-            var request =
-                WebClient.create(uri).post() as WebClient.RequestBodySpec
+            var request = WebClient.create(uri).post() as WebClient.RequestBodySpec
             subscription.notification.endpoint.info?.forEach {
                 request = request.header(it.key, it.value)
             }
@@ -77,9 +76,13 @@ class NotificationService(
                     val success = response.statusCode() == HttpStatus.OK
                     logger.info("The notification sent has been received with ${if (success) "success" else "failure"}")
                     if (!success) {
-                        logger.error("Failed to send notification to $uri : ${response.statusCode()}")
+                        logger.error("Failed to send notification to $uri: ${response.statusCode()}")
                     }
                     Mono.just(Triple(subscription, notification, success))
+                }
+                .onErrorResume {
+                    logger.error("Failed to send notification to $uri: $it")
+                    Mono.just(Triple(subscription, notification, false))
                 }
                 .doOnNext {
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()

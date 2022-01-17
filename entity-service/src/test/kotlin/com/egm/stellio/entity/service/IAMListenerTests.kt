@@ -30,6 +30,8 @@ class IAMListenerTests {
     @MockkBean(relaxed = true)
     private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 
+    private val userUri = "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUri()
+
     @Test
     fun `it should parse and transmit user creation event`() {
         val userCreateEvent = loadSampleData("events/authorization/UserCreateEvent.json")
@@ -152,13 +154,12 @@ class IAMListenerTests {
             entityService.appendEntityAttributes(any(), any(), any())
         } returns mockUpdateResult
         every { mockUpdateResult.isSuccessful() } returns true
-        every { neo4jAuthorizationRepository.updateSubjectGroups(any()) } returns emptySet()
 
         iamListener.processMessage(groupMembershipAppendEvent)
 
         verify {
             entityService.appendEntityAttributes(
-                "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUri(),
+                userUri,
                 match {
                     it.size == 1 &&
                         it[0].name == "https://ontology.eglobalmark.com/authorization#isMemberOf" &&
@@ -174,7 +175,7 @@ class IAMListenerTests {
 
         verify {
             neo4jAuthorizationRepository.updateSubjectGroups(
-                eq("urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUri())
+                eq(userUri)
             )
         }
         confirmVerified()
@@ -184,15 +185,21 @@ class IAMListenerTests {
     fun `it should parse and transmit group membership deletion event`() {
         val groupMembershipDeleteEvent = loadSampleData("events/authorization/GroupMembershipDeleteEvent.json")
 
+        every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
+
         iamListener.processMessage(groupMembershipDeleteEvent)
 
         verify {
             entityService.deleteEntityAttributeInstance(
-                "urn:ngsi-ld:User:96e1f1e9-d798-48d7-820e-59f5a9a2abf5".toUri(),
+                userUri,
                 "https://ontology.eglobalmark.com/authorization#isMemberOf",
                 "urn:ngsi-ld:Dataset:7cdad168-96ee-4649-b768-a060ac2ef435".toUri()
             )
         }
+        verify {
+            neo4jAuthorizationRepository.updateSubjectGroups(userUri)
+        }
+        confirmVerified()
     }
 
     @Test
@@ -223,6 +230,12 @@ class IAMListenerTests {
     fun `it should parse and transmit role update event with one role`() {
         val roleAppendEvent = loadSampleData("events/authorization/RealmRoleAppendEventOneRole.json")
 
+        val mockUpdateResult = mockkClass(UpdateResult::class)
+        every {
+            entityService.appendEntityAttributes(any(), any(), any())
+        } returns mockUpdateResult
+        every { mockUpdateResult.isSuccessful() } returns true
+
         iamListener.processMessage(roleAppendEvent)
 
         verify {
@@ -238,6 +251,9 @@ class IAMListenerTests {
                 },
                 false
             )
+        }
+        verify {
+            neo4jAuthorizationRepository.resetRolesCache()
         }
         confirmVerified()
     }

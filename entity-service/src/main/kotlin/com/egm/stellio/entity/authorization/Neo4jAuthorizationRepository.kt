@@ -1,5 +1,8 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.config.SUBJECT_GROUPS_CACHE
+import com.egm.stellio.entity.config.SUBJECT_ROLES_CACHE
+import com.egm.stellio.entity.config.SUBJECT_URI_CACHE
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -9,6 +12,10 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.CachePut
+import org.springframework.cache.annotation.Cacheable
+import org.springframework.cache.annotation.Caching
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -18,16 +25,47 @@ class Neo4jAuthorizationRepository(
     private val neo4jClient: Neo4jClient
 ) {
 
+    @Cacheable(SUBJECT_URI_CACHE)
+    fun getSubjectUri(defaultSubUri: URI): URI {
+        val query =
+            """
+            MATCH (entity:`$USER_TYPE`)
+            WHERE entity.id = ${'$'}defaultSubUri
+            RETURN entity.id as id
+            UNION
+            MATCH (entity:`$CLIENT_TYPE`)-[:HAS_VALUE]->(p:Property { name: "$AUTH_PROP_SID" })
+            WHERE p.value = ${'$'}defaultSubUri
+            RETURN entity.id as id
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "defaultSubUri" to defaultSubUri.toString()
+        )
+
+        return neo4jClient.query(query).bindAll(parameters)
+            .fetch()
+            .one()
+            .map { (it["id"] as String).toUri() }
+            .orElse(defaultSubUri)
+    }
+
+    @Caching(
+        evict = [
+            CacheEvict(value = arrayOf(SUBJECT_URI_CACHE)),
+            CacheEvict(value = arrayOf(SUBJECT_ROLES_CACHE)),
+            CacheEvict(value = arrayOf(SUBJECT_GROUPS_CACHE))
+        ]
+    )
+    fun evictSubject(subjectId: URI) = Unit
+
     fun filterEntitiesUserHasOneOfGivenRights(
-        userId: URI,
+        subjectId: URI,
         entitiesId: List<URI>,
         rights: Set<String>
     ): List<URI> {
         val query =
             """
-            MATCH (userEntity:Entity)
-            WHERE (userEntity.id = ${'$'}userId
-                OR (userEntity)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId }))
+            MATCH (userEntity:Entity { id: ${'$'}subjectId })
             WITH userEntity 
             MATCH (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
@@ -43,7 +81,7 @@ class Neo4jAuthorizationRepository(
             """.trimIndent()
 
         val parameters = mapOf(
-            "userId" to userId.toString(),
+            "subjectId" to subjectId.toString(),
             "entitiesId" to entitiesId.toListOfString(),
             "rights" to rights
         )
@@ -76,24 +114,19 @@ class Neo4jAuthorizationRepository(
             .map { (it["id"] as String).toUri() }
     }
 
-    fun getUserRoles(userId: URI): Set<String> {
+    @Cacheable(SUBJECT_ROLES_CACHE)
+    fun getSubjectRoles(subjectId: URI): Set<String> {
         val query =
             """
-            MATCH (userEntity:Entity { id: ${'$'}userId })
+            MATCH (userEntity:Entity { id: ${'$'}subjectId })
             OPTIONAL MATCH (userEntity)-[:HAS_VALUE]->(p:Property { name:"$AUTH_PROP_ROLES" })
             OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
-                [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTH_PROP_ROLES" })
-            RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
-            UNION
-            MATCH (client:Entity)-[:HAS_VALUE]->(sid:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId })
-            OPTIONAL MATCH (client)-[:HAS_VALUE]->(p:Property { name:"$AUTH_PROP_ROLES" })
-            OPTIONAL MATCH (client)-[:HAS_OBJECT]-(r:Attribute:Relationship)-
                 [:isMemberOf]->(group:Entity)-[:HAS_VALUE]->(pgroup:Property { name: "$AUTH_PROP_ROLES" })
             RETURN apoc.coll.union(collect(p.value), collect(pgroup.value)) as roles
             """.trimIndent()
 
         val parameters = mapOf(
-            "userId" to userId.toString()
+            "subjectId" to subjectId.toString()
         )
 
         val result = neo4jClient.query(query).bindAll(parameters).fetch().all()
@@ -112,25 +145,49 @@ class Neo4jAuthorizationRepository(
             .toSet()
     }
 
-    fun createAdminLinks(userId: URI, relationships: List<Relationship>, entitiesId: List<URI>): List<URI> {
+    /**
+     * As a role can be given to a group, this would require to first get all the members of the group,
+     * and then to reset the cache entry for every member, so just simply evict the whole cache.
+     */
+    @CacheEvict(value = [SUBJECT_ROLES_CACHE], allEntries = true)
+    fun resetRolesCache() = Unit
+
+    @Cacheable(SUBJECT_GROUPS_CACHE)
+    fun getSubjectGroups(subjectId: URI): Set<URI> {
         val query =
             """
-            CALL {
-                MATCH (user:Entity:`$USER_TYPE`)
-                WHERE user.id = ${'$'}userId
-                RETURN user
-                UNION
-                MATCH (user:Entity:`$CLIENT_TYPE`)
-                WHERE (user)-[:HAS_VALUE]->(:Property { name: "$AUTH_PROP_SID", value: ${'$'}userId })
-                RETURN user
+            MATCH (userEntity:Entity { id: ${'$'}subjectId })
+            OPTIONAL MATCH (userEntity)-[:HAS_OBJECT]-(r:Attribute:Relationship)-[:isMemberOf]->(group:Entity)
+            RETURN collect(group.id) as groupsUris
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "subjectId" to subjectId.toString()
+        )
+
+        val result = neo4jClient.query(query).bindAll(parameters).fetch().one()
+
+        return result
+            .map {
+                (it["groupsUris"] as List<String>).map { it.toUri() }.toSet()
             }
+            .orElse(emptySet())
+    }
+
+    @CachePut(SUBJECT_GROUPS_CACHE)
+    fun updateSubjectGroups(subjectId: URI): Set<URI> = getSubjectGroups(subjectId)
+
+    fun createAdminLinks(subjectId: URI, relationships: List<Relationship>, entitiesId: List<URI>): List<URI> {
+        val query =
+            """
+            MATCH (user:Entity { id: ${'$'}subjectId })
             WITH user
             UNWIND ${'$'}relPropsAndTargets AS relPropAndTarget
             MATCH (target:Entity { id: relPropAndTarget.targetEntityId })
             CREATE (user)-[:HAS_OBJECT]->(r:Attribute:Relationship:`$AUTH_REL_CAN_ADMIN`)-[:rCanAdmin]->(target)
             SET r = relPropAndTarget.props
             RETURN r.id as id
-        """
+            """
 
         val parameters = mapOf(
             "relPropsAndTargets" to relationships
@@ -139,7 +196,7 @@ class Neo4jAuthorizationRepository(
                 .map {
                     mapOf("props" to it.first, "targetEntityId" to it.second)
                 },
-            "userId" to userId.toString()
+            "subjectId" to subjectId.toString()
         )
 
         return neo4jClient.query(query).bindAll(parameters)

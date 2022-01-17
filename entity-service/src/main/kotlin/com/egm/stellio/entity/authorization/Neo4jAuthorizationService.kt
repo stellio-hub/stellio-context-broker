@@ -25,12 +25,18 @@ class Neo4jAuthorizationService(
     private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 ) : AuthorizationService {
 
+    override fun getSubjectUri(sub: Option<Sub>): URI =
+        neo4jAuthorizationRepository.getSubjectUri((USER_PREFIX + sub.toStringValue()).toUri())
+
+    override fun getSubjectGroups(sub: Option<Sub>): Set<URI> =
+        neo4jAuthorizationRepository.getSubjectGroups(getSubjectUri(sub))
+
     override fun userIsAdmin(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, sub)
 
     override fun userCanCreateEntities(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, sub)
 
     private fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Boolean =
-        neo4jAuthorizationRepository.getUserRoles((USER_PREFIX + sub.toStringValue()).toUri())
+        neo4jAuthorizationRepository.getSubjectRoles(getSubjectUri(sub))
             .map { GlobalRole.forKey(it) }
             .flattenOption()
             .intersect(roles)
@@ -85,7 +91,7 @@ class Neo4jAuthorizationService(
         if (userIsAdmin(sub))
             entitiesId
         else neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            (USER_PREFIX + sub.toStringValue()).toUri(),
+            getSubjectUri(sub),
             entitiesId,
             rights
         )
@@ -119,7 +125,7 @@ class Neo4jAuthorizationService(
         sub: Option<Sub>
     ): Boolean =
         userIsAdmin(sub) || neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            (USER_PREFIX + sub.toStringValue()).toUri(),
+            getSubjectUri(sub),
             listOf(entityId),
             rights
         ).isNotEmpty()
@@ -148,7 +154,7 @@ class Neo4jAuthorizationService(
             )
         }
         neo4jAuthorizationRepository.createAdminLinks(
-            (USER_PREFIX + sub.toStringValue()).toUri(),
+            getSubjectUri(sub),
             relationships,
             entitiesId
         )

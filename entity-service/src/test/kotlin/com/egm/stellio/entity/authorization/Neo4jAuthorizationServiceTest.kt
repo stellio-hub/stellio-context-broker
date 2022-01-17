@@ -15,6 +15,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -35,6 +36,11 @@ class Neo4jAuthorizationServiceTest {
     private val mockUserSub = Some(UUID.randomUUID().toString())
     private val mockUserUri = (USER_PREFIX + mockUserSub.value).toUri()
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
+
+    @BeforeEach
+    fun createGlobalMockResponses() {
+        every { neo4jAuthorizationRepository.getSubjectUri(mockUserUri) } returns mockUserUri
+    }
 
     @Test
     fun `it should find user has read right on entity`() {
@@ -111,7 +117,7 @@ class Neo4jAuthorizationServiceTest {
     @Test
     fun `it should find admin user has admin, read or write right entity`() {
         every {
-            neo4jAuthorizationRepository.getUserRoles(mockUserUri)
+            neo4jAuthorizationRepository.getSubjectRoles(mockUserUri)
         } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(neo4jAuthorizationService.userIsAdminOfEntity(entityUri, mockUserSub))
@@ -129,7 +135,7 @@ class Neo4jAuthorizationServiceTest {
                 listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
             )
         } returns emptyList()
-        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
@@ -154,7 +160,7 @@ class Neo4jAuthorizationServiceTest {
                 listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
             )
         } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
-        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
@@ -179,7 +185,7 @@ class Neo4jAuthorizationServiceTest {
                 listOf(SpecificAccessPolicy.AUTH_WRITE.name)
             )
         } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
-        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,
@@ -205,7 +211,7 @@ class Neo4jAuthorizationServiceTest {
             )
         } returns emptyList()
         every {
-            neo4jAuthorizationRepository.getUserRoles(mockUserUri)
+            neo4jAuthorizationRepository.getSubjectRoles(mockUserUri)
         } returns setOf(GlobalRole.STELLIO_ADMIN.key)
 
         assert(
@@ -240,7 +246,7 @@ class Neo4jAuthorizationServiceTest {
         hasGrantedAccess: Boolean,
         hasSpecificPolicyAccess: Boolean
     ) {
-        every { neo4jAuthorizationRepository.getUserRoles(mockUserUri) } returns emptySet()
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
                 mockUserUri,

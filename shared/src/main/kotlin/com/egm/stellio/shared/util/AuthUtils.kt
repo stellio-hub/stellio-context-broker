@@ -41,9 +41,12 @@ object AuthContextModel {
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF
-    const val AUTH_REL_CAN_READ: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanRead"
-    const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanWrite"
-    const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "rCanAdmin"
+    const val AUTH_TERM_CAN_READ = "rCanRead"
+    const val AUTH_REL_CAN_READ: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_READ
+    const val AUTH_TERM_CAN_WRITE = "rCanWrite"
+    const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_WRITE
+    const val AUTH_TERM_CAN_ADMIN = "rCanAdmin"
+    const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
     val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
     val ADMIN_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_ADMIN)
     val WRITE_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_WRITE).plus(ADMIN_RIGHTS)

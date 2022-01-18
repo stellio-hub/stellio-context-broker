@@ -5,6 +5,8 @@ import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
 interface AuthorizationService {
+    fun getSubjectUri(sub: Option<Sub>): URI
+    fun getSubjectGroups(sub: Option<Sub>): Set<URI>
     fun userIsAdmin(sub: Option<Sub>): Boolean
     fun userCanCreateEntities(sub: Option<Sub>): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI>

@@ -1,5 +1,8 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.entity.config.SUBJECT_GROUPS_CACHE
+import com.egm.stellio.entity.config.SUBJECT_ROLES_CACHE
+import com.egm.stellio.entity.config.SUBJECT_URI_CACHE
 import com.egm.stellio.entity.config.WithNeo4jContainer
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
@@ -16,14 +19,19 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.cache.CacheManager
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 
@@ -40,6 +48,9 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     @Autowired
     private lateinit var entityRepository: EntityRepository
 
+    @Autowired
+    private lateinit var cacheManager: CacheManager
+
     private val userUri = "urn:ngsi-ld:User:01".toUri()
     private val groupUri = "urn:ngsi-ld:Group:01".toUri()
     private val clientUri = "urn:ngsi-ld:Client:01".toUri()
@@ -50,12 +61,53 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     @AfterEach
     fun cleanData() {
         entityRepository.deleteAll()
+        // clear the caches between each test to avoid side effects with cached data
+        cacheManager.cacheNames.forEach { cacheManager.getCache(it)?.clear() }
+    }
+
+    @Test
+    fun `it should cache the entity URI for a user sub`() {
+        createEntity(userUri, listOf(USER_TYPE))
+
+        neo4jAuthorizationRepository.getSubjectUri(userUri)
+
+        val cachedUri = cacheManager.getCache(SUBJECT_URI_CACHE)?.get(userUri, URI::class.java)
+        assertNotNull(cachedUri)
+        assertEquals(userUri, cachedUri)
+    }
+
+    @Test
+    fun `it should cache the entity URI for a client sub`() {
+        createEntity(
+            clientUri,
+            listOf(CLIENT_TYPE),
+            mutableListOf(Property(name = AUTH_PROP_SID, value = serviceAccountUri))
+        )
+
+        neo4jAuthorizationRepository.getSubjectUri(serviceAccountUri)
+
+        val cachedUri = cacheManager.getCache(SUBJECT_URI_CACHE)?.get(serviceAccountUri, URI::class.java)
+        assertNotNull(cachedUri)
+        assertEquals(clientUri, cachedUri)
+    }
+
+    @Test
+    fun `it should clear a subject from all caches when it is deleted`() {
+        createEntity(userUri, listOf(USER_TYPE))
+        neo4jAuthorizationRepository.getSubjectRoles(userUri)
+        neo4jAuthorizationRepository.getSubjectGroups(userUri)
+
+        neo4jAuthorizationRepository.evictSubject(userUri)
+
+        assertNull(cacheManager.getCache(SUBJECT_URI_CACHE)?.get(userUri))
+        assertNull(cacheManager.getCache(SUBJECT_ROLES_CACHE)?.get(userUri))
+        assertNull(cacheManager.getCache(SUBJECT_GROUPS_CACHE)?.get(userUri))
     }
 
     @Test
     fun `it should filter entities authorized for user with given rights`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"))
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, apiaryEntity.id)
 
@@ -71,8 +123,8 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should find no entities are authorized by user`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"))
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, apiaryEntity.id)
 
@@ -88,13 +140,13 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should filter entities that are authorized by user's group`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE))
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
-        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
-        val apiaryEntity2 = createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
+        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"))
+        val apiaryEntity2 = createEntity(apiary02Uri, listOf("Apiary"))
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, apiaryEntity.id)
         createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_READ, apiaryEntity2.id)
@@ -120,7 +172,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                 )
             )
         )
-        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"))
 
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_WRITE, apiaryEntity.id)
 
@@ -145,13 +197,13 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                 )
             )
         )
-        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        val apiaryEntity = createEntity(apiaryUri, listOf("Apiary"))
 
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, apiaryEntity.id)
 
         val availableRightsForEntities =
             neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-                serviceAccountUri,
+                clientUri,
                 listOf(apiaryUri),
                 setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE)
             )
@@ -170,7 +222,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                 )
             )
         )
-        createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
+        createEntity(apiary02Uri, listOf("Apiary"))
 
         val authorizedEntities =
             neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
@@ -233,19 +285,56 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should cache subject's roles`() {
+        createEntity(
+            userUri,
+            listOf(USER_TYPE),
+            mutableListOf(Property(name = AUTH_PROP_ROLES, value = listOf("admin", "creator")))
+        )
+
+        neo4jAuthorizationRepository.getSubjectRoles(userUri)
+
+        val cachedRoles = cacheManager.getCache(SUBJECT_ROLES_CACHE)?.get(userUri, Set::class.java)
+        assertNotNull(cachedRoles)
+        assertEquals(setOf("admin", "creator"), cachedRoles)
+    }
+
+    @Test
+    fun `it should clear and populate the cache of subject's roles`() {
+        val property = Property(name = AUTH_PROP_ROLES, value = listOf("admin", "creator"))
+        val entity = createEntity(
+            userUri,
+            listOf(USER_TYPE),
+            mutableListOf(property)
+        )
+
+        neo4jAuthorizationRepository.getSubjectRoles(userUri)
+
+        val updatedEntity = entity.copy(
+            properties = mutableListOf(property.copy(value = listOf("admin")))
+        )
+        entityRepository.save(updatedEntity)
+
+        neo4jAuthorizationRepository.resetRolesCache()
+
+        assertNull(cacheManager.getCache(SUBJECT_ROLES_CACHE)?.get(userUri))
+
+        neo4jAuthorizationRepository.getSubjectRoles(userUri)
+
+        val cachedRoles = cacheManager.getCache(SUBJECT_ROLES_CACHE)?.get(userUri, Set::class.java)
+        assertNotNull(cachedRoles)
+        assertEquals(setOf("admin"), cachedRoles)
+    }
+
+    @Test
     fun `it should get all user's roles`() {
         createEntity(
             userUri,
             listOf(USER_TYPE),
-            mutableListOf(
-                Property(
-                    name = AUTH_PROP_ROLES,
-                    value = listOf("admin", "creator")
-                )
-            )
+            mutableListOf(Property(name = AUTH_PROP_ROLES, value = listOf("admin", "creator")))
         )
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assertEquals(setOf("admin", "creator"), roles)
     }
@@ -267,7 +356,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             )
         )
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(serviceAccountUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(clientUri)
 
         assertEquals(setOf("admin", "creator"), roles)
     }
@@ -285,18 +374,18 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             )
         )
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assertEquals(setOf("admin"), roles)
     }
 
     @Test
     fun `it should get all user's roles from group`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
 
         val groupEntity = createEntity(
             groupUri,
-            listOf("Group"),
+            listOf(GROUP_TYPE),
             mutableListOf(
                 Property(
                     name = AUTH_PROP_ROLES,
@@ -307,7 +396,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assertEquals(setOf("admin"), roles)
     }
@@ -327,7 +416,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         val groupEntity = createEntity(
             groupUri,
-            listOf("Group"),
+            listOf(GROUP_TYPE),
             mutableListOf(
                 Property(
                     name = AUTH_PROP_ROLES,
@@ -338,18 +427,18 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assertEquals(setOf("admin", "creator"), roles)
     }
 
     @Test
     fun `it should get a user's single role from group`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
 
         val groupEntity = createEntity(
             groupUri,
-            listOf("Group"),
+            listOf(GROUP_TYPE),
             mutableListOf(
                 Property(
                     name = AUTH_PROP_ROLES,
@@ -360,16 +449,16 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assertEquals(setOf("admin"), roles)
     }
 
     @Test
     fun `it should find no user roles`() {
-        createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        createEntity(userUri, listOf(USER_TYPE))
 
-        val roles = neo4jAuthorizationRepository.getUserRoles(userUri)
+        val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
         assert(roles.isEmpty())
     }
@@ -387,7 +476,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             )
         )
 
-        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:unknown".toUri())
+        val roles = neo4jAuthorizationRepository.getSubjectRoles("urn:ngsi-ld:User:unknown".toUri())
 
         assert(roles.isEmpty())
     }
@@ -409,16 +498,57 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             )
         )
 
-        val roles = neo4jAuthorizationRepository.getUserRoles("urn:ngsi-ld:User:unknown".toUri())
+        val roles = neo4jAuthorizationRepository.getSubjectRoles("urn:ngsi-ld:User:unknown".toUri())
 
         assert(roles.isEmpty())
     }
 
     @Test
+    fun `it should find all groups for a subject`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE))
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
+
+        val groups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+
+        assertEquals(1, groups.size)
+        assertEquals(groupUri, groups.first())
+    }
+
+    @Test
+    fun `it should fill and update the cache of a subject's groups`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE))
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
+
+        val groups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+
+        assertEquals(1, groups.size)
+        assertEquals(groupUri, groups.first())
+
+        val groupEntity2 = createEntity(
+            "urn:ngsi-ld:Group:02".toUri(),
+            listOf(GROUP_TYPE),
+            mutableListOf()
+        )
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity2.id)
+
+        neo4jAuthorizationRepository.updateSubjectGroups(userUri)
+
+        val updatedGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+
+        assertEquals(2, updatedGroups.size)
+        assertTrue(updatedGroups.containsAll(setOf(groupEntity.id, groupEntity2.id)))
+    }
+
+    @Test
     fun `it should create admin links to entities`() {
-        createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
-        createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
+        createEntity(userUri, listOf(USER_TYPE))
+        createEntity(apiaryUri, listOf("Apiary"))
+        createEntity(apiary02Uri, listOf("Apiary"))
 
         val targetIds = listOf(apiaryUri, apiary02Uri)
 
@@ -449,13 +579,13 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                 )
             )
         )
-        createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
-        createEntity(apiary02Uri, listOf("Apiary"), mutableListOf())
+        createEntity(apiaryUri, listOf("Apiary"))
+        createEntity(apiary02Uri, listOf("Apiary"))
 
         val targetIds = listOf(apiaryUri, apiary02Uri)
 
         val createdRelations = neo4jAuthorizationRepository.createAdminLinks(
-            serviceAccountUri,
+            clientUri,
             targetIds.map {
                 Relationship(
                     objectId = it,
@@ -471,8 +601,8 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should remove an user's rights on an entity`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val targetEntity = createEntity(apiaryUri, listOf("Apiary"), mutableListOf())
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val targetEntity = createEntity(apiaryUri, listOf("Apiary"))
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, targetEntity.id)
 
         val result = neo4jAuthorizationRepository.removeUserRightsOnEntity(userEntity.id, targetEntity.id)
@@ -483,7 +613,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         neo4jRepository.deleteEntity(apiaryUri)
     }
 
-    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property>): Entity {
+    fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {
         val entity = Entity(id = id, type = type, properties = properties)
         return entityRepository.save(entity)
     }

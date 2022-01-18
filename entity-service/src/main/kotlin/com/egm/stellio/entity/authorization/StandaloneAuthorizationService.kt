@@ -1,7 +1,9 @@
 package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
+import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -9,6 +11,10 @@ import java.net.URI
 @Component
 @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
 class StandaloneAuthorizationService : AuthorizationService {
+    override fun getSubjectUri(sub: Option<Sub>): URI = (USER_TYPE + "None").toUri()
+
+    override fun getSubjectGroups(sub: Option<Sub>): Set<URI> = emptySet()
+
     override fun userIsAdmin(sub: Option<Sub>): Boolean {
         return true
     }

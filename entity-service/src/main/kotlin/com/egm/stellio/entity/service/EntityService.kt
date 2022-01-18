@@ -592,7 +592,7 @@ class EntityService(
     }
 
     @Transactional
-    fun deleteEntity(entityId: URI) = neo4jRepository.deleteEntity(entityId)
+    fun deleteEntity(entityId: URI): Pair<Int, Int> = neo4jRepository.deleteEntity(entityId)
 
     @Transactional
     fun deleteEntityAttribute(entityId: URI, expandedAttributeName: String): Boolean {

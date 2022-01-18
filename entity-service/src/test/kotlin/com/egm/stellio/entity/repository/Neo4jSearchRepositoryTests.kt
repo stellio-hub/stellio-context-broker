@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -62,6 +64,11 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val offset = 0
     private val limit = 20
+
+    @BeforeEach
+    fun createGlobalMockResponses() {
+        every { neo4jAuthorizationService.getSubjectUri(sub) } returns userUri
+    }
 
     @AfterEach
     fun cleanData() {
@@ -104,7 +111,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     @Test
     fun `it should return matching entities that user can access by it's group`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val groupEntity = createEntity(groupUri, listOf("Group"), mutableListOf())
+        val groupEntity = createEntity(groupUri, listOf(GROUP_TYPE), mutableListOf())
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
         val firstEntity = createEntity(
             beekeeperUri,
@@ -118,6 +125,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
         createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
+
+        every { neo4jAuthorizationService.getSubjectGroups(sub) } returns setOf(groupUri)
 
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
@@ -170,6 +179,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, firstEntity.id)
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
+
+        every { neo4jAuthorizationService.getSubjectUri(sub) } returns clientUri
 
         val queryParams = QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\"")
         var entities = searchRepository.getEntities(

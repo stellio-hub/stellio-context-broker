@@ -9,6 +9,7 @@ data class UpdateResult(
     val notUpdated: List<NotUpdatedDetails>
 ) {
 
+    @JsonIgnore
     fun isSuccessful(): Boolean =
         notUpdated.isEmpty() &&
             updated.all { it.updateOperationResult.isSuccessResult() }

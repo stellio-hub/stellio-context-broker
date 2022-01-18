@@ -27,6 +27,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -63,6 +64,11 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
     private val offset = 0
     private val limit = 20
+
+    @BeforeEach
+    fun createGlobalMockResponses() {
+        every { neo4jAuthorizationService.getSubjectUri(sub) } returns userUri
+    }
 
     @AfterEach
     fun cleanData() {
@@ -120,6 +126,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(groupEntity.id), AUTH_REL_CAN_WRITE, secondEntity.id)
 
+        every { neo4jAuthorizationService.getSubjectGroups(sub) } returns setOf(groupUri)
+
         val entities = searchRepository.getEntities(
             QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\""),
             sub,
@@ -171,6 +179,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, firstEntity.id)
         createRelationship(EntitySubjectNode(clientEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
+
+        every { neo4jAuthorizationService.getSubjectUri(sub) } returns clientUri
 
         val queryParams = QueryParams(expandedType = "Beekeeper", q = "name==\"Scalpa\"")
         var entities = searchRepository.getEntities(

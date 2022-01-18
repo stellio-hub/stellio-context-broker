@@ -3,6 +3,7 @@ package com.egm.stellio.entity.repository
 import arrow.core.Option
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toUri
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
@@ -28,4 +29,15 @@ interface SearchRepository {
         limit: Int,
         contexts: List<String>
     ): Pair<Int, List<URI>>
+
+    fun prepareResults(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<URI>> =
+        if (limit == 0)
+            Pair(
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                emptyList()
+            )
+        else Pair(
+            (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+            result.map { (it["id"] as String).toUri() }
+        )
 }

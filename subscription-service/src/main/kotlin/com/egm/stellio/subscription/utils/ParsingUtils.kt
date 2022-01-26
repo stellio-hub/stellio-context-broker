@@ -1,5 +1,10 @@
 package com.egm.stellio.subscription.utils
 
+import arrow.core.Either
+import arrow.core.computations.either
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.model.APiException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
@@ -13,16 +18,19 @@ object ParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun parseSubscription(input: Map<String, Any>, context: List<String>): Subscription {
+    suspend fun parseSubscription(input: Map<String, Any>, context: List<String>): Either<APiException, Subscription> =
         try {
-            val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
-            subscription.expandTypes(context)
-            return subscription
+            either {
+                val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
+                subscription.expandTypes(context)
+
+                checkTimeIntervalGreaterThanZero(subscription).bind()
+                checkSubscriptionValidity(subscription).bind()
+            }
         } catch (e: Exception) {
             logger.error("Error while parsing a subscription: ${e.message}", e)
-            throw BadRequestDataException(e.message ?: "Failed to parse subscription")
+            BadRequestDataException(e.message ?: "Failed to parse subscription").left()
         }
-    }
 
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
@@ -65,4 +73,17 @@ object ParsingUtils {
             }
             else -> this
         }
+
+    fun checkSubscriptionValidity(subscription: Subscription): Either<APiException, Subscription> =
+        if (subscription.watchedAttributes != null && subscription.timeInterval != null)
+            BadRequestDataException(
+                "You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
+            )
+                .left()
+        else subscription.right()
+
+    fun checkTimeIntervalGreaterThanZero(subscription: Subscription): Either<APiException, Subscription> =
+        if ((subscription.timeInterval != null) && (subscription.timeInterval < 1))
+            BadRequestDataException("The value of 'timeInterval' must be greater than zero (int)").left()
+        else subscription.right()
 }

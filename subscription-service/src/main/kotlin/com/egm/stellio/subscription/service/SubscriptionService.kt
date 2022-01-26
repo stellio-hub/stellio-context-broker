@@ -23,6 +23,7 @@ import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
 import com.jayway.jsonpath.JsonPath.read
 import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
+import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -53,10 +54,11 @@ class SubscriptionService(
     fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
         val insertStatement =
             """
-        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
-            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, expires_at, sub)
-        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
-            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, time_interval, q,
+            notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active,
+            expires_at, sub)
+        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :time_interval, :q, :notif_attributes,
+            :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
             """.trimIndent()
 
         return databaseClient.sql(insertStatement)
@@ -66,6 +68,7 @@ class SubscriptionService(
             .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
+            .bind("time_interval", subscription.timeInterval)
             .bind("q", subscription.q)
             .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
@@ -141,8 +144,8 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
-                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                   status, times_sent, is_active, last_notification, last_failure, last_success,
+                   watched_attributes, time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
+                   endpoint_info, status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
             FROM subscription 
@@ -198,14 +201,14 @@ class SubscriptionService(
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
                 listOf(
-                    "name", "description", "watchedAttributes", "q", "isActive", "modifiedAt",
+                    "name", "description", "watchedAttributes", "timeInterval", "q", "isActive", "modifiedAt",
                     "expiresAt"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
                     updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
-                listOf("timeInterval", "csf", "throttling", "temporalQ").contains(it.key) -> {
+                listOf("csf", "throttling", "temporalQ").contains(it.key) -> {
                     logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                     throw NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                 }
@@ -362,8 +365,8 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
-                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                   status, times_sent, is_active, last_notification, last_failure, last_success,
+                   watched_attributes, time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept,
+                   endpoint_info, status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
             FROM subscription 
@@ -413,7 +416,9 @@ class SubscriptionService(
             FROM subscription 
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
-            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
+            AND time_interval IS NULL
+            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',')
+                OR watched_attributes IS NULL)
             AND id IN (
                 SELECT subscription_id
                 FROM entity_info
@@ -513,6 +518,7 @@ class SubscriptionService(
             expiresAt = row.get("expires_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             description = row.get("description", String::class.java),
             watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
+            timeInterval = row.get("time_interval", Integer::class.java)?.toInt(),
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(
@@ -588,5 +594,38 @@ class SubscriptionService(
 
     private var rowToSub: (Row) -> String = { row ->
         row.get("sub", String::class.java)!!
+    }
+
+    suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {
+        val selectStatement =
+            """
+            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, expires_at,
+                description, watched_attributes, time_interval, q,  notif_attributes, notif_format, endpoint_uri, 
+                endpoint_accept, endpoint_info,  status, times_sent, last_notification, last_failure, last_success, 
+                is_active, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type, georel, geometry, 
+                coordinates, pgis_geometry, geoproperty
+            FROM subscription
+            LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
+            LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
+            WHERE time_interval IS NOT NULL
+            AND (last_notification IS NULL 
+                OR ((EXTRACT(EPOCH FROM last_notification) + time_interval) < EXTRACT(EPOCH FROM :currentDate))
+            )
+            AND is_active 
+            """.trimIndent()
+        return databaseClient.sql(selectStatement)
+            .bind("currentDate", Instant.now().atZone(ZoneOffset.UTC))
+            .map(rowToSubscription)
+            .all()
+            .groupBy { t: Subscription ->
+                t.id
+            }
+            .flatMap { grouped ->
+                grouped.reduce { t: Subscription, u: Subscription ->
+                    t.copy(entities = t.entities.plus(u.entities))
+                }
+            }
+            .collectList()
+            .awaitFirst()
     }
 }

@@ -56,10 +56,11 @@ class SubscriptionService(
     fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
         val insertStatement =
             """
-        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
-            notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, expires_at, sub)
-        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :q, :notif_attributes, :notif_format,
-            :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, time_interval, q, 
+        notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active, expires_at,
+        sub)
+        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :time_interval, :q, :notif_attributes,
+         :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
             """.trimIndent()
 
         return databaseClient.sql(insertStatement)
@@ -69,6 +70,7 @@ class SubscriptionService(
             .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
+            .bind("time_interval", subscription.time_interval)
             .bind("q", subscription.q)
             .bind("notif_attributes", subscription.notification.attributes?.joinToString(separator = ","))
             .bind("notif_format", subscription.notification.format.name)
@@ -142,8 +144,8 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
-                   watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
-                   status, times_sent, is_active, last_notification, last_failure, last_success,
+                   watched_attributes, time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
+                   endpoint_info, status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
                    georel, geometry, coordinates, geoproperty, expires_at
             FROM subscription 
@@ -208,7 +210,7 @@ class SubscriptionService(
                     val value = it.value.toSqlValue(it.key)
                     updates.add(updateSubscriptionAttribute(subscriptionId, it.key, columnName, value))
                 }
-                listOf("timeInterval", "csf", "throttling", "temporalQ").contains(it.key) -> {
+                listOf("csf", "throttling", "temporalQ").contains(it.key) -> {
                     logger.warn("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                     throw NotImplementedException("Subscription $subscriptionId has unsupported attribute: ${it.key}")
                 }
@@ -363,7 +365,7 @@ class SubscriptionService(
                    watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, geoproperty, expires_at
+                   georel, geometry, coordinates, geoproperty, expires_at, time_interval
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -512,6 +514,7 @@ class SubscriptionService(
             expiresAt = row.get("expires_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             description = row.get("description", String::class.java),
             watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
+            time_interval = row.get("time_interval", Number::class.java),
             q = row.get("q", String::class.java),
             entities = setOf(
                 EntityInfo(

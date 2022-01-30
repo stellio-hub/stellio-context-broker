@@ -39,7 +39,7 @@ class JsonLdUtilsTests {
                 "providedBy": {
                     "type": "Relationship",
                     "object": "urn:ngsi-ld:Person:Bob"
-                    }
+                }
             },
            "location": {
               "type": "GeoProperty",
@@ -83,10 +83,62 @@ class JsonLdUtilsTests {
         }
         """.trimIndent()
 
+    private val normalizedMultiAttributeJson =
+        """
+        {
+            "id": "urn:ngsi-ld:Vehicle:A4567",
+            "type": "Vehicle",
+            "speed": [
+                {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:01",
+                    "value": 10
+                },
+                {
+                    "type": "Property",
+                    "datasetId": "urn:ngsi-ld:Dataset:02",
+                    "value": 11
+                }
+            ],
+            "hasOwner": [
+                {
+                    "type": "Relationship",
+                    "datasetId": "urn:ngsi-ld:Dataset:01",
+                    "object": "urn:ngsi-ld:Person:John"
+                },
+                {
+                    "type": "Relationship",
+                    "datasetId": "urn:ngsi-ld:Dataset:02",
+                    "object": "urn:ngsi-ld:Person:Jane"
+                }
+            ]
+        }
+        """.trimIndent()
+
+    private val simplifiedMultiAttributeJson =
+        """
+        {
+            "id": "urn:ngsi-ld:Vehicle:A4567",
+            "type": "Vehicle",
+            "speed": [ 10, 11 ],
+            "hasOwner": [ "urn:ngsi-ld:Person:John", "urn:ngsi-ld:Person:Jane" ]
+        }
+        """.trimIndent()
+
     @Test
-    fun `it should simplify a JSON-LD Map`() {
+    fun `it should simplify a compacted entity`() {
         val normalizedMap = mapper.readValue(normalizedJson, Map::class.java)
         val simplifiedMap = mapper.readValue(simplifiedJson, Map::class.java)
+
+        val resultMap = (normalizedMap as CompactedJsonLdEntity).toKeyValues()
+
+        assertEquals(simplifiedMap, resultMap)
+    }
+
+    @Test
+    fun `it should simplify a compacted entity with multi-attributes`() {
+        val normalizedMap = mapper.readValue(normalizedMultiAttributeJson, Map::class.java)
+        val simplifiedMap = mapper.readValue(simplifiedMultiAttributeJson, Map::class.java)
 
         val resultMap = (normalizedMap as CompactedJsonLdEntity).toKeyValues()
 

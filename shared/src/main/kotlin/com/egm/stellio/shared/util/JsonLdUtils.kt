@@ -488,7 +488,14 @@ private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
         // entity property value is always a Map
         is Map<*, *> -> simplifyValue(value)
-        // we keep id, type and @context values as they are (String and List<String>)
+        is List<*> -> value.map {
+            when (it) {
+                is Map<*, *> -> simplifyValue(it)
+                // we keep @context value as it is (List<String>)
+                else -> it
+            }
+        }
+        // we keep id and type values as they are (String)
         else -> value
     }
 }

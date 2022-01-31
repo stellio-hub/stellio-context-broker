@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 import java.time.ZonedDateTime
 
-@SpringBootTest(classes = [QueryService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [QueryService::class])
 @ActiveProfiles("test")
 @ExperimentalCoroutinesApi
 class QueryServiceTests {
@@ -193,7 +193,7 @@ class QueryServiceTests {
             )
 
             verify {
-                temporalEntityAttributeService.getForEntity(entityUri, emptySet(), false)
+                temporalEntityAttributeService.getForEntity(entityUri, emptySet())
             }
 
             verify {
@@ -227,7 +227,7 @@ class QueryServiceTests {
                 attributeName = "incoming",
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
-            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any()) } returns
+            every { temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any()) } returns
                 Mono.just(listOf(temporalEntityAttribute))
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
@@ -257,7 +257,7 @@ class QueryServiceTests {
                     count = false
                 ),
                 APIC_COMPOUND_CONTEXT
-            )
+            ) { null }
 
             verify {
                 temporalEntityAttributeService.getForEntities(
@@ -265,7 +265,8 @@ class QueryServiceTests {
                     2,
                     emptySet(),
                     setOf(beehiveType, apiaryType),
-                    emptySet()
+                    emptySet(),
+                    any()
                 )
             }
 
@@ -300,10 +301,7 @@ class QueryServiceTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
             every {
-                temporalEntityAttributeService.getForEntities(
-                    any(), any(), any(), any(),
-                    any()
-                )
+                temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any())
             } returns Mono.just(
                 listOf(temporalEntityAttribute)
             )
@@ -328,7 +326,7 @@ class QueryServiceTests {
                     false
                 ),
                 APIC_COMPOUND_CONTEXT
-            )
+            ) { null }
 
             assertTrue(entitiesList.isEmpty())
 

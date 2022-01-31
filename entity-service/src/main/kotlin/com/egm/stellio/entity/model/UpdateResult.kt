@@ -7,7 +7,13 @@ import java.net.URI
 data class UpdateResult(
     val updated: List<UpdatedDetails>,
     val notUpdated: List<NotUpdatedDetails>
-)
+) {
+
+    @JsonIgnore
+    fun isSuccessful(): Boolean =
+        notUpdated.isEmpty() &&
+            updated.all { it.updateOperationResult.isSuccessResult() }
+}
 
 data class NotUpdatedDetails(
     val attributeName: String,
@@ -42,7 +48,9 @@ enum class UpdateOperationResult {
     REPLACED,
     UPDATED,
     IGNORED,
-    FAILED,
+    FAILED;
+
+    fun isSuccessResult(): Boolean = listOf(APPENDED, REPLACED, UPDATED).contains(this)
 }
 
 fun updateResultFromDetailedResult(updateStatuses: List<UpdateAttributeResult>): UpdateResult {

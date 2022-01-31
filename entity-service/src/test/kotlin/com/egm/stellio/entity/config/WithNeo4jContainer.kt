@@ -5,20 +5,17 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.Neo4jContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 
-@Testcontainers
 @ImportAutoConfiguration(MigrationsAutoConfiguration::class)
 interface WithNeo4jContainer {
 
     companion object {
 
-        @Container
-        val neo4jContainer = Neo4jContainer<Nothing>("neo4j:4.4").apply {
+        private val neo4jContainer = Neo4jContainer<Nothing>("neo4j:4.4").apply {
             withNeo4jConfig("dbms.default_database", "stellio")
             withEnv("NEO4JLABS_PLUGINS", "[\"apoc\"]")
             withAdminPassword("neo4j_password")
+            withReuse(true)
         }
 
         @JvmStatic

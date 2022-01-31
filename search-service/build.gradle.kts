@@ -1,3 +1,5 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
+
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
@@ -36,7 +38,13 @@ tasks.bootRun {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
+jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-search-service"
+jib.pluginExtensions {
+    pluginExtension {
+        implementation = "com.google.cloud.tools.jib.gradle.extension.springboot.JibSpringBootExtension"
+    }
+}
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8083")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

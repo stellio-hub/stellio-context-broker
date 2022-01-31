@@ -20,7 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @ActiveProfiles("test")
 @WebFluxTest(AttributeHandler::class)
 @Import(WebSecurityTestConfig::class)
-@WithMockCustomUser(name = "Mock User", username = "mock-user")
+@WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class AttributeHandlerTests {
 
     @Autowired

@@ -2,19 +2,16 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 
 object ParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-
-    private val mapper: ObjectMapper = jacksonObjectMapper()
 
     fun parseSubscription(input: String, context: List<String>): Subscription {
         val rawParsedData = mapper.readTree(input) as ObjectNode

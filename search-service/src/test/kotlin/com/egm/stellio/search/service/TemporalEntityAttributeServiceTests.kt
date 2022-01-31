@@ -319,7 +319,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     incomingAttrExpandedName,
                     outgoingAttrExpandedName
                 )
-            )
+            ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
@@ -332,6 +332,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
     }
+
     @Test
     fun `it should retrieve the temporal entities for the requested limit and offset`() {
         val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
@@ -354,10 +355,46 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     incomingAttrExpandedName,
                     outgoingAttrExpandedName
                 )
-            )
+            ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextCount(1)
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve the persisted temporal attributes of the requested entities according to access rights`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                10,
+                0,
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                setOf(
+                    incomingAttrExpandedName,
+                    outgoingAttrExpandedName
+                )
+            ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 2 &&
+                    it.all { tea ->
+                        tea.type == "https://ontology.eglobalmark.com/apic#BeeHive" &&
+                            tea.entityId.toString() == "urn:ngsi-ld:BeeHive:TESTD"
+                    }
+            }
             .expectComplete()
             .verify()
     }
@@ -382,10 +419,42 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     incomingAttrExpandedName,
                     outgoingAttrExpandedName
                 )
-            )
+            ) { null }
 
         StepVerifier.create(temporalEntity)
-            .expectNextCount(1)
+            .expectNextMatches { it == 1 }
+            .verifyComplete()
+    }
+
+    @Test
+    fun `it should retrieve the temporal entities count of the requested entities according to access rights`() {
+        val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+
+        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+
+        val temporalEntityNoResult =
+            temporalEntityAttributeService.getCountForEntities(
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                emptySet()
+            ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTC')" }
+
+        StepVerifier.create(temporalEntityNoResult)
+            .expectNextMatches { it == 0 }
+            .verifyComplete()
+
+        val temporalEntityWithResult =
+            temporalEntityAttributeService.getCountForEntities(
+                setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
+                setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
+                emptySet()
+            ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+
+        StepVerifier.create(temporalEntityWithResult)
+            .expectNextMatches { it == 1 }
             .verifyComplete()
     }
 
@@ -411,7 +480,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     incomingAttrExpandedName,
                     outgoingAttrExpandedName
                 )
-            )
+            ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNext(emptyList())
@@ -438,7 +507,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 setOf("urn:ngsi-ld:BeeHive:TESTD".toUri(), "urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 setOf("https://ontology.eglobalmark.com/apic#BeeHive"),
                 setOf("unknownAttribute")
-            )
+            ) { null }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNext(emptyList())

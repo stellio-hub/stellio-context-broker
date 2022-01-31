@@ -19,7 +19,7 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.util.concurrent.SettableListenableFuture
 
-@SpringBootTest(classes = [EntityEventService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityEventService::class])
 @ActiveProfiles("test")
 class EntityEventServiceTests {
 

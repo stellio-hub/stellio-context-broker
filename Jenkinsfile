@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        jdk 'JDK 11'
+        jdk 'JDK 17'
     }
     environment {
         EGM_CI_DH = credentials('egm-ci-dh')

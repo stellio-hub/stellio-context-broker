@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono
 import java.time.Instant
 import java.time.ZoneOffset
 
-@SpringBootTest(classes = [SubscriptionEventService::class])
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [SubscriptionEventService::class])
 @ActiveProfiles("test")
 class SubscriptionEventServiceTests {
 

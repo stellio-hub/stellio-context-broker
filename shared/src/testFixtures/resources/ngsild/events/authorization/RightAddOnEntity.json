@@ -1,0 +1,12 @@
+{
+  "entityId": "urn:ngsi-ld:User:312b30b4-9279-4f7e-bdc5-ec56d699bb7d",
+  "entityType": "User",
+  "attributeName": "rCanRead",
+  "operationPayload": "{\"type\":\"Relationship\",\"object\":\"urn:ngsi-ld:Beekeeper:01\"}",
+  "updatedEntity": "",
+  "contexts": [
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  ],
+  "overwrite": true,
+  "operationType": "ATTRIBUTE_APPEND"
+}

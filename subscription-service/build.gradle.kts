@@ -1,3 +1,5 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
+
 configurations {
     compileOnly {
         extendsFrom(configurations.annotationProcessor.get())
@@ -18,7 +20,7 @@ dependencies {
     implementation("com.jayway.jsonpath:json-path:2.6.0")
     implementation(project(":shared"))
     // firebase SDK
-    implementation("com.google.firebase:firebase-admin:6.12.2")
+    implementation("com.google.firebase:firebase-admin:8.1.0")
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
@@ -37,7 +39,13 @@ tasks.bootRun {
 }
 
 jib.from.image = project.ext["jibFromImage"].toString()
+jib.from.platforms.addAll(project.ext["jibFromPlatforms"] as List<PlatformParameters>)
 jib.to.image = "stellio/stellio-subscription-service"
+jib.pluginExtensions {
+    pluginExtension {
+        implementation = "com.google.cloud.tools.jib.gradle.extension.springboot.JibSpringBootExtension"
+    }
+}
 jib.container.jvmFlags = project.ext["jibContainerJvmFlags"] as List<String>
 jib.container.ports = listOf("8084")
 jib.container.creationTime = project.ext["jibContainerCreationTime"].toString()

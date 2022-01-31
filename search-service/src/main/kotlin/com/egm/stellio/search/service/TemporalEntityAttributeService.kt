@@ -2,7 +2,6 @@ package com.egm.stellio.search.service
 
 import arrow.core.Validated
 import arrow.core.invalid
-import arrow.core.orNull
 import arrow.core.valid
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstance
@@ -52,7 +51,7 @@ class TemporalEntityAttributeService(
             INSERT INTO temporal_entity_attribute
                 (id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id)
             VALUES (:id, :entity_id, :type, :attribute_name, :attribute_type, :attribute_value_type, :dataset_id)
-            """
+            """.trimIndent()
         )
             .bind("id", temporalEntityAttribute.id)
             .bind("entity_id", temporalEntityAttribute.entityId)
@@ -70,7 +69,7 @@ class TemporalEntityAttributeService(
                 """
                 INSERT INTO entity_payload (entity_id, payload)
                 VALUES (:entity_id, :payload)
-                """
+                """.trimIndent()
             )
                 .bind("entity_id", entityId)
                 .bind("payload", entityPayload?.let { Json.of(entityPayload) })
@@ -81,7 +80,11 @@ class TemporalEntityAttributeService(
 
     fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
         if (applicationProperties.entity.storePayloads)
-            databaseClient.sql("UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id")
+            databaseClient.sql(
+                """
+                UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id
+                """.trimIndent()
+            )
                 .bind("payload", Json.of(payload))
                 .bind("entity_id", entityId)
                 .fetch()
@@ -90,7 +93,11 @@ class TemporalEntityAttributeService(
             Mono.just(1)
 
     fun deleteEntityPayload(entityId: URI): Mono<Int> =
-        databaseClient.sql("DELETE FROM entity_payload WHERE entity_id = :entity_id")
+        databaseClient.sql(
+            """
+            DELETE FROM entity_payload WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
             .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
@@ -193,9 +200,9 @@ class TemporalEntityAttributeService(
             .zipWith(
                 databaseClient.sql(
                     """
-                    delete FROM temporal_entity_attribute WHERE 
-                        entity_id = :entity_id
-                        AND attribute_name = :attribute_name
+                    DELETE FROM temporal_entity_attribute
+                    WHERE entity_id = :entity_id
+                    AND attribute_name = :attribute_name
                     """.trimIndent()
                 )
                     .bind("entity_id", entityId)
@@ -250,24 +257,16 @@ class TemporalEntityAttributeService(
         ids: Set<URI>,
         types: Set<String>,
         attrs: Set<String>,
-        withEntityPayload: Boolean = false
+        accessRightFilter: () -> String?
     ): Mono<List<TemporalEntityAttribute>> {
-        val selectQuery = if (withEntityPayload)
-            """
-                SELECT id, temporal_entity_attribute.entity_id, type, attribute_name, attribute_type,
-                    attribute_value_type, payload::TEXT, dataset_id
-                FROM temporal_entity_attribute
-                LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
-                WHERE
-            """.trimIndent()
-        else
+        val selectQuery =
             """
                 SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            
                 WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs)
+        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
         val finalQuery = """
             $selectQuery
             $filterQuery
@@ -285,24 +284,30 @@ class TemporalEntityAttributeService(
             .collectList()
     }
 
-    fun getCountForEntities(ids: Set<URI>, types: Set<String>, attrs: Set<String>): Mono<Int> {
+    fun getCountForEntities(
+        ids: Set<URI>,
+        types: Set<String>,
+        attrs: Set<String>,
+        accessRightFilter: () -> String?
+    ): Mono<Int> {
         val selectStatement =
             """
             SELECT count(distinct(entity_id)) as count_entity from temporal_entity_attribute
             WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs)
+        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
         return databaseClient
             .sql("$selectStatement $filterQuery")
             .map(rowToTemporalCount)
-            .first()
+            .one()
     }
 
     fun buildEntitiesQueryFilter(
         ids: Set<URI>,
         types: Set<String>,
-        attrs: Set<String>
+        attrs: Set<String>,
+        accessRightFilter: () -> String?,
     ): String {
         val formattedIds =
             if (ids.isNotEmpty())
@@ -317,19 +322,12 @@ class TemporalEntityAttributeService(
                 attrs.joinToString(separator = ",", prefix = "attribute_name in (", postfix = ")") { "'$it'" }
             else null
 
-        return listOfNotNull(formattedIds, formattedTypes, formattedAttrs).joinToString(" AND ")
+        return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
+            .joinToString(" AND ")
     }
 
-    fun getForEntity(id: URI, attrs: Set<String>, withEntityPayload: Boolean = false): Flux<TemporalEntityAttribute> {
-        val selectQuery = if (withEntityPayload)
-            """
-                SELECT id, temporal_entity_attribute.entity_id as entity_id, type, attribute_name, attribute_type,
-                    attribute_value_type, payload::TEXT, dataset_id
-                FROM temporal_entity_attribute
-                LEFT JOIN entity_payload ON entity_payload.entity_id = temporal_entity_attribute.entity_id
-                WHERE temporal_entity_attribute.entity_id = :entity_id
-            """.trimIndent()
-        else
+    fun getForEntity(id: URI, attrs: Set<String>): Flux<TemporalEntityAttribute> {
+        val selectQuery =
             """
                 SELECT id, entity_id, type, attribute_name, attribute_type, attribute_value_type, dataset_id
                 FROM temporal_entity_attribute            

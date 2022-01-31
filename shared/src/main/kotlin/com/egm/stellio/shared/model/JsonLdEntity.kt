@@ -25,6 +25,3 @@ data class JsonLdEntity(
         types.firstOrNull() ?: ""
     }
 }
-
-fun CompactedJsonLdEntity.getType(): String =
-    this["type"] as String

@@ -1,18 +1,24 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.Some
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.model.*
-import com.egm.stellio.subscription.model.NotificationParams.*
+import com.egm.stellio.subscription.model.Endpoint
+import com.egm.stellio.subscription.model.EndpointInfo
+import com.egm.stellio.subscription.model.EntityInfo
+import com.egm.stellio.subscription.model.GeoQuery
+import com.egm.stellio.subscription.model.NotificationParams.FormatType
+import com.egm.stellio.subscription.model.NotificationParams.StatusType
+import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.verify
-import junit.framework.TestCase.assertEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,6 +31,8 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -37,7 +45,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @SpykBean
     private lateinit var databaseClient: DatabaseClient
 
-    private val mockUserSub = "mock-user-sub"
+    private val mockUserSub = Some(UUID.randomUUID().toString())
 
     private lateinit var subscription1Id: URI
     private lateinit var subscription2Id: URI
@@ -391,14 +399,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should load and fill a persisted subscription with the correct format for temporal values`() {
-        val createdAt = Instant.now().atZone(ZoneOffset.UTC)
+        val createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
         val subscription = gimmeRawSubscription().copy(
             createdAt = createdAt,
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = "smartDoor")
             )
         )
-        val notifiedAt = Instant.now().atZone(ZoneOffset.UTC)
+        val notifiedAt = Instant.now().truncatedTo(ChronoUnit.MICROS).atZone(ZoneOffset.UTC)
 
         subscriptionService.create(subscription, mockUserSub).block()
         subscriptionService.updateSubscriptionNotification(
@@ -411,8 +419,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.notification.lastNotification == notifiedAt &&
-                    it.notification.lastSuccess == notifiedAt &&
+                it.notification.lastNotification != null &&
+                    it.notification.lastNotification!!.isEqual(notifiedAt) &&
+                    it.notification.lastSuccess != null &&
+                    it.notification.lastSuccess!!.isEqual(notifiedAt) &&
                     it.createdAt.isEqual(createdAt)
             }
             .verifyComplete()

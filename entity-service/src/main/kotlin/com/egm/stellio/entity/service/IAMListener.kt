@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.service
 
+import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepository
 import com.egm.stellio.shared.model.AttributeAppendEvent
 import com.egm.stellio.shared.model.AttributeDeleteEvent
 import com.egm.stellio.shared.model.AttributeReplaceEvent
@@ -8,6 +9,8 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
@@ -19,7 +22,8 @@ import org.springframework.stereotype.Component
 
 @Component
 class IAMListener(
-    private val entityService: EntityService
+    private val entityService: EntityService,
+    private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -56,7 +60,16 @@ class IAMListener(
             authorizationEvent.entityId,
             parseToNgsiLdAttributes(expandedJsonLdFragment),
             false
-        )
+        ).also {
+            if (it.isSuccessful()) {
+                when (authorizationEvent.attributeName) {
+                    AUTH_TERM_ROLES ->
+                        neo4jAuthorizationRepository.resetRolesCache()
+                    AUTH_TERM_IS_MEMBER_OF ->
+                        neo4jAuthorizationRepository.updateSubjectGroups(authorizationEvent.entityId)
+                }
+            }
+        }
     }
 
     private fun update(authorizationEvent: AttributeReplaceEvent) {
@@ -72,7 +85,13 @@ class IAMListener(
         )
     }
 
-    private fun delete(authorizationEvent: EntityDeleteEvent) = entityService.deleteEntity(authorizationEvent.entityId)
+    private fun delete(authorizationEvent: EntityDeleteEvent) {
+        entityService.deleteEntity(authorizationEvent.entityId)
+            .also {
+                if (it.first > 0)
+                    neo4jAuthorizationRepository.evictSubject(authorizationEvent.entityId)
+            }
+    }
 
     private fun deleteAttribute(authorizationEvent: AttributeDeleteEvent) =
         entityService.deleteEntityAttributeInstance(
@@ -82,5 +101,12 @@ class IAMListener(
                 authorizationEvent.contexts
             )!!,
             authorizationEvent.datasetId
-        )
+        ).also {
+            if (it) {
+                when (authorizationEvent.attributeName) {
+                    AUTH_TERM_IS_MEMBER_OF ->
+                        neo4jAuthorizationRepository.updateSubjectGroups(authorizationEvent.entityId)
+                }
+            }
+        }
 }

@@ -1,5 +1,6 @@
 package com.egm.stellio.search.web
 
+import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.util.*
@@ -17,7 +18,8 @@ import reactor.core.publisher.Mono
 @RequestMapping("/ngsi-ld/v1/temporal/entityOperations")
 class TemporalEntityOperationsHandler(
     private val queryService: QueryService,
-    private val temporalEntityAttributeService: TemporalEntityAttributeService
+    private val temporalEntityAttributeService: TemporalEntityAttributeService,
+    private val entityAccessRightsService: EntityAccessRightsService
 ) {
 
     /**
@@ -28,6 +30,8 @@ class TemporalEntityOperationsHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val body = requestBody.awaitFirst()
@@ -41,14 +45,18 @@ class TemporalEntityOperationsHandler(
         }
 
         val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(queryParams, contextLink)
+
+        val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val temporalEntities = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
-            contextLink
+            contextLink,
+            accessRightFilter
         )
         val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
             temporalEntitiesQuery.ids,
             temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs
+            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            accessRightFilter
         ).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(

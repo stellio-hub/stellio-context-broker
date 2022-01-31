@@ -1,14 +1,19 @@
 package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_RIGHT
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.ADMIN_ROLES
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.CREATION_ROLES
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.READ_RIGHT
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.R_CAN_ADMIN
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.USER_PREFIX
-import com.egm.stellio.entity.authorization.AuthorizationService.Companion.WRITE_RIGHT
-import com.egm.stellio.entity.authorization.AuthorizationService.SpecificAccessPolicy
+import arrow.core.Option
+import arrow.core.flattenOption
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.ADMIN_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
+import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
+import com.egm.stellio.shared.util.CREATION_ROLES
+import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
@@ -20,51 +25,59 @@ class Neo4jAuthorizationService(
     private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 ) : AuthorizationService {
 
-    override fun userIsAdmin(userSub: String): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, userSub)
+    override fun getSubjectUri(sub: Option<Sub>): URI =
+        neo4jAuthorizationRepository.getSubjectUri((USER_PREFIX + sub.toStringValue()).toUri())
 
-    override fun userCanCreateEntities(userSub: String): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, userSub)
+    override fun getSubjectGroups(sub: Option<Sub>): Set<URI> =
+        neo4jAuthorizationRepository.getSubjectGroups(getSubjectUri(sub))
 
-    private fun userIsOneOfGivenRoles(roles: Set<String>, userSub: String): Boolean =
-        neo4jAuthorizationRepository.getUserRoles((USER_PREFIX + userSub).toUri())
+    override fun userIsAdmin(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, sub)
+
+    override fun userCanCreateEntities(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, sub)
+
+    private fun userIsOneOfGivenRoles(roles: Set<GlobalRole>, sub: Option<Sub>): Boolean =
+        neo4jAuthorizationRepository.getSubjectRoles(getSubjectUri(sub))
+            .map { GlobalRole.forKey(it) }
+            .flattenOption()
             .intersect(roles)
             .isNotEmpty()
 
-    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, userSub: String): List<URI> {
+    override fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI> {
         val authorizedBySpecificPolicyEntities =
             filterEntitiesWithSpecificAccessPolicy(
                 entitiesId,
                 listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ)
             )
-        // remove the already authorized entities from the list to avoid double checking them
+        // remove the already authorized entities from the list to avoid double-checking them
         val grantedEntities = filterEntitiesUserHaveOneOfGivenRights(
-            entitiesId.minus(authorizedBySpecificPolicyEntities),
-            READ_RIGHT,
-            userSub
+            entitiesId.minus(authorizedBySpecificPolicyEntities.toSet()),
+            READ_RIGHTS,
+            sub
         )
         return authorizedBySpecificPolicyEntities.plus(grantedEntities)
     }
 
-    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, userSub: String): List<URI> {
+    override fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, sub: Option<Sub>): List<URI> {
         val authorizedBySpecificPolicyEntities =
             filterEntitiesWithSpecificAccessPolicy(entitiesId, listOf(SpecificAccessPolicy.AUTH_WRITE))
-        // remove the already authorized entities from the list to avoid double checking them
+        // remove the already authorized entities from the list to avoid double-checking them
         val grantedEntities = filterEntitiesUserHaveOneOfGivenRights(
-            entitiesId.minus(authorizedBySpecificPolicyEntities),
-            WRITE_RIGHT,
-            userSub
+            entitiesId.minus(authorizedBySpecificPolicyEntities.toSet()),
+            WRITE_RIGHTS,
+            sub
         )
         return authorizedBySpecificPolicyEntities.plus(grantedEntities)
     }
 
-    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, userSub: String): List<URI> =
-        filterEntitiesUserHaveOneOfGivenRights(entitiesId, ADMIN_RIGHT, userSub)
+    override fun filterEntitiesUserCanAdmin(entitiesId: List<URI>, sub: Option<Sub>): List<URI> =
+        filterEntitiesUserHaveOneOfGivenRights(entitiesId, ADMIN_RIGHTS, sub)
 
     override fun splitEntitiesByUserCanAdmin(
         entitiesId: List<URI>,
-        userSub: String
+        sub: Option<Sub>
     ): Pair<List<URI>, List<URI>> {
         val entitiesUserCanAdminIds =
-            filterEntitiesUserCanAdmin(entitiesId, userSub)
+            filterEntitiesUserCanAdmin(entitiesId, sub)
         return entitiesId.partition {
             entitiesUserCanAdminIds.contains(it)
         }
@@ -73,12 +86,12 @@ class Neo4jAuthorizationService(
     private fun filterEntitiesUserHaveOneOfGivenRights(
         entitiesId: List<URI>,
         rights: Set<String>,
-        userSub: String
+        sub: Option<Sub>
     ): List<URI> =
-        if (userIsAdmin(userSub))
+        if (userIsAdmin(sub))
             entitiesId
         else neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            (USER_PREFIX + userSub).toUri(),
+            getSubjectUri(sub),
             entitiesId,
             rights
         )
@@ -92,27 +105,27 @@ class Neo4jAuthorizationService(
             specificAccessPolicies.map { it.name }
         )
 
-    override fun userCanReadEntity(entityId: URI, userSub: String): Boolean =
-        userHasOneOfGivenRightsOnEntity(entityId, READ_RIGHT, userSub) ||
+    override fun userCanReadEntity(entityId: URI, sub: Option<Sub>): Boolean =
+        userHasOneOfGivenRightsOnEntity(entityId, READ_RIGHTS, sub) ||
             entityHasSpecificAccessPolicy(
                 entityId,
                 listOf(SpecificAccessPolicy.AUTH_WRITE, SpecificAccessPolicy.AUTH_READ)
             )
 
-    override fun userCanUpdateEntity(entityId: URI, userSub: String): Boolean =
-        userHasOneOfGivenRightsOnEntity(entityId, WRITE_RIGHT, userSub) ||
+    override fun userCanUpdateEntity(entityId: URI, sub: Option<Sub>): Boolean =
+        userHasOneOfGivenRightsOnEntity(entityId, WRITE_RIGHTS, sub) ||
             entityHasSpecificAccessPolicy(entityId, listOf(SpecificAccessPolicy.AUTH_WRITE))
 
-    override fun userIsAdminOfEntity(entityId: URI, userSub: String): Boolean =
-        userHasOneOfGivenRightsOnEntity(entityId, ADMIN_RIGHT, userSub)
+    override fun userIsAdminOfEntity(entityId: URI, sub: Option<Sub>): Boolean =
+        userHasOneOfGivenRightsOnEntity(entityId, ADMIN_RIGHTS, sub)
 
     private fun userHasOneOfGivenRightsOnEntity(
         entityId: URI,
         rights: Set<String>,
-        userSub: String
+        sub: Option<Sub>
     ): Boolean =
-        userIsAdmin(userSub) || neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
-            (USER_PREFIX + userSub).toUri(),
+        userIsAdmin(sub) || neo4jAuthorizationRepository.filterEntitiesUserHasOneOfGivenRights(
+            getSubjectUri(sub),
             listOf(entityId),
             rights
         ).isNotEmpty()
@@ -128,22 +141,25 @@ class Neo4jAuthorizationService(
             )
             .isNotEmpty()
 
-    override fun createAdminLink(entityId: URI, userSub: String) {
-        createAdminLinks(listOf(entityId), userSub)
+    override fun createAdminLink(entityId: URI, sub: Option<Sub>) {
+        createAdminLinks(listOf(entityId), sub)
     }
 
-    override fun createAdminLinks(entitiesId: List<URI>, userSub: String) {
+    override fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>) {
         val relationships = entitiesId.map {
             Relationship(
                 objectId = it,
-                type = listOf(R_CAN_ADMIN),
+                type = listOf(AUTH_REL_CAN_ADMIN),
                 datasetId = "urn:ngsi-ld:Dataset:rCanAdmin:$it".toUri()
             )
         }
         neo4jAuthorizationRepository.createAdminLinks(
-            (USER_PREFIX + userSub).toUri(),
+            getSubjectUri(sub),
             relationships,
             entitiesId
         )
     }
+
+    override fun removeUserRightsOnEntity(entityId: URI, subjectId: URI) =
+        neo4jAuthorizationRepository.removeUserRightsOnEntity(subjectId, entityId)
 }

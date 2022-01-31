@@ -1,22 +1,29 @@
+import com.google.cloud.tools.jib.gradle.PlatformParameters
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
-extra["springCloudVersion"] = "2020.0.4"
-extra["testcontainersVersion"] = "1.16.0"
+buildscript {
+    dependencies {
+        classpath("com.google.cloud.tools:jib-spring-boot-extension-gradle:0.1.0")
+    }
+}
+
+extra["springCloudVersion"] = "2021.0.0"
+extra["testcontainersVersion"] = "1.16.2"
 
 plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.5.7" apply false
+    id("org.springframework.boot") version "2.6.3" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
-    kotlin("jvm") version "1.5.31" apply false
-    kotlin("plugin.spring") version "1.5.31" apply false
+    kotlin("jvm") version "1.6.10" apply false
+    kotlin("plugin.spring") version "1.6.10" apply false
     id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
-    id("com.google.cloud.tools.jib") version "3.1.4" apply false
+    id("com.google.cloud.tools.jib") version "3.2.0" apply false
     id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
     id("org.sonarqube") version "3.3"
     jacoco
@@ -34,7 +41,7 @@ subprojects {
     apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "jacoco")
 
-    java.sourceCompatibility = JavaVersion.VERSION_11
+    java.sourceCompatibility = JavaVersion.VERSION_17
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -78,15 +85,13 @@ subprojects {
         testImplementation("io.mockk:mockk:1.12.2")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")
-        testImplementation("org.testcontainers:testcontainers")
-        testImplementation("org.testcontainers:junit-jupiter")
         testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     }
 
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = "11"
+            jvmTarget = "17"
         }
     }
     tasks.withType<Test> {
@@ -137,7 +142,14 @@ subprojects {
         }
     }
 
-    project.ext.set("jibFromImage", "adoptopenjdk:11-jre")
+    project.ext.set("jibFromImage", "eclipse-temurin:17-jre")
+    project.ext.set(
+        "jibFromPlatforms",
+        listOf(
+            PlatformParameters().apply { os = "linux"; architecture = "arm64" },
+            PlatformParameters().apply { os = "linux"; architecture = "amd64" }
+        )
+    )
     project.ext.set("jibContainerJvmFlags", listOf("-Xms256m", "-Xmx768m"))
     project.ext.set("jibContainerCreationTime", "USE_CURRENT_TIMESTAMP")
     project.ext.set(
@@ -155,7 +167,7 @@ subprojects {
                     NGSI-LD is an Open API and data model specification for context management published by ETSI.
                 """.trimIndent(),
             "org.opencontainers.image.source" to "https://github.com/stellio-hub/stellio-context-broker",
-            "com.java.version" to "${JavaVersion.VERSION_11}"
+            "com.java.version" to "${JavaVersion.VERSION_17}"
         )
     )
 }

@@ -1,5 +1,6 @@
 package com.egm.stellio.subscription.web
 
+import arrow.core.Option
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
@@ -10,13 +11,14 @@ import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.PagingUtils
 import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.shared.util.QUERY_PARAM_COUNT
+import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.buildGetSuccessResponse
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.extractAndValidatePaginationParameters
 import com.egm.stellio.shared.util.getApplicableMediaType
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
+import com.egm.stellio.shared.util.getSubFromSecurityContext
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.shared.web.extractSubjectOrEmpty
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
@@ -65,8 +67,8 @@ class SubscriptionHandler(
         val parsedSubscription = parseSubscription(body, contexts)
         checkSubscriptionNotExists(parsedSubscription).awaitFirst()
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        subscriptionService.create(parsedSubscription, userId).awaitFirst()
+        val sub = getSubFromSecurityContext()
+        subscriptionService.create(parsedSubscription, sub).awaitFirst()
         subscriptionEventService.publishSubscriptionCreateEvent(
             parsedSubscription,
             removeContextFromInput(body),
@@ -98,10 +100,10 @@ class SubscriptionHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        val subscriptions = subscriptionService.getSubscriptions(limit, offset, userId)
+        val sub = getSubFromSecurityContext()
+        val subscriptions = subscriptionService.getSubscriptions(limit, offset, sub)
             .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
-        val subscriptionsCount = subscriptionService.getSubscriptionsCount(userId).awaitFirst()
+        val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
         val prevAndNextLinks = getPagingLinks(
             "/ngsi-ld/v1/subscriptions",
             params,
@@ -135,8 +137,8 @@ class SubscriptionHandler(
         val subscriptionIdUri = subscriptionId.toUri()
         checkSubscriptionExists(subscriptionIdUri).awaitFirst()
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
         val subscription = subscriptionService.getById(subscriptionIdUri).awaitFirst()
 
         return buildGetSuccessResponse(mediaType, contextLink)
@@ -158,8 +160,8 @@ class SubscriptionHandler(
         val subscriptionIdUri = subscriptionId.toUri()
         checkSubscriptionExists(subscriptionIdUri).awaitFirst()
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
         val body = requestBody.awaitFirst()
         val contexts = checkAndGetContext(httpHeaders, body)
         val parsedInput = parseSubscriptionUpdate(body, contexts)
@@ -181,8 +183,8 @@ class SubscriptionHandler(
         val subscriptionIdUri = subscriptionId.toUri()
         checkSubscriptionExists(subscriptionIdUri).awaitFirst()
 
-        val userId = extractSubjectOrEmpty().awaitFirst()
-        checkIsAllowed(subscriptionIdUri, userId).awaitFirst()
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
         subscriptionService.delete(subscriptionIdUri).awaitFirst()
 
         // TODO use JSON-LD contexts provided at creation time
@@ -211,8 +213,8 @@ class SubscriptionHandler(
                     Mono.just(subscription)
             }
 
-    private fun checkIsAllowed(subscriptionId: URI, userSub: String): Mono<URI> =
-        subscriptionService.isCreatorOf(subscriptionId, userSub)
+    private fun checkIsAllowed(subscriptionId: URI, sub: Option<Sub>): Mono<URI> =
+        subscriptionService.isCreatorOf(subscriptionId, sub)
             .flatMap {
                 if (!it)
                     Mono.error(AccessDeniedException(subscriptionUnauthorizedMessage(subscriptionId)))

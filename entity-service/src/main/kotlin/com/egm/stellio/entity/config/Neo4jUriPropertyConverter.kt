@@ -8,7 +8,7 @@ import java.net.URI
 
 class Neo4jUriPropertyConverter : Neo4jPersistentPropertyConverter<URI> {
 
-    override fun write(source: URI): Value {
+    override fun write(source: URI?): Value {
         return StringValue(source.toString())
     }
 

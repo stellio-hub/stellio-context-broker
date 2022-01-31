@@ -1,10 +1,13 @@
 package com.egm.stellio.subscription.service
 
+import arrow.core.Option
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.Sub
+import com.egm.stellio.shared.util.toStringValue
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
@@ -50,7 +53,7 @@ class SubscriptionService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    fun create(subscription: Subscription, sub: String): Mono<Int> {
+    fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
         val insertStatement =
             """
         INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, q, notif_attributes,
@@ -75,7 +78,7 @@ class SubscriptionService(
             .bind("times_sent", subscription.notification.timesSent)
             .bind("is_active", subscription.isActive)
             .bind("expires_at", subscription.expiresAt)
-            .bind("sub", sub)
+            .bind("sub", sub.toStringValue())
             .fetch()
             .rowsUpdated()
             .flatMap {
@@ -158,7 +161,7 @@ class SubscriptionService(
             }
     }
 
-    fun isCreatorOf(subscriptionId: URI, sub: String): Mono<Boolean> {
+    fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Mono<Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -170,7 +173,7 @@ class SubscriptionService(
             .bind("id", subscriptionId)
             .map(rowToSub)
             .first()
-            .map { it == sub }
+            .map { it == sub.toStringValue() }
     }
 
     @Transactional
@@ -353,7 +356,7 @@ class SubscriptionService(
             EntityInfo::class.java
         )
 
-    fun getSubscriptions(limit: Int, offset: Int, sub: String): Flux<Subscription> {
+    fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): Flux<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
@@ -376,7 +379,7 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("limit", limit)
             .bind("offset", offset)
-            .bind("sub", sub)
+            .bind("sub", sub.toStringValue())
             .map(rowToSubscription)
             .all()
             .groupBy { t: Subscription ->
@@ -389,14 +392,14 @@ class SubscriptionService(
             }
     }
 
-    fun getSubscriptionsCount(sub: String): Mono<Int> {
+    fun getSubscriptionsCount(sub: Option<Sub>): Mono<Int> {
         val selectStatement =
             """
             SELECT count(*) from subscription
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
-            .bind("sub", sub)
+            .bind("sub", sub.toStringValue())
             .map(rowToSubscriptionCount)
             .first()
     }

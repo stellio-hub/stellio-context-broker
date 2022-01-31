@@ -1,11 +1,11 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
+import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
@@ -482,7 +482,7 @@ class Neo4jRepository(
         return result.map { rowResult ->
             val entityWithLocationCount = (rowResult["entityWithLocationCount"] as Long).toInt()
             val entityTypes = (rowResult["entityType"] as List<String>)
-                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+                .filter { !IAM_TYPES.plus("Entity").contains(it) }
             entityTypes.map { entityType ->
                 mapOf(
                     "entityType" to entityType,
@@ -506,7 +506,7 @@ class Neo4jRepository(
         val result = neo4jClient.query(query).fetch().all()
         return result.map {
             (it["entityType"] as List<String>)
-                .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }
+                .filter { !IAM_TYPES.plus("Entity").contains(it) }
         }.flatten()
     }
 
@@ -558,7 +558,7 @@ class Neo4jRepository(
                 }
                 .map { attributeName ->
                     val typeNames = (rowResult["typeNames"] as List<String>)
-                        .filter { !authorizationEntitiesTypes.plus("Entity").contains(it) }.toSet()
+                        .filter { !IAM_TYPES.plus("Entity").contains(it) }.toSet()
                     attributeName to typeNames
                 }
         }.flatten()
@@ -609,7 +609,7 @@ class Neo4jRepository(
                 ),
                 acc.second.plus(
                     (current["typeNames"] as List<String>).filter {
-                        !authorizationEntitiesTypes.plus("Entity").contains(it)
+                        !IAM_TYPES.plus("Entity").contains(it)
                     }.toSet()
                 ),
                 acc.third.plus((current["attributeCount"] as Long).toInt())
@@ -644,10 +644,4 @@ class Neo4jRepository(
         OPTIONAL MATCH (attribute)-[:HAS_OBJECT]->(relOfAttribute:Relationship)
         DETACH DELETE attribute, propOfAttribute, relOfAttribute
         """.trimIndent()
-
-    private val authorizationEntitiesTypes = listOf(
-        AuthorizationService.AUTHORIZATION_ONTOLOGY + "User",
-        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Client",
-        AuthorizationService.AUTHORIZATION_ONTOLOGY + "Group"
-    )
 }

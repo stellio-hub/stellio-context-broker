@@ -14,7 +14,7 @@ const val JSON_OBJECT_PREFIX = "jsonObject@"
 class Neo4jValuePropertyConverter : Neo4jPersistentPropertyConverter<Any> {
 
     @Suppress("SpreadOperator")
-    override fun write(source: Any): Value {
+    override fun write(source: Any?): Value {
         return when (source) {
             is List<*> -> ListValue(*source.map { Values.value(it) }.toTypedArray())
             is URI -> StringValue(source.toString())

@@ -46,6 +46,7 @@ object JsonLdUtils {
 
     const val JSONLD_ID = "@id"
     const val JSONLD_TYPE = "@type"
+    const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
@@ -66,7 +67,6 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
-    const val EGM_SPECIFIC_ACCESS_POLICY = "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
 
     val logger = LoggerFactory.getLogger(javaClass)
 
@@ -76,8 +76,7 @@ object JsonLdUtils {
 
     @PostConstruct
     private fun loadCoreContext() {
-        val coreContextPayload = HttpUtils.doGet(NGSILD_CORE_CONTEXT) ?: localCoreContextPayload
-        val coreContext: Map<String, Any> = deserializeObject(coreContextPayload)
+        val coreContext: Map<String, Any> = deserializeObject(localCoreContextPayload)
         BASE_CONTEXT = coreContext[JSONLD_CONTEXT] as Map<String, Any>
         logger.info("Core context loaded")
     }
@@ -489,7 +488,14 @@ private fun simplifyRepresentation(value: Any): Any {
     return when (value) {
         // entity property value is always a Map
         is Map<*, *> -> simplifyValue(value)
-        // we keep id, type and @context values as they are (String and List<String>)
+        is List<*> -> value.map {
+            when (it) {
+                is Map<*, *> -> simplifyValue(it)
+                // we keep @context value as it is (List<String>)
+                else -> it
+            }
+        }
+        // we keep id and type values as they are (String)
         else -> value
     }
 }

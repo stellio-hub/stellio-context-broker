@@ -414,7 +414,8 @@ class SubscriptionService(
             FROM subscription 
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
-            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') OR watched_attributes IS NULL )
+            AND ( string_to_array(watched_attributes, ',') && string_to_array(:updatedAttributes, ',') 
+            OR watched_attributes IS NULL OR time_interval is NULL)
             AND id IN (
                 SELECT subscription_id
                 FROM entity_info

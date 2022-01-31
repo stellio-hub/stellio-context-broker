@@ -22,7 +22,7 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
-import com.egm.stellio.shared.util.JsonUtils
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.checkAndGetContext
 import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
 import com.egm.stellio.shared.util.getSubFromSecurityContext
@@ -174,6 +174,7 @@ class EntityAccessControlHandler(
                     AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
                     false
                 ).first
+                logger.debug("Counted a total of $total entities for type $it")
                 entityService.searchEntities(
                     QueryParams(expandedType = it),
                     sub,
@@ -185,7 +186,8 @@ class EntityAccessControlHandler(
             }
             .map { it.second }
             .flatten()
-            .map { jsonLdEntity ->
+            .forEach { jsonLdEntity ->
+                logger.debug("Preparing events for subject: ${jsonLdEntity.id} (${jsonLdEntity.type}")
                 // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
                     generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_ADMIN, authorizationContexts)
@@ -208,14 +210,12 @@ class EntityAccessControlHandler(
                     updatedEntity,
                     authorizationContexts
                 )
-                listOf(iamEvent).plus(entitiesRightsEvents)
-            }
-            .flatten()
-            .toList()
-            .forEach {
-                val serializedEvent = JsonUtils.serializeObject(it)
-                logger.debug("Sending event: $serializedEvent")
-                kafkaTemplate.send("cim.iam.replay", it.entityId.toString(), serializedEvent)
+                kafkaTemplate.send("cim.iam.replay", iamEvent.entityId.toString(), serializeObject(iamEvent))
+
+                entitiesRightsEvents.forEach {
+                    kafkaTemplate.send("cim.iam.replay", it.entityId.toString(), serializeObject(it))
+                }
+                logger.debug("Sent events for subject ${jsonLdEntity.id}")
             }
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -258,7 +258,7 @@ class EntityAccessControlHandler(
             accessRight.toCompactTerm(),
             ((rightRel[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri(),
             true,
-            JsonUtils.serializeObject(JsonLdUtils.compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
+            serializeObject(JsonLdUtils.compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
             "",
             authorizationContexts
         )

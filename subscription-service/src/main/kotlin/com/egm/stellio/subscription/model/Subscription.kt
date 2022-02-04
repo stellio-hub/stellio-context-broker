@@ -40,26 +40,36 @@ data class Subscription(
         }
     }
 
-    fun compact(context: String): Subscription =
+    fun compact(contexts: List<String>): Subscription =
         this.copy(
             entities = entities.map {
-                EntityInfo(it.id, it.idPattern, compactTerm(it.type, listOf(context)))
+                EntityInfo(it.id, it.idPattern, compactTerm(it.type, contexts))
             }.toSet(),
             notification = notification.copy(
-                attributes = notification.attributes?.map { compactTerm(it, listOf(context)) }
+                attributes = notification.attributes?.map { compactTerm(it, contexts) }
             )
         )
 
-    fun toJson(context: String, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false): String {
+    fun compact(context: String): Subscription =
+        compact(listOf(context))
+
+    fun toJson(
+        contexts: List<String>,
+        mediaType: MediaType = JSON_LD_MEDIA_TYPE,
+        includeSysAttrs: Boolean = false
+    ): String {
         val serializedSubscription = if (includeSysAttrs)
-            JsonUtils.serializeObject(this.compact(context))
+            JsonUtils.serializeObject(this.compact(contexts))
         else
-            serializeWithoutSysAttrs(this.compact(context))
+            serializeWithoutSysAttrs(this.compact(contexts))
         return if (mediaType == JSON_LD_MEDIA_TYPE)
-            addContextToElement(serializedSubscription, listOf(context))
+            addContextToElement(serializedSubscription, contexts)
         else
             serializedSubscription
     }
+
+    fun toJson(context: String, mediaType: MediaType = JSON_LD_MEDIA_TYPE, includeSysAttrs: Boolean = false): String =
+        toJson(listOf(context), mediaType, includeSysAttrs)
 }
 
 fun List<Subscription>.toJson(

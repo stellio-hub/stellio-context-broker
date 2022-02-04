@@ -69,11 +69,8 @@ class SubscriptionHandler(
 
         val sub = getSubFromSecurityContext()
         subscriptionService.create(parsedSubscription, sub).awaitFirst()
-        subscriptionEventService.publishSubscriptionCreateEvent(
-            parsedSubscription,
-            removeContextFromInput(body),
-            contexts
-        )
+
+        subscriptionEventService.publishSubscriptionCreateEvent(parsedSubscription.id, contexts)
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))

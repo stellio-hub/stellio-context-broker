@@ -168,14 +168,13 @@ class NgsiLdGeoProperty private constructor(
 }
 
 sealed class NgsiLdAttributeInstance(
+    val createdAt: ZonedDateTime?,
+    val modifiedAt: ZonedDateTime?,
     val observedAt: ZonedDateTime?,
     val datasetId: URI?,
     val properties: List<NgsiLdProperty>,
     val relationships: List<NgsiLdRelationship>
 ) {
-
-    fun isTemporalAttribute(): Boolean = observedAt != null
-
     open fun getLinkedEntitiesIds(): List<URI> =
         properties.flatMap {
             it.getLinkedEntitiesIds()
@@ -185,11 +184,13 @@ sealed class NgsiLdAttributeInstance(
 class NgsiLdPropertyInstance private constructor(
     val value: Any,
     val unitCode: String?,
+    createdAt: ZonedDateTime?,
+    modifiedAt: ZonedDateTime?,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     properties: List<NgsiLdProperty>,
     relationships: List<NgsiLdRelationship>
-) : NgsiLdAttributeInstance(observedAt, datasetId, properties, relationships) {
+) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
         operator fun invoke(name: String, values: Map<String, List<Any>>): NgsiLdPropertyInstance {
             // TODO for short-handed properties, the value is directly accessible from the map under the @value key ?
@@ -197,6 +198,8 @@ class NgsiLdPropertyInstance private constructor(
                 ?: throw BadRequestDataException("Property $name has an instance without a value")
 
             val unitCode = getPropertyValueFromMapAsString(values, NGSILD_UNIT_CODE_PROPERTY)
+            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
@@ -206,7 +209,9 @@ class NgsiLdPropertyInstance private constructor(
             if (attributes.size > relationships.size + properties.size)
                 throw BadRequestDataException("Property has unknown attributes types: $attributes")
 
-            return NgsiLdPropertyInstance(value, unitCode, observedAt, datasetId, properties, relationships)
+            return NgsiLdPropertyInstance(
+                value, unitCode, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+            )
         }
     }
 
@@ -216,14 +221,18 @@ class NgsiLdPropertyInstance private constructor(
 
 class NgsiLdRelationshipInstance private constructor(
     val objectId: URI,
+    createdAt: ZonedDateTime?,
+    modifiedAt: ZonedDateTime?,
     observedAt: ZonedDateTime?,
     datasetId: URI?,
     properties: List<NgsiLdProperty>,
     relationships: List<NgsiLdRelationship>
-) : NgsiLdAttributeInstance(observedAt, datasetId, properties, relationships) {
+) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
         operator fun invoke(name: String, values: Map<String, List<Any>>): NgsiLdRelationshipInstance {
             val objectId = extractRelationshipObject(name, values).fold({ throw it }, { it })
+            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
@@ -233,7 +242,9 @@ class NgsiLdRelationshipInstance private constructor(
             if (attributes.size > relationships.size + properties.size)
                 throw BadRequestDataException("Relationship has unknown attributes: $attributes")
 
-            return NgsiLdRelationshipInstance(objectId, observedAt, datasetId, properties, relationships)
+            return NgsiLdRelationshipInstance(
+                objectId, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+            )
         }
     }
 
@@ -242,15 +253,19 @@ class NgsiLdRelationshipInstance private constructor(
 }
 
 class NgsiLdGeoPropertyInstance(
-    observedAt: ZonedDateTime? = null,
-    datasetId: URI? = null,
     val geoPropertyType: GeoPropertyType,
     val coordinates: List<Any>,
+    createdAt: ZonedDateTime?,
+    modifiedAt: ZonedDateTime?,
+    observedAt: ZonedDateTime? = null,
+    datasetId: URI? = null,
     properties: List<NgsiLdProperty> = emptyList(),
     relationships: List<NgsiLdRelationship> = emptyList()
-) : NgsiLdAttributeInstance(observedAt, datasetId, properties, relationships) {
+) : NgsiLdAttributeInstance(createdAt, modifiedAt, observedAt, datasetId, properties, relationships) {
     companion object {
         operator fun invoke(values: Map<String, List<Any>>): NgsiLdGeoPropertyInstance {
+            val createdAt = getPropertyValueFromMapAsDateTime(values, NGSILD_CREATED_AT_PROPERTY)
+            val modifiedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_MODIFIED_AT_PROPERTY)
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
@@ -260,19 +275,14 @@ class NgsiLdGeoPropertyInstance(
             )
             val coordinates = extractCoordinates(geoPropertyType, geoPropertyValue)
 
-            val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMEBERS)
+            val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
             if (attributes.size > relationships.size + properties.size)
                 throw BadRequestDataException("Geoproperty has unknown attributes: $attributes")
 
             return NgsiLdGeoPropertyInstance(
-                observedAt,
-                datasetId,
-                geoPropertyType,
-                coordinates,
-                properties,
-                relationships
+                geoPropertyType, coordinates, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
             )
         }
 
@@ -415,7 +425,7 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
     NGSILD_RELATIONSHIP_HAS_OBJECT
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 
-val NGSILD_GEOPROPERTIES_CORE_MEMEBERS = listOf(
+val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
     NGSILD_GEOPROPERTY_VALUE
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
 

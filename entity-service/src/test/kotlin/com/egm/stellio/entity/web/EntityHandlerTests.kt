@@ -97,7 +97,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -119,7 +119,6 @@ class EntityHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 eq(breedingServiceId),
                 eq(breedingServiceType),
-                any(),
                 eq(hcmrContext)
             )
         }

@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
@@ -68,7 +67,6 @@ class EntityHandler(
         entityEventService.publishEntityCreateEvent(
             ngsiLdEntity.id,
             ngsiLdEntity.type,
-            removeContextFromInput(body),
             contexts
         )
         return ResponseEntity

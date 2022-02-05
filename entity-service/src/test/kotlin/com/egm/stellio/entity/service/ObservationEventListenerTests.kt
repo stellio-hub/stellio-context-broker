@@ -60,7 +60,6 @@ class ObservationEventListenerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("urn:ngsi-ld:BeeHive:TESTC".toUri()),
                 eq("https://ontology.eglobalmark.com/apic#BeeHive"),
-                any(),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }

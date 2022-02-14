@@ -456,7 +456,6 @@ class EntityEventListenerServiceTest {
         }
     }
 
-
     @Test
     fun `it should handle an ATTRIBUTE_REPLACE event for a text property`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceTextPropEvent.json")

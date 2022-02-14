@@ -15,6 +15,7 @@ import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
 import com.github.jsonldjava.utils.JsonUtils
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.MediaType
@@ -68,7 +69,7 @@ object JsonLdUtils {
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
     const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
-    val logger = LoggerFactory.getLogger(javaClass)
+    val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =
         ClassPathResource("/contexts/ngsi-ld-core-context.jsonld").inputStream.readBytes().toString(Charsets.UTF_8)

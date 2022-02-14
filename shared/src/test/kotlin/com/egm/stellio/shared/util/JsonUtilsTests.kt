@@ -56,7 +56,7 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ENTITY_CREATE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityCreateEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityCreateEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
     }
 
@@ -68,7 +68,7 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityDeleteEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
     }
 
@@ -86,13 +86,13 @@ class JsonUtilsTests {
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteAllInstancesEvent.json"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteAllInstancesEvent)
     }
 
@@ -112,7 +112,7 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityCreateEvent.jsonld"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityCreateEvent.json"))
     }
 
     @Test
@@ -137,7 +137,7 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityDeleteEvent.jsonld"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityDeleteEvent.json"))
     }
 
     @Test
@@ -215,7 +215,7 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteEvent.jsonld"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteEvent.json"))
     }
 
     @Test
@@ -229,6 +229,6 @@ class JsonUtilsTests {
                 listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteAllInstancesEvent.jsonld"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteAllInstancesEvent.json"))
     }
 }

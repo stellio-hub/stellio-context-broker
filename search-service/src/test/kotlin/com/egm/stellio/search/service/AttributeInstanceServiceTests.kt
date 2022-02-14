@@ -79,7 +79,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a full instance if temporalValues are not asked for`() {
         val observation = gimmeAttributeInstance().copy(
-            observedAt = now,
+            time = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation).block()
@@ -150,7 +150,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute2.id,
                 value = "some value",
-                observedAt = observedAt,
+                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                time = observedAt,
                 payload = mapOf(
                     "type" to "Property",
                     "value" to "some value",
@@ -281,7 +282,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = 1.0,
-                        observedAt = now.minusHours(index.toLong())
+                        time = now.minusHours(index.toLong())
                     )
             attributeInstanceService.create(attributeInstance).block()
         }
@@ -457,7 +458,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         verify {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
-                    it.observedAt.toString() == "2015-10-18T11:20:30.000001Z" &&
+                    it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == null &&
                         it.measuredValue == 550.0 &&
                         it.payload.matchContent(
@@ -527,7 +528,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
-            observedAt = observedAt,
+            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+            time = observedAt,
             payload = mapOf(
                 "type" to "Property",
                 "value" to measuredValue,

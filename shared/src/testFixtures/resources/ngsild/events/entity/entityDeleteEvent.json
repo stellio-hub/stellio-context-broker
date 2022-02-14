@@ -1,0 +1,8 @@
+{
+  "entityId": "urn:ngsi-ld:BeeHive:01",
+  "entityType": "BeeHive",
+  "contexts": [
+    "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
+  ],
+  "operationType": "ENTITY_DELETE"
+}

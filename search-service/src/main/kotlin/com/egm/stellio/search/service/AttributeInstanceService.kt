@@ -31,13 +31,13 @@ class AttributeInstanceService(
         databaseClient.sql(
             """
             INSERT INTO attribute_instance 
-                (observed_at, measured_value, value, temporal_entity_attribute, instance_id, payload)
-                VALUES (:observed_at, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
-            ON CONFLICT (observed_at, temporal_entity_attribute)
+                (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+            ON CONFLICT (time, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload
             """.trimIndent()
         )
-            .bind("observed_at", attributeInstance.observedAt)
+            .bind("time", attributeInstance.time)
             .bind("measured_value", attributeInstance.measuredValue)
             .bind("value", attributeInstance.value)
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
@@ -61,7 +61,8 @@ class AttributeInstanceService(
 
         val attributeInstance = AttributeInstance(
             temporalEntityAttribute = temporalEntityAttributeUuid,
-            observedAt = observedAt,
+            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+            time = observedAt,
             value = valueToStringOrNull(attributeValue),
             measuredValue = valueToDoubleOrNull(attributeValue),
             payload = compactFragment(attributeValues, contexts).minus(JSONLD_CONTEXT)
@@ -86,17 +87,17 @@ class AttributeInstanceService(
                 temporalQuery.timeBucket != null ->
                     """
                         SELECT temporal_entity_attribute,
-                               time_bucket('${temporalQuery.timeBucket}', observed_at) as time_bucket,
+                               time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
                                ${temporalQuery.aggregate}(measured_value) as value
                     """.trimIndent()
                 // temporal entity attributes are grouped by attribute type by calling services
                 temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
                     """
-                        SELECT temporal_entity_attribute, observed_at, value
+                        SELECT temporal_entity_attribute, time, value
                     """.trimIndent()
                 else ->
                     """
-                        SELECT temporal_entity_attribute, observed_at, measured_value as value
+                        SELECT temporal_entity_attribute, time, measured_value as value
                     """.trimIndent()
             }
 
@@ -114,10 +115,10 @@ class AttributeInstanceService(
         )
 
         selectQuery = when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND observed_at < '${temporalQuery.time}'")
-            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND observed_at > '${temporalQuery.time}'")
+            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND time < '${temporalQuery.time}'")
+            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND time > '${temporalQuery.time}'")
             TemporalQuery.Timerel.BETWEEN -> selectQuery.plus(
-                " AND observed_at > '${temporalQuery.time}' AND observed_at < '${temporalQuery.endTime}'"
+                " AND time > '${temporalQuery.time}' AND time < '${temporalQuery.endTime}'"
             )
             else -> selectQuery
         }
@@ -125,7 +126,7 @@ class AttributeInstanceService(
         selectQuery = if (temporalQuery.timeBucket != null)
             selectQuery.plus(" GROUP BY temporal_entity_attribute, time_bucket ORDER BY time_bucket DESC")
         else
-            selectQuery.plus(" ORDER BY observed_at DESC")
+            selectQuery.plus(" ORDER BY time DESC")
 
         if (temporalQuery.lastN != null)
             selectQuery = selectQuery.plus(" LIMIT ${temporalQuery.lastN}")
@@ -197,7 +198,7 @@ class AttributeInstanceService(
                 value = row["value"]!!,
                 observedAt = row["time_bucket"]?.let {
                     ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
-                } ?: row["observed_at"]
+                } ?: row["time"]
                     .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }
             )
         else FullAttributeInstanceResult(

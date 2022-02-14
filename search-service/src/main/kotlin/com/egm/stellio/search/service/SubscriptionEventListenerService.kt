@@ -72,7 +72,8 @@ class SubscriptionEventListenerService(
             .flatMap {
                 val attributeInstance = AttributeInstance(
                     temporalEntityAttribute = it,
-                    observedAt = notification.notifiedAt,
+                    timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                    time = notification.notifiedAt,
                     value = entitiesIds,
                     instanceId = notification.id,
                     payload = mapOf(

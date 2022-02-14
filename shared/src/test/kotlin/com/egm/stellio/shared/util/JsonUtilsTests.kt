@@ -1,104 +1,115 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteAllInstancesEvent
-import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
-import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityDeleteEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.EntityReplaceEvent
-import com.egm.stellio.shared.model.EntityUpdateEvent
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class JsonUtilsTests {
 
-    private val entityId = "urn:ngsi-ld:Vehicle:A4567".toUri()
-    private val entityType = "Vehicle"
-    private val subscriptionId = "urn:ngsi-ld:Subscription:1".toUri()
-    private val subscriptionType = "Subscription"
+    private val entityId = "urn:ngsi-ld:BeeHive:01".toUri()
     private val entityPayload =
         """
         {
-            "id": "$entityId",
-            "type": "Vehicle",
-            "brandName": {
-                "type": "Property",
-                "value": "Mercedes"
-            }
-        }
-        """.trimIndent()
-
-    private val subscriptionPayload =
-        """
-        {
-          "id":"$subscriptionId",
-          "type":"Subscription",
-          "entities": [
-            {
-              "type": "Beehive"
+            "id":"urn:ngsi-ld:BeeHive:01",
+            "type":"BeeHive",
+            "humidity":{
+                "type":"Property",
+                "observedBy":{
+                    "type":"Relationship",
+                    "createdAt":"2022-02-12T08:36:59.455870Z",
+                    "object":"urn:ngsi-ld:Sensor:02"
+                },
+                "createdAt":"2022-02-12T08:36:59.448205Z",
+                "value":60,
+                "observedAt":"2019-10-26T21:32:52.986010Z",
+                "unitCode":"P1"
             },
-          ],
-          "q": "foodQuantity<150;foodName=='dietary fibres'", 
-          "notification": {
-            "attributes": ["incoming"],
-            "format": "normalized",
-            "endpoint": {
-              "uri": "http://localhost:8084",
-              "accept": "application/json"
-            }
-          }
+            "temperature":{
+                "type":"Property",
+                "observedBy":{
+                    "type":"Relationship",
+                    "createdAt":"2022-02-12T08:36:59.473904Z",
+                    "object":"urn:ngsi-ld:Sensor:01"
+                },
+                "createdAt":"2022-02-12T08:36:59.465937Z",
+                "value":22.2,
+                "observedAt":"2019-10-26T21:32:52.986010Z",
+                "unitCode":"CEL"
+            },
+            "belongs":{
+                "type":"Relationship",
+                "createdAt":"2022-02-12T08:36:59.389815Z",
+                "object":"urn:ngsi-ld:Apiary:01"
+            },
+            "managedBy":{
+                "type":"Relationship",
+                "createdAt":"2022-02-12T08:36:59.417938Z",
+                "object":"urn:ngsi-ld:Beekeeper:01"
+            },
+            "createdAt":"2022-02-12T08:36:59.179446Z",
+            "location":{
+                "type":"GeoProperty",
+                "value":{
+                    "type":"Point",
+                    "coordinates":[24.30623,60.07966]
+                }
+            },
+            "modifiedAt":"2022-02-12T08:36:59.218595Z"
         }
-        """.trimIndent()
+        """.trimIndent().replace(" ", "").replace("\n", "")
 
     @Test
     fun `it should parse an event of type ENTITY_CREATE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityCreateEvent.json"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityCreateEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityCreateEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_REPLACE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityReplaceEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityReplaceEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityReplaceEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_DELETE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityDeleteEvent.json"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_UPDATE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeUpdateEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(
+            loadSampleData("events/entity/attributeUpdateTextPropEvent.json")
+        )
         Assertions.assertTrue(parsedEvent is AttributeUpdateEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_REPLACE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeReplaceEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(
+            loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
+        )
         Assertions.assertTrue(parsedEvent is AttributeReplaceEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteEvent.json"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/attributeDeleteEvent.json"))
         Assertions.assertTrue(parsedEvent is AttributeDeleteEvent)
     }
 
     @Test
     fun `it should parse an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/attributeDeleteAllInstancesEvent.json"))
+        val parsedEvent = deserializeAs<EntityEvent>(
+            loadSampleData("events/entity/attributeDeleteAllInstancesEvent.json")
+        )
         Assertions.assertTrue(parsedEvent is AttributeDeleteAllInstancesEvent)
     }
 
     @Test
     fun `it should parse an event of type ENTITY_UPDATE`() {
-        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entityUpdateEvent.jsonld"))
+        val parsedEvent = deserializeAs<EntityEvent>(loadSampleData("events/entity/entityUpdateEvent.json"))
         Assertions.assertTrue(parsedEvent is EntityUpdateEvent)
     }
 
@@ -107,25 +118,12 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
                 entityId,
-                entityType,
+                BEEHIVE_COMPACT_TYPE,
                 entityPayload,
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityCreateEvent.json"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ENTITY_REPLACE`() {
-        val event = mapper.writeValueAsString(
-            EntityReplaceEvent(
-                entityId,
-                entityType,
-                entityPayload,
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityReplaceEvent.jsonld"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entity/entityCreateEvent.json"))
     }
 
     @Test
@@ -133,102 +131,10 @@ class JsonUtilsTests {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
                 entityId,
-                entityType,
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+                BEEHIVE_COMPACT_TYPE,
+                listOf(APIC_COMPOUND_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityDeleteEvent.json"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ENTITY_UPDATE`() {
-        val event = mapper.writeValueAsString(
-            EntityUpdateEvent(
-                subscriptionId,
-                subscriptionType,
-                "{\"q\": \"foodQuantity>=90\"}",
-                subscriptionPayload,
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entityUpdateEvent.jsonld"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ATTRIBUTE_UPDATE`() {
-        val event = mapper.writeValueAsString(
-            AttributeUpdateEvent(
-                entityId,
-                entityType,
-                "color",
-                "urn:ngsi-ld:Dataset:color:1".toUri(),
-                "{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
-                "",
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeUpdateEvent.jsonld"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ATTRIBUTE_APPEND`() {
-        val event = mapper.writeValueAsString(
-            AttributeAppendEvent(
-                entityId,
-                entityType,
-                "color",
-                "urn:ngsi-ld:Dataset:color:1".toUri(),
-                true,
-                "{ \"value\":76, \"unitCode\": \"CEL\", \"observedAt\": \"2019-10-26T22:35:52.98601Z\" }",
-                "",
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeAppendEvent.jsonld"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ATTRIBUTE_REPLACE`() {
-        val event = mapper.writeValueAsString(
-            AttributeReplaceEvent(
-                entityId,
-                entityType,
-                "color",
-                "urn:ngsi-ld:Dataset:color:1".toUri(),
-                "{ \"type\": \"Property\", \"value\": \"red\" }",
-                "updatedEntity",
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeReplaceEvent.jsonld"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ATTRIBUTE_DELETE`() {
-        val event = mapper.writeValueAsString(
-            AttributeDeleteEvent(
-                entityId,
-                entityType,
-                "color",
-                "urn:ngsi-ld:Dataset:color:1".toUri(),
-                "updatedEntity",
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteEvent.json"))
-    }
-
-    @Test
-    fun `it should serialize an event of type ATTRIBUTE_DELETE_ALL_INSTANCES`() {
-        val event = mapper.writeValueAsString(
-            AttributeDeleteAllInstancesEvent(
-                entityId,
-                entityType,
-                "color",
-                "updatedEntity",
-                listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-            )
-        )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/attributeDeleteAllInstancesEvent.json"))
+        assertJsonPayloadsAreEqual(event, loadSampleData("events/entity/entityDeleteEvent.json"))
     }
 }

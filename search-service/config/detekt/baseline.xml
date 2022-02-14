@@ -4,6 +4,7 @@
   <CurrentIssues>
     <ID>LargeClass:TemporalEntityHandlerTests.kt$TemporalEntityHandlerTests</ID>
     <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeAppend( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
+    <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeUpdate( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
     <ID>LongMethod:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$fun createEntityTemporalReferences(payload: String, contexts: List&lt;String&gt;): Mono&lt;Int&gt;</ID>

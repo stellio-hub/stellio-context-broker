@@ -77,11 +77,14 @@ class TemporalEntityAttributeService(
         else
             Mono.just(1)
 
-    fun updateEntityPayload(entityId: URI, payload: String): Mono<Int> =
+    fun upsertEntityPayload(entityId: URI, payload: String): Mono<Int> =
         if (applicationProperties.entity.storePayloads)
             databaseClient.sql(
                 """
-                UPDATE entity_payload SET payload = :payload WHERE entity_id = :entity_id
+                INSERT INTO entity_payload (entity_id, payload)
+                VALUES (:entity_id, :payload)
+                ON CONFLICT (entity_id)
+                DO UPDATE SET payload = :payload
                 """.trimIndent()
             )
                 .bind("payload", Json.of(payload))

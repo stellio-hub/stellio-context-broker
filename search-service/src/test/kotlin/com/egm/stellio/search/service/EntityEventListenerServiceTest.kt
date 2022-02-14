@@ -144,7 +144,7 @@ class EntityEventListenerServiceTest {
         every {
             temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
         } answers { Mono.just(4) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeDeleteEventPayload)
 
@@ -156,7 +156,7 @@ class EntityEventListenerServiceTest {
             )
         }
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -171,7 +171,7 @@ class EntityEventListenerServiceTest {
         every {
             temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
         } answers { Mono.just(8) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeDeleteAllInstancesEvent)
 
@@ -182,7 +182,7 @@ class EntityEventListenerServiceTest {
             )
         }
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -196,7 +196,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -226,7 +226,7 @@ class EntityEventListenerServiceTest {
         }
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -241,7 +241,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -280,7 +280,7 @@ class EntityEventListenerServiceTest {
         }
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -296,7 +296,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -335,7 +335,7 @@ class EntityEventListenerServiceTest {
         }
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -350,7 +350,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.updateEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -380,7 +380,7 @@ class EntityEventListenerServiceTest {
         }
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
@@ -392,7 +392,6 @@ class EntityEventListenerServiceTest {
     @Test
     fun `it should handle an ATTRIBUTE_REPLACE event for a numeric property`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
-
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every {
@@ -419,9 +418,48 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should handle an ATTRIBUTE_REPLACE event for a numeric property not existing previously`() {
+        val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
+
+        every {
+            temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
+        } answers { Mono.empty() }
+        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+
+        entityEventListenerService.processMessage(attributeReplaceEventPayload)
+
+        verify {
+            temporalEntityAttributeService.create(
+                match {
+                    it.entityId == expectedEntityId.toUri() &&
+                        it.type == BEEHIVE_TYPE &&
+                        it.attributeName == TEMPERATURE_PROPERTY &&
+                        it.attributeType == TemporalEntityAttribute.AttributeType.Property &&
+                        it.attributeValueType == TemporalEntityAttribute.AttributeValueType.MEASURE &&
+                        it.datasetId == null
+                }
+            )
+        }
+        verifyMocksForAttributeUpdateOrReplace(
+            TEMPERATURE_PROPERTY
+        ) {
+            attributeInstanceService.create(
+                match {
+                    it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.986010Z") &&
+                        it.value == null &&
+                        it.measuredValue == 44.0 &&
+                        it.payload.contains("createdAt")
+                }
+            )
+        }
+    }
+
+
+    @Test
     fun `it should handle an ATTRIBUTE_REPLACE event for a text property`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceTextPropEvent.json")
-
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every {
@@ -450,7 +488,6 @@ class EntityEventListenerServiceTest {
     @Test
     fun `it should handle an ATTRIBUTE_REPLACE event for a relationship`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceRelEvent.json")
-
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
         every {
@@ -489,7 +526,7 @@ class EntityEventListenerServiceTest {
         entityEventListenerService.processMessage(attributeUpdateEventPayload)
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) }
-        verify { temporalEntityAttributeService.updateEntityPayload(any(), any()) wasNot Called }
+        verify { temporalEntityAttributeService.upsertEntityPayload(any(), any()) wasNot Called }
         confirmVerified(temporalEntityAttributeService)
     }
 
@@ -622,7 +659,7 @@ class EntityEventListenerServiceTest {
         verify(verifyBlock = attributeInstanceVerifyBlock)
 
         verify {
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 expectedEntityId.toUri(),
                 match {
                     it.contains(expectedEntityId)

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -80,7 +81,7 @@ class EntityEventListenerService(
             expandedAttributeName,
             attributeDeleteEvent.datasetId
         ).zipWith(
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 attributeDeleteEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
@@ -108,7 +109,7 @@ class EntityEventListenerService(
             attributeDeleteAllInstancesEvent.entityId,
             expandedAttributeName
         ).zipWith(
-            temporalEntityAttributeService.updateEntityPayload(
+            temporalEntityAttributeService.upsertEntityPayload(
                 attributeDeleteAllInstancesEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
@@ -134,6 +135,7 @@ class EntityEventListenerService(
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
         handleAttributeUpdate(
             attributeReplaceEvent.entityId,
+            attributeReplaceEvent.entityType,
             attributeReplaceEvent.attributeName,
             attributeReplaceEvent.datasetId,
             attributeReplaceEvent.updatedEntity,
@@ -144,6 +146,7 @@ class EntityEventListenerService(
     private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
         handleAttributeUpdate(
             attributeUpdateEvent.entityId,
+            attributeUpdateEvent.entityType,
             attributeUpdateEvent.attributeName,
             attributeUpdateEvent.datasetId,
             attributeUpdateEvent.updatedEntity,
@@ -153,6 +156,7 @@ class EntityEventListenerService(
 
     private fun handleAttributeUpdate(
         entityId: URI,
+        entityType: String,
         attributeName: String,
         datasetId: URI?,
         updatedEntity: String,
@@ -175,7 +179,20 @@ class EntityEventListenerService(
                 val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
                 temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId, expandedAttributeName, attributeMetadata.datasetId
-                ).zipWhen {
+                ).switchIfEmpty {
+                    // in case of an existing attribute not handled previously by search service (not using observedAt)
+                    // we transparently create the temporal entity attribute
+                    val temporalEntityAttribute = TemporalEntityAttribute(
+                        entityId = entityId,
+                        type = expandJsonLdKey(entityType, contexts)!!,
+                        attributeName = expandedAttributeName,
+                        attributeType = attributeMetadata.type,
+                        attributeValueType = attributeMetadata.valueType,
+                        datasetId = attributeMetadata.datasetId
+                    )
+                    temporalEntityAttributeService.create(temporalEntityAttribute)
+                        .map { temporalEntityAttribute.id }
+                }.zipWhen {
                     val timeAndProperty =
                         if (attributeMetadata.observedAt != null)
                             Pair(attributeMetadata.observedAt, TemporalProperty.OBSERVED_AT)
@@ -194,7 +211,7 @@ class EntityEventListenerService(
                     attributeInstanceService.create(attributeInstance)
                 }.zipWhen {
                     if (it.t2 != -1)
-                        temporalEntityAttributeService.updateEntityPayload(
+                        temporalEntityAttributeService.upsertEntityPayload(
                             entityId,
                             serializeObject(compactedJsonLdEntity)
                         ).onErrorReturn(-1)
@@ -266,7 +283,7 @@ class EntityEventListenerService(
                     .then(attributeInstanceService.create(attributeInstance))
                     .then(attributeObservedAtInstanceMono)
                     .then(
-                        temporalEntityAttributeService.updateEntityPayload(
+                        temporalEntityAttributeService.upsertEntityPayload(
                             entityId, serializeObject(compactedJsonLdEntity)
                         )
                     )

@@ -1,14 +1,12 @@
 package com.egm.stellio.search.model
 
-import arrow.core.Option
-import arrow.core.toOption
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 data class AttributeInstance private constructor(
     val temporalEntityAttribute: UUID,
@@ -78,8 +76,8 @@ data class AttributeInstance private constructor(
         MODIFIED_AT("modifiedAt");
 
         companion object {
-            fun forPropertyName(propertyName: String): Option<TemporalProperty> =
-                values().find { it.propertyName == propertyName }.toOption()
+            fun forPropertyName(propertyName: String): TemporalProperty? =
+                values().find { it.propertyName == propertyName }
         }
     }
 }

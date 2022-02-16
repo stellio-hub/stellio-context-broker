@@ -31,13 +31,14 @@ class AttributeInstanceService(
         databaseClient.sql(
             """
             INSERT INTO attribute_instance 
-                (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
-                VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
-            ON CONFLICT (time, temporal_entity_attribute)
+                (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload)
+            VALUES (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+            ON CONFLICT (time, time_property, temporal_entity_attribute)
                 DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload
             """.trimIndent()
         )
             .bind("time", attributeInstance.time)
+            .bind("time_property", attributeInstance.timeProperty.toString())
             .bind("measured_value", attributeInstance.measuredValue)
             .bind("value", attributeInstance.value)
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
@@ -111,6 +112,7 @@ class AttributeInstanceService(
             """
                 FROM attribute_instance
                 WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                AND time_property = '${temporalQuery.timeproperty.name}'
             """
         )
 
@@ -156,8 +158,8 @@ class AttributeInstanceService(
         databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
-                SELECT id FROM temporal_entity_attribute WHERE 
-                    entity_id = :entity_id
+                SELECT id FROM temporal_entity_attribute
+                    WHERE entity_id = :entity_id
                     ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
                     AND attribute_name = :attribute_name
             )
@@ -176,9 +178,9 @@ class AttributeInstanceService(
         databaseClient.sql(
             """
             DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
-                SELECT id FROM temporal_entity_attribute WHERE 
-                    entity_id = :entity_id AND
-                    attribute_name = :attribute_name
+                SELECT id FROM temporal_entity_attribute 
+                    WHERE entity_id = :entity_id
+                    AND attribute_name = :attribute_name
             )
             """.trimIndent()
         )

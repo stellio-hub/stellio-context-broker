@@ -101,6 +101,50 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve an instance having the corresponding time property value`() {
+        val observation = gimmeAttributeInstance().copy(
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = now,
+            measuredValue = 12.4
+        )
+        attributeInstanceService.create(observation).block()
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches { it.size == 1 }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should not retrieve an instance not having the corresponding time property value`() {
+        val observation = gimmeAttributeInstance().copy(
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = now,
+            measuredValue = 12.4
+        )
+        attributeInstanceService.create(observation).block()
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches { it.isEmpty() }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should retrieve all full instances if temporalValues are not asked for`() {
         (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
 

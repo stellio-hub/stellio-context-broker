@@ -1,10 +1,7 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.getOrHandle
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
+import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityAccessRightsService
@@ -181,6 +178,9 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
     val aggregateParam = params.getFirst("aggregate")
     val lastNParam = params.getFirst("lastN")
     val attrsParam = params.getFirst("attrs")
+    val timeproperty = params.getFirst("timeproperty")?.let {
+        AttributeInstance.TemporalProperty.forPropertyName(it)
+    } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
 
     if (timerelParam == "between" && endTimeParam == null)
         throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
@@ -217,7 +217,8 @@ internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLi
         endTime = endTime,
         timeBucket = timeBucketParam,
         aggregate = aggregate,
-        lastN = lastN
+        lastN = lastN,
+        timeproperty = timeproperty
     )
 }
 

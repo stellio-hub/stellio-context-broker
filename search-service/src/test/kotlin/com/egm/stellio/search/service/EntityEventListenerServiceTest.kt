@@ -407,8 +407,8 @@ class EntityEventListenerServiceTest {
             attributeInstanceService.create(
                 match {
                     it.temporalEntityAttribute == temporalEntityAttributeUuid &&
-                        it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
-                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.986010Z") &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT &&
+                        it.time == ZonedDateTime.parse("2022-02-12T08:38:17.045041Z") &&
                         it.value == null &&
                         it.measuredValue == 44.0 &&
                         it.payload.contains("createdAt")
@@ -446,8 +446,8 @@ class EntityEventListenerServiceTest {
         ) {
             attributeInstanceService.create(
                 match {
-                    it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
-                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.986010Z") &&
+                    it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT &&
+                        it.time == ZonedDateTime.parse("2022-02-12T08:38:17.045041Z") &&
                         it.value == null &&
                         it.measuredValue == 44.0 &&
                         it.payload.contains("createdAt")

@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
+import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -138,17 +139,21 @@ class EntityEventListenerService(
             attributeReplaceEvent.entityType,
             attributeReplaceEvent.attributeName,
             attributeReplaceEvent.datasetId,
+            false,
             attributeReplaceEvent.updatedEntity,
             attributeReplaceEvent.contexts
         )
     }
 
     private fun handleAttributeUpdateEvent(attributeUpdateEvent: AttributeUpdateEvent) {
+        val operationPayloadNode = mapper.readTree(attributeUpdateEvent.operationPayload)
+
         handleAttributeUpdate(
             attributeUpdateEvent.entityId,
             attributeUpdateEvent.entityType,
             attributeUpdateEvent.attributeName,
             attributeUpdateEvent.datasetId,
+            operationPayloadNode.has("observedAt"),
             attributeUpdateEvent.updatedEntity,
             attributeUpdateEvent.contexts
         )
@@ -159,6 +164,7 @@ class EntityEventListenerService(
         entityType: String,
         attributeName: String,
         datasetId: URI?,
+        isNewObservation: Boolean,
         updatedEntity: String,
         contexts: List<String>
     ) {
@@ -194,8 +200,8 @@ class EntityEventListenerService(
                         .map { temporalEntityAttribute.id }
                 }.zipWhen {
                     val timeAndProperty =
-                        if (attributeMetadata.observedAt != null)
-                            Pair(attributeMetadata.observedAt, TemporalProperty.OBSERVED_AT)
+                        if (isNewObservation)
+                            Pair(attributeMetadata.observedAt!!, TemporalProperty.OBSERVED_AT)
                         else if (attributeMetadata.modifiedAt != null)
                             Pair(attributeMetadata.modifiedAt, TemporalProperty.MODIFIED_AT)
                         // in case of an attribute replace

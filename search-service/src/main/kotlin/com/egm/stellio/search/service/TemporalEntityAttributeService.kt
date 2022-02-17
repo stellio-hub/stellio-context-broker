@@ -9,10 +9,7 @@ import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
-import com.egm.stellio.shared.model.NgsiLdAttributeInstance
-import com.egm.stellio.shared.model.NgsiLdPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdRelationshipInstance
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
@@ -110,20 +107,9 @@ class TemporalEntityAttributeService(
 
         logger.debug("Analyzing create event for entity ${ngsiLdEntity.id}")
 
-        val temporalAttributes = ngsiLdEntity.attributes
-            .flatMapTo(
-                arrayListOf()
-            ) {
-                it.getAttributeInstances().map { instance ->
-                    Pair(it.name, toTemporalAttributeMetadata(instance))
-                }
-            }.filter {
-                it.second.isValid
-            }.map {
-                Pair(it.first, it.second.toEither().orNull()!!)
-            }.ifEmpty {
-                return Mono.just(0)
-            }
+        val temporalAttributes = prepareTemporalAttributes(ngsiLdEntity).ifEmpty {
+            return Mono.just(0)
+        }
 
         logger.debug("Found ${temporalAttributes.size} supported attributes in entity: ${ngsiLdEntity.id}")
 
@@ -226,6 +212,23 @@ class TemporalEntityAttributeService(
                     .rowsUpdated()
             )
             .map { it.t1 + it.t2 }
+
+    private fun prepareTemporalAttributes(ngsiLdEntity: NgsiLdEntity): List<Pair<String, AttributeMetadata>> {
+        val temporalAttributes = ngsiLdEntity.attributes
+            .flatMapTo(
+                arrayListOf()
+            ) {
+                it.getAttributeInstances().map { instance ->
+                    Pair(it.name, toTemporalAttributeMetadata(instance))
+                }
+            }.filter {
+                it.second.isValid
+            }.map {
+                Pair(it.first, it.second.toEither().orNull()!!)
+            }
+
+        return temporalAttributes
+    }
 
     internal fun toTemporalAttributeMetadata(
         ngsiLdAttributeInstance: NgsiLdAttributeInstance

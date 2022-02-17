@@ -39,6 +39,7 @@ class EntityEventListenerService(
         logger.debug("Processing message: $content")
         when (val entityEvent = deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> handleEntityCreateEvent(entityEvent)
+            is EntityReplaceEvent -> handleEntityReplaceEvent(entityEvent)
             is EntityDeleteEvent -> handleEntityDeleteEvent(entityEvent)
             is AttributeAppendEvent -> handleAttributeAppendEvent(entityEvent)
             is AttributeReplaceEvent -> handleAttributeReplaceEvent(entityEvent)
@@ -57,6 +58,24 @@ class EntityEventListenerService(
             ).subscribe {
                 logger.debug("Bootstrapped entity (records created: $it)")
             }
+        } catch (e: BadRequestDataException) {
+            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
+        } catch (e: InvalidRequestException) {
+            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
+        }
+
+    private fun handleEntityReplaceEvent(entityReplaceEvent: EntityReplaceEvent) =
+        try {
+            val operationPayload = addContextToElement(entityReplaceEvent.operationPayload, entityReplaceEvent.contexts)
+            temporalEntityAttributeService.deleteTemporalEntityReferences(entityReplaceEvent.entityId)
+                .then(
+                    temporalEntityAttributeService.createEntityTemporalReferences(
+                        operationPayload,
+                        entityReplaceEvent.contexts
+                    )
+                ).subscribe {
+                    logger.debug("Bootstrapped entity (records created: $it)")
+                }
         } catch (e: BadRequestDataException) {
             logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
         } catch (e: InvalidRequestException) {

@@ -124,6 +124,27 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
+    fun `it should handle an ENTITY_REPLACE event`() {
+        val entityCreateEventPayload = loadSampleData("events/entity/entityReplaceEvent.json")
+
+        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(1) }
+        every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } answers { Mono.just(1) }
+
+        entityEventListenerService.processMessage(entityCreateEventPayload)
+
+        verify {
+            temporalEntityAttributeService.deleteTemporalEntityReferences(expectedEntityId.toUri())
+            temporalEntityAttributeService.createEntityTemporalReferences(
+                match {
+                    it.contains(expectedEntityId)
+                },
+                listOf(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(temporalEntityAttributeService)
+    }
+
+    @Test
     fun `it should handle an ENTITY_DELETE event`() {
         val entityDeleteEventPayload = loadSampleData("events/entity/entityDeleteEvent.json")
 

@@ -157,16 +157,12 @@ class TemporalEntityAttributeService(
                 create(it.first)
                     .then(attributeInstanceService.create(it.second.first()))
                     .then(attributeObservedAtMono)
-            }
-            .collectList()
-            .map { it.size }
-            .zipWith(createEntityPayload(ngsiLdEntity.id, payload))
-            .map { it.t1 + it.t2 }
+            }.then(createEntityPayload(ngsiLdEntity.id, payload))
     }
 
     fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
         attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
-            .zipWith(deleteEntityPayload(entityId))
+            .then(deleteEntityPayload(entityId))
             .then(deleteTemporalAttributesOfEntity(entityId))
 
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =

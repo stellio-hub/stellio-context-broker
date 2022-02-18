@@ -46,7 +46,6 @@ class AttributeInstanceService(
             .bind("payload", Json.of(attributeInstance.payload))
             .fetch()
             .rowsUpdated()
-            .onErrorReturn(-1)
 
     @Transactional
     fun addAttributeInstance(

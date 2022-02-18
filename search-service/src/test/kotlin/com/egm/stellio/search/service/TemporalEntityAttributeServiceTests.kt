@@ -99,7 +99,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 4
+                it == 1
             }
             .expectComplete()
             .verify()
@@ -162,7 +162,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(temporalReferencesResults)
             .expectNextMatches {
-                it == 3
+                it == 1
             }
             .expectComplete()
             .verify()

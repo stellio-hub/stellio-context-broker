@@ -14,7 +14,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.RECEIVED_NON_PARSEABLE_ENTITY
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.shared.util.toUri
@@ -49,45 +48,44 @@ class EntityEventListenerService(
         }
     }
 
-    private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) =
-        try {
-            val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
-            temporalEntityAttributeService.createEntityTemporalReferences(
-                operationPayload,
-                entityCreateEvent.contexts
-            ).subscribe {
-                logger.debug("Bootstrapped entity (records created: $it)")
+    private fun handleEntityCreateEvent(entityCreateEvent: EntityCreateEvent) {
+        val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
+        temporalEntityAttributeService.createEntityTemporalReferences(
+            operationPayload,
+            entityCreateEvent.contexts
+        ).subscribe(
+            { logger.debug("Created temporal entity ${entityCreateEvent.entityId} (records created: $it)") },
+            {
+                logger.warn("Failed to create temporal entity ${entityCreateEvent.entityId}: ${it.message}")
             }
-        } catch (e: BadRequestDataException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-        } catch (e: InvalidRequestException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-        }
+        )
+    }
 
-    private fun handleEntityReplaceEvent(entityReplaceEvent: EntityReplaceEvent) =
-        try {
-            val operationPayload = addContextToElement(entityReplaceEvent.operationPayload, entityReplaceEvent.contexts)
-            temporalEntityAttributeService.deleteTemporalEntityReferences(entityReplaceEvent.entityId)
-                .then(
-                    temporalEntityAttributeService.createEntityTemporalReferences(
-                        operationPayload,
-                        entityReplaceEvent.contexts
-                    )
-                ).subscribe {
-                    logger.debug("Bootstrapped entity (records created: $it)")
+    private fun handleEntityReplaceEvent(entityReplaceEvent: EntityReplaceEvent) {
+        val operationPayload = addContextToElement(entityReplaceEvent.operationPayload, entityReplaceEvent.contexts)
+        temporalEntityAttributeService.deleteTemporalEntityReferences(entityReplaceEvent.entityId)
+            .then(
+                temporalEntityAttributeService.createEntityTemporalReferences(
+                    operationPayload,
+                    entityReplaceEvent.contexts
+                )
+            ).subscribe(
+                { logger.debug("Replaced entity ${entityReplaceEvent.entityId} (records replaced: $it)") },
+                {
+                    logger.warn("Failed to replace temporal entity ${entityReplaceEvent.entityId}: ${it.message}")
                 }
-        } catch (e: BadRequestDataException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-        } catch (e: InvalidRequestException) {
-            logger.error(RECEIVED_NON_PARSEABLE_ENTITY, e)
-        }
+
+            )
+    }
 
     private fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent) =
-        temporalEntityAttributeService.deleteTemporalEntityReferences(
-            entityDeleteEvent.entityId
-        ).subscribe {
-            logger.debug("Deleted entity ${entityDeleteEvent.entityId} (records deleted: $it)")
-        }
+        temporalEntityAttributeService.deleteTemporalEntityReferences(entityDeleteEvent.entityId)
+            .subscribe(
+                { logger.debug("Deleted entity ${entityDeleteEvent.entityId} (records deleted: $it)") },
+                {
+                    logger.warn("Failed to delete temporal entity ${entityDeleteEvent.entityId}: ${it.message}")
+                }
+            )
 
     private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
         val expandedAttributeName = expandJsonLdKey(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
@@ -100,18 +98,26 @@ class EntityEventListenerService(
             attributeDeleteEvent.entityId,
             expandedAttributeName,
             attributeDeleteEvent.datasetId
-        ).zipWith(
+        ).then(
             temporalEntityAttributeService.upsertEntityPayload(
                 attributeDeleteEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
-        ).subscribe {
-            logger.debug(
-                "Deleted temporal attribute $expandedAttributeName with datasetId " +
-                    "${attributeDeleteEvent.datasetId} from entity ${attributeDeleteEvent.entityId} " +
-                    "(records deleted: ${it.t1})"
-            )
-        }
+        ).subscribe(
+            {
+                logger.debug(
+                    "Deleted temporal attribute $expandedAttributeName with datasetId " +
+                        "${attributeDeleteEvent.datasetId} from entity ${attributeDeleteEvent.entityId} "
+                )
+            },
+            {
+                logger.warn(
+                    "Failed to delete temporal attribute $expandedAttributeName from entity " +
+                        "${attributeDeleteEvent.entityId}: ${it.message}"
+                )
+            }
+
+        )
     }
 
     private fun handleAttributeDeleteAllInstancesEvent(
@@ -128,17 +134,26 @@ class EntityEventListenerService(
         temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
             attributeDeleteAllInstancesEvent.entityId,
             expandedAttributeName
-        ).zipWith(
+        ).then(
             temporalEntityAttributeService.upsertEntityPayload(
                 attributeDeleteAllInstancesEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
-        ).subscribe {
-            logger.debug(
-                "Deleted all temporal attributes of $expandedAttributeName " +
-                    "from entity ${attributeDeleteAllInstancesEvent.entityId} (records deleted: ${it.t1})"
-            )
-        }
+        ).subscribe(
+            {
+                logger.debug(
+                    "Deleted all temporal attributes of $expandedAttributeName " +
+                        "from entity ${attributeDeleteAllInstancesEvent.entityId}"
+                )
+            },
+            {
+                logger.warn(
+                    "Failed to delete all temporal attributes of $expandedAttributeName from entity " +
+                        "${attributeDeleteAllInstancesEvent.entityId}: ${it.message}"
+                )
+            }
+
+        )
     }
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
@@ -217,7 +232,7 @@ class EntityEventListenerService(
                     )
                     temporalEntityAttributeService.create(temporalEntityAttribute)
                         .map { temporalEntityAttribute.id }
-                }.zipWhen {
+                }.flatMap {
                     val timeAndProperty =
                         if (isNewObservation)
                             Pair(attributeMetadata.observedAt!!, TemporalProperty.OBSERVED_AT)
@@ -234,22 +249,20 @@ class EntityEventListenerService(
                         payload = fullAttributeInstance
                     )
                     attributeInstanceService.create(attributeInstance)
-                }.zipWhen {
-                    if (it.t2 != -1)
-                        temporalEntityAttributeService.upsertEntityPayload(
-                            entityId,
-                            serializeObject(compactedJsonLdEntity)
-                        ).onErrorReturn(-1)
-                    else Mono.just(-1)
-                }.subscribe {
-                    if (it.t1.t2 != -1 && it.t2 != -1)
-                        logger.debug("Created new attribute instance of $expandedAttributeName for $entityId")
-                    else
+                }.flatMap {
+                    temporalEntityAttributeService.upsertEntityPayload(
+                        entityId,
+                        serializeObject(compactedJsonLdEntity)
+                    )
+                }.subscribe(
+                    { logger.debug("Created new attribute instance of $expandedAttributeName for $entityId") },
+                    {
                         logger.warn(
                             "Failed to persist new attribute instance $expandedAttributeName " +
-                                "for $entityId, ignoring it (insert results: ${it.t1.t2} / ${it.t2}))"
+                                "for $entityId, ignoring it (${it.message})"
                         )
-                }
+                    }
+                )
             }
         }
     }
@@ -312,17 +325,17 @@ class EntityEventListenerService(
                             entityId, serializeObject(compactedJsonLdEntity)
                         )
                     )
-                    .doOnError {
-                        logger.error(
-                            "Failed to persist new temporal entity attribute for $entityId " +
-                                "with attribute instance $expandedAttributeName, ignoring it (${it.message})"
-                        )
-                    }.doOnNext {
-                        logger.debug(
-                            "Created new temporal entity attribute for $entityId " +
-                                "with attribute instance $expandedAttributeName"
-                        )
-                    }.subscribe()
+                    .subscribe(
+                        {
+                            logger.debug("Created temporal entity attribute $expandedAttributeName for $entityId ")
+                        },
+                        {
+                            logger.error(
+                                "Failed to persist new temporal entity attribute for $entityId " +
+                                    "with attribute instance $expandedAttributeName, ignoring it (${it.message})"
+                            )
+                        }
+                    )
             }
         }
     }

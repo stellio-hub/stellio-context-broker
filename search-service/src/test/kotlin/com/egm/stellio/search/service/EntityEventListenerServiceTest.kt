@@ -541,7 +541,7 @@ class EntityEventListenerServiceTest {
         every {
             temporalEntityAttributeService.getForEntityAndAttribute(any(), any())
         } answers { Mono.just(temporalEntityAttributeUuid) }
-        every { attributeInstanceService.create(any()) } answers { Mono.just(-1) }
+        every { attributeInstanceService.create(any()) } answers { Mono.error(RuntimeException()) }
 
         entityEventListenerService.processMessage(attributeUpdateEventPayload)
 

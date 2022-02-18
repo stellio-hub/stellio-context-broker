@@ -5,11 +5,12 @@
   "name": {
     "type": "Property",
     "value": "ParisBeehive12",
-    "createdAt": "2020-01-24T13:01:22.066Z"
+    "createdAt": "2020-01-24T13:01:21.938Z"
   },
   "incoming": {
     "type": "Property",
     "value": 1543,
+    "createdAt": "2020-01-24T13:01:21.938Z",
     "observedAt": "2020-01-24T13:01:22.066Z",
     "observedBy": {
       "type": "Relationship",
@@ -19,6 +20,7 @@
   "outgoing": {
     "type": "Property",
     "value": 666,
+    "createdAt": "2020-01-24T13:01:21.938Z",
     "observedAt": "2020-01-25T17:01:22.066Z",
     "observedBy": {
       "type": "Relationship",

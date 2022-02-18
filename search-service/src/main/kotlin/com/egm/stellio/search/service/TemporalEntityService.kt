@@ -90,7 +90,7 @@ class TemporalEntityService {
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
-                listOf(attributeInstanceResult.value, attributeInstanceResult.observedAt)
+                listOf(attributeInstanceResult.value, attributeInstanceResult.time)
             }
             attributeInstance.toMap()
         }

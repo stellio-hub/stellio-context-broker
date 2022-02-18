@@ -8,7 +8,6 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
@@ -68,7 +67,6 @@ class EntityOperationHandler(
                 entityEventService.publishEntityCreateEvent(
                     it.id,
                     it.type,
-                    serializeObject(removeContextFromInput(entityPayload)),
                     extractContextFromInput(entityPayload)
                 )
             }
@@ -147,7 +145,6 @@ class EntityOperationHandler(
                 entityEventService.publishEntityCreateEvent(
                     it.id,
                     it.type,
-                    serializeObject(removeContextFromInput(entityPayload)),
                     extractContextFromInput(entityPayload)
                 )
             }
@@ -287,7 +284,6 @@ class EntityOperationHandler(
             entityEventService.publishEntityReplaceEvent(
                 it.id,
                 it.type,
-                removeContextFromInput(entityPayload),
                 extractContextFromInput(entityPayload)
             )
         }

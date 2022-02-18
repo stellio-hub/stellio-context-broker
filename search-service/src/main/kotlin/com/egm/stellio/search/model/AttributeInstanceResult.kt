@@ -13,5 +13,5 @@ data class FullAttributeInstanceResult(
 data class SimplifiedAttributeInstanceResult(
     override val temporalEntityAttribute: UUID,
     val value: Any,
-    val observedAt: ZonedDateTime
+    val time: ZonedDateTime
 ) : AttributeInstanceResult(temporalEntityAttribute)

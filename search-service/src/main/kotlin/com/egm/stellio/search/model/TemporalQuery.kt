@@ -9,7 +9,8 @@ data class TemporalQuery(
     val endTime: ZonedDateTime? = null,
     val timeBucket: String? = null,
     val aggregate: Aggregate? = null,
-    val lastN: Int? = null
+    val lastN: Int? = null,
+    val timeproperty: AttributeInstance.TemporalProperty = AttributeInstance.TemporalProperty.OBSERVED_AT
 ) {
     enum class Timerel {
         BEFORE,

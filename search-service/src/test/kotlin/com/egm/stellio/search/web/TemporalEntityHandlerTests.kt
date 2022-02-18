@@ -2,10 +2,7 @@ package com.egm.stellio.search.web
 
 import arrow.core.Some
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
@@ -13,14 +10,8 @@ import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
 import io.mockk.coEvery
@@ -112,7 +103,7 @@ class TemporalEntityHandlerTests {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("https://ontology.eglobalmark.com/apic#incoming")
+                eq(INCOMING_PROPERTY)
             )
         }
         verify {
@@ -125,8 +116,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -154,7 +144,7 @@ class TemporalEntityHandlerTests {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("https://ontology.eglobalmark.com/apic#incoming")
+                eq(INCOMING_PROPERTY)
             )
         }
         verify(exactly = 2) {
@@ -167,8 +157,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -196,10 +185,7 @@ class TemporalEntityHandlerTests {
         verify(exactly = 2) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                or(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
-                )
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
         verify(exactly = 2) {
@@ -212,8 +198,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -241,10 +226,7 @@ class TemporalEntityHandlerTests {
         verify(exactly = 4) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                or(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
-                )
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
         verify(exactly = 4) {
@@ -257,8 +239,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -297,8 +278,7 @@ class TemporalEntityHandlerTests {
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
         verify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -617,7 +597,7 @@ class TemporalEntityHandlerTests {
                 SimplifiedAttributeInstanceResult(
                     temporalEntityAttribute = UUID.randomUUID(),
                     value = it.first,
-                    observedAt = ZonedDateTime.parse(it.second)
+                    time = ZonedDateTime.parse(it.second)
                 )
             }
         }
@@ -875,6 +855,25 @@ class TemporalEntityHandlerTests {
 
         assertEquals(null, temporalQuery.time)
         assertEquals(null, temporalQuery.timerel)
+    }
+
+    @Test
+    fun `it should parse a query containing a timeproperty parameter`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+        queryParams.add("timeproperty", "createdAt")
+
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
+
+        assertEquals(AttributeInstance.TemporalProperty.CREATED_AT, temporalQuery.timeproperty)
+    }
+
+    @Test
+    fun `it should set timeproperty to observedAt if no value is provided in query parameters`() {
+        val queryParams = LinkedMultiValueMap<String, String>()
+
+        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
+
+        assertEquals(AttributeInstance.TemporalProperty.OBSERVED_AT, temporalQuery.timeproperty)
     }
 
     @Test

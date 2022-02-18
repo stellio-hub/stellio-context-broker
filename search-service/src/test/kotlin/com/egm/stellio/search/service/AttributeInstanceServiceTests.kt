@@ -79,7 +79,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a full instance if temporalValues are not asked for`() {
         val observation = gimmeAttributeInstance().copy(
-            observedAt = now,
+            time = now,
             measuredValue = 12.4
         )
         attributeInstanceService.create(observation).block()
@@ -96,6 +96,50 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                     it[0] is FullAttributeInstanceResult &&
                     it[0].temporalEntityAttribute == temporalEntityAttribute.id
             }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve an instance having the corresponding time property value`() {
+        val observation = gimmeAttributeInstance().copy(
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = now,
+            measuredValue = 12.4
+        )
+        attributeInstanceService.create(observation).block()
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches { it.size == 1 }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should not retrieve an instance not having the corresponding time property value`() {
+        val observation = gimmeAttributeInstance().copy(
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = now,
+            measuredValue = 12.4
+        )
+        attributeInstanceService.create(observation).block()
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches { it.isEmpty() }
             .expectComplete()
             .verify()
     }
@@ -150,7 +194,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             val attributeInstance = AttributeInstance(
                 temporalEntityAttribute = temporalEntityAttribute2.id,
                 value = "some value",
-                observedAt = observedAt,
+                timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+                time = observedAt,
                 payload = mapOf(
                     "type" to "Property",
                     "value" to "some value",
@@ -281,7 +326,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 gimmeAttributeInstance()
                     .copy(
                         measuredValue = 1.0,
-                        observedAt = now.minusHours(index.toLong())
+                        time = now.minusHours(index.toLong())
                     )
             attributeInstanceService.create(attributeInstance).block()
         }
@@ -457,7 +502,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         verify {
             attributeInstanceService["create"](
                 match<AttributeInstance> {
-                    it.observedAt.toString() == "2015-10-18T11:20:30.000001Z" &&
+                    it.time.toString() == "2015-10-18T11:20:30.000001Z" &&
                         it.value == null &&
                         it.measuredValue == 550.0 &&
                         it.payload.matchContent(
@@ -485,7 +530,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                     JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
-            ),
+            )
         )
 
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
@@ -497,6 +542,28 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             )
         }
         assertEquals("Attribute outgoing has an instance without a value", exception.message)
+    }
+
+    @Test
+    fun `it should not create an attribute instance if it has no observedAt property`() {
+        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeValues = mapOf(
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    JSONLD_VALUE_KW to 550.0
+                )
+            )
+        )
+
+        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
+            attributeInstanceService.addAttributeInstance(
+                temporalEntityAttribute.id,
+                "outgoing",
+                attributeValues,
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+        assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
     }
 
     @Test
@@ -527,7 +594,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         return AttributeInstance(
             temporalEntityAttribute = temporalEntityAttribute.id,
             measuredValue = measuredValue,
-            observedAt = observedAt,
+            timeProperty = AttributeInstance.TemporalProperty.OBSERVED_AT,
+            time = observedAt,
             payload = mapOf(
                 "type" to "Property",
                 "value" to measuredValue,

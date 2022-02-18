@@ -2,16 +2,17 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>LargeClass:EntityEventListenerServiceTest.kt$EntityEventListenerServiceTest</ID>
     <ID>LargeClass:TemporalEntityHandlerTests.kt$TemporalEntityHandlerTests</ID>
+    <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeAppend( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
+    <ID>LongMethod:EntityEventListenerService.kt$EntityEventListenerService$private fun handleAttributeUpdate( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongMethod:ParameterizedTests.kt$ParameterizedTests.Companion$@JvmStatic fun rawResultsProvider(): Stream&lt;Arguments&gt;</ID>
     <ID>LongMethod:QueryServiceTests.kt$QueryServiceTests$@Test fun `it should query temporal entities as requested by query params`()</ID>
-    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, jsonNode: JsonNode )</ID>
-    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, observedAt: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt; )</ID>
-    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, attributeName: String, datasetId: URI?, operationPayload: JsonNode, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
-    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, entityType: String, expandedAttributeName: String, operationPayload: JsonNode, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, jsonNode: JsonNode )</ID>
+    <ID>LongParameterList:AttributeInstance.kt$AttributeInstance.Companion$( temporalEntityAttribute: UUID, instanceId: URI? = null, timeProperty: TemporalProperty, time: ZonedDateTime, value: String? = null, measuredValue: Double? = null, payload: Map&lt;String, Any&gt; )</ID>
+    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, isNewObservation: Boolean, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
+    <ID>LongParameterList:EntityEventListenerService.kt$EntityEventListenerService$( entityId: URI, entityType: String, attributeName: String, datasetId: URI?, updatedEntity: String, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$( limit: Int, offset: Int, ids: Set&lt;URI&gt;, types: Set&lt;String&gt;, attrs: Set&lt;String&gt;, accessRightFilter: () -&gt; String? )</ID>
-    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMetadata(operationPayload: JsonNode): Validated&lt;String, AttributeMetadata&gt;</ID>
+    <ID>ReturnCount:EntityEventListenerService.kt$EntityEventListenerService$internal fun toTemporalAttributeMetadata( jsonLdEntity: CompactedJsonLdEntity ): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>ReturnCount:TemporalEntityAttributeService.kt$TemporalEntityAttributeService$internal fun toTemporalAttributeMetadata( ngsiLdAttributeInstance: NgsiLdAttributeInstance ): Validated&lt;String, AttributeMetadata&gt;</ID>
     <ID>SwallowedException:TemporalEntityHandler.kt$e: IllegalArgumentException</ID>
     <ID>ThrowsCount:TemporalEntityHandler.kt$internal fun buildTemporalQuery(params: MultiValueMap&lt;String, String&gt;, contextLink: String): TemporalQuery</ID>

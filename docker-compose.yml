@@ -41,7 +41,7 @@ services:
       - "7687:7687"
     # following https://github.com/neo4j/neo4j/issues/7203#issuecomment-898511474
     healthcheck:
-      test: wget http://localhost:7474 || exit 1
+      test: wget -qO- http://localhost:7474 || exit 1
       interval: 1s
       timeout: 10s
       retries: 20
@@ -58,6 +58,12 @@ services:
       - "5432:5432"
     volumes:
       - stellio-postgres-storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
   api-gateway:
     container_name: stellio-api-gateway
     image: stellio/stellio-api-gateway:${STELLIO_DOCKER_TAG}
@@ -93,8 +99,10 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
   subscription-service:
     container_name: stellio-subscription-service
     image: stellio/stellio-subscription-service:${STELLIO_DOCKER_TAG}
@@ -108,8 +116,10 @@ services:
     ports:
       - "8084:8084"
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
 volumes:
   stellio-neo4j-storage:

@@ -597,7 +597,7 @@ class TemporalEntityHandlerTests {
                 SimplifiedAttributeInstanceResult(
                     temporalEntityAttribute = UUID.randomUUID(),
                     value = it.first,
-                    observedAt = ZonedDateTime.parse(it.second)
+                    time = ZonedDateTime.parse(it.second)
                 )
             }
         }

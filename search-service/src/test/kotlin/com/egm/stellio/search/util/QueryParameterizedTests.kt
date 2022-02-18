@@ -28,7 +28,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = 20,
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
                     )
@@ -45,7 +45,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = 25,
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
                     )
@@ -112,7 +112,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = 20,
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         ),
                         TemporalEntityAttribute(
@@ -125,7 +125,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:1234",
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
                     )
@@ -142,7 +142,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = 25,
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         ),
                         TemporalEntityAttribute(
@@ -155,7 +155,7 @@ class QueryParameterizedTests {
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
                                 value = "urn:ngsi-ld:Beekeeper:5678",
-                                observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                             )
                         )
                     )

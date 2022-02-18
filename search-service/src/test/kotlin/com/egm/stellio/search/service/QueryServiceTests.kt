@@ -236,7 +236,7 @@ class QueryServiceTests {
                     SimplifiedAttributeInstanceResult(
                         temporalEntityAttribute = temporalEntityAttribute.id,
                         value = 2.0,
-                        observedAt = ZonedDateTime.now()
+                        time = ZonedDateTime.now()
                     )
                 )
             )

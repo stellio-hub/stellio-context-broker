@@ -198,7 +198,7 @@ class AttributeInstanceService(
             SimplifiedAttributeInstanceResult(
                 temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
                 value = row["value"]!!,
-                observedAt = row["time_bucket"]?.let {
+                time = row["time_bucket"]?.let {
                     ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC)
                 } ?: row["time"]
                     .let { ZonedDateTime.parse(it.toString()).toInstant().atZone(ZoneOffset.UTC) }

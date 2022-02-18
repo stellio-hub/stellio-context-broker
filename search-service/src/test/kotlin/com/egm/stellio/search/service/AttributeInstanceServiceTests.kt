@@ -530,7 +530,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                     JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z",
                     JSONLD_TYPE to NGSILD_DATE_TIME_TYPE
                 )
-            ),
+            )
         )
 
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
@@ -542,6 +542,28 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             )
         }
         assertEquals("Attribute outgoing has an instance without a value", exception.message)
+    }
+
+    @Test
+    fun `it should not create an attribute instance if it has no observedAt property`() {
+        val attributeInstanceService = spyk(AttributeInstanceService(databaseClient), recordPrivateCalls = true)
+        val attributeValues = mapOf(
+            NGSILD_PROPERTY_VALUE to listOf(
+                mapOf(
+                    JSONLD_VALUE_KW to 550.0
+                )
+            )
+        )
+
+        val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
+            attributeInstanceService.addAttributeInstance(
+                temporalEntityAttribute.id,
+                "outgoing",
+                attributeValues,
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        }
+        assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
     }
 
     @Test

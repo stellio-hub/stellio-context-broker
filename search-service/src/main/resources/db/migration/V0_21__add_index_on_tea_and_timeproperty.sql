@@ -1,0 +1,2 @@
+CREATE INDEX ON attribute_instance(temporal_entity_attribute, time_property);
+DROP INDEX attribute_instance_temporal_entity_attribute_idx;

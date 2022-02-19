@@ -473,17 +473,11 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
 
         every { temporalEntityAttributeService.deleteEntityPayload(entityId) } answers { Mono.just(1) }
-        every { attributeInstanceService.deleteAttributeInstancesOfEntity(entityId) } answers { Mono.just(2) }
         every { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } answers { Mono.just(2) }
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).block()
 
         assertEquals(2, deletedRecords)
-
-        verify {
-            attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
-        }
-        confirmVerified(attributeInstanceService)
     }
 
     @Test
@@ -516,17 +510,13 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
-        every {
-            attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(any(), any(), any())
-        } answers { Mono.just(1) }
-
         val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeReferences(
             beehiveTestDId,
             INCOMING_PROPERTY,
             null
         ).block()
 
-        assertEquals(2, deletedRecords)
+        assertEquals(1, deletedRecords)
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestDId, INCOMING_PROPERTY
@@ -546,16 +536,12 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
-        every {
-            attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(any(), any())
-        } answers { Mono.just(2) }
-
         val deletedRecords = temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(
             beehiveTestCId,
             INCOMING_PROPERTY
         ).block()
 
-        assertEquals(4, deletedRecords)
+        assertEquals(2, deletedRecords)
 
         val temporalEntityAttributeId = temporalEntityAttributeService.getForEntityAndAttribute(
             beehiveTestCId, INCOMING_PROPERTY

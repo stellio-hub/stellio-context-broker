@@ -74,6 +74,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         r2dbcEntityTemplate.delete(AttributeInstance::class.java)
             .all()
             .block()
+
+        r2dbcEntityTemplate.databaseClient
+            .sql("delete from attribute_instance_audit")
+            .fetch()
+            .rowsUpdated()
+            .block()
     }
 
     @Test

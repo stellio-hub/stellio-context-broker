@@ -34,13 +34,14 @@ class AttributeInstanceService(
                     (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
                 VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
                 ON CONFLICT (time, temporal_entity_attribute)
-                    DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
                 """.trimIndent()
             else
                 """
                 INSERT INTO attribute_instance_audit
                     (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload)
-                VALUES (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                VALUES
+                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
                 """.trimIndent()
 
         return databaseClient.sql(insertStatement)
@@ -104,13 +105,9 @@ class AttributeInstanceService(
                     """.trimIndent()
                 // temporal entity attributes are grouped by attribute type by calling services
                 temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
-                    """
-                        SELECT temporal_entity_attribute, time, value
-                    """.trimIndent()
+                    "SELECT temporal_entity_attribute, time, value "
                 else ->
-                    """
-                        SELECT temporal_entity_attribute, time, measured_value as value
-                    """.trimIndent()
+                    "SELECT temporal_entity_attribute, time, measured_value as value "
             }
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)

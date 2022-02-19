@@ -20,7 +20,7 @@ create index attribute_instance_audit_observed_at_idx
 create index attribute_instance_audit_tea_time_property_idx
     on attribute_instance_audit (temporal_entity_attribute, time_property);
 
-SELECT create_hypertable('attribute_instance_audit','time', chunk_time_interval => INTERVAL '13 weeks');
+SELECT create_hypertable('attribute_instance_audit','time', chunk_time_interval => INTERVAL '4 weeks');
 
 -- move some data from telemetry table to audit table
 

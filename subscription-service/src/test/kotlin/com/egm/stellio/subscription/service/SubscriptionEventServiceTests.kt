@@ -44,6 +44,7 @@ class SubscriptionEventServiceTests {
 
         runBlocking {
             subscriptionEventService.publishSubscriptionCreateEvent(
+                null,
                 subscription.id,
                 listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
             )
@@ -62,6 +63,7 @@ class SubscriptionEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
+            null,
             subscriptionUri,
             "",
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
@@ -79,6 +81,7 @@ class SubscriptionEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishSubscriptionDeleteEvent(
+            null,
             subscriptionUri,
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
         )
@@ -97,7 +100,7 @@ class SubscriptionEventServiceTests {
         every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
-        subscriptionEventService.publishNotificationCreateEvent(notification)
+        subscriptionEventService.publishNotificationCreateEvent(null, notification)
 
         verify { kafkaTemplate.send("cim.notification", notificationUri.toString(), any()) }
     }

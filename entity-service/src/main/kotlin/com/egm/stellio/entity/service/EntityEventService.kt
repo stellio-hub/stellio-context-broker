@@ -71,6 +71,7 @@ class EntityEventService(
 
     @Async
     fun publishEntityCreateEvent(
+        sub: String?,
         entityId: URI,
         entityType: ExpandedTerm,
         contexts: List<String>
@@ -78,12 +79,13 @@ class EntityEventService(
         logger.debug("Sending create event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
         publishEntityEvent(
-            EntityCreateEvent(entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
+            EntityCreateEvent(sub, entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
         )
     }
 
     @Async
     fun publishEntityReplaceEvent(
+        sub: String?,
         entityId: URI,
         entityType: ExpandedTerm,
         contexts: List<String>
@@ -91,24 +93,26 @@ class EntityEventService(
         logger.debug("Sending replace event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
         publishEntityEvent(
-            EntityReplaceEvent(entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
+            EntityReplaceEvent(sub, entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
         )
     }
 
     @Async
     fun publishEntityDeleteEvent(
+        sub: String?,
         entityId: URI,
         entityType: ExpandedTerm,
         contexts: List<String>
     ) {
         logger.debug("Sending delete event for entity $entityId")
         publishEntityEvent(
-            EntityDeleteEvent(entityId, compactTerm(entityType, contexts), contexts)
+            EntityDeleteEvent(sub, entityId, compactTerm(entityType, contexts), contexts)
         )
     }
 
     @Async
     fun publishAttributeAppendEvent(
+        sub: String?,
         entityId: URI,
         entityType: String,
         attributeName: String,
@@ -123,6 +127,7 @@ class EntityEventService(
         if (updateOperationResult == UpdateOperationResult.APPENDED)
             publishEntityEvent(
                 AttributeAppendEvent(
+                    sub,
                     entityId,
                     entityType,
                     attributeName,
@@ -136,6 +141,7 @@ class EntityEventService(
         else
             publishEntityEvent(
                 AttributeReplaceEvent(
+                    sub,
                     entityId,
                     entityType,
                     attributeName,
@@ -149,6 +155,7 @@ class EntityEventService(
 
     @Async
     fun publishAttributeAppendEvents(
+        sub: String?,
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         appendResult: UpdateResult,
@@ -166,6 +173,7 @@ class EntityEventService(
             if (updatedDetails.updateOperationResult == UpdateOperationResult.APPENDED)
                 publishEntityEvent(
                     AttributeAppendEvent(
+                        sub,
                         entityId,
                         compactTerm(typeAndPayload.first, contexts),
                         compactTerm(attributeName, contexts),
@@ -179,6 +187,7 @@ class EntityEventService(
             else
                 publishEntityEvent(
                     AttributeReplaceEvent(
+                        sub,
                         entityId,
                         compactTerm(typeAndPayload.first, contexts),
                         compactTerm(attributeName, contexts),
@@ -193,6 +202,7 @@ class EntityEventService(
 
     @Async
     fun publishAttributeUpdateEvents(
+        sub: String?,
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updateResult: UpdateResult,
@@ -209,6 +219,7 @@ class EntityEventService(
                 )
             publishEntityEvent(
                 AttributeReplaceEvent(
+                    sub,
                     entityId,
                     compactTerm(typeAndPayload.first, contexts),
                     compactTerm(attributeName, contexts),
@@ -223,6 +234,7 @@ class EntityEventService(
 
     @Async
     fun publishPartialAttributeUpdateEvents(
+        sub: String?,
         entityId: URI,
         jsonLdAttributes: Map<String, Any>,
         updatedDetails: List<UpdatedDetails>,
@@ -239,6 +251,7 @@ class EntityEventService(
                 )
             publishEntityEvent(
                 AttributeUpdateEvent(
+                    sub,
                     entityId,
                     compactTerm(typeAndPayload.first, contexts),
                     compactTerm(attributeName, contexts),
@@ -253,6 +266,7 @@ class EntityEventService(
 
     @Async
     fun publishAttributeDeleteEvent(
+        sub: String?,
         entityId: URI,
         attributeName: String,
         datasetId: URI? = null,
@@ -264,6 +278,7 @@ class EntityEventService(
         if (deleteAll)
             publishEntityEvent(
                 AttributeDeleteAllInstancesEvent(
+                    sub,
                     entityId,
                     compactTerm(typeAndPayload.first, contexts),
                     attributeName,
@@ -274,6 +289,7 @@ class EntityEventService(
         else
             publishEntityEvent(
                 AttributeDeleteEvent(
+                    sub,
                     entityId,
                     compactTerm(typeAndPayload.first, contexts),
                     attributeName,

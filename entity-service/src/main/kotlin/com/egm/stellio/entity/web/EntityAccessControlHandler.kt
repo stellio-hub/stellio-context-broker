@@ -104,6 +104,7 @@ class EntityAccessControlHandler(
 
         if (appendResult.updated.isNotEmpty())
             entityEventService.publishAttributeAppendEvents(
+                sub.orNull(),
                 subjectId.toUri(),
                 jsonLdAttributes,
                 appendResult,
@@ -138,6 +139,7 @@ class EntityAccessControlHandler(
                 .also {
                     if (it != 0)
                         entityEventService.publishAttributeDeleteEvent(
+                            sub = sub.orNull(),
                             entityId = subjectId.toUri(),
                             attributeName = entityId,
                             deleteAll = false,
@@ -190,9 +192,11 @@ class EntityAccessControlHandler(
                 logger.debug("Preparing events for subject: ${jsonLdEntity.id} (${jsonLdEntity.type}")
                 // generate an attribute append event per rCanXXX relationship
                 val entitiesRightsEvents =
-                    generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_ADMIN, authorizationContexts)
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_WRITE, authorizationContexts))
-                        .plus(generateAttributeAppendEvents(jsonLdEntity, AUTH_REL_CAN_READ, authorizationContexts))
+                    listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
+                        .map {
+                            generateAttributeAppendEvents(sub.orNull(), jsonLdEntity, it, authorizationContexts)
+                        }
+                        .flatten()
 
                 // remove the rCanXXX relationships as they are sent separately
                 val updatedEntity = JsonLdUtils.compactAndSerialize(
@@ -205,6 +209,7 @@ class EntityAccessControlHandler(
                     MediaType.APPLICATION_JSON
                 )
                 val iamEvent = EntityCreateEvent(
+                    sub.orNull(),
                     jsonLdEntity.id.toUri(),
                     jsonLdEntity.type.toCompactTerm(),
                     updatedEntity,
@@ -222,6 +227,7 @@ class EntityAccessControlHandler(
     }
 
     private fun generateAttributeAppendEvents(
+        sub: String?,
         jsonLdEntity: JsonLdEntity,
         accessRight: ExpandedTerm,
         authorizationContexts: List<String>
@@ -229,10 +235,13 @@ class EntityAccessControlHandler(
         if (jsonLdEntity.properties.containsKey(accessRight)) {
             when (val rightRel = jsonLdEntity.properties[accessRight]) {
                 is Map<*, *> ->
-                    listOf(rightRelToAttributeAppendEvent(jsonLdEntity, rightRel, accessRight, authorizationContexts))
+                    listOf(
+                        rightRelToAttributeAppendEvent(sub, jsonLdEntity, rightRel, accessRight, authorizationContexts)
+                    )
                 is List<*> ->
                     rightRel.map { rightRelInstance ->
                         rightRelToAttributeAppendEvent(
+                            sub,
                             jsonLdEntity,
                             rightRelInstance as Map<*, *>,
                             accessRight,
@@ -247,12 +256,14 @@ class EntityAccessControlHandler(
         } else emptyList()
 
     private fun rightRelToAttributeAppendEvent(
+        sub: String?,
         jsonLdEntity: JsonLdEntity,
         rightRel: Map<*, *>,
         accessRight: ExpandedTerm,
         authorizationContexts: List<String>
     ): AttributeAppendEvent =
         AttributeAppendEvent(
+            sub,
             jsonLdEntity.id.toUri(),
             jsonLdEntity.type.toCompactTerm(),
             accessRight.toCompactTerm(),

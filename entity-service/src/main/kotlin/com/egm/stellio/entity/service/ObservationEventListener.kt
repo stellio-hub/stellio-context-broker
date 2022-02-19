@@ -49,6 +49,7 @@ class ObservationEventListener(
         }
 
         entityEventService.publishEntityCreateEvent(
+            observationEvent.sub,
             ngsiLdEntity.id,
             ngsiLdEntity.type,
             observationEvent.contexts
@@ -79,6 +80,7 @@ class ObservationEventListener(
             }
 
             entityEventService.publishPartialAttributeUpdateEvents(
+                observationEvent.sub,
                 observationEvent.entityId,
                 expandedPayload,
                 updateResult.updated,
@@ -110,6 +112,7 @@ class ObservationEventListener(
             }
 
             entityEventService.publishAttributeAppendEvent(
+                observationEvent.sub,
                 observationEvent.entityId,
                 observationEvent.entityType,
                 observationEvent.attributeName,

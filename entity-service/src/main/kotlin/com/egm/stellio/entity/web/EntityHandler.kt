@@ -65,6 +65,7 @@ class EntityHandler(
         authorizationService.createAdminLink(newEntityUri, sub)
 
         entityEventService.publishEntityCreateEvent(
+            sub.orNull(),
             ngsiLdEntity.id,
             ngsiLdEntity.type,
             contexts
@@ -234,7 +235,7 @@ class EntityHandler(
 
         entityService.deleteEntity(entityId.toUri())
 
-        entityEventService.publishEntityDeleteEvent(entityId.toUri(), entity.type[0], entity.contexts)
+        entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.type[0], entity.contexts)
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
     }
@@ -274,6 +275,7 @@ class EntityHandler(
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeAppendEvents(
+                sub.orNull(),
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
@@ -318,6 +320,7 @@ class EntityHandler(
 
         if (updateResult.updated.isNotEmpty()) {
             entityEventService.publishAttributeUpdateEvents(
+                sub.orNull(),
                 entityUri,
                 jsonLdAttributes,
                 updateResult,
@@ -367,6 +370,7 @@ class EntityHandler(
             throw ResourceNotFoundException("Unknown attribute in entity $entityId")
         else
             entityEventService.publishPartialAttributeUpdateEvents(
+                sub.orNull(),
                 entityUri,
                 expandedPayload,
                 updateResult.updated,
@@ -406,7 +410,9 @@ class EntityHandler(
             entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
 
         if (result)
-            entityEventService.publishAttributeDeleteEvent(entityUri, attrId, datasetId, deleteAll, contexts)
+            entityEventService.publishAttributeDeleteEvent(
+                sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
+            )
 
         return if (result)
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

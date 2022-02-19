@@ -119,7 +119,7 @@ class AttributeInstanceService(
         selectQuery =
             if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
                 selectQuery.plus(
-                """
+                    """
                     FROM attribute_instance
                     WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
                     """

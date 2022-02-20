@@ -411,7 +411,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for a numeric property`() {
+    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
         val temporalEntityAttributeUuid = UUID.randomUUID()
 
@@ -428,8 +428,8 @@ class EntityEventListenerServiceTest {
             attributeInstanceService.create(
                 match {
                     it.temporalEntityAttribute == temporalEntityAttributeUuid &&
-                        it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT &&
-                        it.time == ZonedDateTime.parse("2022-02-12T08:38:17.045041Z") &&
+                        it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.98601Z") &&
                         it.value == null &&
                         it.measuredValue == 44.0 &&
                         it.payload.contains("createdAt")
@@ -439,7 +439,7 @@ class EntityEventListenerServiceTest {
     }
 
     @Test
-    fun `it should handle an ATTRIBUTE_REPLACE event for a numeric property not existing previously`() {
+    fun `it should handle an ATTRIBUTE_REPLACE event for an observed numeric property not existing previously`() {
         val attributeReplaceEventPayload = loadSampleData("events/entity/attributeReplaceNumericPropEvent.json")
 
         every {
@@ -467,8 +467,8 @@ class EntityEventListenerServiceTest {
         ) {
             attributeInstanceService.create(
                 match {
-                    it.timeProperty == AttributeInstance.TemporalProperty.MODIFIED_AT &&
-                        it.time == ZonedDateTime.parse("2022-02-12T08:38:17.045041Z") &&
+                    it.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT &&
+                        it.time == ZonedDateTime.parse("2021-11-26T22:35:52.98601Z") &&
                         it.value == null &&
                         it.measuredValue == 44.0 &&
                         it.payload.contains("createdAt")

@@ -168,12 +168,16 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
+        val operationPayloadNode = mapper.readTree(attributeReplaceEvent.operationPayload)
+
+        // FIXME since the NGSI-LD API still misses a proper API to partially update a list of attributes,
+        //  replace events with an observedAt property are considered as observation updates, and not as audit ones
         handleAttributeUpdate(
             attributeReplaceEvent.entityId,
             attributeReplaceEvent.entityType,
             attributeReplaceEvent.attributeName,
             attributeReplaceEvent.datasetId,
-            false,
+            operationPayloadNode.has("observedAt"),
             attributeReplaceEvent.updatedEntity,
             attributeReplaceEvent.contexts
         )

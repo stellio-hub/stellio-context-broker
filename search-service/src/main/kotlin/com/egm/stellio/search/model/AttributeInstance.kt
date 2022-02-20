@@ -15,7 +15,8 @@ data class AttributeInstance private constructor(
     val time: ZonedDateTime,
     val value: String? = null,
     val measuredValue: Double? = null,
-    val payload: String
+    val payload: String,
+    val sub: String? = null
 ) {
     companion object {
 
@@ -26,7 +27,8 @@ data class AttributeInstance private constructor(
             time: ZonedDateTime,
             value: String? = null,
             measuredValue: Double? = null,
-            payload: Map<String, Any>
+            payload: Map<String, Any>,
+            sub: String? = null
         ): AttributeInstance {
             val parsedPayload = payload.toMutableMap()
             val attributeInstanceId = instanceId ?: generateRandomInstanceId()
@@ -39,7 +41,8 @@ data class AttributeInstance private constructor(
                 time = time,
                 value = value,
                 measuredValue = measuredValue,
-                payload = serializeObject(parsedPayload)
+                payload = serializeObject(parsedPayload),
+                sub = sub
             )
         }
 
@@ -50,7 +53,8 @@ data class AttributeInstance private constructor(
             time: ZonedDateTime,
             value: String? = null,
             measuredValue: Double? = null,
-            jsonNode: JsonNode
+            jsonNode: JsonNode,
+            sub: String? = null
         ): AttributeInstance {
             val attributeInstanceId = instanceId ?: generateRandomInstanceId()
             (jsonNode as ObjectNode).put("instanceId", attributeInstanceId.toString())
@@ -62,7 +66,8 @@ data class AttributeInstance private constructor(
                 time = time,
                 value = value,
                 measuredValue = measuredValue,
-                payload = serializeObject(jsonNode)
+                payload = serializeObject(jsonNode),
+                sub = sub
             )
         }
 

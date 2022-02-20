@@ -39,9 +39,10 @@ class AttributeInstanceService(
             else
                 """
                 INSERT INTO attribute_instance_audit
-                    (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                    (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload, sub)
                 VALUES
-                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, 
+                        :instance_id, :payload, :sub)
                 """.trimIndent()
 
         return databaseClient.sql(insertStatement)
@@ -54,6 +55,7 @@ class AttributeInstanceService(
             .let {
                 if (attributeInstance.timeProperty != AttributeInstance.TemporalProperty.OBSERVED_AT)
                     it.bind("time_property", attributeInstance.timeProperty.toString())
+                        .bind("sub", attributeInstance.sub)
                 else it
             }
             .fetch()

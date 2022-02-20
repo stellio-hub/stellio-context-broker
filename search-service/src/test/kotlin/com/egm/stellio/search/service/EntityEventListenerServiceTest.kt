@@ -30,6 +30,9 @@ class EntityEventListenerServiceTest {
     @MockkBean(relaxed = true)
     private lateinit var attributeInstanceService: AttributeInstanceService
 
+    @MockkBean
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
+
     private val expectedEntityId = "urn:ngsi-ld:BeeHive:01"
 
     @Test
@@ -109,6 +112,7 @@ class EntityEventListenerServiceTest {
         val entityCreateEventPayload = loadSampleData("events/entity/entityCreateEvent.json")
 
         every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } answers { Mono.just(1) }
+        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(entityCreateEventPayload)
 
@@ -119,8 +123,12 @@ class EntityEventListenerServiceTest {
                 },
                 listOf(APIC_COMPOUND_CONTEXT)
             )
+            entityAccessRightsService.setAdminRoleOnEntity(
+                eq("0123456789-1234-5678-987654321"),
+                eq(expectedEntityId.toUri())
+            )
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test
@@ -129,6 +137,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(1) }
         every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } answers { Mono.just(1) }
+        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(entityCreateEventPayload)
 
@@ -140,8 +149,9 @@ class EntityEventListenerServiceTest {
                 },
                 listOf(APIC_COMPOUND_CONTEXT)
             )
+            entityAccessRightsService.setAdminRoleOnEntity(null, expectedEntityId.toUri())
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test
@@ -149,13 +159,15 @@ class EntityEventListenerServiceTest {
         val entityDeleteEventPayload = loadSampleData("events/entity/entityDeleteEvent.json")
 
         every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(10) }
+        every { entityAccessRightsService.removeRolesOnEntity(any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(entityDeleteEventPayload)
 
         verify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq(expectedEntityId.toUri()))
+            entityAccessRightsService.removeRolesOnEntity(eq(expectedEntityId.toUri()))
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test

@@ -74,6 +74,12 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         r2dbcEntityTemplate.delete(AttributeInstance::class.java)
             .all()
             .block()
+
+        r2dbcEntityTemplate.databaseClient
+            .sql("delete from attribute_instance_audit")
+            .fetch()
+            .rowsUpdated()
+            .block()
     }
 
     @Test
@@ -564,28 +570,6 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             )
         }
         assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
-    }
-
-    @Test
-    fun `it should delete all temporal attribute instances of an entity`() {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
-
-        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfEntity(entityId).block()
-
-        assert(deletedRecords == 10)
-    }
-
-    @Test
-    fun `it should delete all temporal attribute instances of a temporal attribute`() {
-        (1..10).forEach { _ -> attributeInstanceService.create(gimmeAttributeInstance()).block() }
-
-        val deletedRecords = attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(
-            entityId,
-            "incoming",
-            null
-        ).block()
-
-        assert(deletedRecords == 10)
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {

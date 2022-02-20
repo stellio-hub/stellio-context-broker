@@ -161,8 +161,7 @@ class TemporalEntityAttributeService(
     }
 
     fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
-        attributeInstanceService.deleteAttributeInstancesOfEntity(entityId)
-            .then(deleteEntityPayload(entityId))
+        deleteEntityPayload(entityId)
             .then(deleteTemporalAttributesOfEntity(entityId))
 
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
@@ -171,43 +170,35 @@ class TemporalEntityAttributeService(
             .all()
 
     fun deleteTemporalAttributeReferences(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
-        attributeInstanceService.deleteAttributeInstancesOfTemporalAttribute(entityId, attributeName, datasetId)
-            .zipWith(
-                databaseClient.sql(
-                    """
-                    delete FROM temporal_entity_attribute WHERE 
-                        entity_id = :entity_id
-                        ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
-                        AND attribute_name = :attribute_name
-                    """.trimIndent()
-                )
-                    .bind("entity_id", entityId)
-                    .bind("attribute_name", attributeName)
-                    .let {
-                        if (datasetId != null) it.bind("dataset_id", datasetId)
-                        else it
-                    }
-                    .fetch()
-                    .rowsUpdated()
-            )
-            .map { it.t1 + it.t2 }
+        databaseClient.sql(
+            """
+            delete FROM temporal_entity_attribute WHERE 
+                entity_id = :entity_id
+                ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
+                AND attribute_name = :attribute_name
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .let {
+                if (datasetId != null) it.bind("dataset_id", datasetId)
+                else it
+            }
+            .fetch()
+            .rowsUpdated()
 
     fun deleteTemporalAttributeAllInstancesReferences(entityId: URI, attributeName: String): Mono<Int> =
-        attributeInstanceService.deleteAllAttributeInstancesOfTemporalAttribute(entityId, attributeName)
-            .zipWith(
-                databaseClient.sql(
-                    """
-                    DELETE FROM temporal_entity_attribute
-                    WHERE entity_id = :entity_id
-                    AND attribute_name = :attribute_name
-                    """.trimIndent()
-                )
-                    .bind("entity_id", entityId)
-                    .bind("attribute_name", attributeName)
-                    .fetch()
-                    .rowsUpdated()
-            )
-            .map { it.t1 + it.t2 }
+        databaseClient.sql(
+            """
+            DELETE FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            AND attribute_name = :attribute_name
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("attribute_name", attributeName)
+            .fetch()
+            .rowsUpdated()
 
     private fun prepareTemporalAttributes(ngsiLdEntity: NgsiLdEntity): List<Pair<String, AttributeMetadata>> {
         val temporalAttributes = ngsiLdEntity.attributes

@@ -16,10 +16,9 @@ import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
-import java.net.URI
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @Service
 class AttributeInstanceService(
@@ -27,25 +26,39 @@ class AttributeInstanceService(
 ) {
 
     @Transactional
-    fun create(attributeInstance: AttributeInstance): Mono<Int> =
-        databaseClient.sql(
-            """
-            INSERT INTO attribute_instance 
-                (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload)
-            VALUES (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
-            ON CONFLICT (time, time_property, temporal_entity_attribute)
-                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload
-            """.trimIndent()
-        )
+    fun create(attributeInstance: AttributeInstance): Mono<Int> {
+        val insertStatement =
+            if (attributeInstance.timeProperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                """
+                INSERT INTO attribute_instance 
+                    (time, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                VALUES (:time, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                ON CONFLICT (time, temporal_entity_attribute)
+                DO UPDATE SET value = :value, measured_value = :measured_value, payload = :payload                    
+                """.trimIndent()
+            else
+                """
+                INSERT INTO attribute_instance_audit
+                    (time, time_property, measured_value, value, temporal_entity_attribute, instance_id, payload)
+                VALUES
+                    (:time, :time_property, :measured_value, :value, :temporal_entity_attribute, :instance_id, :payload)
+                """.trimIndent()
+
+        return databaseClient.sql(insertStatement)
             .bind("time", attributeInstance.time)
-            .bind("time_property", attributeInstance.timeProperty.toString())
             .bind("measured_value", attributeInstance.measuredValue)
             .bind("value", attributeInstance.value)
             .bind("temporal_entity_attribute", attributeInstance.temporalEntityAttribute)
             .bind("instance_id", attributeInstance.instanceId)
             .bind("payload", Json.of(attributeInstance.payload))
+            .let {
+                if (attributeInstance.timeProperty != AttributeInstance.TemporalProperty.OBSERVED_AT)
+                    it.bind("time_property", attributeInstance.timeProperty.toString())
+                else it
+            }
             .fetch()
             .rowsUpdated()
+    }
 
     @Transactional
     fun addAttributeInstance(
@@ -92,13 +105,9 @@ class AttributeInstanceService(
                     """.trimIndent()
                 // temporal entity attributes are grouped by attribute type by calling services
                 temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
-                    """
-                        SELECT temporal_entity_attribute, time, value
-                    """.trimIndent()
+                    "SELECT temporal_entity_attribute, time, value "
                 else ->
-                    """
-                        SELECT temporal_entity_attribute, time, measured_value as value
-                    """.trimIndent()
+                    "SELECT temporal_entity_attribute, time, measured_value as value "
             }
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)
@@ -107,13 +116,22 @@ class AttributeInstanceService(
         val temporalEntityAttributesIds =
             temporalEntityAttributes.joinToString(",") { "'${it.id}'" }
 
-        selectQuery = selectQuery.plus(
-            """
-                FROM attribute_instance
-                WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
-                AND time_property = '${temporalQuery.timeproperty.name}'
-            """
-        )
+        selectQuery =
+            if (temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT)
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    """
+                )
+            else
+                selectQuery.plus(
+                    """
+                    FROM attribute_instance_audit
+                    WHERE temporal_entity_attribute IN($temporalEntityAttributesIds)
+                    AND time_property = '${temporalQuery.timeproperty.name}'
+                    """
+                )
 
         selectQuery = when (temporalQuery.timerel) {
             TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND time < '${temporalQuery.time}'")
@@ -140,53 +158,6 @@ class AttributeInstanceService(
             }
             .collectList()
     }
-
-    fun deleteAttributeInstancesOfEntity(entityId: URI): Mono<Int> =
-        databaseClient.sql(
-            """
-            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
-                SELECT id FROM temporal_entity_attribute WHERE entity_id = :entity_id
-            )
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .fetch()
-            .rowsUpdated()
-
-    fun deleteAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
-        databaseClient.sql(
-            """
-            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
-                SELECT id FROM temporal_entity_attribute
-                    WHERE entity_id = :entity_id
-                    ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
-                    AND attribute_name = :attribute_name
-            )
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("attribute_name", attributeName)
-            .let {
-                if (datasetId != null) it.bind("dataset_id", datasetId)
-                else it
-            }
-            .fetch()
-            .rowsUpdated()
-
-    fun deleteAllAttributeInstancesOfTemporalAttribute(entityId: URI, attributeName: String): Mono<Int> =
-        databaseClient.sql(
-            """
-            DELETE FROM attribute_instance WHERE temporal_entity_attribute IN (
-                SELECT id FROM temporal_entity_attribute 
-                    WHERE entity_id = :entity_id
-                    AND attribute_name = :attribute_name
-            )
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
-            .bind("attribute_name", attributeName)
-            .fetch()
-            .rowsUpdated()
 
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,

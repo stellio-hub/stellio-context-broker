@@ -163,7 +163,7 @@ class AttributeInstanceService(
             temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value "
         temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
-                temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
+            temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, value, sub "
         temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
             "SELECT temporal_entity_attribute, time, measured_value as value, sub "

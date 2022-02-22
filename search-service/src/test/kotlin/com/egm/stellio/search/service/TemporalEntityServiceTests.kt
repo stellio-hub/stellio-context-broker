@@ -45,7 +45,8 @@ class TemporalEntityServiceTests {
             attributeAndResultsMap,
             TemporalQuery(),
             listOf(NGSILD_CORE_CONTEXT),
-            false
+            withTemporalValues = false,
+            withAudit = false
         )
         assertTrue(
             serializeObject(temporalEntity).matchContent(
@@ -59,6 +60,7 @@ class TemporalEntityServiceTests {
     fun `it should correctly build a temporal entity`(
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         withTemporalValues: Boolean,
+        withAudit: Boolean,
         expectation: String
     ) {
         val temporalEntity = temporalEntityService.buildTemporalEntity(
@@ -66,7 +68,26 @@ class TemporalEntityServiceTests {
             attributeAndResultsMap,
             TemporalQuery(),
             listOf(APIC_COMPOUND_CONTEXT),
-            withTemporalValues
+            withTemporalValues,
+            withAudit
+        )
+        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
+    }
+
+    @ParameterizedTest
+    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
+    fun `it should correctly build temporal entities`(
+        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
+        withTemporalValues: Boolean,
+        withAudit: Boolean,
+        expectation: String
+    ) {
+        val temporalEntity = temporalEntityService.buildTemporalEntities(
+            queryResult,
+            TemporalQuery(),
+            listOf(APIC_COMPOUND_CONTEXT),
+            withTemporalValues,
+            withAudit
         )
         assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
     }
@@ -103,28 +124,13 @@ class TemporalEntityServiceTests {
             attributeAndResultsMap,
             temporalQuery,
             listOf(NGSILD_CORE_CONTEXT),
-            false
+            withTemporalValues = false,
+            withAudit = false
         )
 
         assertJsonPayloadsAreEqual(
             loadSampleData("expectations/subscription_with_notifications_aggregated.jsonld"),
             serializeObject(temporalEntity)
         )
-    }
-
-    @ParameterizedTest
-    @MethodSource("com.egm.stellio.search.util.QueryParameterizedTests#rawResultsProvider")
-    fun `it should correctly build temporal entities`(
-        queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
-        withTemporalValues: Boolean,
-        expectation: String
-    ) {
-        val temporalEntity = temporalEntityService.buildTemporalEntities(
-            queryResult,
-            TemporalQuery(),
-            listOf(APIC_COMPOUND_CONTEXT),
-            withTemporalValues
-        )
-        assertJsonPayloadsAreEqual(expectation, serializeObject(temporalEntity))
     }
 }

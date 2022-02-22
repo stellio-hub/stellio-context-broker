@@ -7,14 +7,13 @@ import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
-import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.toUri
 import io.mockk.confirmVerified
 import io.mockk.spyk
 import io.mockk.verify
@@ -58,8 +57,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun createTemporalEntityAttribute() {
         temporalEntityAttribute = TemporalEntityAttribute(
             entityId = entityId,
-            type = "BeeHive",
-            attributeName = "incoming",
+            type = BEEHIVE_COMPACT_TYPE,
+            attributeName = INCOMING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
@@ -129,6 +128,33 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve an instance with audit info if time property is not observedAt`() {
+        val observation = gimmeAttributeInstance().copy(
+            timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
+            time = now,
+            measuredValue = 12.4,
+            sub = "sub"
+        )
+        attributeInstanceService.create(observation).block()
+
+        val temporalQuery = TemporalQuery(
+            timerel = TemporalQuery.Timerel.AFTER,
+            time = now.minusHours(1),
+            timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
+        )
+        val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0] is FullAttributeInstanceResult &&
+                    (it[0] as FullAttributeInstanceResult).sub == "sub"
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should not retrieve an instance not having the corresponding time property value`() {
         val observation = gimmeAttributeInstance().copy(
             timeProperty = AttributeInstance.TemporalProperty.CREATED_AT,
@@ -186,7 +212,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun `it should retrieve instances of a temporal entity attribute whose value type is Any`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
-            type = "BeeHive",
+            type = BEEHIVE_COMPACT_TYPE,
             attributeName = "propWithStringValue",
             attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
@@ -380,8 +406,8 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
     fun `it should only retrieve the temporal evolution of the provided temporal entity attribute`() {
         val temporalEntityAttribute2 = TemporalEntityAttribute(
             entityId = entityId,
-            type = "BeeHive",
-            attributeName = "outgoing",
+            type = BEEHIVE_COMPACT_TYPE,
+            attributeName = OUTGOING_COMPACT_PROPERTY,
             attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
         )
 
@@ -500,7 +526,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         attributeInstanceService.addAttributeInstance(
             temporalEntityAttribute.id,
-            "outgoing",
+            OUTGOING_COMPACT_PROPERTY,
             attributeValues,
             listOf(NGSILD_CORE_CONTEXT)
         ).block()
@@ -542,7 +568,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
         val exception = assertThrows<BadRequestDataException>("It should have thrown a BadRequestDataException") {
             attributeInstanceService.addAttributeInstance(
                 temporalEntityAttribute.id,
-                "outgoing",
+                OUTGOING_COMPACT_PROPERTY,
                 attributeValues,
                 listOf(NGSILD_CORE_CONTEXT)
             )

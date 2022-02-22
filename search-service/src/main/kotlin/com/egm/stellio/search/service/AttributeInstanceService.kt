@@ -97,20 +97,7 @@ class AttributeInstanceService(
         temporalEntityAttributes: List<TemporalEntityAttribute>,
         withTemporalValues: Boolean
     ): Mono<List<AttributeInstanceResult>> {
-        var selectQuery =
-            when {
-                temporalQuery.timeBucket != null ->
-                    """
-                        SELECT temporal_entity_attribute,
-                               time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
-                               ${temporalQuery.aggregate}(measured_value) as value
-                    """.trimIndent()
-                // temporal entity attributes are grouped by attribute type by calling services
-                temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY ->
-                    "SELECT temporal_entity_attribute, time, value "
-                else ->
-                    "SELECT temporal_entity_attribute, time, measured_value as value "
-            }
+        var selectQuery = composeSearchSelectStatement(temporalQuery, temporalEntityAttributes)
 
         if (!withTemporalValues && temporalQuery.timeBucket == null)
             selectQuery = selectQuery.plus(", payload::TEXT")
@@ -161,6 +148,29 @@ class AttributeInstanceService(
             .collectList()
     }
 
+    private fun composeSearchSelectStatement(
+        temporalQuery: TemporalQuery,
+        temporalEntityAttributes: List<TemporalEntityAttribute>
+    ) = when {
+        temporalQuery.timeBucket != null ->
+            """
+            SELECT temporal_entity_attribute,
+                   time_bucket('${temporalQuery.timeBucket}', time) as time_bucket,
+                   ${temporalQuery.aggregate}(measured_value) as value
+            """.trimIndent()
+        // temporal entity attributes are grouped by attribute type by calling services
+        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+            temporalQuery.timeproperty == AttributeInstance.TemporalProperty.OBSERVED_AT ->
+            "SELECT temporal_entity_attribute, time, value "
+        temporalEntityAttributes[0].attributeValueType == TemporalEntityAttribute.AttributeValueType.ANY &&
+                temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
+            "SELECT temporal_entity_attribute, time, value, sub "
+        temporalQuery.timeproperty != AttributeInstance.TemporalProperty.OBSERVED_AT ->
+            "SELECT temporal_entity_attribute, time, measured_value as value, sub "
+        else ->
+            "SELECT temporal_entity_attribute, time, measured_value as value "
+    }
+
     private fun rowToAttributeInstanceResult(
         row: Map<String, Any>,
         temporalQuery: TemporalQuery,
@@ -177,7 +187,8 @@ class AttributeInstanceService(
             )
         else FullAttributeInstanceResult(
             temporalEntityAttribute = (row["temporal_entity_attribute"] as UUID?)!!,
-            payload = row["payload"].let { it as String }
+            payload = row["payload"].let { it as String },
+            sub = row["sub"] as? String
         )
     }
 }

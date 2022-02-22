@@ -97,7 +97,7 @@ class EntityHandlerTests {
 
         every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityService.createEntity(any()) } returns breedingServiceId
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -117,6 +117,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishEntityCreateEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
                 eq(breedingServiceType),
                 eq(hcmrContext)
@@ -1135,7 +1136,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1155,6 +1156,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
@@ -1182,7 +1184,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns appendResult
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1210,6 +1212,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 appendResult,
@@ -1298,7 +1301,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1314,6 +1317,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishPartialAttributeUpdateEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
@@ -1347,7 +1351,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
-        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/$attrId")
@@ -1363,6 +1367,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishPartialAttributeUpdateEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 eq(updateResult.updated),
@@ -1508,7 +1513,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf()
         )
 
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1520,7 +1525,7 @@ class EntityHandlerTests {
 
         verify { entityService.exists(eq("urn:ngsi-ld:DeadFishes:019BN".toUri())) }
         verify { entityService.updateEntityAttributes(eq(entityId), any()) }
-        verify { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) }
+        verify { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) }
 
         confirmVerified(entityService)
     }
@@ -1548,7 +1553,7 @@ class EntityHandlerTests {
             )
         } returns updateResult
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1560,6 +1565,7 @@ class EntityHandlerTests {
 
         verify {
             entityEventService.publishAttributeUpdateEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 any(),
                 updateResult,
@@ -1596,7 +1602,7 @@ class EntityHandlerTests {
             notUpdated = arrayListOf(notUpdatedAttribute)
         )
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/entities/$entityId/attrs")
@@ -1713,7 +1719,7 @@ class EntityHandlerTests {
         every { entityService.getEntityCoreProperties(any()) } returns entity
         every { entity.type } returns listOf("https://ontology.eglobalmark.com/egm#Sensor")
         every { entity.contexts } returns hcmrContext
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entities/$entityId")
@@ -1726,6 +1732,7 @@ class EntityHandlerTests {
         verify { entityService.getEntityCoreProperties(eq(entityId)) }
         verify {
             entityEventService.publishEntityDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 eq("https://ontology.eglobalmark.com/egm#Sensor"),
                 eq(hcmrContext)
@@ -1806,7 +1813,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber")
@@ -1826,6 +1833,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishAttributeDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 eq("fishNumber"),
                 isNull(),
@@ -1842,7 +1850,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttribute(any(), any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?deleteAll=true")
@@ -1861,6 +1869,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishAttributeDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 eq("fishNumber"),
                 isNull(),
@@ -1877,7 +1886,7 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every { entityService.deleteEntityAttributeInstance(any(), any(), any()) } returns true
         every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.method(HttpMethod.DELETE)
             .uri("/ngsi-ld/v1/entities/$entityId/attrs/fishNumber?datasetId=urn:ngsi-ld:Dataset:fishNumber:1")
@@ -1897,6 +1906,7 @@ class EntityHandlerTests {
         }
         verify {
             entityEventService.publishAttributeDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityId),
                 eq("fishNumber"),
                 eq("urn:ngsi-ld:Dataset:fishNumber:1".toUri()),

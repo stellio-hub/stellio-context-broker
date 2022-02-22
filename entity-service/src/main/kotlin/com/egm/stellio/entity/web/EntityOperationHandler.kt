@@ -65,6 +65,7 @@ class EntityOperationHandler(
             .forEach {
                 val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
                 entityEventService.publishEntityCreateEvent(
+                    sub.orNull(),
                     it.id,
                     it.type,
                     extractContextFromInput(entityPayload)
@@ -143,13 +144,14 @@ class EntityOperationHandler(
             .forEach {
                 val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
                 entityEventService.publishEntityCreateEvent(
+                    sub.orNull(),
                     it.id,
                     it.type,
                     extractContextFromInput(entityPayload)
                 )
             }
-        if (options == "update") publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
-        else publishReplaceEvents(updateBatchOperationResult, extractedEntities, ngsiLdEntities)
+        if (options == "update") publishUpdateEvents(sub.orNull(), updateBatchOperationResult, jsonLdEntities)
+        else publishReplaceEvents(sub.orNull(), updateBatchOperationResult, extractedEntities, ngsiLdEntities)
 
         return if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
             ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
@@ -200,7 +202,7 @@ class EntityOperationHandler(
             ArrayList(updateBatchOperationResult.success),
             ArrayList(updateBatchOperationResult.errors)
         )
-        publishUpdateEvents(updateBatchOperationResult, jsonLdEntities)
+        publishUpdateEvents(sub.orNull(), updateBatchOperationResult, jsonLdEntities)
 
         return if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
@@ -236,7 +238,7 @@ class EntityOperationHandler(
 
         batchOperationResult.success.map { it.entityId }.forEach { uri ->
             val entity = entitiesBeforeDelete.find { it.id == uri }!!
-            entityEventService.publishEntityDeleteEvent(entity.id, entity.type[0], entity.contexts)
+            entityEventService.publishEntityDeleteEvent(sub.orNull(), entity.id, entity.type[0], entity.contexts)
         }
 
         return if (batchOperationResult.errors.isEmpty())
@@ -275,6 +277,7 @@ class EntityOperationHandler(
     }
 
     private fun publishReplaceEvents(
+        sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         extractedEntities: List<Map<String, Any>>,
         ngsiLdEntities: List<NgsiLdEntity>
@@ -282,6 +285,7 @@ class EntityOperationHandler(
         .forEach {
             val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityReplaceEvent(
+                sub,
                 it.id,
                 it.type,
                 extractContextFromInput(entityPayload)
@@ -289,12 +293,14 @@ class EntityOperationHandler(
         }
 
     private fun publishUpdateEvents(
+        sub: String?,
         updateBatchOperationResult: BatchOperationResult,
         jsonLdEntities: List<JsonLdEntity>
     ) {
         updateBatchOperationResult.success.forEach {
             val jsonLdEntity = jsonLdEntities.find { jsonLdEntity -> jsonLdEntity.id.toUri() == it.entityId }!!
             entityEventService.publishAttributeAppendEvents(
+                sub,
                 it.entityId,
                 jsonLdEntity.properties,
                 it.updateResult!!,

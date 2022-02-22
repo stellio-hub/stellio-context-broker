@@ -145,7 +145,7 @@ class SubscriptionHandlerTests {
 
         every { subscriptionService.exists(any()) } returns Mono.just(false)
         every { subscriptionService.create(any(), any()) } returns Mono.just(1)
-        coEvery { subscriptionEventService.publishSubscriptionCreateEvent(any(), any()) } just Runs
+        coEvery { subscriptionEventService.publishSubscriptionCreateEvent(any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/subscriptions")
@@ -156,6 +156,7 @@ class SubscriptionHandlerTests {
 
         coVerify {
             subscriptionEventService.publishSubscriptionCreateEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it == "urn:ngsi-ld:Subscription:1".toUri() },
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
@@ -429,7 +430,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.update(any(), any()) } returns Mono.just(1)
-        coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any()) } just Runs
+        coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -442,6 +443,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
         coVerify {
             subscriptionEventService.publishSubscriptionUpdateEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it == subscriptionId },
                 match {
                     it.removeNoise() ==
@@ -573,7 +575,7 @@ class SubscriptionHandlerTests {
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.delete(any()) } returns Mono.just(1)
-        every { subscriptionEventService.publishSubscriptionDeleteEvent(any(), any()) } just Runs
+        every { subscriptionEventService.publishSubscriptionDeleteEvent(any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/subscriptions/${subscription.id}")
@@ -586,6 +588,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.delete(eq(subscription.id)) }
         verify {
             subscriptionEventService.publishSubscriptionDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it == subscription.id },
                 eq(listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT))
             )

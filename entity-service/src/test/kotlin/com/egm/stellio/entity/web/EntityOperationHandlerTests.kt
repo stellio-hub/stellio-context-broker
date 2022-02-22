@@ -333,7 +333,7 @@ class EntityOperationHandlerTests {
         every { authorizationService.createAdminLink(any(), eq(sub)) } just Runs
         every {
             entityEventService.publishEntityCreateEvent(
-                capture(capturedEntitiesIds), capture(capturedEntityType), any()
+                any(), capture(capturedEntitiesIds), capture(capturedEntityType), any()
             )
         } just Runs
 
@@ -350,7 +350,7 @@ class EntityOperationHandlerTests {
 
         verify { authorizationService.createAdminLinks(entitiesIds, sub) }
         verify(timeout = 1000, exactly = 3) {
-            entityEventService.publishEntityCreateEvent(any(), any(), any())
+            entityEventService.publishEntityCreateEvent(any(), any(), any(), any())
         }
         capturedEntitiesIds.forEach { assertTrue(it in entitiesIds) }
         assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
@@ -381,7 +381,7 @@ class EntityOperationHandlerTests {
         )
         every {
             entityEventService.publishEntityCreateEvent(
-                capture(capturedEntitiesIds), capture(capturedEntityType), any()
+                any(), capture(capturedEntitiesIds), capture(capturedEntityType), any()
             )
         } just Runs
 
@@ -393,7 +393,7 @@ class EntityOperationHandlerTests {
             .expectBody().json(batchSomeEntitiesExistsResponse)
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
-        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any()) }
+        verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
         capturedEntitiesIds.forEach { assertTrue(it in createdEntitiesIds) }
         assertTrue(capturedEntityType.captured in listOf(sensorType, deviceType))
         confirmVerified()
@@ -476,8 +476,8 @@ class EntityOperationHandlerTests {
             authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
         } returns emptyList()
         every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any()) } just Runs
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertWithUpdateEndpoint)
@@ -490,6 +490,7 @@ class EntityOperationHandlerTests {
         verify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
         verify {
             entityEventService.publishEntityCreateEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it in createdEntitiesIds },
                 eq(sensorType),
                 eq(hcmrContext)
@@ -497,6 +498,7 @@ class EntityOperationHandlerTests {
         }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it in entitiesIds },
                 any(),
                 match { it in upsertUpdateBatchOperationResult.success.map { it.updateResult } },
@@ -605,7 +607,7 @@ class EntityOperationHandlerTests {
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        every { entityEventService.publishEntityCreateEvent(any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -618,6 +620,7 @@ class EntityOperationHandlerTests {
         verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it in entitiesIds },
                 eq(sensorType),
                 eq(hcmrContext)
@@ -709,6 +712,7 @@ class EntityOperationHandlerTests {
         verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify {
             entityEventService.publishEntityReplaceEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it in entitiesIdToUpdate },
                 eq(sensorType),
                 eq(hcmrContext)
@@ -778,7 +782,7 @@ class EntityOperationHandlerTests {
                 every { contexts } returns listOf(aquacContext!!)
             }
         }
-        every { entityEventService.publishEntityDeleteEvent(any(), any(), any()) } just Runs
+        every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
 
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
@@ -789,6 +793,7 @@ class EntityOperationHandlerTests {
 
         verify(timeout = 1000, exactly = 3) {
             entityEventService.publishEntityDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 match { it in deletedEntitiesIds },
                 eq("Sensor"),
                 eq(listOf(aquacContext!!))

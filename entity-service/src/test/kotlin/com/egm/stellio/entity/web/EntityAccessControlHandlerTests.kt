@@ -84,7 +84,7 @@ class EntityAccessControlHandlerTests {
         every {
             entityService.appendEntityRelationship(any(), any(), any(), any())
         } returns UpdateAttributeResult(AUTH_REL_CAN_READ, null, UpdateOperationResult.APPENDED)
-        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
@@ -113,6 +113,7 @@ class EntityAccessControlHandlerTests {
 
         verify {
             entityEventService.publishAttributeAppendEvents(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(subjectId),
                 any(),
                 match {
@@ -294,7 +295,7 @@ class EntityAccessControlHandlerTests {
     fun `it should allow an authorized user to remove access to an entity`() {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
         every { authorizationService.removeUserRightsOnEntity(any(), any()) } returns 1
-        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any()) } just Runs
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs/$entityUri1")
@@ -315,6 +316,7 @@ class EntityAccessControlHandlerTests {
 
         verify {
             entityEventService.publishAttributeDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(subjectId),
                 eq(entityUri1.toString()),
                 null,

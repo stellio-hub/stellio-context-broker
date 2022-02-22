@@ -117,24 +117,26 @@ class JsonUtilsTests {
     fun `it should serialize an event of type ENTITY_CREATE`() {
         val event = mapper.writeValueAsString(
             EntityCreateEvent(
+                "0123456789-1234-5678-987654321",
                 entityId,
                 BEEHIVE_COMPACT_TYPE,
                 entityPayload,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entity/entityCreateEvent.json"))
+        assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityCreateEvent.json"), event)
     }
 
     @Test
     fun `it should serialize an event of type ENTITY_DELETE`() {
         val event = mapper.writeValueAsString(
             EntityDeleteEvent(
+                null,
                 entityId,
                 BEEHIVE_COMPACT_TYPE,
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         )
-        assertJsonPayloadsAreEqual(event, loadSampleData("events/entity/entityDeleteEvent.json"))
+        assertJsonPayloadsAreEqual(loadSampleData("events/entity/entityDeleteEvent.json"), event)
     }
 }

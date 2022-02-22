@@ -28,7 +28,8 @@ import java.time.ZonedDateTime
 @Component
 class EntityEventListenerService(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val attributeInstanceService: AttributeInstanceService
+    private val attributeInstanceService: AttributeInstanceService,
+    private val entityAccessRightsService: EntityAccessRightsService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -53,8 +54,13 @@ class EntityEventListenerService(
         temporalEntityAttributeService.createEntityTemporalReferences(
             operationPayload,
             entityCreateEvent.contexts
+        ).then(
+            entityAccessRightsService.setAdminRoleOnEntity(
+                entityCreateEvent.sub,
+                entityCreateEvent.entityId
+            )
         ).subscribe(
-            { logger.debug("Created temporal entity ${entityCreateEvent.entityId} (records created: $it)") },
+            { logger.debug("Created temporal entity ${entityCreateEvent.entityId}") },
             {
                 logger.warn("Failed to create temporal entity ${entityCreateEvent.entityId}: ${it.message}")
             }
@@ -69,6 +75,11 @@ class EntityEventListenerService(
                     operationPayload,
                     entityReplaceEvent.contexts
                 )
+            ).then(
+                entityAccessRightsService.setAdminRoleOnEntity(
+                    entityReplaceEvent.sub,
+                    entityReplaceEvent.entityId
+                )
             ).subscribe(
                 { logger.debug("Replaced entity ${entityReplaceEvent.entityId} (records replaced: $it)") },
                 {
@@ -80,6 +91,9 @@ class EntityEventListenerService(
 
     private fun handleEntityDeleteEvent(entityDeleteEvent: EntityDeleteEvent) =
         temporalEntityAttributeService.deleteTemporalEntityReferences(entityDeleteEvent.entityId)
+            .then(
+                entityAccessRightsService.removeRolesOnEntity(entityDeleteEvent.entityId)
+            )
             .subscribe(
                 { logger.debug("Deleted entity ${entityDeleteEvent.entityId} (records deleted: $it)") },
                 {
@@ -157,14 +171,7 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeAppendEvent(attributeAppendEvent: AttributeAppendEvent) {
-        handleAttributeAppend(
-            attributeAppendEvent.entityId,
-            attributeAppendEvent.entityType,
-            attributeAppendEvent.attributeName,
-            attributeAppendEvent.datasetId,
-            attributeAppendEvent.updatedEntity,
-            attributeAppendEvent.contexts
-        )
+        handleAttributeAppend(attributeAppendEvent)
     }
 
     private fun handleAttributeReplaceEvent(attributeReplaceEvent: AttributeReplaceEvent) {
@@ -173,6 +180,7 @@ class EntityEventListenerService(
         // FIXME since the NGSI-LD API still misses a proper API to partially update a list of attributes,
         //  replace events with an observedAt property are considered as observation updates, and not as audit ones
         handleAttributeUpdate(
+            attributeReplaceEvent.sub,
             attributeReplaceEvent.entityId,
             attributeReplaceEvent.entityType,
             attributeReplaceEvent.attributeName,
@@ -187,6 +195,7 @@ class EntityEventListenerService(
         val operationPayloadNode = mapper.readTree(attributeUpdateEvent.operationPayload)
 
         handleAttributeUpdate(
+            attributeUpdateEvent.sub,
             attributeUpdateEvent.entityId,
             attributeUpdateEvent.entityType,
             attributeUpdateEvent.attributeName,
@@ -198,6 +207,7 @@ class EntityEventListenerService(
     }
 
     private fun handleAttributeUpdate(
+        sub: String?,
         entityId: URI,
         entityType: String,
         attributeName: String,
@@ -250,7 +260,8 @@ class EntityEventListenerService(
                         time = timeAndProperty.first,
                         value = attributeMetadata.value,
                         measuredValue = attributeMetadata.measuredValue,
-                        payload = fullAttributeInstance
+                        payload = fullAttributeInstance,
+                        sub = sub
                     )
                     attributeInstanceService.create(attributeInstance)
                 }.flatMap {
@@ -271,14 +282,8 @@ class EntityEventListenerService(
         }
     }
 
-    private fun handleAttributeAppend(
-        entityId: URI,
-        entityType: String,
-        attributeName: String,
-        datasetId: URI?,
-        updatedEntity: String,
-        contexts: List<String>
-    ) {
+    private fun handleAttributeAppend(attributeAppendEvent: AttributeAppendEvent) {
+        val (sub, entityId, entityType, attributeName, datasetId, _, _, updatedEntity, contexts) = attributeAppendEvent
         val compactedJsonLdEntity = addContextsToEntity(deserializeObject(updatedEntity), contexts)
         val fullAttributeInstance = extractAttributeInstanceFromCompactedEntity(
             compactedJsonLdEntity,
@@ -309,7 +314,8 @@ class EntityEventListenerService(
                     time = attributeMetadata.createdAt,
                     measuredValue = attributeMetadata.measuredValue,
                     value = attributeMetadata.value,
-                    payload = fullAttributeInstance
+                    payload = fullAttributeInstance,
+                    sub = sub
                 )
 
                 val attributeObservedAtInstanceMono =

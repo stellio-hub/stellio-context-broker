@@ -70,7 +70,7 @@ class SubscriptionHandler(
         val sub = getSubFromSecurityContext()
         subscriptionService.create(parsedSubscription, sub).awaitFirst()
 
-        subscriptionEventService.publishSubscriptionCreateEvent(parsedSubscription.id, contexts)
+        subscriptionEventService.publishSubscriptionCreateEvent(sub.orNull(), parsedSubscription.id, contexts)
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .location(URI("/ngsi-ld/v1/subscriptions/${parsedSubscription.id}"))
@@ -165,6 +165,7 @@ class SubscriptionHandler(
         subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
+            sub.orNull(),
             subscriptionIdUri,
             removeContextFromInput(body),
             contexts
@@ -186,6 +187,7 @@ class SubscriptionHandler(
 
         // TODO use JSON-LD contexts provided at creation time
         subscriptionEventService.publishSubscriptionDeleteEvent(
+            sub.orNull(),
             subscriptionIdUri,
             listOf(JsonLdUtils.NGSILD_EGM_CONTEXT, JsonLdUtils.NGSILD_CORE_CONTEXT)
         )

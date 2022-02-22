@@ -25,11 +25,13 @@ class SubscriptionEventService(
 
     @Async
     suspend fun publishSubscriptionCreateEvent(
+        sub: String?,
         subscriptionId: URI,
         contexts: List<String>
     ) {
         val subscription = subscriptionService.getById(subscriptionId).awaitFirst()
         val event = EntityCreateEvent(
+            sub,
             subscription.id,
             subscription.type,
             subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
@@ -40,9 +42,15 @@ class SubscriptionEventService(
     }
 
     @Async
-    suspend fun publishSubscriptionUpdateEvent(subscriptionId: URI, operationPayload: String, contexts: List<String>) {
+    suspend fun publishSubscriptionUpdateEvent(
+        sub: String?,
+        subscriptionId: URI,
+        operationPayload: String,
+        contexts: List<String>
+    ) {
         val subscription = subscriptionService.getById(subscriptionId).awaitFirst()
         val event = EntityUpdateEvent(
+            sub,
             subscriptionId,
             subscription.type,
             operationPayload,
@@ -54,8 +62,9 @@ class SubscriptionEventService(
     }
 
     @Async
-    fun publishSubscriptionDeleteEvent(subscriptionId: URI, contexts: List<String>) {
+    fun publishSubscriptionDeleteEvent(sub: String?, subscriptionId: URI, contexts: List<String>) {
         val event = EntityDeleteEvent(
+            sub,
             subscriptionId,
             "Subscription",
             contexts
@@ -65,8 +74,9 @@ class SubscriptionEventService(
     }
 
     @Async
-    fun publishNotificationCreateEvent(notification: Notification) {
+    fun publishNotificationCreateEvent(sub: String?, notification: Notification) {
         val event = EntityCreateEvent(
+            sub,
             notification.id,
             notification.type,
             serializeObject(notification),

@@ -1,63 +1,28 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.web.buildTemporalQuery
-import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.stereotype.Service
-import org.springframework.util.MultiValueMap
 import java.net.URI
-import java.util.*
 
 @Service
 class QueryService(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val applicationProperties: ApplicationProperties,
     private val temporalEntityService: TemporalEntityService
 ) {
-
-    fun parseAndCheckQueryParams(
-        queryParams: MultiValueMap<String, String>,
-        contextLink: String
-    ): TemporalEntitiesQuery {
-        val withTemporalValues = hasValueInOptionsParam(
-            Optional.ofNullable(queryParams.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES
-        )
-        val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
-        val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
-        val temporalQuery = buildTemporalQuery(queryParams, contextLink)
-        val (offset, limit) = extractAndValidatePaginationParameters(
-            queryParams,
-            applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax,
-            count
-        )
-
-        if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
-            throw BadRequestDataException("Either type or attrs need to be present in request parameters")
-
-        return TemporalEntitiesQuery(
-            ids = ids,
-            types = types,
-            temporalQuery = temporalQuery,
-            withTemporalValues = withTemporalValues,
-            limit = limit,
-            offset = offset,
-            count = count
-        )
-    }
-
     suspend fun queryTemporalEntity(
         entityId: URI,
         temporalQuery: TemporalQuery,
         withTemporalValues: Boolean,
+        withAudit: Boolean,
         contextLink: String
     ): CompactedJsonLdEntity {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntity(
@@ -82,7 +47,8 @@ class QueryService(
             temporalEntityAttributesWithInstances,
             temporalQuery,
             listOf(contextLink),
-            withTemporalValues
+            withTemporalValues,
+            withAudit
         )
     }
 
@@ -90,7 +56,7 @@ class QueryService(
         temporalEntitiesQuery: TemporalEntitiesQuery,
         contextLink: String,
         accessRightFilter: () -> String?
-    ): List<CompactedJsonLdEntity> {
+    ): Pair<List<CompactedJsonLdEntity>, Int> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             temporalEntitiesQuery.limit,
             temporalEntitiesQuery.offset,
@@ -122,11 +88,22 @@ class QueryService(
                 }
                 .toList()
 
-        return temporalEntityService.buildTemporalEntities(
-            attributeInstancesPerEntityAndAttribute,
-            temporalEntitiesQuery.temporalQuery,
-            listOf(contextLink),
-            temporalEntitiesQuery.withTemporalValues
+        val count = temporalEntityAttributeService.getCountForEntities(
+            temporalEntitiesQuery.ids,
+            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.temporalQuery.expandedAttrs,
+            accessRightFilter
+        ).awaitFirst()
+
+        return Pair(
+            temporalEntityService.buildTemporalEntities(
+                attributeInstancesPerEntityAndAttribute,
+                temporalEntitiesQuery.temporalQuery,
+                listOf(contextLink),
+                temporalEntitiesQuery.withTemporalValues,
+                temporalEntitiesQuery.withAudit
+            ),
+            count
         )
     }
 

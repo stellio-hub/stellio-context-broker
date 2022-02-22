@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component
 @Component
 class SubscriptionEventListenerService(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
-    private val attributeInstanceService: AttributeInstanceService
+    private val attributeInstanceService: AttributeInstanceService,
+    private val entityAccessRightsService: EntityAccessRightsService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -52,14 +53,21 @@ class SubscriptionEventListenerService(
             entityPayload = subscriptionCreateEvent.operationPayload
         )
         temporalEntityAttributeService.create(entityTemporalProperty)
-            .subscribe {
+            .then(
+                entityAccessRightsService.setAdminRoleOnEntity(
+                    subscriptionCreateEvent.sub,
+                    subscriptionCreateEvent.entityId
+                )
+            ).subscribe {
                 logger.debug("Created reference for subscription ${subscription.id}")
             }
     }
 
     private fun handleSubscriptionDeleteEvent(subscriptionDeleteEvent: EntityDeleteEvent) {
         temporalEntityAttributeService.deleteTemporalEntityReferences(subscriptionDeleteEvent.entityId)
-            .subscribe {
+            .then(
+                entityAccessRightsService.removeRolesOnEntity(subscriptionDeleteEvent.entityId)
+            ).subscribe {
                 logger.debug("Deleted subscription ${subscriptionDeleteEvent.entityId} (records deleted: $it)")
             }
     }

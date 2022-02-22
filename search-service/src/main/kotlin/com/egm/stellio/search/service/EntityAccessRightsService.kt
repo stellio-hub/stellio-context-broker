@@ -38,6 +38,12 @@ class EntityAccessRightsService(
         setRoleOnEntity(sub, entityId, R_CAN_WRITE)
 
     @Transactional
+    fun setAdminRoleOnEntity(sub: Sub?, entityId: URI): Mono<Int> =
+        sub?.let {
+            setRoleOnEntity(sub, entityId, R_CAN_ADMIN)
+        } ?: Mono.just(-1)
+
+    @Transactional
     fun setRoleOnEntity(sub: Sub, entityId: URI, accessRight: AccessRight): Mono<Int> =
         databaseClient
             .sql(
@@ -65,6 +71,20 @@ class EntityAccessRightsService(
                 Query.query(
                     Criteria.where("subject_id").`is`(sub)
                         .and(Criteria.where("entity_id").`is`(entityId))
+                )
+            )
+            .all()
+            .onErrorResume {
+                logger.error("Error while removing access right on entity: $it")
+                Mono.just(-1)
+            }
+
+    @Transactional
+    fun removeRolesOnEntity(entityId: URI): Mono<Int> =
+        r2dbcEntityTemplate.delete(EntityAccessRights::class.java)
+            .matching(
+                Query.query(
+                    Criteria.where("entity_id").`is`(entityId)
                 )
             )
             .all()

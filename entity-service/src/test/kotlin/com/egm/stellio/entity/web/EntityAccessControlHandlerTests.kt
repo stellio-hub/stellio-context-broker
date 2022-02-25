@@ -5,22 +5,20 @@ import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.UpdateAttributeResult
 import com.egm.stellio.entity.model.UpdateOperationResult
+import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
-import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.just
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -361,5 +359,108 @@ class EntityAccessControlHandlerTests {
                     }
                 """.trimIndent()
             )
+    }
+
+    @Test
+    fun `it should allow an authorized user to set the specific access policy on an entity`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "AUTH_READ"
+            }
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns
+            UpdateResult(
+                notUpdated = emptyList(),
+                updated = listOf(
+                    UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED)
+                )
+            )
+        every {
+            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
+        } just Runs
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            authorizationService.userIsAdminOfEntity(
+                eq(entityUri1),
+                eq(sub)
+            )
+        }
+        verify {
+            entityService.appendEntityAttributes(
+                eq(entityUri1),
+                match {
+                    it.size == 1 &&
+                        it[0].name == AUTH_PROP_SAP
+                },
+                false
+            )
+        }
+        verify {
+            entityEventService.publishAttributeAppendEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityUri1),
+                eq(AUTH_TERM_SAP),
+                null,
+                eq(true),
+                match {
+                    val jsonNode = mapper.readTree(it)
+                    jsonNode["type"].textValue() == "Property" &&
+                        jsonNode["value"].textValue() == "AUTH_READ"
+                },
+                eq(UpdateOperationResult.REPLACED),
+                eq(listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
+            )
+        }
+        confirmVerified(authorizationService, entityService, entityEventService)
+    }
+
+    @Test
+    fun `it should allow an authorized user to delete the specific access policy on an entity`() {
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.deleteEntityAttribute(any(), any()) } returns true
+        every {
+            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
+        } just Runs
+
+        webClient.delete()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .exchange()
+            .expectStatus().isNoContent
+
+        verify {
+            authorizationService.userIsAdminOfEntity(
+                eq(entityUri1),
+                eq(sub)
+            )
+        }
+        verify {
+            entityService.deleteEntityAttribute(
+                eq(entityUri1),
+                eq(AUTH_PROP_SAP)
+            )
+        }
+        verify {
+            entityEventService.publishAttributeDeleteEvent(
+                eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
+                eq(entityUri1),
+                eq(AUTH_TERM_SAP),
+                null,
+                eq(true),
+                eq(listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
+            )
+        }
+        confirmVerified(authorizationService, entityService, entityEventService)
     }
 }

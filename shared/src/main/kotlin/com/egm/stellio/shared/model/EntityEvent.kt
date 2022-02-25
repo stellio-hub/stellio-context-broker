@@ -29,6 +29,9 @@ open class EntityEvent(
 ) {
     @JsonIgnore
     open fun getEntity(): String? = null
+
+    @JsonIgnore
+    open fun getAttribute(): String? = null
 }
 
 @JsonTypeName("ENTITY_CREATE")
@@ -84,6 +87,7 @@ data class AttributeAppendEvent(
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_APPEND, sub, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
+    override fun getAttribute() = this.attributeName
 }
 
 @JsonTypeName("ATTRIBUTE_REPLACE")
@@ -98,6 +102,7 @@ data class AttributeReplaceEvent(
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_REPLACE, sub, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
+    override fun getAttribute() = this.attributeName
 }
 
 @JsonTypeName("ATTRIBUTE_UPDATE")
@@ -112,6 +117,7 @@ data class AttributeUpdateEvent(
     override val contexts: List<String>
 ) : EntityEvent(EventsType.ATTRIBUTE_UPDATE, sub, entityId, entityType, contexts) {
     override fun getEntity() = this.updatedEntity
+    override fun getAttribute() = this.attributeName
 }
 
 @JsonTypeName("ATTRIBUTE_DELETE")
@@ -123,7 +129,9 @@ data class AttributeDeleteEvent(
     val datasetId: URI?,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, entityId, entityType, contexts)
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE, sub, entityId, entityType, contexts) {
+    override fun getAttribute() = this.attributeName
+}
 
 @JsonTypeName("ATTRIBUTE_DELETE_ALL_INSTANCES")
 data class AttributeDeleteAllInstancesEvent(
@@ -133,7 +141,9 @@ data class AttributeDeleteAllInstancesEvent(
     val attributeName: String,
     val updatedEntity: String,
     override val contexts: List<String>
-) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, entityId, entityType, contexts)
+) : EntityEvent(EventsType.ATTRIBUTE_DELETE_ALL_INSTANCES, sub, entityId, entityType, contexts) {
+    override fun getAttribute() = this.attributeName
+}
 
 enum class EventsType {
     ENTITY_CREATE,

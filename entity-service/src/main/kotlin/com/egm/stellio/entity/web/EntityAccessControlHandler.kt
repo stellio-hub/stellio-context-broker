@@ -5,43 +5,29 @@ import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdRelationship
-import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
-import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
+import com.egm.stellio.shared.util.AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.checkAndGetContext
-import com.egm.stellio.shared.util.getContextFromLinkHeaderOrDefault
-import com.egm.stellio.shared.util.getSubFromSecurityContext
-import com.egm.stellio.shared.util.toCompactTerm
-import com.egm.stellio.shared.util.toUri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 
 @RestController
@@ -153,6 +139,76 @@ class EntityAccessControlHandler(
             throw ResourceNotFoundException("No right found for $subjectId on $entityId")
     }
 
+    @PostMapping("/{entityId}/attrs/specificAccessPolicy")
+    suspend fun updateSpecificAccessPolicy(
+        @PathVariable entityId: String,
+        @RequestBody requestBody: Mono<String>
+    ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), sub))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("User is not authorized to update access policy on entity $entityId")
+
+        val body = requestBody.awaitFirst()
+        val contexts = listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
+        val expandedPayload = JsonLdUtils.parseAndExpandAttributeFragment(AUTH_TERM_SAP, body, contexts)
+        val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
+        val updateResult = withContext(Dispatchers.IO) {
+            entityService.appendEntityAttributes(entityId.toUri(), ngsiLdAttributes, false)
+        }
+
+        if (updateResult.updated.isNotEmpty()) {
+            entityEventService.publishAttributeAppendEvent(
+                sub.orNull(),
+                entityId.toUri(),
+                AUTH_TERM_SAP,
+                null,
+                true,
+                body,
+                updateResult.updated[0].updateOperationResult,
+                contexts
+            )
+        }
+
+        return if (updateResult.notUpdated.isEmpty())
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+    }
+
+    @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")
+    suspend fun deleteSpecificAccessPolicy(
+        @PathVariable entityId: String
+    ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), sub))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("User is not authorized to remove access policy from entity $entityId")
+
+        val contexts = listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
+        val deleteResult = withContext(Dispatchers.IO) {
+            entityService.deleteEntityAttribute(entityId.toUri(), AUTH_PROP_SAP)
+        }
+
+        if (deleteResult) {
+            entityEventService.publishAttributeDeleteEvent(
+                sub.orNull(),
+                entityId.toUri(),
+                AUTH_TERM_SAP,
+                null,
+                true,
+                contexts
+            )
+        }
+
+        return if (deleteResult)
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        else
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(InternalErrorResponse("An error occurred while removing policy from $entityId"))
+    }
+
     @PostMapping("/sync")
     suspend fun syncIam(): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
@@ -161,7 +217,7 @@ class EntityAccessControlHandler(
                 .body("User is not authorized to sync user referential")
 
         val authorizationContexts = listOf(
-            AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+            NGSILD_EGM_AUTHORIZATION_CONTEXT,
             JsonLdUtils.NGSILD_CORE_CONTEXT
         )
         listOf(AuthContextModel.USER_TYPE, AuthContextModel.GROUP_TYPE, AuthContextModel.CLIENT_TYPE)
@@ -173,7 +229,7 @@ class EntityAccessControlHandler(
                     sub,
                     0,
                     0,
-                    AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
                     false
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
@@ -182,7 +238,7 @@ class EntityAccessControlHandler(
                     sub,
                     0,
                     total,
-                    AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
                     false
                 )
             }

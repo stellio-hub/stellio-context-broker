@@ -5,13 +5,14 @@ import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -43,7 +44,7 @@ class EntityEventServiceTests {
     fun `it should not validate a topic name with characters not supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName("https://some.host/type")
+                .composeTopicName("https://some.host/type", null)
                 .isInvalid
         )
     }
@@ -52,9 +53,29 @@ class EntityEventServiceTests {
     fun `it should validate a topic name with characters supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName("Specie")
+                .composeTopicName("Specie", null)
                 .isValid
         )
+    }
+
+    @Test
+    fun `it should send a specific access policy event to IAM topic`() {
+        entityEventService
+            .composeTopicName("Specie", AUTH_TERM_SAP)
+            .fold(
+                { fail("it should have succeeded") },
+                { assertEquals("cim.iam.rights", it) }
+            )
+    }
+
+    @Test
+    fun `it should send normal attributes events to entity topic`() {
+        entityEventService
+            .composeTopicName("Specie", "someAttribute")
+            .fold(
+                { fail("it should have succeeded") },
+                { assertEquals("cim.entity.Specie", it) }
+            )
     }
 
     @Test
@@ -120,7 +141,6 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeAppendEvent(
             "sub",
             breedingServiceUri,
-            "BreedingService",
             "fishNumber",
             null,
             true,
@@ -165,7 +185,6 @@ class EntityEventServiceTests {
         entityEventService.publishAttributeAppendEvent(
             null,
             breedingServiceUri,
-            "BreedingService",
             "fishNumber",
             null,
             true,

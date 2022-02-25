@@ -81,7 +81,7 @@ subprojects {
             // to ensure we are using mocks and spies from springmockk lib instead
             exclude(module = "mockito-core")
         }
-        testImplementation("com.ninja-squad:springmockk:3.1.0")
+        testImplementation("com.ninja-squad:springmockk:3.1.1")
         testImplementation("io.mockk:mockk:1.12.2")
         testImplementation("io.projectreactor:reactor-test")
         testImplementation("org.springframework.security:spring-security-test")

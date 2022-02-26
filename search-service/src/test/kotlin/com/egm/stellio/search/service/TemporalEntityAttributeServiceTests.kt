@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
@@ -357,7 +358,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 setOf(beehiveTestDId, beehiveTestCId),
                 setOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    )
+                """.trimIndent()
+            }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
@@ -366,6 +375,89 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                         tea.type == BEEHIVE_TYPE &&
                             tea.entityId == beehiveTestDId
                     }
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve the temporal attributes of entities according to specific access policy`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                10,
+                0,
+                setOf(beehiveTestDId, beehiveTestCId),
+                setOf(BEEHIVE_TYPE),
+                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                    )
+                """.trimIndent()
+            }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0].type == BEEHIVE_TYPE &&
+                    it[0].entityId == beehiveTestCId
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve the temporal attributes of entities according to specific access policy and rights`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                10,
+                0,
+                setOf(beehiveTestDId, beehiveTestCId),
+                setOf(BEEHIVE_TYPE),
+                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    )
+                """.trimIndent()
+            }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 3 &&
+                    it.all { tea -> tea.entityId == beehiveTestCId || tea.entityId == beehiveTestDId }
             }
             .expectComplete()
             .verify()

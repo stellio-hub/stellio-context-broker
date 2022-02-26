@@ -156,16 +156,20 @@ class EntityAccessRightsService(
                 .map {
                     {
                         """
-                        entity_id IN (
-                            SELECT entity_id
-                            FROM entity_access_rights
-                            WHERE subject_id IN (${it.toListOfString()})
+                        ( 
+                            (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                            OR
+                            (entity_id IN (
+                                SELECT entity_id
+                                FROM entity_access_rights
+                                WHERE subject_id IN (${it.toListOfString()})
+                            )
                         )
                         """.trimIndent()
                     }
                 }.switchIfEmpty {
                     Mono.just {
-                        "entity_id IN ('None')"
+                        "(specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')"
                     }
                 }.awaitFirst()
         }

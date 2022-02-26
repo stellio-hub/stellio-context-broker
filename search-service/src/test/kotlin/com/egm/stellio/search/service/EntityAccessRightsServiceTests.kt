@@ -237,10 +237,14 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(Some(subjectUuid))
             assertEquals(
                 """
-                entity_id IN (
-                    SELECT entity_id
-                    FROM entity_access_rights
-                    WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                ( 
+                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                    OR
+                    (entity_id IN (
+                        SELECT entity_id
+                        FROM entity_access_rights
+                        WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                    )
                 )
                 """.trimIndent(),
                 accessRightFilter()

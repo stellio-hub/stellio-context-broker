@@ -32,6 +32,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
+    @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
+
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
@@ -58,6 +61,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -91,6 +95,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -110,9 +115,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .verify()
 
         verify {
-            temporalEntityAttributeService.createEntityPayload(beehiveTestCId, any())
-        }
-        verify {
+            entityPayloadService.createEntityPayload(beehiveTestCId, any())
             attributeInstanceService.create(
                 match {
                     it.value == null &&
@@ -146,7 +149,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 }
             )
         }
-        confirmVerified(attributeInstanceService)
+        confirmVerified(entityPayloadService, attributeInstanceService)
     }
 
     @Test
@@ -154,6 +157,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -214,6 +218,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -233,6 +238,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -253,6 +259,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -274,6 +281,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -307,6 +315,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(2) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -334,6 +343,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -366,6 +376,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -387,6 +398,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -420,6 +432,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -447,6 +460,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -472,7 +486,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     fun `it should delete temporal entity references`() {
         val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
 
-        every { temporalEntityAttributeService.deleteEntityPayload(entityId) } answers { Mono.just(1) }
+        every { entityPayloadService.deleteEntityPayload(entityId) } answers { Mono.just(1) }
         every { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } answers { Mono.just(2) }
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).block()
@@ -485,6 +499,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -507,6 +522,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -533,6 +549,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 

@@ -1,10 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.verify
@@ -25,6 +21,9 @@ class IAMListenerTests {
 
     @MockkBean(relaxed = true)
     private lateinit var entityAccessRightsService: EntityAccessRightsService
+
+    @MockkBean(relaxed = true)
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     @Test
     fun `it should handle a create event for a subject`() {
@@ -219,6 +218,21 @@ class IAMListenerTests {
     }
 
     @Test
+    fun `it should handle an append event adding a specific access policy on an entity`() {
+        val rightAppendEvent = loadSampleData("events/authorization/SpecificAccessPolicyAddOnEntity.json")
+
+        iamListener.processIamRights(rightAppendEvent)
+
+        verify {
+            temporalEntityAttributeService.updateSpecificAccessPolicy(
+                eq("urn:ngsi-ld:Beekeeper:01".toUri()),
+                eq(AuthContextModel.SpecificAccessPolicy.AUTH_READ)
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should handle a delete event removing a right on an entity`() {
         val rightRemoveEvent = loadSampleData("events/authorization/RightRemoveOnEntity.json")
 
@@ -227,6 +241,20 @@ class IAMListenerTests {
         verify {
             entityAccessRightsService.removeRoleOnEntity(
                 eq("312b30b4-9279-4f7e-bdc5-ec56d699bb7d"),
+                eq("urn:ngsi-ld:Beekeeper:01".toUri())
+            )
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should handle a delete event removing a specific access policy on an entity`() {
+        val rightRemoveEvent = loadSampleData("events/authorization/SpecificAccessPolicyRemoveOnEntity.json")
+
+        iamListener.processIamRights(rightRemoveEvent)
+
+        verify {
+            temporalEntityAttributeService.removeSpecificAccessPolicy(
                 eq("urn:ngsi-ld:Beekeeper:01".toUri())
             )
         }

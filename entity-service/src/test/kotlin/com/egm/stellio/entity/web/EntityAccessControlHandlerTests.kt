@@ -395,8 +395,6 @@ class EntityAccessControlHandlerTests {
                 eq(entityUri1),
                 eq(sub)
             )
-        }
-        verify {
             entityService.appendEntityAttributes(
                 eq(entityUri1),
                 match {
@@ -405,8 +403,6 @@ class EntityAccessControlHandlerTests {
                 },
                 false
             )
-        }
-        verify {
             entityEventService.publishAttributeAppendEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityUri1),
@@ -423,6 +419,97 @@ class EntityAccessControlHandlerTests {
             )
         }
         confirmVerified(authorizationService, entityService, entityEventService)
+    }
+
+    @Test
+    fun `it should return a 400 if the payload contains a multi-instance property`() {
+        val requestPayload =
+            """
+            [{
+                "type": "Property",
+                "value": "AUTH_READ"
+            },{
+                "type": "Property",
+                "value": "AUTH_WRITE"
+            }]
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.detail", "Payload must only contain a single attribute instance")
+
+        verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should return a 400 if the payload contains an unexpected property`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "datasetId": "urn:ngsi-ld:Dataset:01",
+                "value": "AUTH_READ"
+            }
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath(
+                "$.detail",
+                "Payload must be a property and must only contain a value and no other properties"
+            )
+
+        verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should return a 400 if the value is not one of the supported`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "someValue"
+            }
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.detail", "Value must be one of AUTH_READ or AUTH_WRITE")
+
+        verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should not allow an unauthorized user to set the specific access policy on an entity`() {
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns false
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_EGM_AUTHORIZATION_CONTEXT))
+            .bodyValue("{}")
+            .exchange()
+            .expectStatus().isForbidden
     }
 
     @Test
@@ -444,14 +531,10 @@ class EntityAccessControlHandlerTests {
                 eq(entityUri1),
                 eq(sub)
             )
-        }
-        verify {
             entityService.deleteEntityAttribute(
                 eq(entityUri1),
                 eq(AUTH_PROP_SAP)
             )
-        }
-        verify {
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityUri1),

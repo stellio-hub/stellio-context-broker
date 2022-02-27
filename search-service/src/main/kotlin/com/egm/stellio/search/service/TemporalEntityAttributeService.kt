@@ -142,6 +142,23 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
+    fun hasSpecificAccessPolicies(entityId: URI, specificAccessPolicies: List<SpecificAccessPolicy>): Mono<Boolean> =
+        databaseClient.sql(
+            """
+            SELECT count(id) as count
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            AND specific_access_policy IN (:specific_access_policies)
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
+            .map { row ->
+                row.get("count", Integer::class.java)!!.toInt()
+            }
+            .one()
+            .map { it > 0 }
+
     fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
         entityPayloadService.deleteEntityPayload(entityId)
             .then(deleteTemporalAttributesOfEntity(entityId))

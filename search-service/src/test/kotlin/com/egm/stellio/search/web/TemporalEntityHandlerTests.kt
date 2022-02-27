@@ -9,6 +9,7 @@ import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -312,6 +313,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
         coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(false) }
         every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
@@ -320,6 +322,10 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
+                eq(entityUri),
+                eq(listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE))
+            )
             entityAccessRightsService.canReadEntity(
                 eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
                 eq(entityUri)
@@ -440,7 +446,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
         coEvery {
             queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
@@ -465,7 +471,36 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                        "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            queryService.queryTemporalEntity(
+                eq(entityUri),
+                match { temporalQuery ->
+                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
+                            temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                },
+                withTemporalValues = false,
+                withAudit = false,
+                eq(APIC_COMPOUND_CONTEXT)
+            )
+        }
+        confirmVerified(queryService)
+    }
+
+    @Test
+    fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
         coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
@@ -478,25 +513,43 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
-            queryService.queryTemporalEntity(
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
                 eq(entityUri),
-                match { temporalQuery ->
-                    temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
-                },
-                withTemporalValues = false,
-                withAudit = false,
-                eq(APIC_COMPOUND_CONTEXT)
+                eq(listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE))
+            )
+            entityAccessRightsService.canReadEntity(any(), any()) wasNot Called
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(false) }
+        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                        "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            entityAccessRightsService.canReadEntity(
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
+                eq(entityUri)
             )
         }
-
-        confirmVerified(queryService)
+        confirmVerified()
     }
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -517,7 +570,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a json entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -540,7 +593,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
         mockWithIncomingAndOutgoingTemporalProperties(true)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(

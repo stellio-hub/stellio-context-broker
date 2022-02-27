@@ -155,8 +155,8 @@ class EntityAccessControlHandler(
         val body = requestBody.awaitFirst()
         val expandedPayload = JsonLdUtils.parseAndExpandAttributeFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
-        when (val checkResult = checkSpecificAccessPolicyPayload(ngsiLdAttributes)) {
-            is Invalid -> return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(checkResult.value)
+        return when (val checkResult = checkSpecificAccessPolicyPayload(ngsiLdAttributes)) {
+            is Invalid -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(checkResult.value)
             is Valid -> {
                 val updateResult = withContext(Dispatchers.IO) {
                     entityService.appendEntityAttributes(entityUri, ngsiLdAttributes, false)
@@ -173,14 +173,14 @@ class EntityAccessControlHandler(
                         updateResult.updated[0].updateOperationResult,
                         COMPOUND_AUTHZ_CONTEXT
                     )
-                }
 
-                return if (updateResult.notUpdated.isEmpty())
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                else
+                }
+                else {
                     ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(InternalErrorResponse("An error occurred while removing policy from $entityId"))
+                }
             }
         }
     }
@@ -190,20 +190,14 @@ class EntityAccessControlHandler(
         if (ngsiLdAttributeInstances.size > 1)
             return "Payload must only contain a single attribute instance".invalid()
         val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
-        if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance ||
-            ngsiLdAttributeInstance.properties.isNotEmpty() ||
-            ngsiLdAttributeInstance.relationships.isNotEmpty() ||
-            ngsiLdAttributeInstance.datasetId != null ||
-            ngsiLdAttributeInstance.unitCode != null ||
-            ngsiLdAttributeInstance.observedAt != null)
+        if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
             return "Payload must be a property and must only contain a value and no other properties".invalid()
-        val value = ngsiLdAttributeInstance.value
-        try {
-            AuthContextModel.SpecificAccessPolicy.valueOf(value.toString())
+        return try {
+            AuthContextModel.SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString())
+            Unit.valid()
         } catch (e: java.lang.IllegalArgumentException) {
-            return "Value must be one of AUTH_READ or AUTH_WRITE".invalid()
+            "Value must be one of AUTH_READ or AUTH_WRITE (${e.message})".invalid()
         }
-        return Unit.valid()
     }
 
     @DeleteMapping("/{entityId}/attrs/specificAccessPolicy")

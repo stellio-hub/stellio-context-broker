@@ -14,9 +14,9 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.Dispatchers
@@ -40,8 +40,6 @@ class EntityAccessControlHandler(
     private val entityEventService: EntityEventService,
     private val kafkaTemplate: KafkaTemplate<String, String>,
 ) {
-
-    private val authzContexts = listOf(NGSILD_EGM_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -155,7 +153,7 @@ class EntityAccessControlHandler(
                 .body("User is not authorized to update access policy on entity $entityId")
 
         val body = requestBody.awaitFirst()
-        val expandedPayload = JsonLdUtils.parseAndExpandAttributeFragment(AUTH_TERM_SAP, body, authzContexts)
+        val expandedPayload = JsonLdUtils.parseAndExpandAttributeFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
         when (val checkResult = checkSpecificAccessPolicyPayload(ngsiLdAttributes)) {
             is Invalid -> return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(checkResult.value)
@@ -173,7 +171,7 @@ class EntityAccessControlHandler(
                         true,
                         body,
                         updateResult.updated[0].updateOperationResult,
-                        authzContexts
+                        COMPOUND_AUTHZ_CONTEXT
                     )
                 }
 
@@ -228,8 +226,8 @@ class EntityAccessControlHandler(
                 entityUri,
                 AUTH_TERM_SAP,
                 null,
-                true,
-                authzContexts
+                false,
+                COMPOUND_AUTHZ_CONTEXT
             )
         }
 
@@ -257,7 +255,7 @@ class EntityAccessControlHandler(
                     sub,
                     0,
                     0,
-                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    NGSILD_AUTHORIZATION_CONTEXT,
                     false
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
@@ -266,7 +264,7 @@ class EntityAccessControlHandler(
                     sub,
                     0,
                     total,
-                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
+                    NGSILD_AUTHORIZATION_CONTEXT,
                     false
                 )
             }
@@ -278,7 +276,7 @@ class EntityAccessControlHandler(
                 val entitiesRightsEvents =
                     listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
                         .map {
-                            generateAttributeAppendEvents(sub.orNull(), jsonLdEntity, it, authzContexts)
+                            generateAttributeAppendEvents(sub.orNull(), jsonLdEntity, it)
                         }
                         .flatten()
 
@@ -289,7 +287,7 @@ class EntityAccessControlHandler(
                             listOf(AUTH_REL_CAN_ADMIN, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_READ)
                         ),
                     ),
-                    authzContexts,
+                    COMPOUND_AUTHZ_CONTEXT,
                     MediaType.APPLICATION_JSON
                 )
                 val iamEvent = EntityCreateEvent(
@@ -297,7 +295,7 @@ class EntityAccessControlHandler(
                     jsonLdEntity.id.toUri(),
                     jsonLdEntity.type.toCompactTerm(),
                     updatedEntity,
-                    authzContexts
+                    COMPOUND_AUTHZ_CONTEXT
                 )
                 kafkaTemplate.send("cim.iam.replay", iamEvent.entityId.toString(), serializeObject(iamEvent))
 
@@ -313,48 +311,87 @@ class EntityAccessControlHandler(
     private fun generateAttributeAppendEvents(
         sub: String?,
         jsonLdEntity: JsonLdEntity,
-        accessRight: ExpandedTerm,
-        authorizationContexts: List<String>
+        attribute: ExpandedTerm
     ): List<AttributeAppendEvent> =
-        if (jsonLdEntity.properties.containsKey(accessRight)) {
-            when (val rightRel = jsonLdEntity.properties[accessRight]) {
+        if (jsonLdEntity.properties.containsKey(attribute)) {
+            when (val rightRel = jsonLdEntity.properties[attribute]) {
                 is Map<*, *> ->
                     listOf(
-                        rightRelToAttributeAppendEvent(sub, jsonLdEntity, rightRel, accessRight, authorizationContexts)
+                        attributeToAppendEvent(sub, jsonLdEntity, rightRel, attribute)
                     )
                 is List<*> ->
                     rightRel.map { rightRelInstance ->
-                        rightRelToAttributeAppendEvent(
+                        attributeToAppendEvent(
                             sub,
                             jsonLdEntity,
                             rightRelInstance as Map<*, *>,
-                            accessRight,
-                            authorizationContexts
+                            attribute
                         )
                     }
                 else -> {
-                    logger.warn("Unsupported representation for $accessRight: $rightRel")
+                    logger.warn("Unsupported representation for $attribute: $rightRel")
                     emptyList()
                 }
             }
         } else emptyList()
 
-    private fun rightRelToAttributeAppendEvent(
+    private fun attributeToAppendEvent(
         sub: String?,
         jsonLdEntity: JsonLdEntity,
-        rightRel: Map<*, *>,
-        accessRight: ExpandedTerm,
-        authorizationContexts: List<String>
-    ): AttributeAppendEvent =
-        AttributeAppendEvent(
+        attributePayload: Map<*, *>,
+        attribute: ExpandedTerm,
+    ): AttributeAppendEvent {
+        val datasetId =
+            if (attributePayload.containsKey(NGSILD_DATASET_ID_PROPERTY))
+                ((attributePayload[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri()
+            else null
+        return AttributeAppendEvent(
             sub,
             jsonLdEntity.id.toUri(),
             jsonLdEntity.type.toCompactTerm(),
-            accessRight.toCompactTerm(),
-            ((rightRel[NGSILD_DATASET_ID_PROPERTY] as Map<String, Any>)[JSONLD_ID] as String).toUri(),
+            attribute.toCompactTerm(),
+            datasetId,
             true,
-            serializeObject(JsonLdUtils.compactFragment(rightRel as Map<String, Any>, authorizationContexts)),
+            serializeObject(JsonLdUtils.compactFragment(attributePayload as Map<String, Any>, COMPOUND_AUTHZ_CONTEXT)),
             "",
-            authorizationContexts
+            COMPOUND_AUTHZ_CONTEXT
         )
+    }
+
+    @PostMapping("/syncSap")
+    suspend fun syncSap(): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
+        if (!authorizationService.userIsAdmin(sub))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("User is not authorized to sync user referential")
+        val total = entityService.searchEntities(
+            QueryParams(expandedAttrs = setOf(AUTH_PROP_SAP)),
+            sub,
+            0,
+            0,
+            NGSILD_AUTHORIZATION_CONTEXT,
+            false
+        ).first
+        logger.debug("Counted a total of $total entities for attribute $AUTH_PROP_SAP")
+        entityService.searchEntities(
+            QueryParams(expandedAttrs = setOf(AUTH_PROP_SAP)),
+            sub,
+            0,
+            total,
+            NGSILD_AUTHORIZATION_CONTEXT,
+            false
+        ).second
+            .forEach { jsonLdEntity ->
+                val event = attributeToAppendEvent(
+                    sub.orNull(),
+                    jsonLdEntity,
+                    (jsonLdEntity.properties[AUTH_PROP_SAP] as List<*>)[0] as Map<*, *>,
+                    AUTH_PROP_SAP
+                )
+                kafkaTemplate.send("cim.iam.rights", jsonLdEntity.id, serializeObject(event))
+                logger.debug("Sent event for entity: ${jsonLdEntity.id}")
+            }
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }
 }

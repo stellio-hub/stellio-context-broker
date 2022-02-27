@@ -5,11 +5,10 @@ import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_USERNAME
-import com.egm.stellio.shared.util.AuthContextModel.NGSILD_EGM_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.CommandLineRunner
@@ -33,10 +32,7 @@ class ApiTestsBootstrapper(
             val entity = Entity(
                 id = ngsiLdUserId,
                 type = listOf(USER_TYPE),
-                contexts = listOf(
-                    NGSILD_EGM_AUTHORIZATION_CONTEXT,
-                    NGSILD_CORE_CONTEXT
-                ),
+                contexts = COMPOUND_AUTHZ_CONTEXT,
                 properties = mutableListOf(
                     Property(
                         name = AUTH_PROP_ROLES,

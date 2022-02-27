@@ -159,7 +159,7 @@ class TemporalEntityHandler(
                 entityId.toUri(),
                 listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE)
             ).awaitFirst() ||
-                    entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
+                entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 

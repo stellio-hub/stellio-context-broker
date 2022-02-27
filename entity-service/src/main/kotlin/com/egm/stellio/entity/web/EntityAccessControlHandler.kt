@@ -175,8 +175,7 @@ class EntityAccessControlHandler(
                     )
 
                     ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-                }
-                else {
+                } else {
                     ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(InternalErrorResponse("An error occurred while removing policy from $entityId"))

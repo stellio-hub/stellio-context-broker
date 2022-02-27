@@ -15,6 +15,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
+import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.ninjasquad.springmockk.MockkBean
@@ -415,7 +416,7 @@ class EntityAccessControlHandlerTests {
                         jsonNode["value"].textValue() == "AUTH_READ"
                 },
                 eq(UpdateOperationResult.REPLACED),
-                eq(listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
+                eq(COMPOUND_AUTHZ_CONTEXT)
             )
         }
         confirmVerified(authorizationService, entityService, entityEventService)
@@ -449,7 +450,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `it should return a 400 if the payload contains an unexpected property`() {
+    fun `it should ignore properties that are not part of the payload when setting a specific access policy`() {
         val requestPayload =
             """
             {
@@ -460,20 +461,21 @@ class EntityAccessControlHandlerTests {
             """.trimIndent()
 
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns
+            UpdateResult(
+                notUpdated = emptyList(),
+                updated = listOf(UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED))
+            )
+        every {
+            entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
+        } just Runs
 
         webClient.post()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
             .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
             .bodyValue(requestPayload)
             .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().jsonPath(
-                "$.detail",
-                "Payload must be a property and must only contain a value and no other properties"
-            )
-
-        verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
-        confirmVerified(entityService)
+            .expectStatus().isNoContent
     }
 
     @Test
@@ -540,8 +542,8 @@ class EntityAccessControlHandlerTests {
                 eq(entityUri1),
                 eq(AUTH_TERM_SAP),
                 null,
-                eq(true),
-                eq(listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
+                eq(false),
+                eq(COMPOUND_AUTHZ_CONTEXT)
             )
         }
         confirmVerified(authorizationService, entityService, entityEventService)

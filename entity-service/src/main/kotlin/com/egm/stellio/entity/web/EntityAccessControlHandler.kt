@@ -178,7 +178,7 @@ class EntityAccessControlHandler(
                 } else {
                     ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(InternalErrorResponse("An error occurred while removing policy from $entityId"))
+                        .body(InternalErrorResponse("An error occurred while setting policy from $entityId"))
                 }
             }
         }

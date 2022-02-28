@@ -227,7 +227,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return a valid entity filter is user does not have the stellio-admin role`() {
+    fun `it should return a valid entity filter if user does not have the stellio-admin role`() {
         every { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } answers { Mono.just(false) }
         every { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) } answers {
             Mono.just(listOf(subjectUuid, groupUuid))

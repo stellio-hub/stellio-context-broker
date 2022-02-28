@@ -215,6 +215,78 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should set a specific access policy for a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.updateSpecificAccessPolicy(
+                    beehiveTestCId,
+                    SpecificAccessPolicy.AUTH_READ
+                )
+            )
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestCId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == true }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestDId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should remove a specific access policy from a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        StepVerifier
+            .create(temporalEntityAttributeService.removeSpecificAccessPolicy(beehiveTestCId))
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestCId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() {
         val rawEntity = loadSampleData()
 

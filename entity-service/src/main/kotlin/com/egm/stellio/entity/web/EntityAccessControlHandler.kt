@@ -178,7 +178,12 @@ class EntityAccessControlHandler(
                 } else {
                     ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(InternalErrorResponse("An error occurred while setting policy from $entityId"))
+                        .body(
+                            InternalErrorResponse(
+                                "An error occurred while setting policy for $entityId " +
+                                    "(${updateResult.notUpdated[0].reason})"
+                            )
+                        )
                 }
             }
         }
@@ -190,7 +195,7 @@ class EntityAccessControlHandler(
             return "Payload must only contain a single attribute instance".invalid()
         val ngsiLdAttributeInstance = ngsiLdAttributeInstances[0]
         if (ngsiLdAttributeInstance !is NgsiLdPropertyInstance)
-            return "Payload must be a property and must only contain a value and no other properties".invalid()
+            return "Payload must be a property".invalid()
         return try {
             AuthContextModel.SpecificAccessPolicy.valueOf(ngsiLdAttributeInstance.value.toString())
             Unit.valid()

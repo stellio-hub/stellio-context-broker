@@ -26,13 +26,12 @@ interface AuthorizationService {
 
     fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>,
-        entityUri: URI,
-        sub: Option<Sub>
+        entityUri: URI
     ) = ngsiLdAttributes.forEach { ngsiLdAttribute ->
-        checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri, sub)
+        checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri)
     }
 
-    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm, entityUri: URI, sub: Option<Sub>) {
+    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm, entityUri: URI) {
         if (attributeName == AuthContextModel.AUTH_PROP_SAP)
             throw BadRequestDataException(
                 "Specific access policy cannot be updated as a normal property, " +

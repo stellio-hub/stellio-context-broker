@@ -254,7 +254,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, sub)
+        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
 
         val updateResult = entityService.appendEntityAttributes(
             entityUri,
@@ -304,7 +304,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, sub)
+        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
         if (updateResult.updated.isNotEmpty()) {
@@ -349,7 +349,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
 
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
-        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri, sub)
+        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
         val expandedPayload = parseAndExpandAttributeFragment(attrId, body, contexts)
 
@@ -391,7 +391,7 @@ class EntityHandler(
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
-        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri, sub)
+        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
         val result = if (deleteAll)
             entityService.deleteEntityAttribute(entityUri, expandedAttrId)

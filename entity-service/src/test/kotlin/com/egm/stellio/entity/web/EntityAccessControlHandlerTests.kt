@@ -3,10 +3,7 @@ package com.egm.stellio.entity.web
 import arrow.core.Some
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
-import com.egm.stellio.entity.model.UpdateAttributeResult
-import com.egm.stellio.entity.model.UpdateOperationResult
-import com.egm.stellio.entity.model.UpdateResult
-import com.egm.stellio.entity.model.UpdatedDetails
+import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
@@ -500,6 +497,55 @@ class EntityAccessControlHandlerTests {
 
         verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
         confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should return a 400 if the provided attribute is a relationship`() {
+        val requestPayload =
+            """
+            {
+                "type": "Relationship",
+                "object": "urn:ngsi-ld:Entity:01"
+            }
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.detail", "Payload must be a property")
+
+        verify { entityService.appendEntityAttributes(any(), any(), any()) wasNot Called }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should return a 500 if the specific access policy could not be persisted`() {
+        val requestPayload =
+            """
+            {
+                "type": "Property",
+                "value": "AUTH_READ"
+            }
+            """.trimIndent()
+
+        every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
+        every { entityService.appendEntityAttributes(any(), any(), any()) } returns
+            UpdateResult(
+                notUpdated = listOf(NotUpdatedDetails(AUTH_TERM_SAP, "DB is not available")),
+                updated = emptyList()
+            )
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
+            .header(HttpHeaders.LINK, buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT))
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().is5xxServerError
     }
 
     @Test

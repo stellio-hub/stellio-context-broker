@@ -129,7 +129,7 @@ class ObservationEventListenerTests {
         every { mockedJsonLdEntity.type } returns BEEHIVE_TYPE
         every {
             entityEventService.publishAttributeAppendEvent(
-                any(), any(), any(), any(), any(), any(), any(), any(), any()
+                any(), any(), any(), any(), any(), any(), any(), any()
             )
         } just Runs
 
@@ -150,7 +150,6 @@ class ObservationEventListenerTests {
             entityEventService.publishAttributeAppendEvent(
                 null,
                 eq(expectedEntityId),
-                eq(BEEHIVE_COMPACT_TYPE),
                 eq(TEMPERATURE_COMPACT_PROPERTY),
                 eq(expectedTemperatureDatasetId),
                 eq(true),

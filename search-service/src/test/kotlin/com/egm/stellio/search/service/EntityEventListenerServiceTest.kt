@@ -33,6 +33,9 @@ class EntityEventListenerServiceTest {
     @MockkBean
     private lateinit var entityAccessRightsService: EntityAccessRightsService
 
+    @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
+
     private val expectedEntityId = "urn:ngsi-ld:BeeHive:01"
 
     @Test
@@ -177,7 +180,7 @@ class EntityEventListenerServiceTest {
         every {
             temporalEntityAttributeService.deleteTemporalAttributeReferences(any(), any(), any())
         } answers { Mono.just(4) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeDeleteEventPayload)
 
@@ -187,14 +190,12 @@ class EntityEventListenerServiceTest {
                 eq(NAME_PROPERTY),
                 null
             )
-        }
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -204,7 +205,7 @@ class EntityEventListenerServiceTest {
         every {
             temporalEntityAttributeService.deleteTemporalAttributeAllInstancesReferences(any(), any())
         } answers { Mono.just(8) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeDeleteAllInstancesEvent)
 
@@ -213,14 +214,12 @@ class EntityEventListenerServiceTest {
                 eq(expectedEntityId.toUri()),
                 eq(TEMPERATURE_PROPERTY)
             )
-        }
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -229,7 +228,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -244,9 +243,6 @@ class EntityEventListenerServiceTest {
                         it.datasetId == null
                 }
             )
-        }
-
-        verify {
             attributeInstanceService.create(
                 match {
                     it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
@@ -256,16 +252,12 @@ class EntityEventListenerServiceTest {
                         it.payload.contains("createdAt")
                 }
             )
-        }
-
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
-
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -274,7 +266,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -289,9 +281,6 @@ class EntityEventListenerServiceTest {
                         it.datasetId == null
                 }
             )
-        }
-
-        verify {
             attributeInstanceService.create(
                 match {
                     it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
@@ -310,16 +299,13 @@ class EntityEventListenerServiceTest {
                         it.payload.contains("createdAt")
                 }
             )
-        }
-
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
 
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -329,7 +315,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -344,9 +330,6 @@ class EntityEventListenerServiceTest {
                         it.datasetId == "urn:ngsi-ld:Dataset:WeatherApi".toUri()
                 }
             )
-        }
-
-        verify {
             attributeInstanceService.create(
                 match {
                     it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
@@ -365,16 +348,12 @@ class EntityEventListenerServiceTest {
                         it.payload.contains("createdAt")
                 }
             )
-        }
-
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
-
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -383,7 +362,7 @@ class EntityEventListenerServiceTest {
 
         every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
+        every { entityPayloadService.upsertEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(attributeAppendEventPayload)
 
@@ -398,9 +377,6 @@ class EntityEventListenerServiceTest {
                         it.datasetId == null
                 }
             )
-        }
-
-        verify {
             attributeInstanceService.create(
                 match {
                     it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
@@ -410,16 +386,12 @@ class EntityEventListenerServiceTest {
                         it.payload.contains("createdAt")
                 }
             )
-        }
-
-        verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 eq(expectedEntityId.toUri()),
                 match { it.contains(expectedEntityId) }
             )
         }
-
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -558,8 +530,8 @@ class EntityEventListenerServiceTest {
         entityEventListenerService.processMessage(attributeUpdateEventPayload)
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) }
-        verify { temporalEntityAttributeService.upsertEntityPayload(any(), any()) wasNot Called }
-        confirmVerified(temporalEntityAttributeService)
+        verify { entityPayloadService.upsertEntityPayload(any(), any()) wasNot Called }
+        confirmVerified(temporalEntityAttributeService, entityPayloadService)
     }
 
     @Test
@@ -691,7 +663,7 @@ class EntityEventListenerServiceTest {
         verify(verifyBlock = attributeInstanceVerifyBlock)
 
         verify {
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 expectedEntityId.toUri(),
                 match {
                     it.contains(expectedEntityId)
@@ -699,6 +671,6 @@ class EntityEventListenerServiceTest {
             )
         }
 
-        confirmVerified(attributeInstanceService, temporalEntityAttributeService)
+        confirmVerified(attributeInstanceService, temporalEntityAttributeService, entityPayloadService)
     }
 }

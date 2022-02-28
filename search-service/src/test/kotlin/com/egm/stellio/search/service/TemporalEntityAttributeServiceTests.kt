@@ -5,6 +5,7 @@ import com.egm.stellio.search.model.EntityPayload
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.ninjasquad.springmockk.MockkBean
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
@@ -32,6 +33,9 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     @MockkBean
     private lateinit var attributeInstanceService: AttributeInstanceService
 
+    @MockkBean
+    private lateinit var entityPayloadService: EntityPayloadService
+
     @Autowired
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
@@ -58,6 +62,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -91,6 +96,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -110,9 +116,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .verify()
 
         verify {
-            temporalEntityAttributeService.createEntityPayload(beehiveTestCId, any())
-        }
-        verify {
+            entityPayloadService.createEntityPayload(beehiveTestCId, any())
             attributeInstanceService.create(
                 match {
                     it.value == null &&
@@ -146,7 +150,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 }
             )
         }
-        confirmVerified(attributeInstanceService)
+        confirmVerified(entityPayloadService, attributeInstanceService)
     }
 
     @Test
@@ -154,6 +158,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
@@ -210,10 +215,83 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should set a specific access policy for a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.updateSpecificAccessPolicy(
+                    beehiveTestCId,
+                    SpecificAccessPolicy.AUTH_READ
+                )
+            )
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestCId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == true }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestDId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should remove a specific access policy from a temporal entity`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        StepVerifier
+            .create(temporalEntityAttributeService.removeSpecificAccessPolicy(beehiveTestCId))
+            .expectNextMatches { it == 3 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(
+                temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    beehiveTestCId,
+                    listOf(SpecificAccessPolicy.AUTH_READ)
+                )
+            )
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should return the temporalEntityAttributeId of a given entityId and attributeName`() {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -233,6 +311,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -253,6 +332,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -274,6 +354,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -307,6 +388,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(2) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -334,6 +416,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -347,7 +430,15 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                 setOf(beehiveTestDId, beehiveTestCId),
                 setOf(BEEHIVE_TYPE),
                 setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
-            ) { "entity_id IN ('urn:ngsi-ld:BeeHive:TESTD')" }
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    )
+                """.trimIndent()
+            }
 
         StepVerifier.create(temporalEntityAttributes)
             .expectNextMatches {
@@ -362,10 +453,94 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
+    fun `it should retrieve the temporal attributes of entities according to specific access policy`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                10,
+                0,
+                setOf(beehiveTestDId, beehiveTestCId),
+                setOf(BEEHIVE_TYPE),
+                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTE'))
+                    )
+                """.trimIndent()
+            }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 1 &&
+                    it[0].type == BEEHIVE_TYPE &&
+                    it[0].entityId == beehiveTestCId
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve the temporal attributes of entities according to specific access policy and rights`() {
+        val firstRawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
+        val secondRawEntity = loadSampleData("beehive.jsonld")
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.createEntityTemporalReferences(secondRawEntity, listOf(APIC_COMPOUND_CONTEXT))
+            .block()
+        temporalEntityAttributeService.updateSpecificAccessPolicy(beehiveTestCId, SpecificAccessPolicy.AUTH_READ)
+            .block()
+
+        val temporalEntityAttributes =
+            temporalEntityAttributeService.getForEntities(
+                10,
+                0,
+                setOf(beehiveTestDId, beehiveTestCId),
+                setOf(BEEHIVE_TYPE),
+                setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            ) {
+                """
+                    (
+                        (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                        OR
+                        (entity_id IN ('urn:ngsi-ld:BeeHive:TESTD'))
+                    )
+                """.trimIndent()
+            }
+
+        StepVerifier.create(temporalEntityAttributes)
+            .expectNextMatches {
+                it.size == 3 &&
+                    it.all { tea -> tea.entityId == beehiveTestCId || tea.entityId == beehiveTestDId }
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
     fun `it should retrieve the count of temporal attributes of entities`() {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -387,6 +562,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -420,6 +596,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -447,6 +624,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val secondRawEntity = loadSampleData("beehive.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(firstRawEntity, listOf(APIC_COMPOUND_CONTEXT))
             .block()
@@ -472,7 +650,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     fun `it should delete temporal entity references`() {
         val entityId = "urn:ngsi-ld:BeeHive:TESTE".toUri()
 
-        every { temporalEntityAttributeService.deleteEntityPayload(entityId) } answers { Mono.just(1) }
+        every { entityPayloadService.deleteEntityPayload(entityId) } answers { Mono.just(1) }
         every { temporalEntityAttributeService.deleteTemporalAttributesOfEntity(entityId) } answers { Mono.just(2) }
 
         val deletedRecords = temporalEntityAttributeService.deleteTemporalEntityReferences(entityId).block()
@@ -485,6 +663,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -507,6 +686,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_two_temporal_properties.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 
@@ -533,6 +713,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val rawEntity = loadSampleData("beehive_multi_instance_property.jsonld")
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
 
         temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
 

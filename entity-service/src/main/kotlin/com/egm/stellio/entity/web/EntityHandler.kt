@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.web
 
-import arrow.core.Option
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
@@ -15,26 +14,16 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.Optional
+import java.util.*
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")
@@ -265,7 +254,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, sub)
+        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
 
         val updateResult = entityService.appendEntityAttributes(
             entityUri,
@@ -315,7 +304,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        checkAttributesAreAuthorized(ngsiLdAttributes, entityUri, sub)
+        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
         val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
 
         if (updateResult.updated.isNotEmpty()) {
@@ -360,7 +349,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
 
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
-        checkAttributeIsAuthorized(expandedAttrId, entityUri, sub)
+        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
         val expandedPayload = parseAndExpandAttributeFragment(attrId, body, contexts)
 
@@ -402,7 +391,7 @@ class EntityHandler(
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
         val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
-        checkAttributeIsAuthorized(expandedAttrId, entityUri, sub)
+        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
         val result = if (deleteAll)
             entityService.deleteEntityAttribute(entityUri, expandedAttrId)
@@ -419,20 +408,5 @@ class EntityHandler(
         else
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                 .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
-    }
-
-    private fun checkAttributesAreAuthorized(
-        ngsiLdAttributes: List<NgsiLdAttribute>,
-        entityUri: URI,
-        sub: Option<Sub>
-    ) = ngsiLdAttributes.forEach { ngsiLdAttribute ->
-        checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri, sub)
-    }
-
-    private fun checkAttributeIsAuthorized(expandedAttributeName: String, entityUri: URI, sub: Option<Sub>) {
-        if (expandedAttributeName == AuthContextModel.AUTH_PROP_SAP &&
-            !authorizationService.userIsAdminOfEntity(entityUri, sub)
-        )
-            throw AccessDeniedException("User forbidden to update access policy of entity $entityUri")
     }
 }

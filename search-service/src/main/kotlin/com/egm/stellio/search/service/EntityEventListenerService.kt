@@ -29,7 +29,8 @@ import java.time.ZonedDateTime
 class EntityEventListenerService(
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val attributeInstanceService: AttributeInstanceService,
-    private val entityAccessRightsService: EntityAccessRightsService
+    private val entityAccessRightsService: EntityAccessRightsService,
+    private val entityPayloadService: EntityPayloadService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -113,7 +114,7 @@ class EntityEventListenerService(
             expandedAttributeName,
             attributeDeleteEvent.datasetId
         ).then(
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 attributeDeleteEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
@@ -149,7 +150,7 @@ class EntityEventListenerService(
             attributeDeleteAllInstancesEvent.entityId,
             expandedAttributeName
         ).then(
-            temporalEntityAttributeService.upsertEntityPayload(
+            entityPayloadService.upsertEntityPayload(
                 attributeDeleteAllInstancesEvent.entityId,
                 serializeObject(compactedJsonLdEntity)
             )
@@ -265,10 +266,7 @@ class EntityEventListenerService(
                     )
                     attributeInstanceService.create(attributeInstance)
                 }.flatMap {
-                    temporalEntityAttributeService.upsertEntityPayload(
-                        entityId,
-                        serializeObject(compactedJsonLdEntity)
-                    )
+                    entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity))
                 }.subscribe(
                     { logger.debug("Created new attribute instance of $expandedAttributeName for $entityId") },
                     {
@@ -330,11 +328,7 @@ class EntityEventListenerService(
                 temporalEntityAttributeService.create(temporalEntityAttribute)
                     .then(attributeInstanceService.create(attributeInstance))
                     .then(attributeObservedAtInstanceMono)
-                    .then(
-                        temporalEntityAttributeService.upsertEntityPayload(
-                            entityId, serializeObject(compactedJsonLdEntity)
-                        )
-                    )
+                    .then(entityPayloadService.upsertEntityPayload(entityId, serializeObject(compactedJsonLdEntity)))
                     .subscribe(
                         {
                             logger.debug("Created temporal entity attribute $expandedAttributeName for $entityId ")

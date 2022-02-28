@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -154,7 +155,11 @@ class TemporalEntityHandler(
         }
 
         val canReadEntity =
-            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
+                entityId.toUri(),
+                listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE)
+            ).awaitFirst() ||
+                entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 

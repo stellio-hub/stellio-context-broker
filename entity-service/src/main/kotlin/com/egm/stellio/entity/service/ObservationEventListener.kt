@@ -114,7 +114,6 @@ class ObservationEventListener(
             entityEventService.publishAttributeAppendEvent(
                 observationEvent.sub,
                 observationEvent.entityId,
-                observationEvent.entityType,
                 observationEvent.attributeName,
                 observationEvent.datasetId,
                 observationEvent.overwrite,

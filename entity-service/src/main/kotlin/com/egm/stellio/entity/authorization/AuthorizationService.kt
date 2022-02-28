@@ -1,6 +1,10 @@
 package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
+import com.egm.stellio.shared.model.BadRequestDataException
+import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.model.NgsiLdAttribute
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
@@ -19,4 +23,19 @@ interface AuthorizationService {
     fun createAdminLink(entityId: URI, sub: Option<Sub>)
     fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>)
     fun removeUserRightsOnEntity(entityId: URI, subjectId: URI): Int
+
+    fun checkAttributesAreAuthorized(
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        entityUri: URI
+    ) = ngsiLdAttributes.forEach { ngsiLdAttribute ->
+        checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri)
+    }
+
+    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm, entityUri: URI) {
+        if (attributeName == AuthContextModel.AUTH_PROP_SAP)
+            throw BadRequestDataException(
+                "Specific access policy cannot be updated as a normal property, " +
+                    "use /ngsi-ld/v1/entityAccessControl/{entityId}/attrs/specificAccessPolicy endpoint instead"
+            )
+    }
 }

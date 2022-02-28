@@ -3,19 +3,18 @@ package com.egm.stellio.search.service
 import arrow.core.Validated
 import arrow.core.invalid
 import arrow.core.valid
-import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonUtils
 import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
 import com.egm.stellio.shared.util.toUri
-import io.r2dbc.postgresql.codec.Json
 import io.r2dbc.spi.Row
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -28,14 +27,14 @@ import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.UUID
+import java.util.*
 
 @Service
 class TemporalEntityAttributeService(
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
     private val attributeInstanceService: AttributeInstanceService,
-    private val applicationProperties: ApplicationProperties
+    private val entityPayloadService: EntityPayloadService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -56,48 +55,6 @@ class TemporalEntityAttributeService(
             .bind("attribute_type", temporalEntityAttribute.attributeType.toString())
             .bind("attribute_value_type", temporalEntityAttribute.attributeValueType.toString())
             .bind("dataset_id", temporalEntityAttribute.datasetId)
-            .fetch()
-            .rowsUpdated()
-
-    internal fun createEntityPayload(entityId: URI, entityPayload: String?): Mono<Int> =
-        if (applicationProperties.entity.storePayloads)
-            databaseClient.sql(
-                """
-                INSERT INTO entity_payload (entity_id, payload)
-                VALUES (:entity_id, :payload)
-                """.trimIndent()
-            )
-                .bind("entity_id", entityId)
-                .bind("payload", entityPayload?.let { Json.of(entityPayload) })
-                .fetch()
-                .rowsUpdated()
-        else
-            Mono.just(1)
-
-    fun upsertEntityPayload(entityId: URI, payload: String): Mono<Int> =
-        if (applicationProperties.entity.storePayloads)
-            databaseClient.sql(
-                """
-                INSERT INTO entity_payload (entity_id, payload)
-                VALUES (:entity_id, :payload)
-                ON CONFLICT (entity_id)
-                DO UPDATE SET payload = :payload
-                """.trimIndent()
-            )
-                .bind("payload", Json.of(payload))
-                .bind("entity_id", entityId)
-                .fetch()
-                .rowsUpdated()
-        else
-            Mono.just(1)
-
-    fun deleteEntityPayload(entityId: URI): Mono<Int> =
-        databaseClient.sql(
-            """
-            DELETE FROM entity_payload WHERE entity_id = :entity_id
-            """.trimIndent()
-        )
-            .bind("entity_id", entityId)
             .fetch()
             .rowsUpdated()
 
@@ -157,11 +114,53 @@ class TemporalEntityAttributeService(
                 create(it.first)
                     .then(attributeInstanceService.create(it.second.first()))
                     .then(attributeObservedAtMono)
-            }.then(createEntityPayload(ngsiLdEntity.id, payload))
+            }.then(entityPayloadService.createEntityPayload(ngsiLdEntity.id, payload))
     }
 
+    fun updateSpecificAccessPolicy(entityId: URI, specificAccessPolicy: SpecificAccessPolicy): Mono<Int> =
+        databaseClient.sql(
+            """
+            UPDATE temporal_entity_attribute
+            SET specific_access_policy = :specific_access_policy
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policy", specificAccessPolicy.toString())
+            .fetch()
+            .rowsUpdated()
+
+    fun removeSpecificAccessPolicy(entityId: URI): Mono<Int> =
+        databaseClient.sql(
+            """
+            UPDATE temporal_entity_attribute
+            SET specific_access_policy = null
+            WHERE entity_id = :entity_id
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .fetch()
+            .rowsUpdated()
+
+    fun hasSpecificAccessPolicies(entityId: URI, specificAccessPolicies: List<SpecificAccessPolicy>): Mono<Boolean> =
+        databaseClient.sql(
+            """
+            SELECT count(id) as count
+            FROM temporal_entity_attribute
+            WHERE entity_id = :entity_id
+            AND specific_access_policy IN (:specific_access_policies)
+            """.trimIndent()
+        )
+            .bind("entity_id", entityId)
+            .bind("specific_access_policies", specificAccessPolicies.map { it.toString() })
+            .map { row ->
+                row.get("count", Integer::class.java)!!.toInt()
+            }
+            .one()
+            .map { it > 0 }
+
     fun deleteTemporalEntityReferences(entityId: URI): Mono<Int> =
-        deleteEntityPayload(entityId)
+        entityPayloadService.deleteEntityPayload(entityId)
             .then(deleteTemporalAttributesOfEntity(entityId))
 
     fun deleteTemporalAttributesOfEntity(entityId: URI): Mono<Int> =
@@ -172,7 +171,7 @@ class TemporalEntityAttributeService(
     fun deleteTemporalAttributeReferences(entityId: URI, attributeName: String, datasetId: URI?): Mono<Int> =
         databaseClient.sql(
             """
-            delete FROM temporal_entity_attribute WHERE 
+            DELETE FROM temporal_entity_attribute WHERE 
                 entity_id = :entity_id
                 ${if (datasetId != null) "AND dataset_id = :dataset_id" else "AND dataset_id IS NULL"}
                 AND attribute_name = :attribute_name
@@ -301,7 +300,9 @@ class TemporalEntityAttributeService(
         val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
         return databaseClient
             .sql("$selectStatement $filterQuery")
-            .map(rowToTemporalCount)
+            .map { row ->
+                row.get("count_entity", Integer::class.java)!!.toInt()
+            }
             .one()
     }
 
@@ -404,9 +405,5 @@ class TemporalEntityAttributeService(
 
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
-    }
-
-    private var rowToTemporalCount: ((Row) -> Int) = { row ->
-        row.get("count_entity", Integer::class.java)!!.toInt()
     }
 }

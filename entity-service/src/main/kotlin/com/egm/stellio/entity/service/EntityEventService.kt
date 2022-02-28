@@ -16,6 +16,7 @@ import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedTerm
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
@@ -40,8 +41,8 @@ class EntityEventService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    internal fun composeTopicName(entityType: String): Validated<Unit, String> {
-        val topicName = entityChannelName(entityType)
+    internal fun composeTopicName(entityType: String, attributeName: String?): Validated<Unit, String> {
+        val topicName = entityChannelName(entityType, attributeName)
         return try {
             Topic.validate(topicName)
             topicName.valid()
@@ -52,7 +53,7 @@ class EntityEventService(
     }
 
     internal fun publishEntityEvent(event: EntityEvent): java.lang.Boolean =
-        composeTopicName(event.entityType)
+        composeTopicName(event.entityType, event.getAttribute())
             .fold(
                 {
                     false as java.lang.Boolean
@@ -63,8 +64,8 @@ class EntityEventService(
                 }
             )
 
-    private fun entityChannelName(entityType: String) =
-        if (IAM_TYPES.contains(entityType))
+    private fun entityChannelName(entityType: String, attributeName: String?) =
+        if (IAM_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)
             "cim.iam.rights"
         else
             "cim.entity.$entityType"
@@ -114,7 +115,6 @@ class EntityEventService(
     fun publishAttributeAppendEvent(
         sub: String?,
         entityId: URI,
-        entityType: String,
         attributeName: String,
         datasetId: URI? = null,
         overwrite: Boolean,
@@ -129,7 +129,7 @@ class EntityEventService(
                 AttributeAppendEvent(
                     sub,
                     entityId,
-                    entityType,
+                    compactTerm(typeAndPayload.first, contexts),
                     attributeName,
                     datasetId,
                     overwrite,
@@ -143,7 +143,7 @@ class EntityEventService(
                 AttributeReplaceEvent(
                     sub,
                     entityId,
-                    entityType,
+                    compactTerm(typeAndPayload.first, contexts),
                     attributeName,
                     datasetId,
                     operationPayload,

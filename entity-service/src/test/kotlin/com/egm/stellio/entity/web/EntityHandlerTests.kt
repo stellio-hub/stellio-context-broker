@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.web
 
 import arrow.core.Some
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.*
@@ -95,7 +97,7 @@ class EntityHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
         val breedingServiceId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityService.createEntity(any()) } returns breedingServiceId
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
 
@@ -106,7 +108,7 @@ class EntityHandlerTests {
             .expectStatus().isCreated
             .expectHeader().value("Location", Is.`is`("/ngsi-ld/v1/entities/$breedingServiceId"))
 
-        verify { authorizationService.userCanCreateEntities(sub) }
+        verify { authorizationService.isCreationAuthorized(any(), sub) }
         verify { authorizationService.createAdminLink(breedingServiceId, sub) }
         verify {
             entityService.createEntity(
@@ -131,7 +133,7 @@ class EntityHandlerTests {
     fun `create entity should return a 409 if the entity already exists`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityService.createEntity(any()) } throws AlreadyExistsException("Already Exists")
 
         webClient.post()
@@ -149,10 +151,10 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `create entity should return a 500 error if internal server Error`() {
+    fun `create entity should return a 500 error if there is an internal server error`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityService.createEntity(any()) } throws InternalErrorException("Internal Server Exception")
 
         webClient.post()
@@ -174,8 +176,6 @@ class EntityHandlerTests {
     @Test
     fun `create entity should return a 400 if JSON-LD payload is not correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/beehive_missing_context.jsonld")
-
-        every { authorizationService.userCanCreateEntities(sub) } returns true
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
@@ -223,10 +223,10 @@ class EntityHandlerTests {
     }
 
     @Test
-    fun `create entity should return a 400 if input data is not valid and creation was rejected`() {
+    fun `create entity should return a 400 if creation unexpectedly fails`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         // reproduce the runtime behavior where the raised exception is wrapped in an UndeclaredThrowableException
         every {
             entityService.createEntity(any())
@@ -252,11 +252,12 @@ class EntityHandlerTests {
     fun `it should not authorize user without creator role to create entity`() {
         val jsonLdFile = ClassPathResource("/ngsild/aquac/BreedingService.json")
 
-        every { authorizationService.userCanCreateEntities(sub) } returns false
+        every {
+            authorizationService.isCreationAuthorized(any(), sub)
+        } returns AccessDeniedException("User forbidden to create entities").left()
 
         webClient.post()
             .uri("/ngsi-ld/v1/entities")
-            .header(HttpHeaders.LINK, aquacHeaderLink)
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isForbidden

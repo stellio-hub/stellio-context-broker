@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.web
 
+import arrow.core.computations.either
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
@@ -44,25 +45,33 @@ class EntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        if (!authorizationService.userCanCreateEntities(sub))
-            throw AccessDeniedException("User forbidden to create entities")
-
         val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
-        val newEntityUri = entityService.createEntity(ngsiLdEntity)
-        authorizationService.createAdminLink(newEntityUri, sub)
 
-        entityEventService.publishEntityCreateEvent(
-            sub.orNull(),
-            ngsiLdEntity.id,
-            ngsiLdEntity.type,
-            contexts
+        return either<APiException, URI> {
+            authorizationService.isCreationAuthorized(ngsiLdEntity, sub).bind()
+            val newEntityUri = entityService.createEntity(ngsiLdEntity)
+            authorizationService.createAdminLink(newEntityUri, sub)
+
+            entityEventService.publishEntityCreateEvent(
+                sub.orNull(),
+                ngsiLdEntity.id,
+                ngsiLdEntity.type,
+                contexts
+            )
+            newEntityUri
+        }.fold(
+            {
+                it.toErrorResponse()
+            },
+            {
+                ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .location(URI("/ngsi-ld/v1/entities/$it"))
+                    .build<String>()
+            }
         )
-        return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
-            .build<String>()
     }
 
     /**

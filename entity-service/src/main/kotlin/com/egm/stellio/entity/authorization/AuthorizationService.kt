@@ -1,10 +1,12 @@
 package com.egm.stellio.entity.authorization
 
+import arrow.core.Either
 import arrow.core.Option
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.ExpandedTerm
-import com.egm.stellio.shared.model.NgsiLdAttribute
+import arrow.core.left
+import arrow.core.right
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.Sub
 import java.net.URI
 
@@ -24,6 +26,11 @@ interface AuthorizationService {
     fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>)
     fun removeUserRightsOnEntity(entityId: URI, subjectId: URI): Int
 
+    fun checkEntityTypeIsAuthorized(entityType: ExpandedTerm): Either<APiException, Unit> =
+        if (IAM_TYPES.contains(entityType))
+            BadRequestDataException("Entity type $entityType cannot be managed via normal entity API").left()
+        else Unit.right()
+
     fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>,
         entityUri: URI
@@ -38,4 +45,12 @@ interface AuthorizationService {
                     "use /ngsi-ld/v1/entityAccessControl/{entityId}/attrs/specificAccessPolicy endpoint instead"
             )
     }
+
+    fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APiException, Unit> =
+        userCanCreateEntities(sub).let {
+            if (it) AccessDeniedException("User forbidden to create entities").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(ngsiLdEntity.type)
+        }
 }

@@ -15,7 +15,7 @@ fun entityOrAttrsNotFoundMessage(
  * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
  * but main code there should move here when we no longer raise business exceptions
  */
-fun APiException.toErrorResponse(): ResponseEntity<*> =
+fun APIException.toErrorResponse(): ResponseEntity<*> =
     when (this) {
         is AlreadyExistsException ->
             generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message))

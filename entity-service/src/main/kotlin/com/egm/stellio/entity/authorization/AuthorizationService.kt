@@ -26,7 +26,7 @@ interface AuthorizationService {
     fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>)
     fun removeUserRightsOnEntity(entityId: URI, subjectId: URI): Int
 
-    fun checkEntityTypeIsAuthorized(entityType: ExpandedTerm): Either<APiException, Unit> =
+    fun checkEntityTypeIsAuthorized(entityType: ExpandedTerm): Either<APIException, Unit> =
         if (IAM_TYPES.contains(entityType))
             BadRequestDataException("Entity type $entityType cannot be managed via normal entity API").left()
         else Unit.right()
@@ -46,11 +46,19 @@ interface AuthorizationService {
             )
     }
 
-    fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APiException, Unit> =
+    fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
         userCanCreateEntities(sub).let {
             if (it) AccessDeniedException("User forbidden to create entities").left()
             else Unit.right()
         }.map {
             checkEntityTypeIsAuthorized(ngsiLdEntity.type)
+        }
+
+    fun isReadAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
+        userCanReadEntity(entityId, sub).let {
+            if (it) AccessDeniedException("User forbidden read access to entity $entityId").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(entityType)
         }
 }

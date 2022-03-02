@@ -8,10 +8,12 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -49,7 +51,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
 
-        return either<APiException, URI> {
+        return either<APIException, URI> {
             authorizationService.isCreationAuthorized(ngsiLdEntity, sub).bind()
             val newEntityUri = entityService.createEntity(ngsiLdEntity)
             authorizationService.createAdminLink(newEntityUri, sub)
@@ -69,7 +71,7 @@ class EntityHandler(
                 ResponseEntity
                     .status(HttpStatus.CREATED)
                     .location(URI("/ngsi-ld/v1/entities/$it"))
-                    .build<String>()
+                    .build()
             }
         )
     }
@@ -138,7 +140,7 @@ class EntityHandler(
             countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
                 .map {
                     JsonLdEntity(
-                        JsonLdUtils.filterJsonLdEntityOnAttributes(it, expandedAttrs),
+                        filterJsonLdEntityOnAttributes(it, expandedAttrs),
                         it.contexts
                     )
                 }
@@ -166,12 +168,12 @@ class EntityHandler(
      * Implements 6.5.3.1 - Retrieve Entity
      */
     @GetMapping("/{entityId}", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    @Suppress("ThrowsCount")
     suspend fun getByURI(
         @RequestHeader httpHeaders: HttpHeaders,
         @PathVariable entityId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val entityUri = entityId.toUri()
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -180,31 +182,36 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        if (!entityService.exists(entityId.toUri()))
-            throw ResourceNotFoundException(entityNotFoundMessage(entityId))
-        if (!authorizationService.userCanReadEntity(entityId.toUri(), sub))
-            throw AccessDeniedException("User forbidden read access to entity $entityId")
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
+            authorizationService.isReadAuthorized(entityUri, entityService.getEntityType(entityUri), sub).bind()
 
-        val jsonLdEntity = entityService.getFullEntityById(entityId.toUri(), includeSysAttrs)
+            val jsonLdEntity = entityService.getFullEntityById(entityUri, includeSysAttrs)
 
-        val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
-        if (jsonLdEntity.containsAnyOf(expandedAttrs)) {
+            val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
+            jsonLdEntity.checkContainsAnyOf(expandedAttrs).bind()
             val filteredJsonLdEntity = JsonLdEntity(
-                JsonLdUtils.filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
+                filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
                 jsonLdEntity.contexts
             )
 
-            val compactedEntity = JsonLdUtils.compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
+            val compactedEntity = compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
-            return buildGetSuccessResponse(mediaType, contextLink)
+            buildGetSuccessResponse(mediaType, contextLink)
                 .let {
                     if (useSimplifiedRepresentation)
                         it.body(serializeObject(compactedEntity.toKeyValues()))
                     else
                         it.body(serializeObject(compactedEntity))
                 }
-        } else
-            throw ResourceNotFoundException("Entity $entityId does not have any of the requested attributes")
+        }.fold(
+            {
+                it.toErrorResponse()
+            },
+            {
+                it
+            }
+        )
     }
 
     /**

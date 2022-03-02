@@ -82,6 +82,7 @@ class EntityHandlerTests {
     }
 
     private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
+    private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val hcmrContext = listOf(
@@ -272,18 +273,21 @@ class EntityHandlerTests {
             )
     }
 
+    private fun mockkDefaultBehaviorForGetEntityById() {
+        every { entityService.checkExistence(any()) } returns Unit.right()
+        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { authorizationService.isReadAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+    }
+
     @Test
     fun `get entity by id should return 200 when entity exists`() {
+        mockkDefaultBehaviorForGetEntityById()
         val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
-        every { entityService.exists(any()) } returns true
         every { entityService.getFullEntityById(any()) } returns returnedJsonLdEntity
-        every { returnedJsonLdEntity.containsAnyOf(any()) } returns true
-
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
+        every { returnedJsonLdEntity.checkContainsAnyOf(any()) } returns Unit.right()
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -291,7 +295,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize temporal properties`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -299,17 +303,14 @@ class EntityHandlerTests {
                         "@type" to NGSILD_DATE_TIME_TYPE,
                         "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                     ),
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?options=sysAttrs")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -325,10 +326,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly filter the asked attributes`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
                 "https://uri.etsi.org/ngsi-ld/default-context/attr1" to mapOf(
                     "@type" to "https://uri.etsi.org/ngsi-ld/Property",
@@ -346,11 +347,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?attrs=attr2")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -361,11 +359,10 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly return the simplified representation of an entity`() {
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
-                "@id" to entityId.toString(),
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive"),
                 "https://uri.etsi.org/ngsi-ld/default-context/prop1" to mapOf(
                     JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
@@ -383,10 +380,10 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
+        every { authorizationService.userCanReadEntity(beehiveId, sub) } returns true
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?options=keyValues")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?options=keyValues")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -394,7 +391,7 @@ class EntityHandlerTests {
             .json(
                 """
                     {
-                        "id": "$entityId",
+                        "id": "$beehiveId",
                         "type": "Beehive",
                         "prop1": "some value",
                         "rel1": "urn:ngsi-ld:Entity:1234",
@@ -406,20 +403,17 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 if the entity has none of the requested attributes`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), false) } returns JsonLdEntity(
             mapOf(
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                "@type" to listOf("Beehive")
+                "@id" to beehiveId.toString(),
+                "@type" to listOf(BEEHIVE_TYPE)
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?attrs=attr2")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?attrs=attr2")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNotFound
@@ -428,7 +422,7 @@ class EntityHandlerTests {
                     {
                         "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
                         "title":"The referred resource has not been found",
-                        "detail":"Entity $entityId does not have any of the requested attributes"
+                        "detail":"Entity $beehiveId does not have any of the requested attributes"
                     }
                 """.trimIndent()
             )
@@ -436,20 +430,17 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should not include temporal properties if optional query param sysAttrs is not present`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -466,7 +457,7 @@ class EntityHandlerTests {
             listOf(
                 JsonLdEntity(
                     mapOf(
-                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
@@ -474,10 +465,9 @@ class EntityHandlerTests {
             )
         )
 
-        val entityId = "urn:ngsi-ld:Beehive:TESTC".toUri()
         every {
             authorizationService.filterEntitiesUserCanRead(any(), sub)
-        } returns listOf(entityId)
+        } returns listOf(beehiveId)
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities?type=Beehive")
@@ -487,7 +477,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 """[
                         {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "id": "$beehiveId",
                             "type": "Beehive",
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
@@ -511,7 +501,7 @@ class EntityHandlerTests {
                                 "@type" to NGSILD_DATE_TIME_TYPE,
                                 "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                             ),
-                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@id" to beehiveId.toString(),
                         "@type" to listOf("Beehive")
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
@@ -519,10 +509,9 @@ class EntityHandlerTests {
             )
         )
 
-        val entityId = "urn:ngsi-ld:Beehive:TESTC".toUri()
         every {
             authorizationService.filterEntitiesUserCanRead(any(), sub)
-        } returns listOf(entityId)
+        } returns listOf(beehiveId)
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities?type=Beehive&options=sysAttrs")
@@ -532,7 +521,7 @@ class EntityHandlerTests {
             .expectBody().json(
                 """[
                         {
-                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "id": "$beehiveId",
                             "type": "Beehive",
                             "createdAt":"2015-10-18T11:20:30.000001Z",
                             "@context": ["$NGSILD_CORE_CONTEXT"]
@@ -679,7 +668,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type DateTime and display sysAttrs asked`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
                 NGSILD_CREATED_AT_PROPERTY to
@@ -704,17 +693,14 @@ class EntityHandlerTests {
                             "@value" to Instant.parse("2015-10-18T12:20:30.000001Z").atZone(ZoneOffset.UTC)
                         )
                 ),
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?options=sysAttrs")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -739,7 +725,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Date`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -749,17 +735,14 @@ class EntityHandlerTests {
                         "@value" to LocalDate.of(2015, 10, 18)
                     )
                 ),
-                "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                "@id" to beehiveId.toString(),
                 "@type" to listOf("Beehive")
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -781,7 +764,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize properties of type Time`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/testedAt" to mapOf(
@@ -797,11 +780,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -823,7 +803,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having one instance`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
@@ -840,11 +820,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -862,7 +839,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute property having more than one instance`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/name" to
@@ -888,11 +865,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -917,7 +891,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having one instance`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -936,11 +910,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -962,7 +933,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should include createdAt & modifiedAt if query param sysAttrs is present`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any(), true) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -991,11 +962,8 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
-
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId?options=sysAttrs")
+            .uri("/ngsi-ld/v1/entities/$beehiveId?options=sysAttrs")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -1006,7 +974,7 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should correctly serialize multi-attribute relationship having more than one instance`() {
-        every { entityService.exists(any()) } returns true
+        mockkDefaultBehaviorForGetEntityById()
         every { entityService.getFullEntityById(any()) } returns JsonLdEntity(
             mapOf(
                 "https://uri.etsi.org/ngsi-ld/default-context/managedBy" to
@@ -1032,12 +1000,9 @@ class EntityHandlerTests {
             ),
             listOf(NGSILD_CORE_CONTEXT)
         )
-        val entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
-
-        every { authorizationService.userCanReadEntity(entityId, sub) } returns true
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entities/$entityId")
+            .uri("/ngsi-ld/v1/entities/$beehiveId")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -1065,7 +1030,9 @@ class EntityHandlerTests {
 
     @Test
     fun `get entity by id should return 404 when entity does not exist`() {
-        every { entityService.exists(any()) } returns false
+        every {
+            entityService.checkExistence(any())
+        } returns ResourceNotFoundException(entityNotFoundMessage("urn:ngsi-ld:BeeHive:TEST")).left()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")
@@ -1081,10 +1048,11 @@ class EntityHandlerTests {
 
     @Test
     fun `it should not authorize user without read rights on entity to get it`() {
-        every { entityService.exists(any()) } returns true
+        every { entityService.checkExistence(any()) } returns Unit.right()
+        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
         every {
-            authorizationService.userCanReadEntity("urn:ngsi-ld:BeeHive:TEST".toUri(), sub)
-        } returns false
+            authorizationService.isReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), BEEHIVE_TYPE, sub)
+        } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
 
         webClient.get()
             .uri("/ngsi-ld/v1/entities/urn:ngsi-ld:BeeHive:TEST")

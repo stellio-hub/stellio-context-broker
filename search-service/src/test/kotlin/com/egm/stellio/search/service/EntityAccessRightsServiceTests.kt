@@ -6,6 +6,7 @@ import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
+import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -78,6 +79,33 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
         StepVerifier
             .create(entityAccessRightsService.removeRoleOnEntity(subjectUuid, entityId))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
+            .expectNextMatches { it == false }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should remove an entity from the list of known entities`() {
+        StepVerifier
+            .create(entityAccessRightsService.setAdminRoleOnEntity(subjectUuid, entityId))
+            .expectNextMatches { it == 1 }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
+            .expectNextMatches { it == true }
+            .expectComplete()
+            .verify()
+
+        StepVerifier
+            .create(entityAccessRightsService.removeRolesOnEntity(entityId))
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
@@ -181,7 +209,11 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
 
-        verify { subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called }
+        verify {
+            subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
+            subjectReferentialService.retrieve(eq(subjectUuid)) wasNot Called
+        }
+        confirmVerified(subjectReferentialService)
     }
 
     @Test
@@ -195,7 +227,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return a valid entity filter is user does not have the stellio-admin role`() {
+    fun `it should return a valid entity filter if user does not have the stellio-admin role`() {
         every { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } answers { Mono.just(false) }
         every { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) } answers {
             Mono.just(listOf(subjectUuid, groupUuid))
@@ -205,10 +237,14 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(Some(subjectUuid))
             assertEquals(
                 """
-                entity_id IN (
-                    SELECT entity_id
-                    FROM entity_access_rights
-                    WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                ( 
+                    (specific_access_policy = 'AUTH_READ' OR specific_access_policy = 'AUTH_WRITE')
+                    OR
+                    (entity_id IN (
+                        SELECT entity_id
+                        FROM entity_access_rights
+                        WHERE subject_id IN ('$subjectUuid','$groupUuid')
+                    )
                 )
                 """.trimIndent(),
                 accessRightFilter()

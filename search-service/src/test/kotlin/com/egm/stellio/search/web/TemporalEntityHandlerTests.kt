@@ -2,35 +2,18 @@ package com.egm.stellio.search.web
 
 import arrow.core.Some
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntitiesQuery
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityAccessRightsService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.model.*
+import com.egm.stellio.search.service.*
+import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
-import com.egm.stellio.shared.util.RESULTS_COUNT_HEADER
-import com.egm.stellio.shared.util.buildContextLinkHeader
-import com.egm.stellio.shared.util.entityNotFoundMessage
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import io.mockk.*
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,21 +23,17 @@ import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
-import java.util.UUID
+import java.util.*
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)
 @Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", sub = "0768A6D5-D87B-4209-9A22-8C40A8961A79")
 class TemporalEntityHandlerTests {
-
-    private val incomingAttrExpandedName = "https://ontology.eglobalmark.com/apic#incoming"
-    private val outgoingAttrExpandedName = "https://ontology.eglobalmark.com/apic#outgoing"
 
     private lateinit var apicHeaderLink: String
 
@@ -85,6 +64,13 @@ class TemporalEntityHandlerTests {
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
             .build()
+
+        mockkStatic(::parseAndCheckQueryParams)
+    }
+
+    @AfterAll
+    fun clearMock() {
+        unmockkStatic(::parseAndCheckQueryParams)
     }
 
     @Test
@@ -112,7 +98,7 @@ class TemporalEntityHandlerTests {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("https://ontology.eglobalmark.com/apic#incoming")
+                eq(INCOMING_PROPERTY)
             )
         }
         verify {
@@ -125,8 +111,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -154,7 +139,7 @@ class TemporalEntityHandlerTests {
         verify {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                eq("https://ontology.eglobalmark.com/apic#incoming")
+                eq(INCOMING_PROPERTY)
             )
         }
         verify(exactly = 2) {
@@ -167,8 +152,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -196,10 +180,7 @@ class TemporalEntityHandlerTests {
         verify(exactly = 2) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                or(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
-                )
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
         verify(exactly = 2) {
@@ -212,8 +193,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -241,10 +221,7 @@ class TemporalEntityHandlerTests {
         verify(exactly = 4) {
             temporalEntityAttributeService.getForEntityAndAttribute(
                 eq(entityUri),
-                or(
-                    "https://ontology.eglobalmark.com/apic#incoming",
-                    "https://ontology.eglobalmark.com/apic#outgoing"
-                )
+                or(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             )
         }
         verify(exactly = 4) {
@@ -257,8 +234,7 @@ class TemporalEntityHandlerTests {
                 listOf(APIC_COMPOUND_CONTEXT)
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -297,8 +273,7 @@ class TemporalEntityHandlerTests {
 
         verify { temporalEntityAttributeService.getForEntityAndAttribute(any(), any()) wasNot Called }
         verify { attributeInstanceService.addAttributeInstance(any(), any(), any(), any()) wasNot Called }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
@@ -337,7 +312,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should give a 200 if no timerel and no time query params are in the request`() {
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(false) }
         every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
@@ -346,6 +322,10 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
 
         coVerify {
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
+                eq(entityUri),
+                eq(listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE))
+            )
             entityAccessRightsService.canReadEntity(
                 eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
                 eq(entityUri)
@@ -466,9 +446,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 404 if temporal entity attribute does not exist`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } throws ResourceNotFoundException("Entity urn:ngsi-ld:BeeHive:TESTC was not found")
 
         webClient.get()
@@ -491,8 +471,8 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should return a 200 if minimal required parameters are valid`() {
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
-        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any()) } returns emptyMap()
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
 
         webClient.get()
             .uri(
@@ -510,18 +490,66 @@ class TemporalEntityHandlerTests {
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
                         temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
-                false,
+                withTemporalValues = false,
+                withAudit = false,
                 eq(APIC_COMPOUND_CONTEXT)
             )
         }
-
         confirmVerified(queryService)
+    }
+
+    @Test
+    fun `it should return a 200 if minimal required parameters are valid and entity is publicly readable`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
+                eq(entityUri),
+                eq(listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE))
+            )
+            entityAccessRightsService.canReadEntity(any(), any()) wasNot Called
+        }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should return a 200 if minimal required parameters are valid and user can read the entity`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(false) }
+        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        coEvery { queryService.queryTemporalEntity(any(), any(), any(), any(), any()) } returns emptyMap()
+
+        webClient.get()
+            .uri(
+                "/ngsi-ld/v1/temporal/entities/$entityUri?" +
+                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+            )
+            .header("Link", apicHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+
+        coVerify {
+            entityAccessRightsService.canReadEntity(
+                eq(Some("0768A6D5-D87B-4209-9A22-8C40A8961A79")),
+                eq(entityUri)
+            )
+        }
+        confirmVerified()
     }
 
     @Test
     fun `it should return an entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -542,7 +570,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return a json entity with two temporal properties evolution`() {
         mockWithIncomingAndOutgoingTemporalProperties(false)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -565,7 +593,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should return an entity with two temporal properties evolution with temporalValues option`() {
         mockWithIncomingAndOutgoingTemporalProperties(true)
-        every { entityAccessRightsService.canReadEntity(any(), any()) } answers { Mono.just(true) }
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } answers { Mono.just(true) }
 
         webClient.get()
             .uri(
@@ -584,17 +612,15 @@ class TemporalEntityHandlerTests {
     }
 
     private fun mockWithIncomingAndOutgoingTemporalProperties(withTemporalValues: Boolean) {
-        val entityTemporalProperties = listOf(
-            incomingAttrExpandedName,
-            outgoingAttrExpandedName
-        ).map {
-            TemporalEntityAttribute(
-                entityId = entityUri,
-                type = "BeeHive",
-                attributeName = it,
-                attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
-            )
-        }
+        val entityTemporalProperties = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
+            .map {
+                TemporalEntityAttribute(
+                    entityId = entityUri,
+                    type = BEEHIVE_COMPACT_TYPE,
+                    attributeName = it,
+                    attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
+                )
+            }
         val entityFileName = if (withTemporalValues)
             "beehive_with_two_temporal_attributes_evolution_temporal_values.jsonld"
         else
@@ -607,17 +633,14 @@ class TemporalEntityHandlerTests {
             Flux.just(entityTemporalProperties[0], entityTemporalProperties[1])
         }
 
-        val attributes = listOf(
-            incomingAttrExpandedName,
-            outgoingAttrExpandedName
-        )
+        val attributes = listOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
         val values = listOf(Pair(1543, "2020-01-24T13:01:22.066Z"), Pair(1600, "2020-01-24T14:01:22.066Z"))
         val attInstanceResults = attributes.flatMap {
             values.map {
                 SimplifiedAttributeInstanceResult(
                     temporalEntityAttribute = UUID.randomUUID(),
                     value = it.first,
-                    observedAt = ZonedDateTime.parse(it.second)
+                    time = ZonedDateTime.parse(it.second)
                 )
             }
         }
@@ -629,15 +652,16 @@ class TemporalEntityHandlerTests {
         }
 
         coEvery {
-            queryService.queryTemporalEntity(any(), any(), any(), any())
+            queryService.queryTemporalEntity(any(), any(), any(), any(), any())
         } returns entityWith2temporalEvolutions
     }
 
     @Test
     fun `it should raise a 400 and return an error response`() {
         every {
-            queryService.parseAndCheckQueryParams(any(), any())
+            parseAndCheckQueryParams(any(), any(), any())
         } throws BadRequestDataException("'timerel' and 'time' must be used in conjunction")
+        coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
 
         webClient.get()
             .uri("/ngsi-ld/v1/temporal/entities?timerel=before")
@@ -662,15 +686,12 @@ class TemporalEntityHandlerTests {
             endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns
-            buildDefaultQueryParams().copy(types = setOf("BeeHive"), temporalQuery = temporalQuery)
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns
+            buildDefaultQueryParams().copy(types = setOf(BEEHIVE_COMPACT_TYPE), temporalQuery = temporalQuery)
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns emptyList()
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        } returns Pair(emptyList(), 2)
 
         webClient.get()
             .uri(
@@ -683,7 +704,8 @@ class TemporalEntityHandlerTests {
             .expectBody().json("[]")
 
         verify {
-            queryService.parseAndCheckQueryParams(
+            parseAndCheckQueryParams(
+                any(),
                 match {
                     it.size == 4 &&
                         it.getFirst("timerel") == "between" &&
@@ -719,14 +741,11 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns listOf(firstTemporalEntity, secondTemporalEntity)
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
 
         webClient.get()
             .uri(
@@ -751,14 +770,11 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns listOf(firstTemporalEntity, secondTemporalEntity)
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
 
         webClient.get()
             .uri(
@@ -788,96 +804,6 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should parse a query containing one attrs parameter`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("attrs", "outgoing")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertTrue(temporalQuery.expandedAttrs.size == 1)
-        assertTrue(temporalQuery.expandedAttrs.contains(outgoingAttrExpandedName))
-    }
-
-    @Test
-    fun `it should parse a query containing two attrs parameter`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("attrs", "incoming,outgoing")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertTrue(temporalQuery.expandedAttrs.size == 2)
-        assertTrue(
-            temporalQuery.expandedAttrs.containsAll(
-                listOf(
-                    outgoingAttrExpandedName,
-                    incomingAttrExpandedName
-                )
-            )
-        )
-    }
-
-    @Test
-    fun `it should parse a query containing no attrs parameter`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertTrue(temporalQuery.expandedAttrs.isEmpty())
-    }
-
-    @Test
-    fun `it should parse lastN parameter if it is a positive integer`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("lastN", "2")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertTrue(temporalQuery.lastN == 2)
-    }
-
-    @Test
-    fun `it should ignore lastN parameter if it is not an integer`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("lastN", "A")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertNull(temporalQuery.lastN)
-    }
-
-    @Test
-    fun `it should ignore lastN parameter if it is not a positive integer`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("lastN", "-2")
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertNull(temporalQuery.lastN)
-    }
-
-    @Test
-    fun `it should treat time and timerel properties as optional`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-
-        val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
-
-        assertEquals(null, temporalQuery.time)
-        assertEquals(null, temporalQuery.timerel)
-    }
-
-    @Test
     fun `query temporal entity should return 200 with prev link header if exists`() {
 
         val firstTemporalEntity = deserializeObject(
@@ -886,15 +812,12 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every {
-            queryService.parseAndCheckQueryParams(any(), any())
+            parseAndCheckQueryParams(any(), any(), any())
         } returns buildDefaultQueryParams().copy(limit = 1, offset = 2)
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns listOf(firstTemporalEntity, secondTemporalEntity)
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
 
         webClient.get()
             .uri(
@@ -915,12 +838,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns emptyList()
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         webClient.get()
             .uri(
@@ -935,12 +855,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams().copy(count = true)
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
-        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns emptyList()
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
         webClient.get()
             .uri(
@@ -962,15 +879,12 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every {
-            queryService.parseAndCheckQueryParams(any(), any())
+            parseAndCheckQueryParams(any(), any(), any())
         } returns buildDefaultQueryParams().copy(limit = 1, offset = 0)
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns listOf(firstTemporalEntity, secondTemporalEntity)
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(2) }
+        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 2)
 
         webClient.get()
             .uri(
@@ -997,15 +911,12 @@ class TemporalEntityHandlerTests {
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
         every {
-            queryService.parseAndCheckQueryParams(any(), any())
+            parseAndCheckQueryParams(any(), any(), any())
         } returns buildDefaultQueryParams().copy(limit = 1, offset = 1)
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
-        } returns listOf(firstTemporalEntity, secondTemporalEntity)
-        every {
-            temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
-        } answers { Mono.just(3) }
+        } returns Pair(listOf(firstTemporalEntity, secondTemporalEntity), 3)
 
         webClient.get()
             .uri(
@@ -1029,7 +940,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -1058,7 +969,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -1087,7 +998,7 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
-        every { queryService.parseAndCheckQueryParams(any(), any()) } returns buildDefaultQueryParams()
+        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -1120,6 +1031,7 @@ class TemporalEntityHandlerTests {
             types = emptySet(),
             temporalQuery = TemporalQuery(),
             withTemporalValues = false,
+            withAudit = false,
             offset = 0,
             limit = 30,
             count = false

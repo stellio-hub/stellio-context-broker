@@ -7,11 +7,12 @@ sealed class AttributeInstanceResult(open val temporalEntityAttribute: UUID)
 
 data class FullAttributeInstanceResult(
     override val temporalEntityAttribute: UUID,
-    val payload: String
+    val payload: String,
+    val sub: String?
 ) : AttributeInstanceResult(temporalEntityAttribute)
 
 data class SimplifiedAttributeInstanceResult(
     override val temporalEntityAttribute: UUID,
     val value: Any,
-    val observedAt: ZonedDateTime
+    val time: ZonedDateTime
 ) : AttributeInstanceResult(temporalEntityAttribute)

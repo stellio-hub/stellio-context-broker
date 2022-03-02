@@ -7,6 +7,7 @@ data class TemporalEntitiesQuery(
     val types: Set<String>,
     val temporalQuery: TemporalQuery,
     val withTemporalValues: Boolean,
+    val withAudit: Boolean,
     val limit: Int,
     val offset: Int,
     val count: Boolean

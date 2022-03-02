@@ -1,20 +1,15 @@
 package com.egm.stellio.search.web
 
-import arrow.core.Either
-import arrow.core.flatMap
-import arrow.core.getOrHandle
-import arrow.core.left
-import arrow.core.right
-import com.egm.stellio.search.model.TemporalQuery
-import com.egm.stellio.search.service.AttributeInstanceService
-import com.egm.stellio.search.service.EntityAccessRightsService
-import com.egm.stellio.search.service.QueryService
-import com.egm.stellio.search.service.TemporalEntityAttributeService
+import com.egm.stellio.search.config.ApplicationProperties
+import com.egm.stellio.search.service.*
+import com.egm.stellio.search.util.buildTemporalQuery
+import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.BadRequestDataResponse
 import com.egm.stellio.shared.model.getDatasetId
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -36,7 +31,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.time.ZonedDateTime
 import java.util.Optional
 
 @RestController
@@ -45,7 +39,8 @@ class TemporalEntityHandler(
     private val attributeInstanceService: AttributeInstanceService,
     private val temporalEntityAttributeService: TemporalEntityAttributeService,
     private val queryService: QueryService,
-    private val entityAccessRightsService: EntityAccessRightsService
+    private val entityAccessRightsService: EntityAccessRightsService,
+    private val applicationProperties: ApplicationProperties
 ) {
 
     /**
@@ -100,37 +95,30 @@ class TemporalEntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-
-        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val temporalEntitiesQuery = queryService.parseAndCheckQueryParams(params, contextLink)
+
+        val temporalEntitiesQuery = parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink)
 
         val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
-        val temporalEntities = queryService.queryTemporalEntities(
+        val (temporalEntities, total) = queryService.queryTemporalEntities(
             temporalEntitiesQuery,
             contextLink,
             accessRightFilter
         )
-        val temporalEntityCount = temporalEntityAttributeService.getCountForEntities(
-            temporalEntitiesQuery.ids,
-            temporalEntitiesQuery.types,
-            temporalEntitiesQuery.temporalQuery.expandedAttrs,
-            accessRightFilter
-        ).awaitFirst()
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/temporal/entities",
             params,
-            temporalEntityCount,
+            total,
             temporalEntitiesQuery.offset,
             temporalEntitiesQuery.limit
         )
 
         return PagingUtils.buildPaginationResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
-            temporalEntityCount,
-            count,
+            total,
+            temporalEntitiesQuery.count,
             prevAndNextLinks,
             mediaType,
             contextLink
@@ -147,11 +135,17 @@ class TemporalEntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-
-        val withTemporalValues =
-            hasValueInOptionsParam(Optional.ofNullable(params.getFirst("options")), OptionsParamValue.TEMPORAL_VALUES)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
+
+        val withTemporalValues =
+            hasValueInOptionsParam(
+                Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)),
+                OptionsParamValue.TEMPORAL_VALUES
+            )
+        val withAudit = hasValueInOptionsParam(
+            Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
+        )
 
         val temporalQuery = try {
             buildTemporalQuery(params, contextLink)
@@ -161,85 +155,19 @@ class TemporalEntityHandler(
         }
 
         val canReadEntity =
-            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
+            temporalEntityAttributeService.hasSpecificAccessPolicies(
+                entityId.toUri(),
+                listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE)
+            ).awaitFirst() ||
+                entityAccessRightsService.canReadEntity(sub, entityId.toUri()).awaitFirst()
         if (!canReadEntity)
             throw AccessDeniedException("User forbidden read access to entity $entityId")
 
-        val temporalEntity =
-            queryService.queryTemporalEntity(entityId.toUri(), temporalQuery, withTemporalValues, contextLink)
+        val temporalEntity = queryService.queryTemporalEntity(
+            entityId.toUri(), temporalQuery, withTemporalValues, withAudit, contextLink
+        )
 
         return buildGetSuccessResponse(mediaType, contextLink)
             .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
     }
 }
-
-internal fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {
-    val timerelParam = params.getFirst("timerel")
-    val timeParam = params.getFirst("time")
-    val endTimeParam = params.getFirst("endTime")
-    val timeBucketParam = params.getFirst("timeBucket")
-    val aggregateParam = params.getFirst("aggregate")
-    val lastNParam = params.getFirst("lastN")
-    val attrsParam = params.getFirst("attrs")
-
-    if (timerelParam == "between" && endTimeParam == null)
-        throw BadRequestDataException("'endTime' request parameter is mandatory if 'timerel' is 'between'")
-
-    val endTime = endTimeParam?.parseTimeParameter("'endTime' parameter is not a valid date")
-        ?.getOrHandle {
-            throw BadRequestDataException(it)
-        }
-
-    val (timerel, time) = buildTimerelAndTime(timerelParam, timeParam).getOrHandle {
-        throw BadRequestDataException(it)
-    }
-
-    if (listOf(timeBucketParam, aggregateParam).filter { it == null }.size == 1)
-        throw BadRequestDataException("'timeBucket' and 'aggregate' must be used in conjunction")
-
-    val aggregate = aggregateParam?.let {
-        if (TemporalQuery.Aggregate.isSupportedAggregate(it))
-            TemporalQuery.Aggregate.valueOf(it)
-        else
-            throw BadRequestDataException("Value '$it' is not supported for 'aggregate' parameter")
-    }
-
-    val lastN = lastNParam?.toIntOrNull()?.let {
-        if (it >= 1) it else null
-    }
-
-    val expandedAttrs = parseAndExpandRequestParameter(attrsParam, contextLink)
-
-    return TemporalQuery(
-        expandedAttrs = expandedAttrs,
-        timerel = timerel,
-        time = time,
-        endTime = endTime,
-        timeBucket = timeBucketParam,
-        aggregate = aggregate,
-        lastN = lastN
-    )
-}
-
-internal fun buildTimerelAndTime(
-    timerelParam: String?,
-    timeParam: String?
-): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
-    if (timerelParam == null && timeParam == null) {
-        Pair(null, null).right()
-    } else if (timerelParam != null && timeParam != null) {
-        val timeRelResult = try {
-            TemporalQuery.Timerel.valueOf(timerelParam.uppercase()).right()
-        } catch (e: IllegalArgumentException) {
-            "'timerel' is not valid, it should be one of 'before', 'between', or 'after'".left()
-        }
-
-        timeRelResult.flatMap { timerel ->
-            timeParam.parseTimeParameter("'time' parameter is not a valid date")
-                .map {
-                    Pair(timerel, it)
-                }
-        }
-    } else {
-        "'timerel' and 'time' must be used in conjunction".left()
-    }

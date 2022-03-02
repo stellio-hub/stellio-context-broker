@@ -65,7 +65,7 @@ We also provide an experimental configuration to deploy Stellio in a k8s cluster
 ### Developing on a service
 
 Requirements:
-* Java 11 (we recommend using [sdkman!](https://sdkman.io/) to install and manage versions of the JDK)
+* Java 17 (we recommend using [sdkman!](https://sdkman.io/) to install and manage versions of the JDK)
 
 To develop on a specific service, you can use the provided `docker-compose.yml` file inside each service's directory, for instance:
 
@@ -174,4 +174,4 @@ It mainly makes use of the following libraries and frameworks (dependencies of d
 | Testcontainers      |	MIT             |
 | Neo4j OGM           |	APL v2          |
 
-© 2020 - 2021 EGM
+© 2020 - 2022 EGM

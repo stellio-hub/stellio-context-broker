@@ -33,7 +33,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                         null,
                                         "urn:ngsi-ld:Instance:45678".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -42,10 +43,12 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                         null,
                                         "urn:ngsi-ld:Instance:45679".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             )
                     ),
+                    false,
                     false,
                     loadSampleData("expectations/beehive_incoming_multi_instances_without_datasetId.jsonld")
                 ),
@@ -67,7 +70,8 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45678".toUri(),
                                         TemporalEntityAttribute.AttributeType.Relationship
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -77,10 +81,12 @@ class ParameterizedTests {
                                         null,
                                         "urn:ngsi-ld:Instance:45679".toUri(),
                                         TemporalEntityAttribute.AttributeType.Relationship
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             )
                     ),
+                    false,
                     false,
                     loadSampleData("expectations/beehive_relationship_multi_instances_without_datasetId.jsonld")
                 ),
@@ -101,7 +107,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:01234".toUri(),
                                         "urn:ngsi-ld:Instance:01234".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -110,7 +117,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:01234".toUri(),
                                         "urn:ngsi-ld:Instance:01235".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             ),
                         TemporalEntityAttribute(
@@ -128,7 +136,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45678".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -137,10 +146,12 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45679".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             )
                     ),
+                    false,
                     false,
                     loadSampleData("expectations/beehive_incoming_multi_instances.jsonld")
                 ),
@@ -161,7 +172,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45678".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -170,12 +182,50 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                         "urn:ngsi-ld:Dataset:45678".toUri(),
                                         "urn:ngsi-ld:Instance:45679".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             )
                     ),
                     false,
+                    false,
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_values.jsonld")
+                ),
+                Arguments.arguments(
+                    mapOf(
+                        TemporalEntityAttribute(
+                            entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
+                            type = "https://ontology.eglobalmark.com/apic#BeeHive",
+                            attributeName = "https://ontology.eglobalmark.com/apic#incoming",
+                            datasetId = "urn:ngsi-ld:Dataset:45678".toUri(),
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
+                        ) to
+                            listOf(
+                                FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
+                                    payload = buildAttributeInstancePayload(
+                                        "Beehive_incoming_123",
+                                        ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
+                                        "urn:ngsi-ld:Dataset:45678".toUri(),
+                                        "urn:ngsi-ld:Instance:45678".toUri()
+                                    ),
+                                    sub = "sub1"
+                                ),
+                                FullAttributeInstanceResult(
+                                    temporalEntityAttribute = UUID.randomUUID(),
+                                    payload = buildAttributeInstancePayload(
+                                        "Beehive_incoming_124",
+                                        ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
+                                        "urn:ngsi-ld:Dataset:45678".toUri(),
+                                        "urn:ngsi-ld:Instance:45679".toUri()
+                                    ),
+                                    sub = "sub2"
+                                )
+                            )
+                    ),
+                    false,
+                    true,
+                    loadSampleData("expectations/beehive_incoming_multi_instances_string_values_with_audit.jsonld")
                 ),
                 Arguments.arguments(
                     mapOf(
@@ -193,7 +243,8 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:29:17.965206Z"),
                                         null,
                                         "urn:ngsi-ld:Instance:45678".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 ),
                                 FullAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
@@ -202,10 +253,12 @@ class ParameterizedTests {
                                         ZonedDateTime.parse("2020-03-25T08:33:17.965206Z"),
                                         null,
                                         "urn:ngsi-ld:Instance:45679".toUri()
-                                    )
+                                    ),
+                                    sub = null
                                 )
                             )
                     ),
+                    false,
                     false,
                     loadSampleData(
                         "expectations/beehive_incoming_multi_instances_without_datasetId_string_values.jsonld"
@@ -223,16 +276,17 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 550.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 650.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             )
                     ),
                     true,
+                    false,
                     loadSampleData(
                         "expectations/beehive_incoming_multi_instances_without_datasetId_temporal_values.jsonld"
                     )
@@ -250,12 +304,12 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 550.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 650.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             ),
                         TemporalEntityAttribute(
@@ -269,16 +323,17 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 487.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = 698.0,
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             )
                     ),
                     true,
+                    false,
                     loadSampleData("expectations/beehive_incoming_multi_instances_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
@@ -294,16 +349,17 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_123",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_124",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             )
                     ),
                     true,
+                    false,
                     loadSampleData("expectations/beehive_incoming_multi_instances_string_temporal_values.jsonld")
                 ),
                 Arguments.arguments(
@@ -318,16 +374,17 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_123",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "Beehive_incoming_124",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             )
                     ),
                     true,
+                    false,
                     loadSampleData(
                         "expectations/beehive_incoming_multi_instances_without_datasetId_string_temporal_values.jsonld"
                     )
@@ -346,16 +403,17 @@ class ParameterizedTests {
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "urn:ngsi-ld:Entity:1234",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:29:17.965206Z")
                                 ),
                                 SimplifiedAttributeInstanceResult(
                                     temporalEntityAttribute = UUID.randomUUID(),
                                     value = "urn:ngsi-ld:Entity:5678",
-                                    observedAt = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
+                                    time = ZonedDateTime.parse("2020-03-25T08:33:17.965206Z")
                                 )
                             )
                     ),
                     true,
+                    false,
                     loadSampleData("expectations/beehive_relationship_multi_instances_temporal_values.jsonld")
                 )
             )

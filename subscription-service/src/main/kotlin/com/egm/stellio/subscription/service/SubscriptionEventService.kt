@@ -7,8 +7,8 @@ import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.subscription.model.Subscription
 import kotlinx.coroutines.reactive.awaitFirst
+import org.springframework.http.MediaType
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
@@ -24,15 +24,17 @@ class SubscriptionEventService(
     private val notificationChannelName = "cim.notification"
 
     @Async
-    fun publishSubscriptionCreateEvent(
-        subscription: Subscription,
-        serializedSubscription: String,
+    suspend fun publishSubscriptionCreateEvent(
+        sub: String?,
+        subscriptionId: URI,
         contexts: List<String>
     ) {
+        val subscription = subscriptionService.getById(subscriptionId).awaitFirst()
         val event = EntityCreateEvent(
+            sub,
             subscription.id,
             subscription.type,
-            serializedSubscription,
+            subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
             contexts
         )
 
@@ -40,12 +42,19 @@ class SubscriptionEventService(
     }
 
     @Async
-    suspend fun publishSubscriptionUpdateEvent(subscriptionId: URI, operationPayload: String, contexts: List<String>) {
+    suspend fun publishSubscriptionUpdateEvent(
+        sub: String?,
+        subscriptionId: URI,
+        operationPayload: String,
+        contexts: List<String>
+    ) {
+        val subscription = subscriptionService.getById(subscriptionId).awaitFirst()
         val event = EntityUpdateEvent(
+            sub,
             subscriptionId,
-            "Subscription",
+            subscription.type,
             operationPayload,
-            serializeObject(subscriptionService.getById(subscriptionId).awaitFirst()),
+            subscription.toJson(contexts, MediaType.APPLICATION_JSON, true),
             contexts
         )
 
@@ -53,8 +62,9 @@ class SubscriptionEventService(
     }
 
     @Async
-    fun publishSubscriptionDeleteEvent(subscriptionId: URI, contexts: List<String>) {
+    fun publishSubscriptionDeleteEvent(sub: String?, subscriptionId: URI, contexts: List<String>) {
         val event = EntityDeleteEvent(
+            sub,
             subscriptionId,
             "Subscription",
             contexts
@@ -64,8 +74,9 @@ class SubscriptionEventService(
     }
 
     @Async
-    fun publishNotificationCreateEvent(notification: Notification) {
+    fun publishNotificationCreateEvent(sub: String?, notification: Notification) {
         val event = EntityCreateEvent(
+            sub,
             notification.id,
             notification.type,
             serializeObject(notification),

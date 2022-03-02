@@ -10,18 +10,13 @@ import com.egm.stellio.shared.model.AttributeReplaceEvent
 import com.egm.stellio.shared.model.EntityCreateEvent
 import com.egm.stellio.shared.model.EntityDeleteEvent
 import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SID
-import com.egm.stellio.shared.util.GlobalRole
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.SubjectType
-import com.egm.stellio.shared.util.extractSub
-import com.egm.stellio.shared.util.mapper
-import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -33,7 +28,8 @@ import org.springframework.stereotype.Component
 @Component
 class IAMListener(
     private val subjectReferentialService: SubjectReferentialService,
-    private val entityAccessRightsService: EntityAccessRightsService
+    private val entityAccessRightsService: EntityAccessRightsService,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -55,8 +51,8 @@ class IAMListener(
     fun processIamRights(content: String) {
         logger.debug("Received IAM rights event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
-            is AttributeAppendEvent -> addEntityToSubject(authorizationEvent)
-            is AttributeDeleteEvent -> removeEntityFromSubject(authorizationEvent)
+            is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
+            is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
     }
@@ -168,6 +164,24 @@ class IAMListener(
         ).subscribe()
     }
 
+    private fun handleAttributeAppendOnRights(attributeAppendEvent: AttributeAppendEvent) {
+        if (attributeAppendEvent.attributeName == AUTH_TERM_SAP) {
+            updateSpecificAccessPolicy(attributeAppendEvent)
+        } else {
+            addEntityToSubject(attributeAppendEvent)
+        }
+    }
+
+    private fun updateSpecificAccessPolicy(attributeAppendEvent: AttributeAppendEvent) {
+        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
+        val entityId = attributeAppendEvent.entityId
+        val policy = SpecificAccessPolicy.valueOf(operationPayloadNode["value"].asText())
+        temporalEntityAttributeService.updateSpecificAccessPolicy(entityId, policy)
+            .subscribe {
+                logger.debug("Updated specific access policy for entity $entityId ($it records updated)")
+            }
+    }
+
     private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
         val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
         val entityId = operationPayloadNode["object"].asText()
@@ -180,6 +194,22 @@ class IAMListener(
                 ).subscribe()
             is None -> logger.warn("Unable to extract a known access right from $accessRight")
         }
+    }
+
+    private fun handleAttributeDeleteOnRights(attributeDeleteEvent: AttributeDeleteEvent) {
+        if (attributeDeleteEvent.attributeName == AUTH_TERM_SAP) {
+            removeSpecificAccessPolicy(attributeDeleteEvent)
+        } else {
+            removeEntityFromSubject(attributeDeleteEvent)
+        }
+    }
+
+    private fun removeSpecificAccessPolicy(attributeDeleteEvent: AttributeDeleteEvent) {
+        val entityId = attributeDeleteEvent.entityId
+        temporalEntityAttributeService.removeSpecificAccessPolicy(entityId)
+            .subscribe {
+                logger.debug("Removed specific access policy for entity $entityId ($it records updated)")
+            }
     }
 
     private fun removeEntityFromSubject(attributeDeleteEvent: AttributeDeleteEvent) {

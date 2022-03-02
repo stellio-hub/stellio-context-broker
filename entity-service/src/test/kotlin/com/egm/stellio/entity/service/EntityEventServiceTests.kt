@@ -5,13 +5,14 @@ import com.egm.stellio.entity.model.UpdateResult
 import com.egm.stellio.entity.model.UpdatedDetails
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -43,7 +44,7 @@ class EntityEventServiceTests {
     fun `it should not validate a topic name with characters not supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName("https://some.host/type")
+                .composeTopicName("https://some.host/type", null)
                 .isInvalid
         )
     }
@@ -52,17 +53,37 @@ class EntityEventServiceTests {
     fun `it should validate a topic name with characters supported by Kafka`() {
         assertTrue(
             entityEventService
-                .composeTopicName("Specie")
+                .composeTopicName("Specie", null)
                 .isValid
         )
     }
 
     @Test
+    fun `it should send a specific access policy event to IAM topic`() {
+        entityEventService
+            .composeTopicName("Specie", AUTH_TERM_SAP)
+            .fold(
+                { fail("it should have succeeded") },
+                { assertEquals("cim.iam.rights", it) }
+            )
+    }
+
+    @Test
+    fun `it should send normal attributes events to entity topic`() {
+        entityEventService
+            .composeTopicName("Specie", "someAttribute")
+            .fold(
+                { fail("it should have succeeded") },
+                { assertEquals("cim.entity.Specie", it) }
+            )
+    }
+
+    @Test
     fun `it should not publish an event if topic name is invalid`() {
         entityEventService.publishEntityCreateEvent(
+            null,
             breedingServiceUri,
             "https://some.host/type",
-            "operationPayload",
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -74,7 +95,7 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityCreateEvent(
-            breedingServiceUri, breedingServiceType, "operationPayload", listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -85,7 +106,7 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityReplaceEvent(
-            breedingServiceUri, breedingServiceType, "operationPayload", listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -96,7 +117,7 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityDeleteEvent(
-            breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -118,8 +139,8 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvent(
+            "sub",
             breedingServiceUri,
-            "BreedingService",
             "fishNumber",
             null,
             true,
@@ -132,6 +153,7 @@ class EntityEventServiceTests {
             entityEventService["publishEntityEvent"](
                 match<AttributeAppendEvent> {
                     it.operationType == EventsType.ATTRIBUTE_APPEND &&
+                        it.sub == "sub" &&
                         it.entityId == breedingServiceUri &&
                         it.entityType == "BreedingService" &&
                         it.attributeName == "fishNumber" &&
@@ -161,8 +183,8 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvent(
+            null,
             breedingServiceUri,
-            "BreedingService",
             "fishNumber",
             null,
             true,
@@ -175,6 +197,7 @@ class EntityEventServiceTests {
             entityEventService["publishEntityEvent"](
                 match<AttributeReplaceEvent> {
                     it.operationType == EventsType.ATTRIBUTE_REPLACE &&
+                        it.sub == null &&
                         it.entityId == breedingServiceUri &&
                         it.entityType == "BreedingService" &&
                         it.attributeName == "fishNumber" &&
@@ -210,6 +233,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             appendResult,
@@ -255,6 +279,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeUpdateEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             appendResult,
@@ -312,6 +337,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             appendResult,
@@ -384,6 +410,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
@@ -447,6 +474,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeAppendEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             updateResult,
@@ -497,6 +525,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishPartialAttributeUpdateEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             updatedDetails,
@@ -549,6 +578,7 @@ class EntityEventServiceTests {
         )
 
         entityEventService.publishPartialAttributeUpdateEvents(
+            null,
             breedingServiceUri,
             jsonLdAttributes,
             updatedDetails,
@@ -587,6 +617,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeDeleteEvent(
+            null,
             breedingServiceUri,
             "fishName",
             null,
@@ -619,6 +650,7 @@ class EntityEventServiceTests {
         every { jsonLdEntity.type } returns breedingServiceType
 
         entityEventService.publishAttributeDeleteEvent(
+            null,
             breedingServiceUri,
             "fishName",
             "urn:ngsi-ld:Dataset:1".toUri(),

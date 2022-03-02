@@ -31,11 +31,15 @@ class SubscriptionEventListenerServiceTest {
     @MockkBean
     private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
+    @MockkBean
+    private lateinit var entityAccessRightsService: EntityAccessRightsService
+
     @Test
     fun `it should parse a subscription and create a temporal entity reference`() {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionCreateEvent.jsonld")
 
-        every { temporalEntityAttributeService.create(any()) } returns Mono.just(1)
+        every { temporalEntityAttributeService.create(any()) } answers { Mono.just(1) }
+        every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
 
         subscriptionEventListenerService.processSubscription(subscriptionEvent)
 
@@ -48,8 +52,9 @@ class SubscriptionEventListenerServiceTest {
                         entityTemporalProperty.type == "https://uri.etsi.org/ngsi-ld/Subscription"
                 }
             )
+            entityAccessRightsService.setAdminRoleOnEntity(null, "urn:ngsi-ld:Subscription:04".toUri())
         }
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 
     @Test
@@ -57,8 +62,10 @@ class SubscriptionEventListenerServiceTest {
         val temporalEntityAttributeUuid = UUID.randomUUID()
         val notificationEvent = loadSampleData("events/subscription/notificationCreateEvent.jsonld")
 
-        every { temporalEntityAttributeService.getFirstForEntity(any()) } returns Mono.just(temporalEntityAttributeUuid)
-        every { attributeInstanceService.create(any()) } returns Mono.just(1)
+        every {
+            temporalEntityAttributeService.getFirstForEntity(any())
+        } answers { Mono.just(temporalEntityAttributeUuid) }
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
 
         subscriptionEventListenerService.processNotification(notificationEvent)
 
@@ -81,22 +88,23 @@ class SubscriptionEventListenerServiceTest {
                 }
             )
         }
-        confirmVerified(temporalEntityAttributeService)
-        confirmVerified(attributeInstanceService)
+        confirmVerified(temporalEntityAttributeService, attributeInstanceService)
     }
 
     @Test
     fun `it should delete subscription temporal references`() {
         val subscriptionEvent = loadSampleData("events/subscription/subscriptionDeleteEvent.jsonld")
 
-        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } returns Mono.just(10)
+        every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(10) }
+        every { entityAccessRightsService.removeRolesOnEntity(any()) } answers { Mono.just(1) }
 
         subscriptionEventListenerService.processSubscription(subscriptionEvent)
 
         verify {
             temporalEntityAttributeService.deleteTemporalEntityReferences(eq("urn:ngsi-ld:Subscription:04".toUri()))
+            entityAccessRightsService.removeRolesOnEntity(eq("urn:ngsi-ld:Subscription:04".toUri()))
         }
 
-        confirmVerified(temporalEntityAttributeService)
+        confirmVerified(temporalEntityAttributeService, entityAccessRightsService)
     }
 }

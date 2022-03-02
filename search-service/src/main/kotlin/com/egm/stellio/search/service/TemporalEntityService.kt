@@ -3,6 +3,7 @@ package com.egm.stellio.search.service
 import com.egm.stellio.search.model.*
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SUB
 import org.springframework.stereotype.Service
 import java.net.URI
 
@@ -16,9 +17,12 @@ class TemporalEntityService {
         queryResult: List<Pair<URI, TemporalEntityAttributeInstancesResult>>,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
-        withTemporalValues: Boolean
+        withTemporalValues: Boolean,
+        withAudit: Boolean
     ): List<CompactedJsonLdEntity> {
-        return queryResult.map { buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues) }
+        return queryResult.map {
+            buildTemporalEntity(it.first, it.second, temporalQuery, contexts, withTemporalValues, withAudit)
+        }
     }
 
     fun buildTemporalEntity(
@@ -26,13 +30,15 @@ class TemporalEntityService {
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
-        withTemporalValues: Boolean
+        withTemporalValues: Boolean,
+        withAudit: Boolean
     ): CompactedJsonLdEntity {
         val temporalAttributes = buildTemporalAttributes(
             attributeAndResultsMap,
             temporalQuery,
             contexts,
-            withTemporalValues
+            withTemporalValues,
+            withAudit
         )
 
         return mapOf(
@@ -45,7 +51,8 @@ class TemporalEntityService {
         attributeAndResultsMap: TemporalEntityAttributeInstancesResult,
         temporalQuery: TemporalQuery,
         contexts: List<String>,
-        withTemporalValues: Boolean
+        withTemporalValues: Boolean,
+        withAudit: Boolean
     ): Map<String, Any> {
         return if (withTemporalValues || temporalQuery.timeBucket != null) {
             val attributes = buildAttributesSimplifiedRepresentation(attributeAndResultsMap)
@@ -62,6 +69,11 @@ class TemporalEntityService {
                     it.value.map { attributeInstanceResult ->
                         attributeInstanceResult as FullAttributeInstanceResult
                         JsonUtils.deserializeObject(attributeInstanceResult.payload)
+                            .let { jsonMap ->
+                                if (withAudit)
+                                    jsonMap.plus(Pair(AUTH_TERM_SUB, attributeInstanceResult.sub))
+                                else jsonMap
+                            }
                     }
                 }
         }
@@ -90,7 +102,7 @@ class TemporalEntityService {
             it.key.datasetId?.let { attributeInstance["datasetId"] = it }
             attributeInstance[valuesKey] = it.value.map { attributeInstanceResult ->
                 attributeInstanceResult as SimplifiedAttributeInstanceResult
-                listOf(attributeInstanceResult.value, attributeInstanceResult.observedAt)
+                listOf(attributeInstanceResult.value, attributeInstanceResult.time)
             }
             attributeInstance.toMap()
         }

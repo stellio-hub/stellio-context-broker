@@ -5,11 +5,13 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -35,20 +37,21 @@ class SubscriptionEventServiceTests {
 
     @Test
     fun `it should publish an event of type SUBSCRIPTION_CREATE`() {
-        val subscription = mockk<Subscription>()
-        val subscriptionUri = "urn:ngsi-ld:Subscription:1".toUri()
+        val subscription = gimmeRawSubscription()
 
-        every { subscription.id } returns subscriptionUri
-        every { subscription.type } returns "Subscription"
+        every { subscriptionService.getById(any()) } answers { Mono.just(subscription) }
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
-        subscriptionEventService.publishSubscriptionCreateEvent(
-            subscription,
-            "",
-            listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
-        )
+        runBlocking {
+            subscriptionEventService.publishSubscriptionCreateEvent(
+                null,
+                subscription.id,
+                listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
+            )
+        }
 
-        verify { kafkaTemplate.send("cim.subscription", subscriptionUri.toString(), any()) }
+        verify { subscriptionService.getById(eq(subscription.id)) }
+        verify { kafkaTemplate.send("cim.subscription", subscription.id.toString(), any()) }
     }
 
     @Test
@@ -60,6 +63,7 @@ class SubscriptionEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
+            null,
             subscriptionUri,
             "",
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
@@ -77,6 +81,7 @@ class SubscriptionEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         subscriptionEventService.publishSubscriptionDeleteEvent(
+            null,
             subscriptionUri,
             listOf(NGSILD_EGM_CONTEXT, NGSILD_CORE_CONTEXT)
         )
@@ -95,7 +100,7 @@ class SubscriptionEventServiceTests {
         every { notification.notifiedAt } returns Instant.now().atZone(ZoneOffset.UTC)
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
-        subscriptionEventService.publishNotificationCreateEvent(notification)
+        subscriptionEventService.publishNotificationCreateEvent(null, notification)
 
         verify { kafkaTemplate.send("cim.notification", notificationUri.toString(), any()) }
     }

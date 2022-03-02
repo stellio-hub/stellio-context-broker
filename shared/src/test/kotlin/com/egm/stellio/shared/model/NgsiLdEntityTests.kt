@@ -8,6 +8,7 @@ import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -157,6 +158,8 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdProperty.instances.size)
         val ngsiLdPropertyInstance = ngsiLdProperty.instances[0]
         assertEquals("Open", ngsiLdPropertyInstance.value)
+        assertNull(ngsiLdPropertyInstance.createdAt)
+        assertNull(ngsiLdPropertyInstance.modifiedAt)
     }
 
     @Test
@@ -243,6 +246,29 @@ class NgsiLdEntityTests {
         assertEquals("MTR", ngsiLdPropertyInstance.unitCode)
         assertEquals("urn:ngsi-ld:Dataset:01234".toUri(), ngsiLdPropertyInstance.datasetId)
         assertEquals(ZonedDateTime.parse("2020-07-19T00:00:00Z"), ngsiLdPropertyInstance.observedAt)
+    }
+
+    @Test
+    fun `it should parse an entity with a property having createdAt and modifiedAt information`() {
+        val rawEntity =
+            """
+            {
+              "id": "urn:ngsi-ld:Device:01234",
+              "type": "Device",
+              "deviceState": {
+                "type": "Property",
+                "value": "Open",
+                "createdAt": "2022-01-19T00:00:00Z",
+                "modifiedAt": "2022-01-29T00:00:00Z"
+              }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        val ngsiLdPropertyInstance = ngsiLdEntity.properties[0].instances[0]
+        assertEquals(ZonedDateTime.parse("2022-01-19T00:00:00Z"), ngsiLdPropertyInstance.createdAt)
+        assertEquals(ZonedDateTime.parse("2022-01-29T00:00:00Z"), ngsiLdPropertyInstance.modifiedAt)
     }
 
     @Test
@@ -426,6 +452,8 @@ class NgsiLdEntityTests {
         assertEquals(1, ngsiLdRelationship.instances.size)
         val ngsiLdRelationshipInstance = ngsiLdRelationship.instances[0]
         assertEquals("urn:ngsi-ld:DeviceModel:09876".toUri(), ngsiLdRelationshipInstance.objectId)
+        assertNull(ngsiLdRelationshipInstance.createdAt)
+        assertNull(ngsiLdRelationshipInstance.modifiedAt)
     }
 
     @Test
@@ -617,6 +645,8 @@ class NgsiLdEntityTests {
             listOf(100.0, 0.0)
         )
         assertEquals(coordinates, locationInstance.coordinates)
+        assertNull(locationInstance.createdAt)
+        assertNull(locationInstance.modifiedAt)
     }
 
     @Test

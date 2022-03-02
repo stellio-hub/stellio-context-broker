@@ -2,16 +2,12 @@
   "id": "urn:ngsi-ld:BeeHive:TESTC",
   "type": "BeeHive",
   "createdAt": "2020-01-24T13:01:21.938Z",
-  "name": {
-    "type": "Property",
-    "value": "ParisBeehive12",
-    "createdAt": "2020-01-24T13:01:22.066Z"
-  },
   "incoming": [
     {
       "type": "Property",
       "value": 1543,
-      "observedAt": "2020-01-24T13:01:22.066Z",
+      "createdAt": "2020-01-24T13:01:21.938Z",
+      "observedAt": "2020-01-24T14:01:22.066Z",
       "datasetId": "urn:ngsi-ld:Dataset:01234",
       "observedBy": {
         "type": "Relationship",
@@ -20,8 +16,9 @@
     },
     {
       "type": "Property",
-      "value": 1543,
-      "observedAt": "2020-01-24T13:01:22.066Z",
+      "value": 1618,
+      "createdAt": "2020-01-24T13:01:21.942Z",
+      "observedAt": "2020-01-24T14:08:22.066Z",
       "datasetId": "urn:ngsi-ld:Dataset:45678",
       "observedBy": {
         "type": "Relationship",
@@ -29,11 +26,6 @@
       }
     }
   ],
-  "connectsTo": {
-    "type": "Relationship",
-    "createdAt": "2010-10-26T21:32:52.98601Z",
-    "object": "urn:ngsi-ld:Beekeeper:Pascal"
-  },
   "@context": [
     "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/master/apic/jsonld-contexts/apic-compound.jsonld"
   ]

@@ -9,5 +9,7 @@ data class AttributeMetadata(
     val valueType: TemporalEntityAttribute.AttributeValueType,
     val datasetId: URI?,
     val type: TemporalEntityAttribute.AttributeType,
-    val observedAt: ZonedDateTime
+    val createdAt: ZonedDateTime,
+    val modifiedAt: ZonedDateTime?,
+    val observedAt: ZonedDateTime?
 )

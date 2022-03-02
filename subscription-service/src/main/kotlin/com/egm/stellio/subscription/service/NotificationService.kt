@@ -88,7 +88,7 @@ class NotificationService(
                     subscriptionService.updateSubscriptionNotification(it.first, it.second, it.third).subscribe()
                 }
                 .doOnNext {
-                    subscriptionEventService.publishNotificationCreateEvent(it.second)
+                    subscriptionEventService.publishNotificationCreateEvent(null, it.second)
                 }
         }
     }
@@ -136,7 +136,7 @@ class NotificationService(
         val success = response != null
         return subscriptionService.updateSubscriptionNotification(subscription, notification, success)
             .doOnNext {
-                subscriptionEventService.publishNotificationCreateEvent(notification)
+                subscriptionEventService.publishNotificationCreateEvent(null, notification)
             }
             .map {
                 Triple(subscription, notification, success)

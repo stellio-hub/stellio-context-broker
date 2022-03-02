@@ -1,8 +1,5 @@
 package com.egm.stellio.search.util
 
-fun isAttributeOfMeasureType(value: Any): Boolean =
-    value is Double || value is Int
-
 fun valueToDoubleOrNull(value: Any): Double? =
     when (value) {
         is Double -> value

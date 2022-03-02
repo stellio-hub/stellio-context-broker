@@ -9,6 +9,7 @@ import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.security.core.context.SecurityContextImpl
@@ -20,7 +21,9 @@ val ADMIN_ROLES: Set<GlobalRole> = setOf(STELLIO_ADMIN)
 val CREATION_ROLES: Set<GlobalRole> = setOf(STELLIO_CREATOR).plus(ADMIN_ROLES)
 
 object AuthContextModel {
-    val NGSILD_EGM_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
+    val NGSILD_AUTHORIZATION_CONTEXT = "$EGM_BASE_CONTEXT_URL/authorization/jsonld-contexts/authorization.jsonld"
+    val COMPOUND_AUTHZ_CONTEXT = listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT)
+
     private const val AUTHORIZATION_ONTOLOGY = "https://ontology.eglobalmark.com/authorization#"
 
     const val USER_PREFIX = "urn:ngsi-ld:User:"
@@ -30,6 +33,7 @@ object AuthContextModel {
     const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Client"
     val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
 
+    const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_SID = "serviceAccountId"
     const val AUTH_PROP_SID: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SID
     const val AUTH_TERM_ROLES = "roles"

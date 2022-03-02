@@ -19,3 +19,5 @@ style:
     active: false
   ThrowsCount:
     max: 4
+  ReturnCount:
+    max: 4

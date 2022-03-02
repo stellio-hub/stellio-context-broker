@@ -14,7 +14,7 @@ jobs:
     name: Scan Stellio sandbox
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
         with:
           ref: develop
       - name: Launh docker-compose stack

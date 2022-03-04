@@ -7,6 +7,8 @@ val DEFAULT_CONTEXTS = listOf(
 val AQUAC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/aquac/jsonld-contexts/aquac-compound.jsonld"
 val APIC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/apic/jsonld-contexts/apic-compound.jsonld"
 
+val APIC_HEADER_LINK = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
+
 const val BEEHIVE_COMPACT_TYPE = "BeeHive"
 const val BEEHIVE_TYPE = "https://ontology.eglobalmark.com/apic#$BEEHIVE_COMPACT_TYPE"
 const val APIARY_TYPE = "https://ontology.eglobalmark.com/apic#Apiary"

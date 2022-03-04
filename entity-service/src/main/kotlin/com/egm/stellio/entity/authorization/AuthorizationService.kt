@@ -1,9 +1,6 @@
 package com.egm.stellio.entity.authorization
 
-import arrow.core.Either
-import arrow.core.Option
-import arrow.core.left
-import arrow.core.right
+import arrow.core.*
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
@@ -32,19 +29,27 @@ interface AuthorizationService {
         else Unit.right()
 
     fun checkAttributesAreAuthorized(
-        ngsiLdAttributes: List<NgsiLdAttribute>,
-        entityUri: URI
-    ) = ngsiLdAttributes.forEach { ngsiLdAttribute ->
-        checkAttributeIsAuthorized(ngsiLdAttribute.name, entityUri)
-    }
+        ngsiLdAttributes: List<NgsiLdAttribute>
+    ): Either<APIException, Unit> =
+        ngsiLdAttributes.traverseEither { ngsiLdAttribute ->
+            checkAttributeIsAuthorized(ngsiLdAttribute.name)
+        }.map { it.first() }
 
-    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm, entityUri: URI) {
+    fun checkAttributeIsAuthorized(attributeName: ExpandedTerm): Either<APIException, Unit> =
         if (attributeName == AuthContextModel.AUTH_PROP_SAP)
-            throw BadRequestDataException(
+            BadRequestDataException(
                 "Specific access policy cannot be updated as a normal property, " +
                     "use /ngsi-ld/v1/entityAccessControl/{entityId}/attrs/specificAccessPolicy endpoint instead"
-            )
-    }
+            ).left()
+        else Unit.right()
+
+    fun isAdminAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
+        userIsAdminOfEntity(entityId, sub).let {
+            if (it) AccessDeniedException("User forbidden admin access to entity $entityId").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(entityType)
+        }
 
     fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
         userCanCreateEntities(sub).let {
@@ -52,6 +57,36 @@ interface AuthorizationService {
             else Unit.right()
         }.map {
             checkEntityTypeIsAuthorized(ngsiLdEntity.type)
+        }
+
+    fun isUpdateAuthorized(
+        entityId: URI,
+        entityType: ExpandedTerm,
+        ngsiLdAttributes: List<NgsiLdAttribute>,
+        sub: Option<Sub>
+    ): Either<APIException, Unit> =
+        userCanUpdateEntity(entityId, sub).let {
+            if (it) AccessDeniedException("User forbidden write access to entity $entityId").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(entityType)
+        }.map {
+            checkAttributesAreAuthorized(ngsiLdAttributes)
+        }
+
+    fun isUpdateAuthorized(
+        entityId: URI,
+        entityType: ExpandedTerm,
+        attributeName: ExpandedTerm,
+        sub: Option<Sub>
+    ): Either<APIException, Unit> =
+        userCanUpdateEntity(entityId, sub).let {
+            if (it) AccessDeniedException("User forbidden write access to entity $entityId").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(entityType)
+        }.map {
+            checkAttributeIsAuthorized(attributeName)
         }
 
     fun isReadAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =

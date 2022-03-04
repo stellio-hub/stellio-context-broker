@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import arrow.core.computations.either
+import arrow.core.left
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
@@ -51,7 +52,7 @@ class EntityHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
 
-        return either<APIException, URI> {
+        return either<APIException, ResponseEntity<*>> {
             authorizationService.isCreationAuthorized(ngsiLdEntity, sub).bind()
             val newEntityUri = entityService.createEntity(ngsiLdEntity)
             authorizationService.createAdminLink(newEntityUri, sub)
@@ -62,17 +63,13 @@ class EntityHandler(
                 ngsiLdEntity.type,
                 contexts
             )
-            newEntityUri
+
+            ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI("/ngsi-ld/v1/entities/$newEntityUri"))
+                .build<String>()
         }.fold(
-            {
-                it.toErrorResponse()
-            },
-            {
-                ResponseEntity
-                    .status(HttpStatus.CREATED)
-                    .location(URI("/ngsi-ld/v1/entities/$it"))
-                    .build()
-            }
+            { it.toErrorResponse() },
+            { it }
         )
     }
 
@@ -205,12 +202,8 @@ class EntityHandler(
                         it.body(serializeObject(compactedEntity))
                 }
         }.fold(
-            {
-                it.toErrorResponse()
-            },
-            {
-                it
-            }
+            { it.toErrorResponse() },
+            { it }
         )
     }
 
@@ -221,21 +214,24 @@ class EntityHandler(
     suspend fun delete(
         @PathVariable entityId: String
     ): ResponseEntity<*> {
+        val entityUri = entityId.toUri()
         val sub = getSubFromSecurityContext()
 
-        if (!entityService.exists(entityId.toUri()))
-            throw ResourceNotFoundException(entityNotFoundMessage(entityId))
-        if (!authorizationService.userIsAdminOfEntity(entityId.toUri(), sub))
-            throw AccessDeniedException("User forbidden admin access to entity $entityId")
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
+            // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
+            val entity = entityService.getEntityCoreProperties(entityId.toUri())
+            authorizationService.isAdminAuthorized(entityUri, entity.type[0], sub).bind()
 
-        // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
-        val entity = entityService.getEntityCoreProperties(entityId.toUri())
+            entityService.deleteEntity(entityUri)
 
-        entityService.deleteEntity(entityId.toUri())
+            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.type[0], entity.contexts)
 
-        entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.type[0], entity.contexts)
-
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**
@@ -249,42 +245,48 @@ class EntityHandler(
         @RequestParam options: Optional<String>,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
-        val entityUri = entityId.toUri()
-
-        if (!entityService.exists(entityUri))
-            throw ResourceNotFoundException("Entity $entityId does not exist")
-
         val sub = getSubFromSecurityContext()
-        if (!authorizationService.userCanUpdateEntity(entityUri, sub))
-            throw AccessDeniedException("User forbidden write access to entity $entityId")
+        val entityUri = entityId.toUri()
+        val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
-        val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body)
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
 
-        val updateResult = entityService.appendEntityAttributes(
-            entityUri,
-            ngsiLdAttributes,
-            disallowOverwrite
-        )
-
-        if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAttributeAppendEvents(
-                sub.orNull(),
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val contexts = checkAndGetContext(httpHeaders, body)
+            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            authorizationService.isUpdateAuthorized(
                 entityUri,
-                jsonLdAttributes,
-                updateResult,
-                contexts
-            )
-        }
+                entityService.getEntityType(entityUri),
+                ngsiLdAttributes,
+                sub
+            ).bind()
 
-        return if (updateResult.notUpdated.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+            val updateResult = entityService.appendEntityAttributes(
+                entityUri,
+                ngsiLdAttributes,
+                disallowOverwrite
+            )
+
+            if (updateResult.updated.isNotEmpty()) {
+                entityEventService.publishAttributeAppendEvents(
+                    sub.orNull(),
+                    entityUri,
+                    jsonLdAttributes,
+                    updateResult,
+                    contexts
+                )
+            }
+
+            if (updateResult.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**
@@ -300,36 +302,42 @@ class EntityHandler(
         @PathVariable entityId: String,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
         val entityUri = entityId.toUri()
 
-        if (!entityService.exists(entityUri))
-            throw ResourceNotFoundException("Entity $entityId does not exist")
-
-        val sub = getSubFromSecurityContext()
-        if (!authorizationService.userCanUpdateEntity(entityUri, sub))
-            throw AccessDeniedException("User forbidden write access to entity $entityId")
-
-        val body = requestBody.awaitFirst().deserializeAsMap()
-        val contexts = checkAndGetContext(httpHeaders, body)
-        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
-        val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
-        authorizationService.checkAttributesAreAuthorized(ngsiLdAttributes, entityUri)
-        val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
-
-        if (updateResult.updated.isNotEmpty()) {
-            entityEventService.publishAttributeUpdateEvents(
-                sub.orNull(),
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
+            val body = requestBody.awaitFirst().deserializeAsMap()
+            val contexts = checkAndGetContext(httpHeaders, body)
+            val jsonLdAttributes = expandJsonLdFragment(body, contexts)
+            val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
+            authorizationService.isUpdateAuthorized(
                 entityUri,
-                jsonLdAttributes,
-                updateResult,
-                contexts
-            )
-        }
+                entityService.getEntityType(entityUri),
+                ngsiLdAttributes,
+                sub
+            ).bind()
 
-        return if (updateResult.notUpdated.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+            val updateResult = entityService.updateEntityAttributes(entityUri, ngsiLdAttributes)
+
+            if (updateResult.updated.isNotEmpty()) {
+                entityEventService.publishAttributeUpdateEvents(
+                    sub.orNull(),
+                    entityUri,
+                    jsonLdAttributes,
+                    updateResult,
+                    contexts
+                )
+            }
+
+            if (updateResult.notUpdated.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(updateResult)
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**
@@ -349,37 +357,44 @@ class EntityHandler(
         val sub = getSubFromSecurityContext()
         val entityUri = entityId.toUri()
 
-        if (!entityService.exists(entityUri))
-            throw ResourceNotFoundException("Entity $entityId does not exist")
-        if (!authorizationService.userCanUpdateEntity(entityUri, sub))
-            throw AccessDeniedException("User forbidden write access to entity $entityId")
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
 
-        val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
-        val contexts = checkAndGetContext(httpHeaders, body)
-
-        val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
-        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
-
-        val expandedPayload = expandJsonLdFragment(body, contexts)
-
-        val updateResult = entityAttributeService.partialUpdateEntityAttribute(
-            entityUri,
-            expandedPayload as Map<String, List<Map<String, List<Any>>>>,
-            contexts
-        )
-
-        if (updateResult.updated.isEmpty())
-            throw ResourceNotFoundException("Unknown attribute in entity $entityId")
-        else
-            entityEventService.publishPartialAttributeUpdateEvents(
-                sub.orNull(),
+            val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
+            val contexts = checkAndGetContext(httpHeaders, body)
+            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            authorizationService.isUpdateAuthorized(
                 entityUri,
-                expandedPayload,
-                updateResult.updated,
+                entityService.getEntityType(entityUri),
+                expandedAttrId,
+                sub
+            ).bind()
+
+            val expandedPayload = expandJsonLdFragment(body, contexts)
+
+            val updateResult = entityAttributeService.partialUpdateEntityAttribute(
+                entityUri,
+                expandedPayload as Map<String, List<Map<String, List<Any>>>>,
                 contexts
             )
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            if (updateResult.updated.isEmpty())
+                ResourceNotFoundException("Unknown attribute in entity $entityId").left().bind()
+            else {
+                entityEventService.publishPartialAttributeUpdateEvents(
+                    sub.orNull(),
+                    entityUri,
+                    expandedPayload,
+                    updateResult.updated,
+                    contexts
+                )
+
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            }
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 
     /**
@@ -392,34 +407,39 @@ class EntityHandler(
         @PathVariable attrId: String,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
+        val sub = getSubFromSecurityContext()
         val entityUri = entityId.toUri()
         val deleteAll = params.getFirst("deleteAll")?.toBoolean() ?: false
         val datasetId = params.getFirst("datasetId")?.toUri()
-        val sub = getSubFromSecurityContext()
 
-        if (!entityService.exists(entityUri))
-            throw ResourceNotFoundException("Entity $entityId does not exist")
-        if (!authorizationService.userCanUpdateEntity(entityUri, sub))
-            throw AccessDeniedException("User forbidden write access to entity $entityId")
+        return either<APIException, ResponseEntity<*>> {
+            entityService.checkExistence(entityUri).bind()
 
-        val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-        val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
-        authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
+            val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
+            val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
+            authorizationService.isUpdateAuthorized(
+                entityUri,
+                entityService.getEntityType(entityUri),
+                expandedAttrId,
+                sub
+            ).bind()
 
-        val result = if (deleteAll)
-            entityService.deleteEntityAttribute(entityUri, expandedAttrId)
-        else
-            entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
+            val result = if (deleteAll)
+                entityService.deleteEntityAttribute(entityUri, expandedAttrId)
+            else
+                entityService.deleteEntityAttributeInstance(entityUri, expandedAttrId, datasetId)
 
-        if (result)
-            entityEventService.publishAttributeDeleteEvent(
-                sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
-            )
-
-        return if (result)
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
-                .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+            if (result) {
+                entityEventService.publishAttributeDeleteEvent(
+                    sub.orNull(), entityUri, attrId, datasetId, deleteAll, contexts
+                )
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            } else
+                ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
+                    .body(InternalErrorResponse("An error occurred while deleting $attrId from $entityId"))
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
+        )
     }
 }

@@ -34,7 +34,7 @@ fun APIException.toErrorResponse(): ResponseEntity<*> =
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: Any) =
+private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseEntity<*> =
     ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
         .body(JsonUtils.serializeObject(exception))

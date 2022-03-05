@@ -1231,6 +1231,7 @@ class EntityHandlerTests {
     }
 
     @Test
+    @SuppressWarnings("MaxLineLength")
     fun `append entity attribute should return a 400 if the attribute is not NGSI-LD valid`() {
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
         val invalidPayload =
@@ -1266,7 +1267,7 @@ class EntityHandlerTests {
         every { entityService.checkExistence(any()) } returns Unit.right()
         every { entityService.getEntityType(any()) } returns deadFishesType
         every {
-            authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
+            authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
     }
 
@@ -1277,11 +1278,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
         val updateResult = UpdateResult(
             updated = arrayListOf(
-                UpdatedDetails(
-                    fishNumberAttribute,
-                    "urn:ngsi-ld:Dataset:1".toUri(),
-                    UpdateOperationResult.UPDATED
-                )
+                UpdatedDetails(fishNumberAttribute, "urn:ngsi-ld:Dataset:1".toUri(), UpdateOperationResult.UPDATED)
             ),
             notUpdated = arrayListOf()
         )
@@ -1338,8 +1335,8 @@ class EntityHandlerTests {
             ),
             notUpdated = arrayListOf()
         )
-        every { entityService.exists(any()) } returns true
-        every { authorizationService.userCanUpdateEntity(entityId, sub) } returns true
+
+        mockkDefaultBehaviorForPartialUpdateAttribute()
         every { entityAttributeService.partialUpdateEntityAttribute(any(), any(), any()) } returns updateResult
         every { entityEventService.publishPartialAttributeUpdateEvents(any(), any(), any(), any(), any()) } just Runs
 
@@ -1351,10 +1348,6 @@ class EntityHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { entityService.exists(entityId) }
-        verify {
-            entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
-        }
         verify {
             entityEventService.publishPartialAttributeUpdateEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -1364,8 +1357,7 @@ class EntityHandlerTests {
                 eq(listOf(AQUAC_COMPOUND_CONTEXT))
             )
         }
-
-        confirmVerified(entityService, entityEventService)
+        confirmVerified()
     }
 
     @Test
@@ -1430,6 +1422,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         every { entityService.checkExistence(any()) } returns Unit.right()
+        every { entityService.getEntityType(any()) } returns deadFishesType
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
@@ -1451,9 +1444,17 @@ class EntityHandlerTests {
                 """.trimIndent()
             )
 
-        verify { entityService.exists(entityId) }
-        verify { authorizationService.userCanUpdateEntity(entityId, sub) }
-        confirmVerified(entityService)
+        verify {
+            entityService.checkExistence(eq(entityId))
+            entityService.getEntityType(eq(entityId))
+            authorizationService.isUpdateAuthorized(
+                eq(entityId),
+                eq(deadFishesType),
+                eq(fishNumberAttribute),
+                sub
+            )
+        }
+        confirmVerified()
     }
 
     @Test

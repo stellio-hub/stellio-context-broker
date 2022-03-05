@@ -2,6 +2,7 @@ package com.egm.stellio.entity.web
 
 import arrow.core.computations.either
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.service.EntityAttributeService
@@ -372,25 +373,26 @@ class EntityHandler(
 
             val expandedPayload = expandJsonLdFragment(body, contexts)
 
-            val updateResult = entityAttributeService.partialUpdateEntityAttribute(
+            entityAttributeService.partialUpdateEntityAttribute(
                 entityUri,
                 expandedPayload as Map<String, List<Map<String, List<Any>>>>,
                 contexts
             )
+                .let {
+                    if (it.updated.isEmpty())
+                        ResourceNotFoundException("Unknown attribute in entity $entityId").left()
+                    else {
+                        entityEventService.publishPartialAttributeUpdateEvents(
+                            sub.orNull(),
+                            entityUri,
+                            expandedPayload,
+                            it.updated,
+                            contexts
+                        )
 
-            if (updateResult.updated.isEmpty())
-                ResourceNotFoundException("Unknown attribute in entity $entityId").left().bind()
-            else {
-                entityEventService.publishPartialAttributeUpdateEvents(
-                    sub.orNull(),
-                    entityUri,
-                    expandedPayload,
-                    updateResult.updated,
-                    contexts
-                )
-
-                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-            }
+                        ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>().right()
+                    }.bind()
+                }
         }.fold(
             { it.toErrorResponse() },
             { it }

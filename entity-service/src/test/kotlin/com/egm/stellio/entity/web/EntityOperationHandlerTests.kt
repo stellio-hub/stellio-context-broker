@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import arrow.core.Some
+import arrow.core.left
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.Entity
@@ -403,7 +404,13 @@ class EntityOperationHandlerTests {
     fun `create batch entity should not authorize user without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
-        every { authorizationService.userCanCreateEntities(sub) } returns false
+        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
+        every {
+            entityOperationService.splitEntitiesByExistence(any())
+        } returns Pair(emptyList(), listOf(mockedCreatedEntity))
+        every {
+            authorizationService.isCreationAuthorized(any(), sub)
+        } returns AccessDeniedException("User forbidden to create entity").left()
 
         webClient.post()
             .uri(batchCreateEndpoint)

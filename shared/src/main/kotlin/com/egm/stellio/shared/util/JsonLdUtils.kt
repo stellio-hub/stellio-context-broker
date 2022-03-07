@@ -67,7 +67,6 @@ object JsonLdUtils {
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
-    const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 

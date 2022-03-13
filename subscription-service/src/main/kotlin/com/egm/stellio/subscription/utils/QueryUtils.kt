@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.GeoPropertyType
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.GeoQuery
@@ -72,56 +71,19 @@ object QueryUtils {
         this.replace("[", "['").replace("]", "']")
 
     fun createGeoQueryStatement(geoQuery: GeoQuery?, location: NgsiLdGeoProperty): String {
-        val locationInstance = location.instances[0]
-        val refGeometryStatement = createSqlGeometry(geoQuery!!.geometry.name, geoQuery.coordinates.toString())
-        val targetGeometryStatement =
-            createSqlGeometry(locationInstance.geoPropertyType.value, locationInstance.coordinates.toString())
-        val georelParams = extractGeorelParams(geoQuery.georel)
+        val targetWKTCoordinates = location.instances[0].coordinates.value
+        val georelParams = extractGeorelParams(geoQuery!!.georel)
 
         return if (georelParams.first == DISTANCE_QUERY_CLAUSE)
             """
-            SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), 
-                                            ST_GeomFromText('$targetGeometryStatement')) 
+            SELECT ST_${georelParams.first}('${geoQuery.pgisGeometry}', ST_GeomFromText('$targetWKTCoordinates')) 
                     ${georelParams.second} ${georelParams.third} as geoquery_result
             """.trimIndent()
         else
             """
-            SELECT ST_${georelParams.first}(ST_GeomFromText('$refGeometryStatement'), 
-                                            ST_GeomFromText('$targetGeometryStatement')) as geoquery_result
+            SELECT ST_${georelParams.first}('${geoQuery.pgisGeometry}', ST_GeomFromText('$targetWKTCoordinates')) 
+                as geoquery_result
             """.trimIndent()
-    }
-
-    fun createSqlGeometry(geometryType: String, coordinates: String): String {
-        val geometry = StringBuilder()
-        val parsedCoordinates = parseCoordinates(geometryType, coordinates)
-
-        if (geometryType == GeoPropertyType.Point.value)
-            geometry.append("$geometryType(")
-        else
-            geometry.append("$geometryType((")
-        parsedCoordinates.forEach {
-            geometry.append(it[0]).append(" ").append(it[1]).append(", ")
-        }
-
-        if (geometryType == GeoPropertyType.Point.value)
-            geometry.replace(geometry.length - 2, geometry.length, ")")
-        else
-            geometry.replace(geometry.length - 2, geometry.length, "))")
-
-        return geometry.toString()
-    }
-
-    fun parseCoordinates(geometryType: String, initialCoordinates: String): List<List<Double>> {
-        val coordinates = StringBuilder()
-        if (geometryType == GeoPropertyType.Point.value)
-            coordinates.append("[").append(initialCoordinates).append("]")
-        else
-            coordinates.append(initialCoordinates)
-
-        return mapper.readValue(
-            coordinates.toString(),
-            mapper.typeFactory.constructCollectionType(List::class.java, Any::class.java)
-        )
     }
 
     fun extractGeorelParams(georel: String): Triple<String, String?, String?> {

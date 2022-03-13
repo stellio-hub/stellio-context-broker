@@ -3,8 +3,13 @@ package com.egm.stellio.entity.service
 import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.repository.*
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.entity.repository.EntityRepository
+import com.egm.stellio.entity.repository.Neo4jRepository
+import com.egm.stellio.entity.repository.PartialEntityRepository
+import com.egm.stellio.entity.repository.SearchRepository
+import com.egm.stellio.shared.model.NgsiLdPropertyInstance
+import com.egm.stellio.shared.model.ResourceNotFoundException
+import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVED_AT_PROPERTY
@@ -23,8 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.Optional
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [EntityService::class])
 @ActiveProfiles("test")
@@ -346,7 +350,7 @@ class EntityServiceTests {
             neo4jRepository.updateLocationPropertyOfEntity(
                 sensorId,
                 match {
-                    it.coordinates == listOf(9.30623, 8.07966)
+                    it.coordinates.value == "POINT (9.30623 8.07966)"
                 }
             )
         }
@@ -367,7 +371,7 @@ class EntityServiceTests {
             neo4jRepository.addLocationPropertyToEntity(
                 entityId,
                 match {
-                    it.coordinates == listOf(23.45, 67.87)
+                    it.coordinates.value == "POINT (23.45 67.87)"
                 }
             )
         }
@@ -379,10 +383,11 @@ class EntityServiceTests {
     fun `it should correctly parse Polygon location property for an entity`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
         val coordinates = listOf(
-            listOf(23.25, 67.80),
-            listOf(83.49, 17.87),
-            listOf(13.55, 63.37),
-            listOf(21.45, 60.87)
+            listOf(
+                listOf(23.25, 67.80),
+                listOf(83.49, 17.87),
+                listOf(23.25, 67.80)
+            )
         )
         val ngsiLdGeoProperty = parseLocationFragmentToPolygonGeoProperty(coordinates)
 
@@ -394,8 +399,7 @@ class EntityServiceTests {
             neo4jRepository.addLocationPropertyToEntity(
                 entityId,
                 match {
-                    it.geoPropertyType == GeoPropertyType.Polygon &&
-                        it.coordinates == coordinates
+                    it.coordinates.value == "POLYGON ((23.25 67.8, 83.49 17.87, 23.25 67.8))"
                 }
             )
         }
@@ -931,7 +935,7 @@ class EntityServiceTests {
             neo4jRepository.addLocationPropertyToEntity(
                 entityId,
                 match {
-                    it.coordinates == listOf(29.30623, 83.07966)
+                    it.coordinates.value == "POINT (29.30623 83.07966)"
                 }
             )
         }
@@ -972,7 +976,7 @@ class EntityServiceTests {
             neo4jRepository.updateLocationPropertyOfEntity(
                 entityId,
                 match {
-                    it.coordinates == listOf(29.30623, 83.07966)
+                    it.coordinates.value == "POINT (29.30623 83.07966)"
                 }
             )
         }

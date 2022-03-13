@@ -4,7 +4,6 @@ import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.model.toRelationshipTypeName
 import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
-import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance.Companion.toWktFormat
 import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.toListOfString
@@ -124,11 +123,12 @@ class Neo4jRepository(
         val query =
             """
             MERGE (subject:Entity { id: ${'$'}subjectId })
-            ON MATCH SET subject.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
+            ON MATCH SET subject.location = ${'$'}wktCoordinates
             """
 
         return neo4jClient.query(query)
             .bind(subjectId.toString()).to("subjectId")
+            .bind(geoProperty.coordinates.value).to("wktCoordinates")
             .run().counters().propertiesSet()
     }
 
@@ -286,10 +286,13 @@ class Neo4jRepository(
     fun updateLocationPropertyOfEntity(entityId: URI, geoProperty: NgsiLdGeoPropertyInstance): Int {
         val query =
             """
-            MERGE (entity:Entity { id: "$entityId" })
-            ON MATCH SET entity.location = "${toWktFormat(geoProperty.geoPropertyType, geoProperty.coordinates)}"
+            MERGE (entity:Entity { id: ${'$'}entityId })
+            ON MATCH SET entity.location = ${'$'}wktCoordinates
             """
-        return neo4jClient.query(query).run().counters().propertiesSet()
+        return neo4jClient.query(query)
+            .bind(entityId.toString()).to("subjectId")
+            .bind(geoProperty.coordinates.value).to("wktCoordinates")
+            .run().counters().propertiesSet()
     }
 
     fun deleteEntity(entityId: URI): Pair<Int, Int> {

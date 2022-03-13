@@ -11,7 +11,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
-import com.egm.stellio.shared.util.JsonLdUtils.reconstructPolygonCoordinates
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -442,54 +441,5 @@ class JsonLdUtilsTests {
         )
 
         assertEquals(emptyList<String>(), extractContextFromInput(input))
-    }
-
-    @Test
-    fun `it should reconstruct Polygon coordinates`() {
-        val entity =
-            """
-            {
-               "id":"urn:ngsi-ld:Device:01234",
-               "type":"Device",
-               "operationSpace":{
-                  "type":"GeoProperty",
-                  "value":{
-                     "type":"Polygon",
-                     "coordinates":[
-                        [100.0,0.0],
-                        [101.0,0.0],
-                        [101.0,1.0],
-                        [100.0,1.0],
-                        [100.0,0.0]
-                     ]
-                  }
-               }
-            }
-            """.trimIndent()
-        val expectedEntity =
-            """
-            {
-               "id":"urn:ngsi-ld:Device:01234",
-               "type":"Device",
-               "operationSpace":{
-                  "type":"GeoProperty",
-                  "value":{
-                     "type":"Polygon",
-                     "coordinates":[
-                        [100.0,0.0],
-                        [101.0,0.0],
-                        [101.0,1.0],
-                        [100.0,1.0],
-                        [100.0,0.0]
-                     ]
-                  }
-               }
-            }
-            """.trimIndent()
-
-        val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity, DEFAULT_CONTEXTS)
-        val compactedEntity = compact(jsonLdEntity, DEFAULT_CONTEXTS, MediaType.APPLICATION_JSON).toMutableMap()
-        reconstructPolygonCoordinates(compactedEntity)
-        assertTrue(mapper.writeValueAsString(compactedEntity).matchContent(expectedEntity))
     }
 }

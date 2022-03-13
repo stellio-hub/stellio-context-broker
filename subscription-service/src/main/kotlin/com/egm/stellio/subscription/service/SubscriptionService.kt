@@ -5,10 +5,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toStringValue
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.GeoQuery
@@ -116,22 +113,24 @@ class SubscriptionService(
 
     private fun createGeometryQuery(geoQuery: GeoQuery?, subscriptionId: URI): Mono<Int> =
         if (geoQuery != null) {
-            val storedCoordinates =
+            val storedCoordinates: String =
                 when (geoQuery.coordinates) {
                     is String -> geoQuery.coordinates
                     is List<*> -> geoQuery.coordinates.toString()
-                    else -> geoQuery.coordinates
+                    else -> geoQuery.coordinates.toString()
                 }
+            val wktCoordinates = geoJsonToWKT(geoQuery.geometry, storedCoordinates)
 
             databaseClient.sql(
                 """
-                INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id) 
-                VALUES (:georel, :geometry, :coordinates, :subscription_id)
+                INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, subscription_id) 
+                VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :subscription_id)
                 """
             )
                 .bind("georel", geoQuery.georel)
-                .bind("geometry", geoQuery.geometry.name)
+                .bind("geometry", geoQuery.geometry)
                 .bind("coordinates", storedCoordinates)
+                .bind("wkt_coordinates", wktCoordinates)
                 .bind("subscription_id", subscriptionId)
                 .fetch()
                 .rowsUpdated()
@@ -145,7 +144,7 @@ class SubscriptionService(
                    watched_attributes, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
                    status, times_sent, is_active, last_notification, last_failure, last_success,
                    entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, geoproperty, expires_at
+                   georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -569,8 +568,9 @@ class SubscriptionService(
         if (row.get("georel", String::class.java) != null)
             GeoQuery(
                 georel = row.get("georel", String::class.java)!!,
-                geometry = GeoQuery.GeometryType.valueOf(row.get("geometry", String::class.java)!!),
-                coordinates = row.get("coordinates", String::class.java)!!
+                geometry = row.get("geometry", String::class.java)!!,
+                coordinates = row.get("coordinates", String::class.java)!!,
+                pgisGeometry = row.get("pgis_geometry", String::class.java)!!
             )
         else
             null

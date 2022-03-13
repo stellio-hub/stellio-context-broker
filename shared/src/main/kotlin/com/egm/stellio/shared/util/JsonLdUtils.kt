@@ -324,6 +324,14 @@ object JsonLdUtils {
             ((expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false)
     }
 
+    private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
+        if (it.key == NGSILD_LOCATION_TERM) {
+            val locationValues = it.value as MutableMap<String, Any>
+            locationValues[JSONLD_VALUE] = wktToGeoJson(locationValues[JSONLD_VALUE] as String)
+            locationValues
+        } else it.value
+    }
+
     fun compact(
         jsonLdEntity: JsonLdEntity,
         context: String? = null,
@@ -341,10 +349,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to contexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compact(
@@ -366,10 +376,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compactEntities(
@@ -490,7 +502,7 @@ fun geoPropertyToWKT(jsonFragment: Any): Any =
     if (jsonFragment is Map<*, *> && jsonFragment.containsKey(NGSILD_LOCATION_TERM)) {
         val locationAttribute = (jsonFragment[NGSILD_LOCATION_TERM] as MutableMap<String, Any>)
         val geoJsonAsString = locationAttribute[JSONLD_VALUE]
-        val wktGeom = geoJsonToWKT(geoJsonAsString!! as Map<String, Any>)
+        val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
         logger.debug("Transformed GeoJSON value into WKT: $wktGeom")
         locationAttribute[JSONLD_VALUE] = wktGeom
         jsonFragment

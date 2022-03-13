@@ -119,7 +119,7 @@ class SubscriptionService(
                     is List<*> -> geoQuery.coordinates.toString()
                     else -> geoQuery.coordinates.toString()
                 }
-            val wktCoordinates = geoJsonToWKT(geoQuery.geometry, storedCoordinates)
+            val wktCoordinates = geoJsonToWkt(geoQuery.geometry, storedCoordinates)
 
             databaseClient.sql(
                 """

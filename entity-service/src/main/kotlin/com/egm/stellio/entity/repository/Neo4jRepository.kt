@@ -290,7 +290,7 @@ class Neo4jRepository(
             ON MATCH SET entity.location = ${'$'}wktCoordinates
             """
         return neo4jClient.query(query)
-            .bind(entityId.toString()).to("subjectId")
+            .bind(entityId.toString()).to("entityId")
             .bind(geoProperty.coordinates.value).to("wktCoordinates")
             .run().counters().propertiesSet()
     }

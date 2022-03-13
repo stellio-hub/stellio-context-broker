@@ -9,6 +9,6 @@ data class GeoQuery(
     val geometry: String,
     val coordinates: Any,
     @JsonIgnore
-    val pgisGeometry: String,
+    val pgisGeometry: String?,
     val geoproperty: String? = null
 )

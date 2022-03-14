@@ -9,12 +9,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 
 object QueryUtils {
 
-    const val NEAR_QUERY_CLAUSE = "near"
-    const val DISTANCE_QUERY_CLAUSE = "distance"
-    const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
-    const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
-    const val PROPERTY_TYPE = "\"Property\""
-    const val RELATIONSHIP_TYPE = "\"Relationship\""
+    private const val NEAR_QUERY_CLAUSE = "near"
+    private const val DISTANCE_QUERY_CLAUSE = "distance"
+    private const val MAX_DISTANCE_QUERY_CLAUSE = "maxDistance"
+    private const val MIN_DISTANCE_QUERY_CLAUSE = "minDistance"
+    private const val PROPERTY_TYPE = "\"Property\""
+    private const val RELATIONSHIP_TYPE = "\"Relationship\""
 
     /**
      * This method transforms a subscription query as per clause 4.9 to new query format supported by JsonPath.
@@ -76,22 +76,25 @@ object QueryUtils {
 
         return if (georelParams.first == DISTANCE_QUERY_CLAUSE)
             """
-            SELECT ST_${georelParams.first}('${geoQuery.pgisGeometry}', ST_GeomFromText('$targetWKTCoordinates')) 
-                    ${georelParams.second} ${georelParams.third} as geoquery_result
+            SELECT ST_Distance('${geoQuery.pgisGeometry}'::geography, 
+                'SRID=4326;$targetWKTCoordinates'::geography) ${georelParams.second} ${georelParams.third} as match
             """.trimIndent()
         else
             """
             SELECT ST_${georelParams.first}('${geoQuery.pgisGeometry}', ST_GeomFromText('$targetWKTCoordinates')) 
-                as geoquery_result
+                as match
             """.trimIndent()
     }
 
     fun extractGeorelParams(georel: String): Triple<String, String?, String?> {
         if (georel.contains(NEAR_QUERY_CLAUSE)) {
             val comparisonParams = georel.split(";")[1].split("==")
-            if (comparisonParams[0] == MAX_DISTANCE_QUERY_CLAUSE)
-                return Triple(DISTANCE_QUERY_CLAUSE, "<=", comparisonParams[1])
-            return Triple(DISTANCE_QUERY_CLAUSE, ">=", comparisonParams[1])
+            return when (comparisonParams[0]) {
+                MAX_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, "<=", comparisonParams[1])
+                MIN_DISTANCE_QUERY_CLAUSE -> Triple(DISTANCE_QUERY_CLAUSE, ">=", comparisonParams[1])
+                // defaulting to an equality, maybe we should raise a 400 at creation time?
+                else -> Triple(DISTANCE_QUERY_CLAUSE, "==", comparisonParams[1])
+            }
         }
         return Triple(georel, null, null)
     }

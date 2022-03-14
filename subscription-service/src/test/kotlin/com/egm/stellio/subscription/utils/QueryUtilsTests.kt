@@ -26,7 +26,7 @@ class QueryUtilsTests {
         assertTrue(
             queryStatement.matchContent(
                 """
-                SELECT ST_disjoint('001', ST_GeomFromText('POINT (24.30623 60.07966)')) as geoquery_result
+                SELECT ST_disjoint('001', ST_GeomFromText('POINT (24.30623 60.07966)')) as match
                 """
             )
         )
@@ -44,7 +44,7 @@ class QueryUtilsTests {
         assertTrue(
             queryStatement.matchContent(
                 """
-                SELECT ST_distance('001', ST_GeomFromText('POINT (60.07966 24.30623)')) <= 2000 as geoquery_result 
+                SELECT ST_Distance('001'::geography, 'SRID=4326;POINT (60.07966 24.30623)'::geography) <= 2000 as match
                 """
             )
         )
@@ -62,7 +62,7 @@ class QueryUtilsTests {
         assertTrue(
             queryStatement.matchContent(
                 """
-                SELECT ST_distance('001', ST_GeomFromText('POINT (60.30623 30.07966)')) >= 15 as geoquery_result 
+                SELECT ST_Distance('001'::geography, 'SRID=4326;POINT (60.30623 30.07966)'::geography) >= 15 as match 
                 """
             )
         )

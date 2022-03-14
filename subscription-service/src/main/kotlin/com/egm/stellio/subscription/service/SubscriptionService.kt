@@ -581,7 +581,7 @@ class SubscriptionService(
     }
 
     private var matchesGeoQuery: ((Row) -> Boolean) = { row ->
-        row.get("geoquery_result", Object::class.java).toString() == "true"
+        row.get("match", Object::class.java).toString() == "true"
     }
 
     private var rowToSubscriptionCount: ((Row) -> Int) = { row ->

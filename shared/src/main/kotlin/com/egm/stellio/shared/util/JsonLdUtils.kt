@@ -5,6 +5,8 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
@@ -57,6 +59,7 @@ object JsonLdUtils {
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/observedAt"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
+    const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
@@ -321,6 +324,14 @@ object JsonLdUtils {
             ((expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false)
     }
 
+    private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
+        if (it.key == NGSILD_LOCATION_TERM) {
+            val locationValues = it.value as MutableMap<String, Any>
+            locationValues[JSONLD_VALUE] = wktToGeoJson(locationValues[JSONLD_VALUE] as String)
+            locationValues
+        } else it.value
+    }
+
     fun compact(
         jsonLdEntity: JsonLdEntity,
         context: String? = null,
@@ -338,10 +349,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to contexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compact(
@@ -363,10 +376,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compactEntities(
@@ -446,31 +461,6 @@ object JsonLdUtils {
             serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
             contexts
         ) as Map<String, List<Map<String, List<Any>>>>
-
-    fun reconstructPolygonCoordinates(compactedJsonLdEntity: MutableMap<String, Any>) =
-        compactedJsonLdEntity
-            .filterValues { it is Map<*, *> }
-            .filterValues {
-                it as Map<String, Any>
-                it["type"] == "GeoProperty"
-            }.filterValues {
-                it as Map<String, Any>
-                (it["value"] as Map<String, Any>)["type"] == GeoPropertyType.Polygon.value
-            }.forEach {
-                val geoPropertyValue = (it.value as Map<String, Any>)["value"] as Map<String, Any>
-                val geoPropertyCoordinates = geoPropertyValue["coordinates"] as List<Any>
-
-                compactedJsonLdEntity.replace(
-                    it.key,
-                    mapOf(
-                        "type" to "GeoProperty",
-                        "value" to mapOf(
-                            "type" to "Polygon",
-                            "coordinates" to geoPropertyCoordinates.chunked(2)
-                        )
-                    )
-                )
-            }
 }
 
 fun String.extractShortTypeFromExpanded(): String =
@@ -508,12 +498,26 @@ private fun simplifyValue(value: Map<*, *>): Any {
     }
 }
 
+fun geoPropertyToWKT(jsonFragment: Any): Any =
+    if (jsonFragment is Map<*, *> && jsonFragment.containsKey(NGSILD_LOCATION_TERM)) {
+        val locationAttribute = (jsonFragment[NGSILD_LOCATION_TERM] as MutableMap<String, Any>)
+        val geoJsonAsString = locationAttribute[JSONLD_VALUE]
+        val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
+        logger.debug("Transformed GeoJSON value into WKT: $wktGeom")
+        locationAttribute[JSONLD_VALUE] = wktGeom
+        jsonFragment
+    } else jsonFragment
+
 fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
     val parsedFragment = try {
-        JsonUtils.fromInputStream(fragment.byteInputStream())
+        val jsonPayload = JsonUtils.fromInputStream(fragment.byteInputStream())
+        // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
+        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
+        geoPropertyToWKT(jsonPayload)
     } catch (e: JsonParseException) {
         throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
     }
+
     val expandedFragment = try {
         if (jsonLdOptions != null)
             JsonLdProcessor.expand(parsedFragment, jsonLdOptions)

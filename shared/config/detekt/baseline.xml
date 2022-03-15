@@ -3,7 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>LargeClass:NgsiLdEntityTests.kt$NgsiLdEntityTests</ID>
-    <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdGeoPropertyInstance$( val geoPropertyType: GeoPropertyType, val coordinates: List&lt;Any&gt;, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime? = null, datasetId: URI? = null, properties: List&lt;NgsiLdProperty&gt; = emptyList(), relationships: List&lt;NgsiLdRelationship&gt; = emptyList() )</ID>
+    <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdGeoPropertyInstance$( val coordinates: WKTCoordinates, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime? = null, datasetId: URI? = null, properties: List&lt;NgsiLdProperty&gt; = emptyList(), relationships: List&lt;NgsiLdRelationship&gt; = emptyList() )</ID>
     <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdPropertyInstance$( val value: Any, val unitCode: String?, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime?, datasetId: URI?, properties: List&lt;NgsiLdProperty&gt;, relationships: List&lt;NgsiLdRelationship&gt; )</ID>
     <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdRelationshipInstance$( val objectId: URI, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime?, datasetId: URI?, properties: List&lt;NgsiLdProperty&gt;, relationships: List&lt;NgsiLdRelationship&gt; )</ID>
     <ID>LongParameterList:PagingUtils.kt$PagingUtils$( body: String, resourcesCount: Int, count: Boolean, prevAndNextLinks: Pair&lt;String?, String?&gt;, mediaType: MediaType, contextLink: String )</ID>

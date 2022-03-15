@@ -4,7 +4,6 @@ import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_COORDINATES_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
@@ -14,7 +13,6 @@ import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.locationtech.jts.io.WKTReader
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.neo4j.core.convert.ConvertWith
 import org.springframework.data.neo4j.core.schema.DynamicLabels
@@ -77,13 +75,11 @@ data class Entity(
             }
         }
         location?.run {
-            val geometry = WKTReader().read(this)
+            // leave the WKT encoded value at this step,
+            // it will be transformed in GeoJSON after JSON-LD compaction to not break the structure of the coordinates
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
                 JSONLD_TYPE to "GeoProperty",
-                NGSILD_GEOPROPERTY_VALUE to mapOf(
-                    JSONLD_TYPE to geometry.geometryType,
-                    NGSILD_COORDINATES_PROPERTY to geometry.coordinates.map { listOf(it.x, it.y) }
-                )
+                NGSILD_GEOPROPERTY_VALUE to this
             )
         }
         return resultEntity

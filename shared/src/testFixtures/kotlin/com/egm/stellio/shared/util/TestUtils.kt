@@ -51,7 +51,7 @@ fun parseLocationFragmentToPointGeoProperty(
 }
 
 fun parseLocationFragmentToPolygonGeoProperty(
-    coordinates: List<List<Double>>
+    coordinates: List<List<List<Double>>>
 ): NgsiLdGeoProperty {
     val locationFragment =
         """

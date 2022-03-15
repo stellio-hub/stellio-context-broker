@@ -4,7 +4,7 @@ import com.egm.stellio.shared.util.AttributeType
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_COORDINATES_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_TYPE
@@ -17,7 +17,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_UNIT_CODE_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsMap
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMap
 import com.egm.stellio.shared.util.JsonLdUtils.getPropertyValueFromMapAsDateTime
@@ -26,7 +25,6 @@ import com.egm.stellio.shared.util.extractShortTypeFromExpanded
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.Locale
 
 class NgsiLdEntity private constructor(
     val id: URI,
@@ -253,8 +251,7 @@ class NgsiLdRelationshipInstance private constructor(
 }
 
 class NgsiLdGeoPropertyInstance(
-    val geoPropertyType: GeoPropertyType,
-    val coordinates: List<Any>,
+    val coordinates: WKTCoordinates,
     createdAt: ZonedDateTime?,
     modifiedAt: ZonedDateTime?,
     observedAt: ZonedDateTime? = null,
@@ -269,12 +266,7 @@ class NgsiLdGeoPropertyInstance(
             val observedAt = getPropertyValueFromMapAsDateTime(values, NGSILD_OBSERVED_AT_PROPERTY)
             val datasetId = values.getDatasetId()
 
-            val geoPropertyValue = expandValueAsMap(values[NGSILD_GEOPROPERTY_VALUE]!!)
-            val geoPropertyType = GeoPropertyType.valueOf(
-                (geoPropertyValue["@type"]!![0] as String).extractShortTypeFromExpanded()
-            )
-            val coordinates = extractCoordinates(geoPropertyType, geoPropertyValue)
-
+            val wktValue = ((values[NGSILD_GEOPROPERTY_VALUE]!!)[0] as Map<String, String>)[JSONLD_VALUE_KW] as String
             val attributes = getNonCoreAttributes(values, NGSILD_GEOPROPERTIES_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
             val properties = getAttributesOfType<NgsiLdProperty>(attributes, NGSILD_PROPERTY_TYPE)
@@ -282,49 +274,17 @@ class NgsiLdGeoPropertyInstance(
                 throw BadRequestDataException("Geoproperty has unknown attributes: $attributes")
 
             return NgsiLdGeoPropertyInstance(
-                geoPropertyType, coordinates, createdAt, modifiedAt, observedAt, datasetId, properties, relationships
+                WKTCoordinates(wktValue), createdAt, modifiedAt, observedAt, datasetId, properties, relationships
             )
-        }
-
-        // TODO this lacks sanity checks
-        private fun extractCoordinates(geoPropertyType: GeoPropertyType, geoPropertyValue: Map<String, List<Any>>):
-            List<Any> {
-            val coordinates = geoPropertyValue[NGSILD_COORDINATES_PROPERTY]!!
-            if (geoPropertyType == GeoPropertyType.Point) {
-                val longitude = (coordinates[0] as Map<String, Double>)["@value"]!!
-                val latitude = (coordinates[1] as Map<String, Double>)["@value"]!!
-                return listOf(longitude, latitude)
-            } else {
-                val res = arrayListOf<List<Double?>>()
-                var count = 1
-                coordinates.forEach {
-                    if (count % 2 != 0) {
-                        val longitude = (coordinates[count - 1] as Map<String, Double>)["@value"]!!
-                        val latitude = (coordinates[count] as Map<String, Double>)["@value"]!!
-                        res.add(listOf(longitude, latitude))
-                    }
-                    count++
-                }
-                return res
-            }
-        }
-
-        fun toWktFormat(geoPropertyType: GeoPropertyType, coordinates: List<Any>): String {
-            return if (geoPropertyType == GeoPropertyType.Point) {
-                "${geoPropertyType.value.uppercase(Locale.getDefault())} (${coordinates.joinToString(" ")})"
-            } else {
-                val formattedCoordinates = coordinates.map {
-                    it as List<*>
-                    it.joinToString(" ")
-                }
-                "${geoPropertyType.value.uppercase(Locale.getDefault())} ((${formattedCoordinates.joinToString(", ")}))"
-            }
         }
     }
 
     override fun getLinkedEntitiesIds(): List<URI> =
         relationships.flatMap { it.getLinkedEntitiesIds() }
 }
+
+@JvmInline
+value class WKTCoordinates(val value: String)
 
 /**
  * Given an entity's attribute, returns whether it is of the given attribute type
@@ -428,11 +388,6 @@ val NGSILD_RELATIONSHIPS_CORE_MEMBERS = listOf(
 val NGSILD_GEOPROPERTIES_CORE_MEMBERS = listOf(
     NGSILD_GEOPROPERTY_VALUE
 ).plus(NGSILD_ATTRIBUTES_CORE_MEMBERS)
-
-enum class GeoPropertyType(val value: String) {
-    Point("Point"),
-    Polygon("Polygon")
-}
 
 // basic alias to help identify, mainly in method calls, if the expected value is a compact or expanded one
 typealias ExpandedTerm = String

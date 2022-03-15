@@ -141,18 +141,8 @@ class EntityService(
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ): Int {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
-        // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        return when (ngsiLdGeoPropertyInstance.geoPropertyType) {
-            GeoPropertyType.Point, GeoPropertyType.Polygon -> neo4jRepository.addLocationPropertyToEntity(
-                entityId,
-                ngsiLdGeoPropertyInstance
-            )
-            else -> {
-                logger.warn("Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}")
-                0
-            }
-        }
+        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        return neo4jRepository.addLocationPropertyToEntity(entityId, ngsiLdGeoPropertyInstance)
     }
 
     fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
@@ -452,7 +442,7 @@ class EntityService(
                     "and overwrite is not allowed, ignoring"
             )
         } else {
-            updateLocationPropertyOfEntity(
+            updateLocationProperty(
                 entityId,
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0]
@@ -559,7 +549,7 @@ class EntityService(
 
     fun updateEntityGeoProperty(entityId: URI, ngsiLdGeoProperty: NgsiLdGeoProperty): UpdateAttributeResult =
         if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(entityId), ngsiLdGeoProperty.compactName)) {
-            updateLocationPropertyOfEntity(entityId, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            updateLocationProperty(entityId, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
             UpdateAttributeResult(
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0].datasetId,
@@ -573,22 +563,13 @@ class EntityService(
                 "GeoProperty does not exist"
             )
 
-    internal fun updateLocationPropertyOfEntity(
+    internal fun updateLocationProperty(
         entityId: URI,
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ) {
-        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates}")
-        // TODO : point is not part of the NGSI-LD core context (https://redmine.eglobalmark.com/issues/869)
-        when (ngsiLdGeoPropertyInstance.geoPropertyType) {
-            GeoPropertyType.Point, GeoPropertyType.Polygon -> neo4jRepository.updateLocationPropertyOfEntity(
-                entityId,
-                ngsiLdGeoPropertyInstance
-            )
-            else -> throw BadRequestDataException(
-                "Unsupported geometry type : ${ngsiLdGeoPropertyInstance.geoPropertyType}"
-            )
-        }
+        logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
+        neo4jRepository.updateLocationPropertyOfEntity(entityId, ngsiLdGeoPropertyInstance)
     }
 
     @Transactional

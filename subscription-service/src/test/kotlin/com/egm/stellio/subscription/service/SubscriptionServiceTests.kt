@@ -10,7 +10,6 @@ import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
-import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.model.NotificationParams.StatusType
 import com.egm.stellio.subscription.model.Subscription
@@ -241,8 +240,8 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             databaseClient.sql(
                 match<String> {
                     """
-                    INSERT INTO geometry_query (georel, geometry, coordinates, subscription_id)
-                    VALUES (:georel, :geometry, :coordinates, :subscription_id)
+                    INSERT INTO geometry_query (georel, geometry, coordinates, pgis_geometry, subscription_id)
+                    VALUES (:georel, :geometry, :coordinates, ST_GeomFromText(:wkt_coordinates), :subscription_id)
                     """.matchContent(it)
                 }
             )
@@ -318,11 +317,10 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     listOf(EndpointInfo("Authorization-token", "Authorization-token-value"))
                 ) &&
                     it.entities.size == 2 &&
-                    it.geoQ == GeoQuery(
-                    georel = "within",
-                    geometry = GeoQuery.GeometryType.Polygon,
-                    coordinates = "[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]"
-                )
+                    it.geoQ != null &&
+                    it.geoQ!!.georel == "within" &&
+                    it.geoQ!!.geometry == "Polygon" &&
+                    it.geoQ!!.coordinates == "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
             }
             .verifyComplete()
     }
@@ -668,7 +666,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
                     it.description == "My beautiful subscription has been updated" &&
                     it.q == "foodQuantity>=150" &&
                     it.geoQ!!.georel == "equals" &&
-                    it.geoQ!!.geometry.name == "Point" &&
+                    it.geoQ!!.geometry == "Point" &&
                     it.geoQ!!.coordinates == "[100.0, 0.0]"
             }
             .verifyComplete()

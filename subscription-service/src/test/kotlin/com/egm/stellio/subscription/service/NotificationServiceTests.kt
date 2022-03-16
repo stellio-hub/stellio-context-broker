@@ -169,7 +169,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
-                listOf("https://uri.etsi.org/ngsi-ld/name", "https://uri.etsi.org/ngsi-ld/location")
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/name", "https://uri.etsi.org/ngsi-ld/location")
             )
         )
 

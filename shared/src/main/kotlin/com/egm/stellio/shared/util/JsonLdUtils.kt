@@ -520,7 +520,7 @@ fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions?
 
     val expandedFragment = try {
         if (jsonLdOptions != null)
-            JsonLdProcessor.expand(parsedFragment, jsonLdOptions)
+            JsonLdProcessor.expand((parsedFragment as Map<String, Any>).minus("@context"), jsonLdOptions)
         else
             JsonLdProcessor.expand(parsedFragment)
     } catch (e: JsonLdError) {

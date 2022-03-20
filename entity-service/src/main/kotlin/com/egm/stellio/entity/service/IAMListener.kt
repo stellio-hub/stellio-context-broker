@@ -13,9 +13,8 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
-import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -52,7 +51,8 @@ class IAMListener(
     private fun append(authorizationEvent: AttributeAppendEvent) {
         val expandedJsonLdFragment =
             expandJsonLdFragment(
-                mapOf(authorizationEvent.attributeName to deserializeObject(authorizationEvent.operationPayload)),
+                authorizationEvent.attributeName,
+                authorizationEvent.operationPayload,
                 authorizationEvent.contexts
             )
 
@@ -75,7 +75,8 @@ class IAMListener(
     private fun update(authorizationEvent: AttributeReplaceEvent) {
         val expandedJsonLdFragment =
             expandJsonLdFragment(
-                mapOf(authorizationEvent.attributeName to deserializeObject(authorizationEvent.operationPayload)),
+                authorizationEvent.attributeName,
+                authorizationEvent.operationPayload,
                 authorizationEvent.contexts
             )
 
@@ -96,7 +97,7 @@ class IAMListener(
     private fun deleteAttribute(authorizationEvent: AttributeDeleteEvent) =
         entityService.deleteEntityAttributeInstance(
             authorizationEvent.entityId,
-            expandJsonLdKey(
+            expandJsonLdTerm(
                 authorizationEvent.attributeName,
                 authorizationEvent.contexts
             )!!,

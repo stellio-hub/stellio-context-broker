@@ -2,15 +2,16 @@ package com.egm.stellio.shared.util
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
-import com.egm.stellio.shared.model.InvalidRequestException
 import com.egm.stellio.shared.model.LdContextNotAvailableException
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonLdUtils.extractRelationshipObject
 import com.egm.stellio.shared.util.JsonLdUtils.getAttributeFromExpandedAttributes
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -162,26 +163,6 @@ class JsonLdUtilsTests {
     }
 
     @Test
-    fun `it should throw an InvalidRequest exception if the JSON-LD fragment is not a valid JSON document`() {
-        val rawEntity =
-            """
-            {
-                "id": "urn:ngsi-ld:Device:01234",,
-                "type": "Device"
-            }
-            """.trimIndent()
-
-        val exception = assertThrows<InvalidRequestException> {
-            parseAndExpandJsonLdFragment(rawEntity)
-        }
-        assertEquals(
-            "Unexpected error while parsing payload : Unexpected character (',' (code 44)): was expecting" +
-                " double-quote to start field name\n at [Source: (BufferedReader); line: 2, column: 39]",
-            exception.message
-        )
-    }
-
-    @Test
     fun `it should throw a LdContextNotAvailable exception if the provided JSON-LD context is not available`() {
         val rawEntity =
             """
@@ -195,7 +176,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val exception = assertThrows<LdContextNotAvailableException> {
-            parseAndExpandJsonLdFragment(rawEntity)
+            expandJsonLdFragment(rawEntity.deserializeAsMap(), listOf("unknownContext"))
         }
         assertEquals(
             "Unable to load remote context (cause was: com.github.jsonldjava.core.JsonLdError: " +
@@ -216,10 +197,10 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val exception = assertThrows<BadRequestDataException> {
-            parseAndExpandJsonLdFragment(rawEntity)
+            expandJsonLdFragment(rawEntity, listOf(NGSILD_CORE_CONTEXT))
         }
         assertEquals(
-            "Unable to parse input payload",
+            "Unable to expand input payload",
             exception.message
         )
     }
@@ -368,7 +349,7 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdKey("brandName", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNull(
@@ -398,8 +379,8 @@ class JsonLdUtilsTests {
             """.trimIndent()
 
         val expandedAttributes = expandJsonLdFragment(entityFragment, DEFAULT_CONTEXTS)
-        val expandedBrandName = expandJsonLdKey("brandName", DEFAULT_CONTEXTS)!!
-        val expandedName = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
+        val expandedBrandName = expandJsonLdTerm("brandName", DEFAULT_CONTEXTS)!!
+        val expandedName = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
 
         assertNotNull(getAttributeFromExpandedAttributes(expandedAttributes, expandedBrandName, null))
         assertNotNull(

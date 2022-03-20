@@ -6,10 +6,10 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.subscription.config.WebSecurityTestConfig
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -423,13 +423,11 @@ class SubscriptionHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val expectedOperationPayload = ClassPathResource("/ngsild/events/sent/subscription_update_event_payload.json")
         val subscriptionId = subscriptionId
-        val parsedSubscription = parseSubscriptionUpdate(
-            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(APIC_COMPOUND_CONTEXT)
-        )
+        val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
+
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any()) } returns Mono.just(1)
+        every { subscriptionService.update(any(), any(), any()) } returns Mono.just(1)
         coEvery { subscriptionEventService.publishSubscriptionUpdateEvent(any(), any(), any(), any()) } just Runs
 
         webClient.patch()
@@ -440,7 +438,7 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq((subscriptionId))) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
         coVerify {
             subscriptionEventService.publishSubscriptionUpdateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -459,14 +457,11 @@ class SubscriptionHandlerTests {
     fun `update subscription should return a 500 if update in DB failed`() {
         val jsonLdFile = ClassPathResource("/ngsild/subscription_update.json")
         val subscriptionId = subscriptionId
-        val parsedSubscription = parseSubscriptionUpdate(
-            jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8),
-            listOf(APIC_COMPOUND_CONTEXT)
-        )
+        val parsedSubscription = jsonLdFile.inputStream.readBytes().toString(Charsets.UTF_8).deserializeAsMap()
 
         every { subscriptionService.exists(any()) } returns Mono.just(true)
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
-        every { subscriptionService.update(any(), any()) } throws RuntimeException("Update failed")
+        every { subscriptionService.update(any(), any(), any()) } throws RuntimeException("Update failed")
 
         webClient.patch()
             .uri("/ngsi-ld/v1/subscriptions/$subscriptionId")
@@ -485,7 +480,7 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(eq(subscriptionId)) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
-        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription) }
+        verify { subscriptionService.update(eq(subscriptionId), parsedSubscription, listOf(APIC_COMPOUND_CONTEXT)) }
         verify { subscriptionEventService wasNot called }
 
         confirmVerified(subscriptionService)

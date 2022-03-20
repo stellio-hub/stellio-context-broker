@@ -58,7 +58,7 @@ fun getContextFromLinkHeader(linkHeader: List<String>): String? {
 fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
-fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
+fun checkAndGetContext(httpHeaders: HttpHeaders, body: Map<String, Any>): List<String> {
     checkContext(httpHeaders, body)
     return if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
@@ -74,7 +74,12 @@ fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
     }
 }
 
-fun checkContext(httpHeaders: HttpHeaders, body: String) {
+fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>) =
+    body.forEach {
+        checkContext(httpHeaders, it)
+    }
+
+fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>) {
     if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
         if (body.contains(JSONLD_CONTEXT))
             throw BadRequestDataException(
@@ -112,7 +117,7 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {
-            JsonLdUtils.expandJsonLdKey(it.trim(), contextLink)!!
+            JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)!!
         }.toSet()
 
 fun extractAndValidatePaginationParameters(

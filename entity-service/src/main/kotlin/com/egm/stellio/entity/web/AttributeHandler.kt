@@ -46,7 +46,7 @@ class AttributeHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val expandedType = JsonLdUtils.expandJsonLdKey(attrId.decode(), contextLink)!!
+        val expandedType = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)!!
 
         val attributeTypeInfo = attributeService.getAttributeTypeInfo(expandedType)
             ?: throw ResourceNotFoundException("No information found for attribute $expandedType")

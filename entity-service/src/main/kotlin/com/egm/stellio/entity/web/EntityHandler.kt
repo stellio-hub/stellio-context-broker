@@ -10,8 +10,9 @@ import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.compactEntities
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
-import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -46,7 +47,7 @@ class EntityHandler(
         if (!authorizationService.userCanCreateEntities(sub))
             throw AccessDeniedException("User forbidden to create entities")
 
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val ngsiLdEntity = expandJsonLdEntity(body, contexts).toNgsiLdEntity()
         val newEntityUri = entityService.createEntity(ngsiLdEntity)
@@ -107,7 +108,7 @@ class EntityHandler(
          * with the right parameters values
          */
         val countAndEntities = entityService.searchEntities(
-            QueryParams(ids, type?.let { expandJsonLdKey(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
+            QueryParams(ids, type?.let { expandJsonLdTerm(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
             sub,
             offset,
             limit,
@@ -242,7 +243,7 @@ class EntityHandler(
         if (!authorizationService.userCanUpdateEntity(entityUri, sub))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
@@ -292,7 +293,7 @@ class EntityHandler(
         if (!authorizationService.userCanUpdateEntity(entityUri, sub))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
@@ -337,15 +338,19 @@ class EntityHandler(
         if (!authorizationService.userCanUpdateEntity(entityUri, sub))
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
-        val body = requestBody.awaitFirst()
+        val body = mapOf(attrId to deserializeAs<Any>(requestBody.awaitFirst()))
         val contexts = checkAndGetContext(httpHeaders, body)
 
-        val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
         authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
-        val expandedPayload = parseAndExpandAttributeFragment(attrId, body, contexts)
+        val expandedPayload = expandJsonLdFragment(body, contexts)
 
-        val updateResult = entityAttributeService.partialUpdateEntityAttribute(entityUri, expandedPayload, contexts)
+        val updateResult = entityAttributeService.partialUpdateEntityAttribute(
+            entityUri,
+            expandedPayload as Map<String, List<Map<String, List<Any>>>>,
+            contexts
+        )
 
         if (updateResult.updated.isEmpty())
             throw ResourceNotFoundException("Unknown attribute in entity $entityId")
@@ -382,7 +387,7 @@ class EntityHandler(
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val contexts = listOf(getContextFromLinkHeaderOrDefault(httpHeaders))
-        val expandedAttrId = expandJsonLdKey(attrId, contexts)!!
+        val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
         authorizationService.checkAttributeIsAuthorized(expandedAttrId, entityUri)
 
         val result = if (deleteAll)

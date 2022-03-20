@@ -445,7 +445,7 @@ class EntityOperationHandlerTests {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
                     "detail":
-                "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
+                "Request payload must contain @context term for a request having an application/ld+json content type"
                 }
                 """.trimIndent()
             )

@@ -7,7 +7,6 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AQUAC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
-import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
 import com.egm.stellio.shared.util.matchContent
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -514,7 +513,7 @@ class EntityEventServiceTests {
             }
             """.trimIndent()
 
-        val jsonLdAttributes = parseAndExpandAttributeFragment(
+        val jsonLdAttributes = expandJsonLdFragment(
             "fishName",
             fishNamePayload,
             listOf(AQUAC_COMPOUND_CONTEXT)
@@ -567,7 +566,7 @@ class EntityEventServiceTests {
                 $secondRelationshipPayload
             ]
             """.trimIndent()
-        val jsonLdAttributes = parseAndExpandAttributeFragment(
+        val jsonLdAttributes = expandJsonLdFragment(
             "connectsTo",
             connectsToPayload,
             listOf(AQUAC_COMPOUND_CONTEXT)

@@ -176,12 +176,10 @@ class SubscriptionService(
     }
 
     @Transactional
-    fun update(subscriptionId: URI, parsedInput: Pair<Map<String, Any>, List<String>>): Mono<Int> {
-        val contexts = parsedInput.second
+    fun update(subscriptionId: URI, input: Map<String, Any>, contexts: List<String>): Mono<Int> {
         val updates = mutableListOf<Mono<Int>>()
 
-        val subscriptionInputWithModifiedAt = parsedInput.first
-            .plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
+        val subscriptionInputWithModifiedAt = input.plus("modifiedAt" to Instant.now().atZone(ZoneOffset.UTC))
 
         subscriptionInputWithModifiedAt.filterKeys {
             it !in JsonLdUtils.JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS
@@ -307,7 +305,7 @@ class SubscriptionService(
             "attributes" -> {
                 var valueList = attribute.value as List<String>
                 valueList = valueList.map {
-                    JsonLdUtils.expandJsonLdKey(it, contexts!!)!!
+                    JsonLdUtils.expandJsonLdTerm(it, contexts!!)!!
                 }
                 listOf(Pair("notif_attributes", valueList.joinToString(separator = ",")))
             }

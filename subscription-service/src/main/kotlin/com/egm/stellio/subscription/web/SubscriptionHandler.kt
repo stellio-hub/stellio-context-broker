@@ -8,6 +8,8 @@ import com.egm.stellio.shared.util.JSON_LD_CONTENT_TYPE
 import com.egm.stellio.shared.util.JSON_MERGE_PATCH_CONTENT_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
+import com.egm.stellio.shared.util.JsonUtils.serialize
 import com.egm.stellio.shared.util.PagingUtils
 import com.egm.stellio.shared.util.PagingUtils.getPagingLinks
 import com.egm.stellio.shared.util.QUERY_PARAM_COUNT
@@ -25,7 +27,6 @@ import com.egm.stellio.subscription.model.toJson
 import com.egm.stellio.subscription.service.SubscriptionEventService
 import com.egm.stellio.subscription.service.SubscriptionService
 import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscription
-import com.egm.stellio.subscription.utils.ParsingUtils.parseSubscriptionUpdate
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -62,7 +63,7 @@ class SubscriptionHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
         val parsedSubscription = parseSubscription(body, contexts)
         checkSubscriptionNotExists(parsedSubscription).awaitFirst()
@@ -159,15 +160,14 @@ class SubscriptionHandler(
 
         val sub = getSubFromSecurityContext()
         checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
-        val parsedInput = parseSubscriptionUpdate(body, contexts)
-        subscriptionService.update(subscriptionIdUri, parsedInput).awaitFirst()
+        subscriptionService.update(subscriptionIdUri, body, contexts).awaitFirst()
 
         subscriptionEventService.publishSubscriptionUpdateEvent(
             sub.orNull(),
             subscriptionIdUri,
-            removeContextFromInput(body),
+            removeContextFromInput(body).serialize(),
             contexts
         )
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()

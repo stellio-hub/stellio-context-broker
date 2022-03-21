@@ -18,6 +18,8 @@ import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATASET_ID_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactive.awaitFirst
@@ -50,9 +52,9 @@ class EntityAccessControlHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsMap()
         val contexts = checkAndGetContext(httpHeaders, body)
-        val jsonLdAttributes = JsonLdUtils.expandJsonLdFragment(body, contexts)
+        val jsonLdAttributes = expandJsonLdFragment(body, contexts)
         val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
 
         // ensure payload contains only relationships and that they are of a known type
@@ -153,7 +155,7 @@ class EntityAccessControlHandler(
                 .body("User is not authorized to update access policy on entity $entityId")
 
         val body = requestBody.awaitFirst()
-        val expandedPayload = JsonLdUtils.parseAndExpandAttributeFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
+        val expandedPayload = JsonLdUtils.expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
         return when (val checkResult = checkSpecificAccessPolicyPayload(ngsiLdAttributes)) {
             is Invalid -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(checkResult.value)

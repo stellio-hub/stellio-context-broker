@@ -2,24 +2,20 @@ package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.mapper
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.EntityInfo
 import com.egm.stellio.subscription.model.Subscription
-import com.fasterxml.jackson.databind.node.ObjectNode
 import org.slf4j.LoggerFactory
 
 object ParsingUtils {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun parseSubscription(input: String, context: List<String>): Subscription {
-        val rawParsedData = mapper.readTree(input) as ObjectNode
-        if (rawParsedData.get("@context") != null)
-            rawParsedData.remove("@context")
-
+    fun parseSubscription(input: Map<String, Any>, context: List<String>): Subscription {
         try {
-            val subscription = mapper.readValue(rawParsedData.toString(), Subscription::class.java)
+            val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
             subscription.expandTypes(context)
             return subscription
         } catch (e: Exception) {
@@ -28,20 +24,9 @@ object ParsingUtils {
         }
     }
 
-    fun parseSubscriptionUpdate(input: String, context: List<String>): Pair<Map<String, Any>, List<String>> {
-        val parsedSubscription: Map<String, List<Any>> = mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(
-                Map::class.java, String::class.java, Any::class.java
-            )
-        )
-
-        return Pair(parsedSubscription, context)
-    }
-
     fun parseEntityInfo(input: Map<String, Any>, contexts: List<String>?): EntityInfo {
         val entityInfo = mapper.convertValue(input, EntityInfo::class.java)
-        entityInfo.type = JsonLdUtils.expandJsonLdKey(entityInfo.type, contexts!!)!!
+        entityInfo.type = JsonLdUtils.expandJsonLdTerm(entityInfo.type, contexts!!)!!
         return entityInfo
     }
 

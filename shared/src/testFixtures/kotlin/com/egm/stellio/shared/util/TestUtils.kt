@@ -6,6 +6,7 @@ import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import org.springframework.core.io.ClassPathResource
 
 fun parseSampleDataToNgsiLd(filename: String = "beehive.jsonld"): NgsiLdEntity =
@@ -45,9 +46,7 @@ fun parseLocationFragmentToPointGeoProperty(
             }
         """.trimIndent()
 
-    return parseToNgsiLdAttributes(
-        JsonLdUtils.expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS)
-    )[0] as NgsiLdGeoProperty
+    return parseToNgsiLdAttributes(expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS))[0] as NgsiLdGeoProperty
 }
 
 fun parseLocationFragmentToPolygonGeoProperty(
@@ -66,7 +65,5 @@ fun parseLocationFragmentToPolygonGeoProperty(
             }
         """.trimIndent()
 
-    return parseToNgsiLdAttributes(
-        JsonLdUtils.expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS)
-    )[0] as NgsiLdGeoProperty
+    return parseToNgsiLdAttributes(expandJsonLdFragment(locationFragment, DEFAULT_CONTEXTS))[0] as NgsiLdGeoProperty
 }

@@ -646,18 +646,15 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should update a subscription `() {
-        val parsedInput = Pair(
-            mapOf(
-                "name" to "My Subscription Updated",
-                "description" to "My beautiful subscription has been updated",
-                "q" to "foodQuantity>=150",
-                "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
-            ),
-            listOf(APIC_COMPOUND_CONTEXT)
+    fun `it should update a subscription`() {
+        val parsedInput = mapOf(
+            "name" to "My Subscription Updated",
+            "description" to "My beautiful subscription has been updated",
+            "q" to "foodQuantity>=150",
+            "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
         )
 
-        subscriptionService.update(subscription4Id, parsedInput).block()
+        subscriptionService.update(subscription4Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).block()
         val updateResult = subscriptionService.getById(subscription4Id)
 
         StepVerifier.create(updateResult)
@@ -743,9 +740,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should activate a subscription`() {
-        val parsedInput = Pair(mapOf("isActive" to true), listOf(APIC_COMPOUND_CONTEXT))
-
-        subscriptionService.update(subscription3Id, parsedInput).block()
+        subscriptionService.update(subscription3Id, mapOf("isActive" to true), listOf(APIC_COMPOUND_CONTEXT)).block()
         val updateResult = subscriptionService.getById(subscription3Id)
         StepVerifier.create(updateResult)
             .expectNextMatches {
@@ -756,9 +751,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should deactivate a subscription`() {
-        val parsedInput = Pair(mapOf("isActive" to false), listOf(APIC_COMPOUND_CONTEXT))
-
-        subscriptionService.update(subscription1Id, parsedInput).block()
+        subscriptionService.update(subscription1Id, mapOf("isActive" to false), listOf(APIC_COMPOUND_CONTEXT)).block()
         val updateResult = subscriptionService.getById(subscription1Id)
 
         StepVerifier.create(updateResult)
@@ -770,10 +763,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should update a subscription watched attributes`() {
-        val parsedInput =
-            Pair(mapOf("watchedAttributes" to arrayListOf("incoming", "temperature")), listOf(APIC_COMPOUND_CONTEXT))
+        val parsedInput = mapOf("watchedAttributes" to arrayListOf("incoming", "temperature"))
 
-        subscriptionService.update(subscription5Id, parsedInput).block()
+        subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)).block()
         val updateResult = subscriptionService.getById(subscription5Id)
 
         StepVerifier.create(updateResult)
@@ -786,9 +778,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should throw a BadRequestData exception if the subscription has an unknown attribute`() {
-        val parsedInput = Pair(mapOf("unknownAttribute" to "unknownValue"), listOf(APIC_COMPOUND_CONTEXT))
+        val parsedInput = mapOf("unknownAttribute" to "unknownValue")
 
-        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
+        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)))
             .expectErrorMatches { throwable ->
                 throwable is BadRequestDataException
             }
@@ -797,9 +789,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should throw a NotImplemented exception if the subscription has an unsupported attribute`() {
-        val parsedInput = Pair(mapOf("throttling" to "someValue"), listOf(APIC_COMPOUND_CONTEXT))
+        val parsedInput = mapOf("throttling" to "someValue")
 
-        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput))
+        StepVerifier.create(subscriptionService.update(subscription5Id, parsedInput, listOf(APIC_COMPOUND_CONTEXT)))
             .expectErrorMatches { throwable ->
                 throwable is NotImplementedException
             }

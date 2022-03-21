@@ -19,7 +19,7 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -61,7 +61,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
     private val userUri = (AuthContextModel.USER_PREFIX + sub.value).toUri()
     private val clientUri = "urn:ngsi-ld:Client:01".toUri()
     private val serviceAccountUri = userUri
-    private val expandedNameProperty = expandJsonLdKey("name", DEFAULT_CONTEXTS)!!
+    private val expandedNameProperty = expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
     private val offset = 0
     private val limit = 20
 

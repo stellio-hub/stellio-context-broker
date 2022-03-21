@@ -333,7 +333,8 @@ class EntityServiceTests {
               }
             }
             """.trimIndent()
-        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, AQUAC_COMPOUND_CONTEXT))
+
+        val ngsiLdPayload = parseToNgsiLdAttributes(expandJsonLdFragment(payload, listOf(AQUAC_COMPOUND_CONTEXT)))
 
         val mockkedSensor = mockkClass(Entity::class)
 
@@ -917,7 +918,7 @@ class EntityServiceTests {
             """.trimIndent()
 
         val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, AQUAC_COMPOUND_CONTEXT)
+            expandJsonLdFragment(newGeoProperty, listOf(AQUAC_COMPOUND_CONTEXT))
         )
 
         val mockkedEntity = mockkClass(Entity::class)
@@ -963,7 +964,7 @@ class EntityServiceTests {
             """.trimIndent()
 
         val expandedNewGeoProperty = parseToNgsiLdAttributes(
-            expandJsonLdFragment(newGeoProperty, AQUAC_COMPOUND_CONTEXT)
+            expandJsonLdFragment(newGeoProperty, listOf(AQUAC_COMPOUND_CONTEXT))
         )
 
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true

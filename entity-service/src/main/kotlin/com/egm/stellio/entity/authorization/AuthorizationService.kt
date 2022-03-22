@@ -96,4 +96,6 @@ interface AuthorizationService {
         }.map {
             checkEntityTypeIsAuthorized(entityType)
         }
+
+    fun isUpdateAuthorized(ngsiLdEntity: NgsiLdEntity): Either<APIException, Unit> = TODO()
 }

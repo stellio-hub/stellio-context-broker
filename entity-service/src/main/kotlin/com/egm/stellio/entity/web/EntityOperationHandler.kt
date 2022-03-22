@@ -106,71 +106,74 @@ class EntityOperationHandler(
         @RequestParam(required = false) options: String?
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst().deserializeAsList()
-        checkContext(httpHeaders, body)
-        val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
 
-        val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
-            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
-        val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
+        return either<APIException, ResponseEntity<*>> {
+            val body = requestBody.awaitFirst().deserializeAsList()
+            checkContext(httpHeaders, body)
+            val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
 
-        val createBatchOperationResult = when {
-            newEntities.isEmpty() -> BatchOperationResult()
-            authorizationService.userCanCreateEntities(sub) -> entityOperationService.create(newEntities)
-            else -> BatchOperationResult(
-                errors = ArrayList(
-                    newEntities.map { BatchEntityError(it.id, arrayListOf("User forbidden to create entities")) }
-                )
-            )
-        }
+            val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
+                expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
+            val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
-        authorizationService.createAdminLinks(createBatchOperationResult.getSuccessfulEntitiesIds(), sub)
-
-        val existingEntitiesIdsAuthorized =
-            authorizationService.filterEntitiesUserCanUpdate(
-                existingEntities.map { it.id },
-                sub
+            val (newUnauthorizedEntities, newAuthorizedEntities) = newEntities.partition {
+                authorizationService.isCreationAuthorized(it, sub).isLeft()
+            }
+            val createBatchOperationResult = when {
+                newAuthorizedEntities.isEmpty() -> BatchOperationResult()
+                else -> entityOperationService.create(newAuthorizedEntities)
+            }
+            createBatchOperationResult.errors.addAll(
+                newUnauthorizedEntities.map { entity ->
+                    BatchEntityError(entity.id, arrayListOf("User forbidden to create entity"))
+                }
             )
 
-        val (existingEntitiesAuthorized, existingEntitiesUnauthorized) =
-            existingEntities.partition { existingEntitiesIdsAuthorized.contains(it.id) }
+            authorizationService.createAdminLinks(createBatchOperationResult.getSuccessfulEntitiesIds(), sub)
 
-        val updateBatchOperationResult = when (options) {
-            "update" -> entityOperationService.update(existingEntitiesAuthorized, false)
-            else -> entityOperationService.replace(existingEntitiesAuthorized)
-        }
+            val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
+                existingEntities.partition { authorizationService.isUpdateAuthorized(it).isLeft() }
 
-        updateBatchOperationResult.errors.addAll(
-            existingEntitiesUnauthorized.map {
-                BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+            val updateBatchOperationResult = when (options) {
+                "update" -> entityOperationService.update(existingEntitiesAuthorized, false)
+                else -> entityOperationService.replace(existingEntitiesAuthorized)
             }
+
+            updateBatchOperationResult.errors.addAll(
+                existingEntitiesUnauthorized.map {
+                    BatchEntityError(it.id, arrayListOf("User forbidden to modify entity"))
+                }
+            )
+
+            val batchOperationResult = BatchOperationResult(
+                ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
+                ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
+            )
+
+            ngsiLdEntities
+                .filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
+                .forEach {
+                    val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
+                    entityEventService.publishEntityCreateEvent(
+                        sub.orNull(),
+                        it.id,
+                        it.type,
+                        extractContextFromInput(entityPayload)
+                    )
+                }
+            if (options == "update") publishUpdateEvents(sub.orNull(), updateBatchOperationResult, jsonLdEntities)
+            else publishReplaceEvents(sub.orNull(), updateBatchOperationResult, extractedEntities, ngsiLdEntities)
+
+            if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
+                ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
+            else if (batchOperationResult.errors.isEmpty())
+                ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+            else
+                ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+        }.fold(
+            { it.toErrorResponse() },
+            { it }
         )
-
-        val batchOperationResult = BatchOperationResult(
-            ArrayList(createBatchOperationResult.success.plus(updateBatchOperationResult.success)),
-            ArrayList(createBatchOperationResult.errors.plus(updateBatchOperationResult.errors))
-        )
-
-        ngsiLdEntities
-            .filter { it.id in createBatchOperationResult.getSuccessfulEntitiesIds() }
-            .forEach {
-                val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
-                entityEventService.publishEntityCreateEvent(
-                    sub.orNull(),
-                    it.id,
-                    it.type,
-                    extractContextFromInput(entityPayload)
-                )
-            }
-        if (options == "update") publishUpdateEvents(sub.orNull(), updateBatchOperationResult, jsonLdEntities)
-        else publishReplaceEvents(sub.orNull(), updateBatchOperationResult, extractedEntities, ngsiLdEntities)
-
-        return if (batchOperationResult.errors.isEmpty() && newEntities.isNotEmpty())
-            ResponseEntity.status(HttpStatus.CREATED).body(newEntities.map { it.id })
-        else if (batchOperationResult.errors.isEmpty() && newEntities.isEmpty())
-            ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-        else
-            ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
     /**

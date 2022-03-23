@@ -17,6 +17,9 @@ import com.egm.stellio.subscription.support.WithTimescaleContainer
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.ninjasquad.springmockk.SpykBean
 import io.mockk.verify
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.reactive.awaitFirst
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -25,16 +28,18 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.TestPropertySource
 import reactor.test.StepVerifier
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
+@TestPropertySource(properties = ["application.authentication.enabled=false"])
 class SubscriptionServiceTests : WithTimescaleContainer {
 
     @Autowired
@@ -803,8 +808,9 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val persistedSubscription = subscriptionService.getById(subscription1Id).block()!!
         val notification = Notification(subscriptionId = subscription1Id, data = emptyList())
 
-        val updateResult = subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
-            .then(subscriptionService.getById(subscription1Id))
+        val updateResult =
+            subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
+                .then(subscriptionService.getById(subscription1Id))
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
@@ -888,5 +894,88 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val res = subscriptionService.isMatchingQuery(query, entity)
 
         assertEquals(res, true)
+    }
+
+    @Test
+    fun `it should return all subscriptions whose 'timeInterval' is reached `() {
+        val subscription = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming")),
+            timeInterval = 500
+        ).copy(
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Beehive")
+            )
+        )
+
+        val subscriptionId = createSubscription(subscription)
+
+        val subscription2 = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming")),
+            timeInterval = 5000
+        ).copy(
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Beekeeper")
+            )
+        )
+        val subscriptionId2 = createSubscription(subscription2)
+
+        val persistedSubscription = subscriptionService.getById(subscriptionId).block()!!
+        val notification = Notification(subscriptionId = subscriptionId, data = emptyList())
+
+        runBlocking {
+            subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
+                .awaitFirst()
+
+            val listSubscription = subscriptionService.getRecurringSubscriptionsToNotify()
+            assertEquals(1, listSubscription.size)
+        }
+
+        subscriptionService.delete(subscriptionId).block()
+        subscriptionService.delete(subscriptionId2).block()
+    }
+
+    @Test
+    fun `it should return all subscriptions whose 'timeInterval' is reached with a time of 5s`() {
+        val subscription = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming")),
+            timeInterval = 1
+        ).copy(
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Beehive")
+            )
+        )
+
+        val subscriptionId1 = createSubscription(subscription)
+
+        val subscription2 = gimmeRawSubscription(
+            withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming")),
+            timeInterval = 5000
+        ).copy(
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Beekeeper")
+            )
+        )
+        val subscriptionId2 = createSubscription(subscription2)
+
+        val persistedSubscription = subscriptionService.getById(subscriptionId1).block()!!
+        val notification = Notification(subscriptionId = subscriptionId1, data = emptyList())
+
+        val persistedSubscription2 = subscriptionService.getById(subscriptionId2).block()!!
+        val notification2 = Notification(subscriptionId = subscriptionId2, data = emptyList())
+
+        runBlocking {
+            subscriptionService.updateSubscriptionNotification(persistedSubscription, notification, true)
+                .awaitFirst()
+
+            subscriptionService.updateSubscriptionNotification(persistedSubscription2, notification2, true)
+                .awaitFirst()
+
+            delay(5000)
+            val listSubscription = subscriptionService.getRecurringSubscriptionsToNotify()
+            assertEquals(1, listSubscription.size)
+        }
+
+        subscriptionService.delete(subscriptionId1).block()
+        subscriptionService.delete(subscriptionId2).block()
     }
 }

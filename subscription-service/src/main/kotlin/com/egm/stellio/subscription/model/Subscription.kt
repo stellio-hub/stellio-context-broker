@@ -25,6 +25,7 @@ data class Subscription(
     val description: String? = null,
     val entities: Set<EntityInfo>,
     val watchedAttributes: List<String>? = null,
+    val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams,

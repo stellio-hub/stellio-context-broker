@@ -228,6 +228,48 @@ class SubscriptionHandlerTests {
     }
 
     @Test
+    fun `create subscription should return a 400 if JSON-LD payload contains 'timeInterval' & 'watchAttributes'`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_with_conflicting_timeInterval_watchedAttributes.json")
+
+        @Suppress("MaxLineLength")
+        webClient.post()
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"You can't use 'timeInterval' with 'watchedAttributes' in conjunction"
+                } 
+                """.trimIndent()
+            )
+    }
+
+    @Test
+    fun `create subscription should return a 400 if JSON-LD payload contains 'timeInterval' less than 0'`() {
+        val jsonLdFile = ClassPathResource("/ngsild/subscription_with_time_interval_less_than_0.json")
+
+        @Suppress("MaxLineLength")
+        webClient.post()
+            .uri("/ngsi-ld/v1/subscriptions")
+            .bodyValue(jsonLdFile)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"The value of 'timeInterval' must be greater than zero (int)"
+                } 
+                """.trimIndent()
+            )
+    }
+
+    @Test
     fun `query subscriptions should return 200 without sysAttrs when options query param doesn't specify it`() {
         val subscription = gimmeRawSubscription()
 

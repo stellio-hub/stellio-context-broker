@@ -16,7 +16,8 @@ fun gimmeRawSubscription(
     withNotifParams: Pair<FormatType, List<String>> = Pair(FormatType.NORMALIZED, emptyList()),
     withModifiedAt: Boolean = false,
     georel: String = "within",
-    coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]"
+    coordinates: Any = "[[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]",
+    timeInterval: Int? = null
 ): Subscription {
     val q =
         if (withQueryAndGeoQuery.first)
@@ -47,6 +48,7 @@ fun gimmeRawSubscription(
         modifiedAt = modifiedAtValue,
         description = "My beautiful subscription",
         q = q,
+        timeInterval = timeInterval,
         entities = emptySet(),
         geoQ = geoQuery,
         notification = NotificationParams(

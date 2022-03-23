@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.model.UpdateResult
+import com.egm.stellio.shared.model.NgsiLdEntity
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
 import java.net.URI
@@ -17,6 +18,12 @@ data class BatchOperationResult(
 
     @JsonIgnore
     fun getSuccessfulEntitiesIds() = success.map { it.entityId }
+
+    @JsonIgnore
+    fun addToListOfErrors(entities: List<NgsiLdEntity>, errorMessage: String) =
+        errors.addAll(
+            entities.map { BatchEntityError(it.id, arrayListOf(errorMessage)) }
+        )
 }
 
 data class BatchEntitySuccess(

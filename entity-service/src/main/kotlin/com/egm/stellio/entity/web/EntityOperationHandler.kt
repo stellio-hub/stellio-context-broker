@@ -54,31 +54,27 @@ class EntityOperationHandler(
             val (unauthorizedEntities, authorizedEntities) = newEntities.partition {
                 authorizationService.isCreationAuthorized(it, sub).isLeft()
             }
-            val batchOperationResult = entityOperationService.create(authorizedEntities)
+            val batchOperationResult = BatchOperationResult()
+            batchOperationResult.addToListOfErrors(existingEntities, "Entity already exists")
+            batchOperationResult.addToListOfErrors(unauthorizedEntities, "User forbidden to create entity")
 
-            batchOperationResult.errors.addAll(
-                existingEntities.map { entity ->
-                    BatchEntityError(entity.id, arrayListOf("Entity already exists"))
-                }
-            )
-            batchOperationResult.errors.addAll(
-                unauthorizedEntities.map { entity ->
-                    BatchEntityError(entity.id, arrayListOf("User forbidden to create entity"))
-                }
-            )
-
-            authorizationService.createAdminLinks(batchOperationResult.getSuccessfulEntitiesIds(), sub)
-            ngsiLdEntities
-                .filter { it.id in batchOperationResult.getSuccessfulEntitiesIds() }
-                .forEach {
-                    val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
-                    entityEventService.publishEntityCreateEvent(
-                        sub.orNull(),
-                        it.id,
-                        it.type,
-                        extractContextFromInput(entityPayload)
-                    )
-                }
+            if (authorizedEntities.isNotEmpty()) {
+                val createOperationResult = entityOperationService.create(authorizedEntities)
+                authorizationService.createAdminLinks(createOperationResult.getSuccessfulEntitiesIds(), sub)
+                ngsiLdEntities
+                    .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
+                    .forEach {
+                        val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
+                        entityEventService.publishEntityCreateEvent(
+                            sub.orNull(),
+                            it.id,
+                            it.type,
+                            extractContextFromInput(entityPayload)
+                        )
+                    }
+                batchOperationResult.errors.addAll(createOperationResult.errors)
+                batchOperationResult.success.addAll(createOperationResult.success)
+            }
 
             if (batchOperationResult.errors.isEmpty())
                 ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())

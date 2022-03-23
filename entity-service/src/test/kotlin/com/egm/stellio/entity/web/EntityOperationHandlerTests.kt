@@ -2,6 +2,7 @@ package com.egm.stellio.entity.web
 
 import arrow.core.Some
 import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.Entity
@@ -322,11 +323,11 @@ class EntityOperationHandlerTests {
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityType = slot<String>()
 
-        every { authorizationService.userCanCreateEntities(sub) } returns true
         every { entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities)) } returns Pair(
             emptyList(),
             emptyList()
         )
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
@@ -405,6 +406,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
+        every { mockedCreatedEntity.id } returns deviceAquaBox1.toUri()
         every {
             entityOperationService.splitEntitiesByExistence(any())
         } returns Pair(emptyList(), listOf(mockedCreatedEntity))
@@ -416,7 +418,7 @@ class EntityOperationHandlerTests {
             .uri(batchCreateEndpoint)
             .bodyValue(jsonLdFile)
             .exchange()
-            .expectStatus().isForbidden
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
             .expectBody().json(
                 """
                 {

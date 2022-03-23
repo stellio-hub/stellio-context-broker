@@ -163,7 +163,7 @@ class EntityAccessRightsService(
                                 SELECT entity_id
                                 FROM entity_access_rights
                                 WHERE subject_id IN (${it.toListOfString()})
-                            )
+                            ))
                         )
                         """.trimIndent()
                     }

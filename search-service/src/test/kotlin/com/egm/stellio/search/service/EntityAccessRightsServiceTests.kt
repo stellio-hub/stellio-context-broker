@@ -244,7 +244,7 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
                         SELECT entity_id
                         FROM entity_access_rights
                         WHERE subject_id IN ('$subjectUuid','$groupUuid')
-                    )
+                    ))
                 )
                 """.trimIndent(),
                 accessRightFilter()

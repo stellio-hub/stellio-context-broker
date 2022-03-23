@@ -89,6 +89,18 @@ interface AuthorizationService {
             checkAttributeIsAuthorized(attributeName)
         }
 
+    fun isUpdateAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
+        userCanUpdateEntity(ngsiLdEntity.id, sub).let {
+            if (it) AccessDeniedException("User forbidden write access to entity ${ngsiLdEntity.id}").left()
+            else Unit.right()
+        }.map {
+            checkEntityTypeIsAuthorized(ngsiLdEntity.type)
+        }.map {
+            ngsiLdEntity.attributes.map {
+                checkAttributeIsAuthorized(it.name)
+            }
+        }
+
     fun isReadAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
         userCanReadEntity(entityId, sub).let {
             if (it) AccessDeniedException("User forbidden read access to entity $entityId").left()
@@ -96,6 +108,4 @@ interface AuthorizationService {
         }.map {
             checkEntityTypeIsAuthorized(entityType)
         }
-
-    fun isUpdateAuthorized(ngsiLdEntity: NgsiLdEntity): Either<APIException, Unit> = TODO()
 }

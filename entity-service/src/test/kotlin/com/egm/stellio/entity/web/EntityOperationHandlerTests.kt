@@ -13,6 +13,7 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.ENTITY_UPDATE_FORBIDDEN_MESSAGE
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
@@ -54,6 +56,8 @@ class EntityOperationHandlerTests {
     @MockkBean(relaxed = true)
     private lateinit var entityEventService: EntityEventService
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @BeforeAll
     fun configureWebClientDefaults() {
         webClient = webClient.mutate()
@@ -61,65 +65,17 @@ class EntityOperationHandlerTests {
                 it.accept = listOf(JSON_LD_MEDIA_TYPE)
                 it.contentType = JSON_LD_MEDIA_TYPE
             }
+            .entityExchangeResultConsumer {
+                logger.warn(String(it.responseBody as? ByteArray ?: "Empty response body".toByteArray()))
+            }
             .build()
     }
 
     private val sub = Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
-    private val batchSomeEntitiesExistsResponse =
-        """
-        {
-            "errors": [
-                {
-                    "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                    "error": [
-                        "Entity already exists"
-                    ]
-                }
-            ],
-            "success": [
-                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
-                "urn:ngsi-ld:Device:HCMR-AQUABOX1"
-            ]
-        }
-        """.trimIndent()
 
-    private val batchUpsertOrUpdateWithUpdateErrorsResponse =
-        """
-        { 
-            "errors": [
-                { 
-                    "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
-                    "error": [ 
-                        "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
-                    ] 
-                }, 
-                { 
-                    "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
-                    "error": [ 
-                        "Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist." 
-                    ] 
-                }
-            ], 
-            "success": [] 
-        }
-        """.trimIndent()
-
-    private val batchUpsertWithoutWriteRightResponse =
-        """
-        {
-            "errors": [
-                {
-                    "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
-                    "error": [
-                        "User forbidden to modify entity"
-                    ]
-                }
-            ],
-            "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
-        }
-        """.trimIndent()
-
-    private val deviceAquaBox1 = "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+    private val temperatureSensorUri = "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+    private val dissolvedOxygenSensorUri = "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
+    private val deviceUri = "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
 
     private val sensorType = "https://ontology.eglobalmark.com/egm#Sensor"
     private val deviceType = "https://ontology.eglobalmark.com/egm#Device"
@@ -155,7 +111,7 @@ class EntityOperationHandlerTests {
                 )
             ),
             BatchEntitySuccess(
-                deviceAquaBox1.toUri(),
+                deviceUri,
                 UpdateResult(
                     listOf(
                         UpdatedDetails(
@@ -202,23 +158,23 @@ class EntityOperationHandlerTests {
     fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val errors = arrayListOf(
-            BatchEntityError(
-                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
-            ),
-            BatchEntityError(
-                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
-            )
+            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
+            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+        )
+        val mockedUpdatedEntities = listOf(
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns dissolvedOxygenSensorUri
+            },
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns temperatureSensorUri
+            }
         )
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            emptyList(),
+            mockedUpdatedEntities,
             emptyList()
         )
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
-        } returns emptyList()
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             mutableListOf(),
             errors
@@ -229,7 +185,27 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertOrUpdateWithUpdateErrorsResponse)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
+                            "error": [ 
+                                "Update unexpectedly failed." 
+                            ] 
+                        }, 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
+                            "error": [ 
+                                "Update unexpectedly failed." 
+                            ] 
+                        }
+                    ], 
+                    "success": [] 
+                }
+                """.trimIndent()
+            )
     }
 
     @Test
@@ -240,18 +216,19 @@ class EntityOperationHandlerTests {
     @Test
     fun `update batch entity should return 204 if JSON-LD payload is correct and noOverwrite is asked`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        val mockedUpdatedEntites = listOf(
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns temperatureSensorUri
+            },
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns dissolvedOxygenSensorUri
+            }
         )
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
-        } returns entitiesIds
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            emptyList(),
+            mockedUpdatedEntites,
             emptyList()
         )
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -264,7 +241,6 @@ class EntityOperationHandlerTests {
             .expectBody().isEmpty
 
         verify { entityOperationService.update(any(), true) }
-
         confirmVerified()
     }
 
@@ -323,10 +299,9 @@ class EntityOperationHandlerTests {
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityType = slot<String>()
 
-        every { entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities)) } returns Pair(
-            emptyList(),
-            emptyList()
-        )
+        every {
+            entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities))
+        } answers { Pair(emptyList(), capturedExpandedEntities.captured) }
         every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
@@ -363,20 +338,24 @@ class EntityOperationHandlerTests {
     fun `create batch entity should return a 207 when some entities already exist`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val createdEntitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
+            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
             "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
         )
         val existingEntity = mockk<NgsiLdEntity>()
         val capturedEntitiesIds = mutableListOf<URI>()
         val capturedEntityType = slot<String>()
+        val capturedExpandedEntities = slot<List<NgsiLdEntity>>()
 
         every { existingEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
-
-        every { authorizationService.userCanCreateEntities(sub) } returns true
-        every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            listOf(existingEntity),
-            emptyList()
-        )
+        every {
+            entityOperationService.splitEntitiesByExistence(capture(capturedExpandedEntities))
+        } answers {
+            Pair(
+                listOf(capturedExpandedEntities.captured[0]),
+                capturedExpandedEntities.captured.subList(1, 2)
+            )
+        }
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
@@ -392,7 +371,24 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchSomeEntitiesExistsResponse)
+            .expectBody().json(
+                """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
+                            "error": [
+                                "Entity already exists"
+                            ]
+                        }
+                    ],
+                    "success": [
+                        "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                        "urn:ngsi-ld:Device:HCMR-AQUABOX1"
+                    ]
+                }
+                """.trimIndent()
+            )
 
         verify { authorizationService.createAdminLinks(createdEntitiesIds, sub) }
         verify(timeout = 1000, exactly = 2) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
@@ -406,7 +402,7 @@ class EntityOperationHandlerTests {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
 
         val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
-        every { mockedCreatedEntity.id } returns deviceAquaBox1.toUri()
+        every { mockedCreatedEntity.id } returns deviceUri
         every {
             entityOperationService.splitEntitiesByExistence(any())
         } returns Pair(emptyList(), listOf(mockedCreatedEntity))
@@ -422,9 +418,13 @@ class EntityOperationHandlerTests {
             .expectBody().json(
                 """
                 {
-                    "type": "https://uri.etsi.org/ngsi-ld/errors/AccessDenied",
-                    "title": "The request tried to access an unauthorized resource",
-                    "detail": "User forbidden to create entities"
+                    "success": [],
+                    "errors": [
+                      {
+                        "entityId":"urn:ngsi-ld:Device:HCMR-AQUABOX1",
+                        "error":["User forbidden to create entity"]
+                      }
+                    ]
                 }
                 """.trimIndent()
             )
@@ -463,29 +463,33 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 201 if JSON-LD payload is correct`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val createdEntitiesIds = arrayListOf("urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri())
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        )
+        val createdEntitiesIds = arrayListOf(temperatureSensorUri)
+        val updatedEntitiesIds = arrayListOf(dissolvedOxygenSensorUri, deviceUri)
         val createdBatchResult = BatchOperationResult(
             createdEntitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
-        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
-
-        every { mockedCreatedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class) {
+            every { id } returns temperatureSensorUri
+        }
+        val mockedUpdatedEntities = listOf(
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns dissolvedOxygenSensorUri
+            },
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns deviceUri
+            }
+        )
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            emptyList(),
+            mockedUpdatedEntities,
             listOf(mockedCreatedEntity)
         )
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), any()) } returns Unit.right()
         every { entityOperationService.create(any()) } returns createdBatchResult
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
-        } returns emptyList()
-        every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
         every { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) } just Runs
+
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
+        every { entityOperationService.update(any(), any()) } returns upsertUpdateBatchOperationResult
         every { entityEventService.publishAttributeAppendEvents(any(), any(), any(), any(), any()) } just Runs
 
         webClient.post()
@@ -508,7 +512,7 @@ class EntityOperationHandlerTests {
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishAttributeAppendEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
-                match { it in entitiesIds },
+                match { it in updatedEntitiesIds },
                 any(),
                 match { it in upsertUpdateBatchOperationResult.success.map { it.updateResult } },
                 hcmrContext
@@ -520,21 +524,15 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity should return a 204 if it has only updated existing entities`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
-        )
-        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class)
 
-        every { mockedCreatedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class) {
+            every { id } returns temperatureSensorUri
+        }
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             listOf(mockedCreatedEntity),
             emptyList()
         )
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(any(), sub)
-        } returns entitiesIds
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
         every {
             entityOperationService.update(any(), any())
         } returns BatchOperationResult(success = mutableListOf(), errors = mutableListOf())
@@ -551,28 +549,31 @@ class EntityOperationHandlerTests {
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
         val errors = arrayListOf(
-            BatchEntityError(
-                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
-            ),
-            BatchEntityError(
-                "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-                arrayListOf("Target entity urn:ngsi-ld:Device:HCMR-AQUABOX2 does not exist.")
-            )
+            BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
+            BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
+        )
+        val mockedCreatedEntity = mockkClass(NgsiLdEntity::class) {
+            every { id } returns deviceUri
+        }
+        val mockedUpdatedEntities = listOf(
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns dissolvedOxygenSensorUri
+            },
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns temperatureSensorUri
+            }
         )
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            emptyList(),
-            emptyList()
+            mockedUpdatedEntities,
+            listOf(mockedCreatedEntity)
         )
-        every { authorizationService.userCanCreateEntities(sub) } returns true
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.create(any()) } returns BatchOperationResult(
             arrayListOf(),
             arrayListOf()
         )
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
-        } returns emptyList()
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
         every { entityOperationService.update(any(), any()) } returns BatchOperationResult(
             arrayListOf(),
             errors
@@ -583,7 +584,23 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertOrUpdateWithUpdateErrorsResponse)
+            .expectBody().json(
+                """
+                { 
+                    "errors": [
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature", 
+                            "error": [ "Update unexpectedly failed." ] 
+                        }, 
+                        { 
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen", 
+                            "error": [ "Update unexpectedly failed." ] 
+                        }
+                    ], 
+                    "success": [] 
+                }
+                """.trimIndent()
+            )
 
         verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify { entityEventService wasNot called }
@@ -593,26 +610,22 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch entity without option should replace existing entities`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
-        val entitiesIds = arrayListOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+        val entitiesIds = arrayListOf(temperatureSensorUri, dissolvedOxygenSensorUri)
+        val mockedReplacedEntities = listOf(
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns dissolvedOxygenSensorUri
+            },
+            mockkClass(NgsiLdEntity::class) {
+                every { id } returns temperatureSensorUri
+            }
         )
-        val existingEntities = emptyList<NgsiLdEntity>()
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            existingEntities,
+            mockedReplacedEntities,
             emptyList()
         )
-        every { authorizationService.userCanCreateEntities(sub) } returns true
-        every { entityOperationService.create(any()) } returns BatchOperationResult(
-            arrayListOf(),
-            arrayListOf()
-        )
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
-        } returns emptyList()
-        every { entityOperationService.replace(existingEntities) } returns BatchOperationResult(
+        every { authorizationService.isUpdateAuthorized(any(), sub) } returns Unit.right()
+        every { entityOperationService.replace(mockedReplacedEntities) } returns BatchOperationResult(
             entitiesIds.map { BatchEntitySuccess(it) }.toMutableList(),
             arrayListOf()
         )
@@ -624,9 +637,9 @@ class EntityOperationHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { entityOperationService.replace(existingEntities) }
+        verify { entityOperationService.create(any()) wasNot Called }
+        verify { entityOperationService.replace(mockedReplacedEntities) }
         verify { entityOperationService.update(any(), any()) wasNot Called }
-        verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify(timeout = 1000, exactly = 2) {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -641,22 +654,15 @@ class EntityOperationHandlerTests {
     @Test
     fun `upsert batch should not authorize user to create entities without creator role`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val expandedEntity = mockk<NgsiLdEntity>()
-        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
-        val nonExistingEntities = listOf(expandedEntity)
+        val expandedEntity = mockkClass(NgsiLdEntity::class) {
+            every { id } returns temperatureSensorUri
+        }
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
             emptyList(),
-            nonExistingEntities
+            listOf(expandedEntity)
         )
-        every { authorizationService.userCanCreateEntities(sub) } returns false
-        every {
-            authorizationService.filterEntitiesUserCanUpdate(emptyList(), sub)
-        } returns emptyList()
-        every { entityOperationService.replace(emptyList()) } returns BatchOperationResult(
-            arrayListOf(),
-            arrayListOf()
-        )
+        every { authorizationService.isCreationAuthorized(any(), sub) } returns AccessDeniedException("").left()
 
         webClient.post()
             .uri(batchUpsertEndpoint)
@@ -670,7 +676,7 @@ class EntityOperationHandlerTests {
                         {
                             "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature",
                             "error": [
-                                "User forbidden to create entities"
+                                "User forbidden to create entity"
                             ]
                         }
                     ],
@@ -678,34 +684,40 @@ class EntityOperationHandlerTests {
                 }
                 """.trimIndent()
             )
+
         verify { entityEventService wasNot called }
+        verify { entityOperationService.replace(any()) wasNot Called }
+        confirmVerified()
     }
 
     @Test
     fun `upsert batch should not authorize user to updates entities without write right`() {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
-        val entitiesId = listOf(
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
-            "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
-        )
 
-        val expandedEntity = mockk<NgsiLdEntity>()
-        every { expandedEntity.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
-        val expandedEntity2 = mockk<NgsiLdEntity>()
-        every { expandedEntity2.id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
-        val existingEntities = listOf(expandedEntity, expandedEntity2)
+        val expandedEntity = mockkClass(NgsiLdEntity::class) {
+            every { id } returns temperatureSensorUri
+        }
+        val expandedEntity2 = mockkClass(NgsiLdEntity::class) {
+            every { id } returns dissolvedOxygenSensorUri
+        }
 
         every { entityOperationService.splitEntitiesByExistence(any()) } returns Pair(
-            existingEntities,
+            listOf(expandedEntity, expandedEntity2),
             emptyList()
         )
         val entitiesIdToUpdate = listOf(expandedEntity.id)
         every {
-            authorizationService.filterEntitiesUserCanUpdate(
-                entitiesId,
+            authorizationService.isUpdateAuthorized(
+                match { it.id == temperatureSensorUri },
                 sub
             )
-        } returns entitiesIdToUpdate
+        } returns Unit.right()
+        every {
+            authorizationService.isUpdateAuthorized(
+                match { it.id == dissolvedOxygenSensorUri },
+                sub
+            )
+        } returns AccessDeniedException(ENTITY_UPDATE_FORBIDDEN_MESSAGE).left()
         every { entityOperationService.replace(listOf(expandedEntity)) } returns BatchOperationResult(
             ArrayList(entitiesIdToUpdate.map { BatchEntitySuccess(it) }),
             arrayListOf()
@@ -716,9 +728,22 @@ class EntityOperationHandlerTests {
             .bodyValue(jsonLdFile)
             .exchange()
             .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
-            .expectBody().json(batchUpsertWithoutWriteRightResponse)
+            .expectBody().json(
+                """
+                {
+                    "errors": [
+                        {
+                            "entityId": "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen",
+                            "error": [
+                                "User forbidden to modify entity"
+                            ]
+                        }
+                    ],
+                    "success": [ "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature" ]
+                }
+                """.trimIndent()
+            )
 
-        verify { authorizationService.createAdminLinks(emptyList(), sub) }
         verify {
             entityEventService.publishEntityReplaceEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
@@ -760,21 +785,12 @@ class EntityOperationHandlerTests {
         val deletedEntitiesIds = listOf(
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri(),
             "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri(),
-            deviceAquaBox1.toUri()
+            deviceUri
         )
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
-            Pair(
-                entitiesIds.captured,
-                emptyList()
-            )
+            Pair(entitiesIds.captured, emptyList())
         }
-        val canAdminEntitiesIds = slot<List<URI>>()
-        every { authorizationService.splitEntitiesByUserCanAdmin(capture(canAdminEntitiesIds), any()) } answers {
-            Pair(
-                canAdminEntitiesIds.captured,
-                emptyList()
-            )
-        }
+        every { authorizationService.isAdminAuthorized(any(), any(), any()) } returns Unit.right()
 
         val computedEntitiesIdsToDelete = slot<Set<URI>>()
         every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } returns
@@ -814,32 +830,13 @@ class EntityOperationHandlerTests {
     fun `delete batch for unknown entities should return a 207 with explicit error messages`() {
         val entitiesIds = slot<List<URI>>()
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
-            Pair(
-                emptyList(),
-                entitiesIds.captured
-            )
+            Pair(emptyList(), entitiesIds.captured)
         }
-        val existingEntitiesIds = slot<List<URI>>()
-        every { authorizationService.splitEntitiesByUserCanAdmin(capture(existingEntitiesIds), any()) } answers {
-            Pair(
-                emptyList(),
-                emptyList()
-            )
-        }
+        every { authorizationService.isAdminAuthorized(any(), any(), any()) } answers { Unit.right() }
 
-        val computedEntitiesIdsToDelete = slot<Set<URI>>()
-        every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } answers {
-            BatchOperationResult(
-                computedEntitiesIdsToDelete.captured.map { BatchEntitySuccess(it) }.toMutableList(),
-                mutableListOf()
-            )
-        }
+        performBatchDeleteAndCheck207Response("Entity does not exist")
 
-        performBatchDeleteAndCheck204Response("Entity does not exist")
-
-        assertEquals(emptyList<String>(), existingEntitiesIds.captured)
-        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
-
+        verify { entityOperationService.delete(any()) wasNot Called }
         verify { entityEventService wasNot called }
     }
 
@@ -847,34 +844,33 @@ class EntityOperationHandlerTests {
     fun `delete batch for unauthorized entities should return a 207 with explicit error messages`() {
         val entitiesIds = slot<List<URI>>()
         every { entityOperationService.splitEntitiesIdsByExistence(capture(entitiesIds)) } answers {
-            Pair(
-                entitiesIds.captured,
-                emptyList()
-            )
+            Pair(entitiesIds.captured, emptyList())
         }
-        val existingEntitiesIds = slot<List<URI>>()
-        every { authorizationService.splitEntitiesByUserCanAdmin(capture(existingEntitiesIds), any()) } answers {
-            Pair(
-                emptyList(),
-                existingEntitiesIds.captured
-            )
+        every { entityOperationService.getEntityCoreProperties(any()) } answers {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1dissolvedOxygen".toUri()
+                every { type } returns listOf(sensorType)
+            }
+        } andThenAnswer {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns "urn:ngsi-ld:Sensor:HCMR-AQUABOX1temperature".toUri()
+                every { type } returns listOf(sensorType)
+            }
+        } andThenAnswer {
+            mockkClass(Entity::class, relaxed = true) {
+                every { id } returns "urn:ngsi-ld:Device:HCMR-AQUABOX1".toUri()
+                every { type } returns listOf(deviceType)
+            }
         }
+        every { authorizationService.isAdminAuthorized(any(), any(), any()) } returns AccessDeniedException("").left()
 
-        val computedEntitiesIdsToDelete = slot<Set<URI>>()
-        every { entityOperationService.delete(capture(computedEntitiesIdsToDelete)) } answers {
-            BatchOperationResult(
-                computedEntitiesIdsToDelete.captured.map { BatchEntitySuccess(it) }.toMutableList(),
-                mutableListOf()
-            )
-        }
+        performBatchDeleteAndCheck207Response("User forbidden to delete entity")
 
-        performBatchDeleteAndCheck204Response("User forbidden to delete entity")
-
-        assertEquals(emptySet<String>(), computedEntitiesIdsToDelete.captured)
+        verify { entityOperationService.delete(any()) wasNot Called }
         verify { entityEventService wasNot called }
     }
 
-    private fun performBatchDeleteAndCheck204Response(expectedErrorMessage: String) {
+    private fun performBatchDeleteAndCheck207Response(expectedErrorMessage: String) {
         val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_delete_all_entities.json")
         webClient.post()
             .uri(batchDeleteEndpoint)

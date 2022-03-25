@@ -20,9 +20,13 @@ data class BatchOperationResult(
     fun getSuccessfulEntitiesIds() = success.map { it.entityId }
 
     @JsonIgnore
-    fun addToListOfErrors(entities: List<NgsiLdEntity>, errorMessage: String) =
+    fun addEntitiesToErrors(entities: List<NgsiLdEntity>, errorMessage: String) =
+        addIdsToErrors(entities.map { it.id }, errorMessage)
+
+    @JsonIgnore
+    fun addIdsToErrors(entitiesIds: List<URI>, errorMessage: String) =
         errors.addAll(
-            entities.map { BatchEntityError(it.id, arrayListOf(errorMessage)) }
+            entitiesIds.map { BatchEntityError(it, arrayListOf(errorMessage)) }
         )
 }
 

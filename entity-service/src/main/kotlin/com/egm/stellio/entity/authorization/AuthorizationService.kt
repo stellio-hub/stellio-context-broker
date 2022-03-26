@@ -45,17 +45,17 @@ interface AuthorizationService {
 
     fun isAdminAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
         userIsAdminOfEntity(entityId, sub).let {
-            if (it) AccessDeniedException("User forbidden admin access to entity $entityId").left()
+            if (!it) AccessDeniedException("User forbidden admin access to entity $entityId").left()
             else Unit.right()
-        }.map {
+        }.flatMap {
             checkEntityTypeIsAuthorized(entityType)
         }
 
     fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
         userCanCreateEntities(sub).let {
-            if (it) AccessDeniedException("User forbidden to create entities").left()
+            if (!it) AccessDeniedException("User forbidden to create entities").left()
             else Unit.right()
-        }.map {
+        }.flatMap {
             checkEntityTypeIsAuthorized(ngsiLdEntity.type)
         }
 
@@ -66,11 +66,11 @@ interface AuthorizationService {
         sub: Option<Sub>
     ): Either<APIException, Unit> =
         userCanUpdateEntity(entityId, sub).let {
-            if (it) AccessDeniedException("User forbidden write access to entity $entityId").left()
+            if (!it) AccessDeniedException("User forbidden write access to entity $entityId").left()
             else Unit.right()
-        }.map {
+        }.flatMap {
             checkEntityTypeIsAuthorized(entityType)
-        }.map {
+        }.flatMap {
             checkAttributesAreAuthorized(ngsiLdAttributes)
         }
 
@@ -81,31 +81,22 @@ interface AuthorizationService {
         sub: Option<Sub>
     ): Either<APIException, Unit> =
         userCanUpdateEntity(entityId, sub).let {
-            if (it) AccessDeniedException("User forbidden write access to entity $entityId").left()
+            if (!it) AccessDeniedException("User forbidden write access to entity $entityId").left()
             else Unit.right()
-        }.map {
+        }.flatMap {
             checkEntityTypeIsAuthorized(entityType)
-        }.map {
+        }.flatMap {
             checkAttributeIsAuthorized(attributeName)
         }
 
     fun isUpdateAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
-        userCanUpdateEntity(ngsiLdEntity.id, sub).let {
-            if (it) AccessDeniedException("User forbidden write access to entity ${ngsiLdEntity.id}").left()
-            else Unit.right()
-        }.map {
-            checkEntityTypeIsAuthorized(ngsiLdEntity.type)
-        }.map {
-            ngsiLdEntity.attributes.map {
-                checkAttributeIsAuthorized(it.name)
-            }
-        }
+        isUpdateAuthorized(ngsiLdEntity.id, ngsiLdEntity.type, ngsiLdEntity.attributes, sub)
 
     fun isReadAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
         userCanReadEntity(entityId, sub).let {
-            if (it) AccessDeniedException("User forbidden read access to entity $entityId").left()
+            if (!it) AccessDeniedException("User forbidden read access to entity $entityId").left()
             else Unit.right()
-        }.map {
+        }.flatMap {
             checkEntityTypeIsAuthorized(entityType)
         }
 }

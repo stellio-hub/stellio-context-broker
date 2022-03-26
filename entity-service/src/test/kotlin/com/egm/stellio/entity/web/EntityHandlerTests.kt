@@ -413,6 +413,9 @@ class EntityHandlerTests {
             listOf(NGSILD_CORE_CONTEXT)
         )
 
+        val expectedMessage = entityOrAttrsNotFoundMessage(
+            beehiveId.toString(), setOf("https://uri.etsi.org/ngsi-ld/default-context/attr2")
+        )
         webClient.get()
             .uri("/ngsi-ld/v1/entities/$beehiveId?attrs=attr2")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -420,11 +423,11 @@ class EntityHandlerTests {
             .expectStatus().isNotFound
             .expectBody().json(
                 """
-                    {
-                        "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
-                        "title":"The referred resource has not been found",
-                        "detail":"Entity $beehiveId does not have any of the requested attributes"
-                    }
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/ResourceNotFound",
+                    "title":"The referred resource has not been found",
+                    "detail":"$expectedMessage"
+                }
                 """.trimIndent()
             )
     }

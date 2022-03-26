@@ -136,7 +136,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `update batch entity should return a 207 if JSON-LD payload contains update errors`() {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val errors = arrayListOf(
             BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
             BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
@@ -485,7 +485,7 @@ class EntityOperationHandlerTests {
 
     @Test
     fun `upsert batch entity should return a 207 if JSON-LD payload contains update errors`() {
-        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file_invalid_relation_update.json")
+        val jsonLdFile = ClassPathResource("/ngsild/hcmr/HCMR_test_file.json")
         val errors = arrayListOf(
             BatchEntityError(temperatureSensorUri, arrayListOf("Update unexpectedly failed.")),
             BatchEntityError(dissolvedOxygenSensorUri, arrayListOf("Update unexpectedly failed."))
@@ -532,7 +532,7 @@ class EntityOperationHandlerTests {
             )
 
         verify { authorizationService.createAdminLinks(listOf(deviceUri), sub) }
-        verify { entityEventService wasNot called }
+        verify(exactly = 1) { entityEventService.publishEntityCreateEvent(any(), any(), any(), any()) }
         confirmVerified()
     }
 

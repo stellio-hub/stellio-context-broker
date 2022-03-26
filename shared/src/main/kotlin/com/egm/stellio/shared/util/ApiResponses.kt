@@ -13,6 +13,7 @@ fun entityOrAttrsNotFoundMessage(
 
 const val ENTITIY_CREATION_FORBIDDEN_MESSAGE = "User forbidden to create entity"
 const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"
+const val ENTITY_DELETE_FORBIDDEN_MESSAGE = "User forbidden to delete entity"
 const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
 const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
 

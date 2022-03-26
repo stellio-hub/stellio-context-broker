@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.web
 
+import arrow.core.Option
 import arrow.core.computations.either
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
@@ -59,23 +60,7 @@ class EntityOperationHandler(
                 addEntitiesToErrors(unauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
             }
 
-            if (authorizedEntities.isNotEmpty()) {
-                val createOperationResult = entityOperationService.create(authorizedEntities)
-                authorizationService.createAdminLinks(createOperationResult.getSuccessfulEntitiesIds(), sub)
-                ngsiLdEntities
-                    .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
-                    .forEach {
-                        val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
-                        entityEventService.publishEntityCreateEvent(
-                            sub.orNull(),
-                            it.id,
-                            it.type,
-                            extractContextFromInput(entityPayload)
-                        )
-                    }
-                batchOperationResult.errors.addAll(createOperationResult.errors)
-                batchOperationResult.success.addAll(createOperationResult.success)
-            }
+            doBatchCreation(authorizedEntities, ngsiLdEntities, extractedEntities, batchOperationResult, sub)
 
             if (batchOperationResult.errors.isEmpty())
                 ResponseEntity.status(HttpStatus.CREATED).body(batchOperationResult.getSuccessfulEntitiesIds())
@@ -85,12 +70,6 @@ class EntityOperationHandler(
             { it.toErrorResponse() },
             { it }
         )
-    }
-
-    private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> {
-        return entitiesPayload.first {
-            it["id"] == entityId.toString()
-        }
     }
 
     /**
@@ -120,32 +99,13 @@ class EntityOperationHandler(
                 addEntitiesToErrors(newUnauthorizedEntities, ENTITIY_CREATION_FORBIDDEN_MESSAGE)
             }
 
-            if (newAuthorizedEntities.isNotEmpty()) {
-                val createOperationResult = entityOperationService.create(newAuthorizedEntities)
-                authorizationService.createAdminLinks(createOperationResult.getSuccessfulEntitiesIds(), sub)
-
-                ngsiLdEntities
-                    .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
-                    .forEach {
-                        val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
-                        entityEventService.publishEntityCreateEvent(
-                            sub.orNull(),
-                            it.id,
-                            it.type,
-                            extractContextFromInput(entityPayload)
-                        )
-                    }
-
-                batchOperationResult.errors.addAll(createOperationResult.errors)
-                batchOperationResult.success.addAll(createOperationResult.success)
-            }
+            doBatchCreation(newAuthorizedEntities, ngsiLdEntities, extractedEntities, batchOperationResult, sub)
 
             val (existingEntitiesUnauthorized, existingEntitiesAuthorized) =
                 existingEntities.partition { authorizationService.isUpdateAuthorized(it, sub).isLeft() }
             batchOperationResult.addEntitiesToErrors(existingEntitiesUnauthorized, ENTITY_UPDATE_FORBIDDEN_MESSAGE)
 
             if (existingEntitiesAuthorized.isNotEmpty()) {
-
                 val updateOperationResult = when (options) {
                     "update" -> entityOperationService.update(existingEntitiesAuthorized, false)
                     else -> entityOperationService.replace(existingEntitiesAuthorized)
@@ -229,8 +189,8 @@ class EntityOperationHandler(
         return either<APIException, ResponseEntity<*>> {
             val body = requestBody.awaitFirst()
 
-            val (existingEntities, unknownEntities) = entityOperationService
-                .splitEntitiesIdsByExistence(body.toListOfUri())
+            val (existingEntities, unknownEntities) =
+                entityOperationService.splitEntitiesIdsByExistence(body.toListOfUri())
 
             val entitiesIdsToDelete = existingEntities.toSet()
             val entitiesBeforeDelete = entitiesIdsToDelete.map {
@@ -243,8 +203,8 @@ class EntityOperationHandler(
                 }
 
             val batchOperationResult = BatchOperationResult().apply {
-                addIdsToErrors(unknownEntities, "Entity does not exist")
-                addIdsToErrors(entitiesUserCannotAdmin.map { it.id }, "User forbidden to delete entity")
+                addIdsToErrors(unknownEntities, ENTITY_DOES_NOT_EXIST_MESSAGE)
+                addIdsToErrors(entitiesUserCannotAdmin.map { it.id }, ENTITY_DELETE_FORBIDDEN_MESSAGE)
             }
 
             if (entitiesUserCanAdmin.isNotEmpty()) {
@@ -295,6 +255,37 @@ class EntityOperationHandler(
                 Pair(it, expandJsonLdEntities(it, listOf(context!!)))
         }
             .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
+    }
+
+    private fun extractEntityPayloadById(entitiesPayload: List<Map<String, Any>>, entityId: URI): Map<String, Any> =
+        entitiesPayload.first {
+            it["id"] == entityId.toString()
+        }
+
+    private fun doBatchCreation(
+        entitiesToCreate: List<NgsiLdEntity>,
+        ngsiLdEntities: List<NgsiLdEntity>,
+        extractedEntities: List<Map<String, Any>>,
+        batchOperationResult: BatchOperationResult,
+        sub: Option<Sub>
+    ) {
+        if (entitiesToCreate.isNotEmpty()) {
+            val createOperationResult = entityOperationService.create(entitiesToCreate)
+            authorizationService.createAdminLinks(createOperationResult.getSuccessfulEntitiesIds(), sub)
+            ngsiLdEntities
+                .filter { it.id in createOperationResult.getSuccessfulEntitiesIds() }
+                .forEach {
+                    val entityPayload = extractEntityPayloadById(extractedEntities, it.id)
+                    entityEventService.publishEntityCreateEvent(
+                        sub.orNull(),
+                        it.id,
+                        it.type,
+                        extractContextFromInput(entityPayload)
+                    )
+                }
+            batchOperationResult.errors.addAll(createOperationResult.errors)
+            batchOperationResult.success.addAll(createOperationResult.success)
+        }
     }
 
     private fun publishReplaceEvents(

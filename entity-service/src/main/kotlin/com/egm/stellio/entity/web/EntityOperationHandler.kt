@@ -5,7 +5,6 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
@@ -258,26 +257,16 @@ class EntityOperationHandler(
 
     private fun expandAndPrepareBatchOfEntities(
         payload: List<Map<String, Any>>,
-        context: String?,
+        context: String? = JsonLdUtils.NGSILD_CORE_CONTEXT,
         contentType: MediaType?
-    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> {
-        val jsonldRawEntities =
-            if (contentType == JSON_LD_MEDIA_TYPE) payload
-            else
-                payload.map { rawEntity ->
-                    val jsonldRawEntity = rawEntity.toMutableMap()
-                    jsonldRawEntity.putIfAbsent(JSONLD_CONTEXT, listOf(context))
-                    jsonldRawEntity
-                }
-
-        return jsonldRawEntities.let {
+    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
+        payload.let {
             if (contentType == JSON_LD_MEDIA_TYPE)
                 Pair(it, expandJsonLdEntities(it))
             else
                 Pair(it, expandJsonLdEntities(it, listOf(context!!)))
         }
             .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
-    }
 
     private fun publishReplaceEvents(
         sub: String?,

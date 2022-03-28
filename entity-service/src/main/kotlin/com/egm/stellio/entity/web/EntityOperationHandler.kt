@@ -257,14 +257,14 @@ class EntityOperationHandler(
 
     private fun expandAndPrepareBatchOfEntities(
         payload: List<Map<String, Any>>,
-        context: String? = JsonLdUtils.NGSILD_CORE_CONTEXT,
+        context: String?,
         contentType: MediaType?
     ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
         payload.let {
             if (contentType == JSON_LD_MEDIA_TYPE)
                 Pair(it, expandJsonLdEntities(it))
             else
-                Pair(it, expandJsonLdEntities(it, listOf(context!!)))
+                Pair(it, expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT)))
         }
             .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
 

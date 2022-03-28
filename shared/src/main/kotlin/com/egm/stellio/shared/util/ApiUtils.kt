@@ -156,10 +156,11 @@ fun List<MediaType>.getApplicable(): MediaType {
     val mediaType = this.find {
         it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE)
     } ?: throw NotAcceptableStatusException(listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE))
-    return if (mediaType.includes(JSON_LD_MEDIA_TYPE))
-        JSON_LD_MEDIA_TYPE
-    else
+    // as per 6.3.4, application/json has a higher precedence than application/ld+json
+    return if (mediaType.includes(MediaType.APPLICATION_JSON))
         MediaType.APPLICATION_JSON
+    else
+        JSON_LD_MEDIA_TYPE
 }
 
 fun buildGetSuccessResponse(mediaType: MediaType, contextLink: String): ResponseEntity.BodyBuilder {

@@ -36,10 +36,14 @@ object JsonUtils {
         deserializeObject(this)
 
     fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
-        mapper.readValue(
-            input,
-            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
-        )
+        try {
+            mapper.readValue(
+                input,
+                mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+            )
+        } catch (e: JsonProcessingException) {
+            throw InvalidRequestException(e.message!!)
+        }
 
     fun String.deserializeAsList(): List<Map<String, Any>> =
         deserializeListOfObjects(this)

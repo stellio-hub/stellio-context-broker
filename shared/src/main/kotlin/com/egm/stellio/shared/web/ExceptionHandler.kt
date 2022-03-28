@@ -4,6 +4,7 @@ import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
+import org.springframework.core.codec.CodecException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -27,6 +28,10 @@ class ExceptionHandler {
             is InvalidRequestException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 InvalidRequestResponse(cause.message)
+            )
+            is CodecException -> generateErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                JsonParseErrorResponse(cause.message ?: "There has been a problem during JSON parsing")
             )
             is BadRequestDataException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,

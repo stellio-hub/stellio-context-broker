@@ -29,10 +29,6 @@ class ExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 InvalidRequestResponse(cause.message)
             )
-            is CodecException -> generateErrorResponse(
-                HttpStatus.BAD_REQUEST,
-                JsonParseErrorResponse(cause.message ?: "There has been a problem during JSON parsing")
-            )
             is BadRequestDataException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 BadRequestDataResponse(cause.message)
@@ -41,7 +37,7 @@ class ExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 JsonLdErrorResponse(cause.type.toString(), cause.message.orEmpty())
             )
-            is JsonParseException -> generateErrorResponse(
+            is JsonParseException, is CodecException -> generateErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 JsonParseErrorResponse(cause.message ?: "There has been a problem during JSON parsing")
             )

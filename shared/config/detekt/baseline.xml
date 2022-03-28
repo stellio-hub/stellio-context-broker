@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
-    <ID>ComplexMethod:ExceptionHandler.kt$ExceptionHandler$@ExceptionHandler fun transformErrorResponse(throwable: Throwable): ResponseEntity&lt;String&gt;</ID>
     <ID>LargeClass:NgsiLdEntityTests.kt$NgsiLdEntityTests</ID>
     <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdGeoPropertyInstance$( val coordinates: WKTCoordinates, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime? = null, datasetId: URI? = null, properties: List&lt;NgsiLdProperty&gt; = emptyList(), relationships: List&lt;NgsiLdRelationship&gt; = emptyList() )</ID>
     <ID>LongParameterList:NgsiLdEntity.kt$NgsiLdPropertyInstance$( val value: Any, val unitCode: String?, createdAt: ZonedDateTime?, modifiedAt: ZonedDateTime?, observedAt: ZonedDateTime?, datasetId: URI?, properties: List&lt;NgsiLdProperty&gt;, relationships: List&lt;NgsiLdRelationship&gt; )</ID>

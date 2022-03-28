@@ -35,6 +35,7 @@ object JsonUtils {
     fun String.deserializeAsMap(): Map<String, Any> =
         deserializeObject(this)
 
+    @SuppressWarnings("SwallowedException")
     fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
         try {
             mapper.readValue(

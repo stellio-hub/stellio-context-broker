@@ -46,6 +46,7 @@ class EntityOperationHandler(
             throw AccessDeniedException("User forbidden to create entities")
 
         val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         val (extractedEntities, _, ngsiLdEntities) =
@@ -95,6 +96,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
 
@@ -172,6 +174,7 @@ class EntityOperationHandler(
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
@@ -217,6 +220,7 @@ class EntityOperationHandler(
     suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
+        checkBatchRequestBody(body)
 
         val (existingEntities, unknownEntities) = entityOperationService
             .splitEntitiesIdsByExistence(body.toListOfUri())
@@ -245,6 +249,11 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         else
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
+    }
+
+    private fun checkBatchRequestBody(body: List<Any>) {
+        if (body.isEmpty())
+            throw BadRequestDataException("Batch request payload shall not be empty")
     }
 
     private fun expandAndPrepareBatchOfEntities(

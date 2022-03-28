@@ -8,6 +8,7 @@ import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.toListOfUri
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -491,7 +492,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa2"))
         )
         val entities = searchRepository.getEntities(
-            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), expandedType = "Beekeeper"),
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231".toUri()), expandedType = "Beekeeper"),
             sub,
             offset,
             limit,
@@ -513,7 +514,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper")
         )
         val entities = searchRepository.getEntities(
-            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231")),
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231".toUri())),
             sub,
             offset,
             limit,
@@ -538,7 +539,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper")
         )
         val entitiesCount = searchRepository.getEntities(
-            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231"), q = "createdAt>2021-07-10T00:00:00Z"),
+            QueryParams(id = listOf("urn:ngsi-ld:Beekeeper:1231".toUri()), q = "createdAt>2021-07-10T00:00:00Z"),
             sub,
             offset,
             limit,
@@ -595,7 +596,7 @@ class StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer {
         )
         val entities = searchRepository.getEntities(
             QueryParams(
-                id = listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232"),
+                id = listOf("urn:ngsi-ld:Beekeeper:1231", "urn:ngsi-ld:Beekeeper:1232").toListOfUri(),
                 expandedType = "Beekeeper"
             ),
             sub,

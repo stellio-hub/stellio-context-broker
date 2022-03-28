@@ -80,7 +80,7 @@ class EntityHandler(
             applicationProperties.pagination.limitMax,
             count
         )
-        val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")
+        val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()
         val type = params.getFirst(QUERY_PARAM_TYPE)
         val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
         val attrs = params.getFirst(QUERY_PARAM_ATTRS)

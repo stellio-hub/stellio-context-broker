@@ -60,7 +60,9 @@ fun buildContextLinkHeader(contextLink: String): String =
 
 fun checkAndGetContext(httpHeaders: HttpHeaders, body: Map<String, Any>): List<String> {
     checkContext(httpHeaders, body)
-    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
+        httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
+    ) {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         listOf(contextLink)
     } else {
@@ -80,7 +82,9 @@ fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>) =
     }
 
 fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>) {
-    if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+    if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
+        httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
+    ) {
         if (body.contains(JSONLD_CONTEXT))
             throw BadRequestDataException(
                 "Request payload must not contain @context term for a request having an application/json content type"

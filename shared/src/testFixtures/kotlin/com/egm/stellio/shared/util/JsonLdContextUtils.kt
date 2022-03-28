@@ -9,6 +9,7 @@ val APIC_COMPOUND_CONTEXT = "${JsonLdUtils.EGM_BASE_CONTEXT_URL}/apic/jsonld-con
 
 const val BEEHIVE_COMPACT_TYPE = "BeeHive"
 const val BEEHIVE_TYPE = "https://ontology.eglobalmark.com/apic#$BEEHIVE_COMPACT_TYPE"
+const val APIARY_COMPACT_TYPE = "Apiary"
 const val APIARY_TYPE = "https://ontology.eglobalmark.com/apic#Apiary"
 const val INCOMING_COMPACT_PROPERTY = "incoming"
 const val INCOMING_PROPERTY = "https://ontology.eglobalmark.com/apic#$INCOMING_COMPACT_PROPERTY"

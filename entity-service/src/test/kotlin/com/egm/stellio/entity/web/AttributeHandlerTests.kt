@@ -31,9 +31,6 @@ class AttributeHandlerTests {
 
     private val apicHeaderLink = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
-    private val temperature = "https://ontology.eglobalmark.com/apic#temperature"
-    private val deviceParameter = "https://ontology.eglobalmark.com/apic#deviceParameter"
-
     private val expectedAttributeDetails =
         """
             [
@@ -41,17 +38,13 @@ class AttributeHandlerTests {
                   "id":"https://ontology.eglobalmark.com/apic#temperature",
                   "type":"Attribute",
                   "attributeName":"temperature",
-                  "typeNames":[
-                     "https://ontology.eglobalmark.com/apic#Beehive"
-                  ]
+                  "typeNames":[ "BeeHive" ]
                },
                {
-                  "id":"https://ontology.eglobalmark.com/apic#deviceParameter",
+                  "id":"https://ontology.eglobalmark.com/apic#incoming",
                   "type":"Attribute",
-                  "attributeName":"deviceParameter",
-                  "typeNames":[
-                     "https://ontology.eglobalmark.com/apic#Beehive"
-                  ]
+                  "attributeName":"incoming",
+                  "typeNames":[ "BeeHive" ]
                }
             ]
         """.trimIndent()
@@ -63,7 +56,7 @@ class AttributeHandlerTests {
                "type":"Attribute",
                "attributeName": "temperature",
                "attributeTypes": ["Property"],
-               "typeNames": ["Beehive"],
+               "typeNames": ["BeeHive"],
                "attributeCount":2
             }
         """.trimIndent()
@@ -71,9 +64,7 @@ class AttributeHandlerTests {
     @Test
     fun `get attributes should return a 200 and an AttributeList`() {
         every { attributeService.getAttributeList(any()) } returns AttributeList(
-            attributeList = listOf(
-                "attributeService", "deviceParameter"
-            )
+            attributeList = listOf(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
         )
 
         webClient.get()
@@ -84,13 +75,14 @@ class AttributeHandlerTests {
             .expectBody()
             .jsonPath("$.id").isNotEmpty
             .jsonPath("$.type").isEqualTo("AttributeList")
-            .jsonPath("$.attributeList").isEqualTo(listOfNotNull("attributeService", "deviceParameter"))
+            .jsonPath("$.attributeList").isEqualTo(
+                listOfNotNull(INCOMING_COMPACT_PROPERTY, OUTGOING_COMPACT_PROPERTY)
+            )
 
         verify {
-            attributeService.getAttributeList(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
         }
+        confirmVerified()
     }
 
     @Test
@@ -108,28 +100,23 @@ class AttributeHandlerTests {
             .jsonPath("$.attributeList").isEmpty
 
         verify {
-            attributeService.getAttributeList(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            attributeService.getAttributeList(listOf(NGSILD_CORE_CONTEXT))
         }
+        confirmVerified()
     }
 
     @Test
     fun `get attribute should return a 200 and a list of Attributes if details param is true`() {
         every { attributeService.getAttributeDetails(any()) } returns listOf(
             AttributeDetails(
-                id = temperature.toUri(),
-                attributeName = "temperature",
-                typeNames = listOf(
-                    "https://ontology.eglobalmark.com/apic#Beehive"
-                )
+                id = TEMPERATURE_PROPERTY.toUri(),
+                attributeName = TEMPERATURE_COMPACT_PROPERTY,
+                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
             ),
             AttributeDetails(
-                id = deviceParameter.toUri(),
-                attributeName = "deviceParameter",
-                typeNames = listOf(
-                    "https://ontology.eglobalmark.com/apic#Beehive"
-                )
+                id = INCOMING_PROPERTY.toUri(),
+                attributeName = INCOMING_COMPACT_PROPERTY,
+                typeNames = setOf(BEEHIVE_COMPACT_TYPE)
             )
         )
 
@@ -141,10 +128,9 @@ class AttributeHandlerTests {
             .expectBody().json(expectedAttributeDetails)
 
         verify {
-            attributeService.getAttributeDetails(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
         }
+        confirmVerified()
     }
 
     @Test
@@ -159,15 +145,14 @@ class AttributeHandlerTests {
             .expectBody().json("[]")
 
         verify {
-            attributeService.getAttributeDetails(
-                listOf(NGSILD_CORE_CONTEXT)
-            )
+            attributeService.getAttributeDetails(listOf(NGSILD_CORE_CONTEXT))
         }
+        confirmVerified()
     }
 
     @Test
     fun `get attribute type information should return a 200 if attribute of that id exists`() {
-        every { attributeService.getAttributeTypeInfo(any()) } returns
+        every { attributeService.getAttributeTypeInfo(any(), NGSILD_CORE_CONTEXT) } returns
             mockkClass(AttributeTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -178,14 +163,16 @@ class AttributeHandlerTests {
 
         verify {
             attributeService.getAttributeTypeInfo(
-                "https://uri.etsi.org/ngsi-ld/default-context/temperature"
+                "https://uri.etsi.org/ngsi-ld/default-context/temperature",
+                NGSILD_CORE_CONTEXT
             )
         }
+        confirmVerified()
     }
 
     @Test
     fun `get attribute type information should search on attributes with the expanded id if provided`() {
-        every { attributeService.getAttributeTypeInfo(any()) } returns
+        every { attributeService.getAttributeTypeInfo(any(), NGSILD_CORE_CONTEXT) } returns
             mockkClass(AttributeTypeInfo::class, relaxed = true)
 
         webClient.get()
@@ -195,21 +182,20 @@ class AttributeHandlerTests {
             .expectStatus().isOk
 
         verify {
-            attributeService.getAttributeTypeInfo(
-                "https://ontology.eglobalmark.com/apic#temperature"
-            )
+            attributeService.getAttributeTypeInfo(TEMPERATURE_PROPERTY, NGSILD_CORE_CONTEXT)
         }
+        confirmVerified()
     }
 
     @Test
     fun `get attribute type information should correctly serialize an AttributeTypeInfo`() {
-        every { attributeService.getAttributeTypeInfo(any()) } returns
+        every { attributeService.getAttributeTypeInfo(any(), APIC_COMPOUND_CONTEXT) } returns
             AttributeTypeInfo(
-                id = "https://ontology.eglobalmark.com/apic#temperature".toUri(),
+                id = TEMPERATURE_PROPERTY.toUri(),
                 type = "Attribute",
-                attributeName = "temperature",
-                attributeTypes = listOf("Property"),
-                typeNames = listOf("Beehive"),
+                attributeName = TEMPERATURE_COMPACT_PROPERTY,
+                attributeTypes = setOf("Property"),
+                typeNames = setOf(BEEHIVE_COMPACT_TYPE),
                 attributeCount = 2
             )
 
@@ -222,15 +208,14 @@ class AttributeHandlerTests {
             .expectBody().json(expectedAttributeTypeInfo)
 
         verify {
-            attributeService.getAttributeTypeInfo(
-                "https://ontology.eglobalmark.com/apic#temperature"
-            )
+            attributeService.getAttributeTypeInfo(TEMPERATURE_PROPERTY, APIC_COMPOUND_CONTEXT)
         }
+        confirmVerified()
     }
 
     @Test
     fun `get attribute type information should return a 404 if no attribute of that id exists`() {
-        every { attributeService.getAttributeTypeInfo(any()) } returns null
+        every { attributeService.getAttributeTypeInfo(any(), NGSILD_CORE_CONTEXT) } returns null
 
         webClient.get()
             .uri("/ngsi-ld/v1/attributes/unknown")

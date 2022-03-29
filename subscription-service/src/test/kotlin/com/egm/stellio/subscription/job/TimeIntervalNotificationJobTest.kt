@@ -89,7 +89,7 @@ class TimeIntervalNotificationJobTest {
             EntityInfo(
                 id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
                 idPattern = ".*FishContainment.*",
-                type = "FishContainment"
+                type = "https://uri.fiware.org/ns/data-models#FishContainment"
             )
         )
         val q = "speed>50;foodName==dietary fibres"
@@ -97,25 +97,25 @@ class TimeIntervalNotificationJobTest {
         assertEquals(
             "?type=FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(0), q)
         )
         assertEquals(
             "?type=FishContainment" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(1), q)
         )
         assertEquals(
             "?type=FishContainment" +
                 "&idPattern=.*FishContainment.*" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(2), q)
         )
         assertEquals(
-            "?type=FishContainment" +
+            "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
                 "&idPattern=.*FishContainment.*" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(3), q)
         )
     }

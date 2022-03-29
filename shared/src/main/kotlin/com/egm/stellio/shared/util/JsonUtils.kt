@@ -1,6 +1,8 @@
 package com.egm.stellio.shared.util
 
+import com.egm.stellio.shared.model.InvalidRequestException
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter
@@ -19,20 +21,39 @@ object JsonUtils {
     inline fun <reified T> deserializeAs(content: String): T =
         mapper.readValue(content, T::class.java)
 
+    @SuppressWarnings("SwallowedException")
     fun deserializeObject(input: String): Map<String, Any> =
-        mapper.readValue(
-            input,
-            mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
-        )
+        try {
+            mapper.readValue(
+                input,
+                mapper.typeFactory.constructMapLikeType(Map::class.java, String::class.java, Any::class.java)
+            )
+        } catch (e: JsonProcessingException) {
+            throw InvalidRequestException(e.message!!)
+        }
 
+    fun String.deserializeAsMap(): Map<String, Any> =
+        deserializeObject(this)
+
+    @SuppressWarnings("SwallowedException")
     fun deserializeListOfObjects(input: String): List<Map<String, Any>> =
-        mapper.readValue(
-            input,
-            mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
-        )
+        try {
+            mapper.readValue(
+                input,
+                mapper.typeFactory.constructCollectionType(MutableList::class.java, Map::class.java)
+            )
+        } catch (e: JsonProcessingException) {
+            throw InvalidRequestException(e.message!!)
+        }
+
+    fun String.deserializeAsList(): List<Map<String, Any>> =
+        deserializeListOfObjects(this)
 
     fun serializeObject(input: Any): String =
         mapper.writeValueAsString(input)
+
+    fun Map<String, Any>.serialize(): String =
+        mapper.writeValueAsString(this)
 
     fun serializeObject(
         input: Any,

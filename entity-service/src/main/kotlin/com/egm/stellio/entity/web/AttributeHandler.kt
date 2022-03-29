@@ -17,7 +17,6 @@ class AttributeHandler(
     /**
      * Implements 6.27 - Retrieve Available Attributes
      */
-
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAttributes(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -46,9 +45,9 @@ class AttributeHandler(
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val expandedType = JsonLdUtils.expandJsonLdKey(attrId.decode(), contextLink)!!
+        val expandedType = JsonLdUtils.expandJsonLdTerm(attrId.decode(), contextLink)!!
 
-        val attributeTypeInfo = attributeService.getAttributeTypeInfo(expandedType)
+        val attributeTypeInfo = attributeService.getAttributeTypeInfo(expandedType, contextLink)
             ?: throw ResourceNotFoundException("No information found for attribute $expandedType")
 
         return buildGetSuccessResponse(mediaType, contextLink)

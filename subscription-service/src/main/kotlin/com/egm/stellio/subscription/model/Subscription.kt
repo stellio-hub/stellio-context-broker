@@ -25,6 +25,7 @@ data class Subscription(
     val description: String? = null,
     val entities: Set<EntityInfo>,
     val watchedAttributes: List<String>? = null,
+    val timeInterval: Int? = null,
     val q: String? = null,
     val geoQ: GeoQuery? = null,
     val notification: NotificationParams,
@@ -33,10 +34,10 @@ data class Subscription(
 ) {
     fun expandTypes(context: List<String>) {
         this.entities.forEach {
-            it.type = JsonLdUtils.expandJsonLdKey(it.type, context)!!
+            it.type = JsonLdUtils.expandJsonLdTerm(it.type, context)!!
         }
         this.notification.attributes = this.notification.attributes?.map {
-            JsonLdUtils.expandJsonLdKey(it, context)!!
+            JsonLdUtils.expandJsonLdTerm(it, context)!!
         }
     }
 

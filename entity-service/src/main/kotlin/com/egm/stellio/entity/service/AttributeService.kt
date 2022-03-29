@@ -18,24 +18,27 @@ class AttributeService(
 
     fun getAttributeDetails(contexts: List<String>): List<AttributeDetails> =
         neo4jRepository.getAttributesDetails().map {
-            val attribute = (it["attribute"] as String)
+            val attribute = it["attribute"] as String
             AttributeDetails(
                 id = attribute.toUri(),
                 attributeName = compactTerm(attribute, contexts),
-                typeNames = (it["typeNames"] as Set<String>).toList().map { compactTerm(it, contexts) }
+                typeNames = (it["typeNames"] as Set<String>).compactElements(contexts)
             )
         }
 
-    fun getAttributeTypeInfo(expandedType: String): AttributeTypeInfo? {
+    fun getAttributeTypeInfo(expandedType: String, context: String): AttributeTypeInfo? {
         val attributesInformation = neo4jRepository.getAttributeInformation(expandedType)
         if (attributesInformation.isEmpty()) return null
 
         return AttributeTypeInfo(
             id = expandedType.toUri(),
-            attributeName = attributesInformation["attributeName"] as String,
-            attributeTypes = attributesInformation["attributeTypes"] as List<String>,
-            typeNames = attributesInformation["typeNames"] as List<String>,
+            attributeName = compactTerm(attributesInformation["attributeName"] as String, listOf(context)),
+            attributeTypes = attributesInformation["attributeTypes"] as Set<String>,
+            typeNames = (attributesInformation["typeNames"] as Set<String>).compactElements(listOf(context)),
             attributeCount = attributesInformation["attributeCount"] as Int
         )
     }
+
+    private fun Set<String>.compactElements(contexts: List<String>): Set<String> =
+        this.map { compactTerm(it, contexts) }.toSet()
 }

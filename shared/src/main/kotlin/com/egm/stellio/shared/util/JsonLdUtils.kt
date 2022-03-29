@@ -5,16 +5,17 @@ import arrow.core.flatMap
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_TERM
 import com.egm.stellio.shared.util.JsonLdUtils.logger
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeListOfObjects
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.fasterxml.jackson.core.JsonParseException
 import com.github.jsonldjava.core.JsonLdError
 import com.github.jsonldjava.core.JsonLdOptions
 import com.github.jsonldjava.core.JsonLdProcessor
-import com.github.jsonldjava.utils.JsonUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
@@ -57,6 +58,7 @@ object JsonLdUtils {
     const val NGSILD_MODIFIED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/modifiedAt"
     const val NGSILD_OBSERVED_AT_PROPERTY = "https://uri.etsi.org/ngsi-ld/observedAt"
     const val NGSILD_UNIT_CODE_PROPERTY = "https://uri.etsi.org/ngsi-ld/unitCode"
+    const val NGSILD_LOCATION_TERM = "location"
     const val NGSILD_LOCATION_PROPERTY = "https://uri.etsi.org/ngsi-ld/location"
     const val NGSILD_COORDINATES_PROPERTY = "https://uri.etsi.org/ngsi-ld/coordinates"
     const val NGSILD_INSTANCE_ID_PROPERTY = "https://uri.etsi.org/ngsi-ld/instanceId"
@@ -67,7 +69,6 @@ object JsonLdUtils {
     const val NGSILD_TIME_TYPE = "https://uri.etsi.org/ngsi-ld/Time"
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
-    const val EGM_RAISED_NOTIFICATION = "https://ontology.eglobalmark.com/egm#raised"
 
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
@@ -85,29 +86,92 @@ object JsonLdUtils {
     private fun addCoreContext(contexts: List<String>): List<Any> =
         contexts.plus(BASE_CONTEXT)
 
-    fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity {
-        val usedContext = addCoreContext(contexts)
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
+    private fun defaultJsonLdOptions(contexts: List<String>): JsonLdOptions =
+        JsonLdOptions()
+            .apply {
+                expandContext = mapOf(JSONLD_CONTEXT to addCoreContext(contexts))
+            }
 
-        return JsonLdEntity(parseAndExpandJsonLdFragment(input, jsonLdOptions), contexts)
-    }
+    fun expandJsonLdEntity(input: Map<String, Any>, contexts: List<String>): JsonLdEntity =
+        JsonLdEntity(doJsonLdExpansion(input, contexts), contexts)
+
+    fun expandJsonLdEntity(input: String, contexts: List<String>): JsonLdEntity =
+        expandJsonLdEntity(input.deserializeAsMap(), contexts)
 
     fun expandJsonLdEntity(input: String): JsonLdEntity {
-        // TODO find a way to avoid this extra parsing
-        return JsonLdEntity(parseAndExpandJsonLdFragment(input), extractContextFromInput(input))
+        val jsonInput = input.deserializeAsMap()
+        return expandJsonLdEntity(jsonInput, extractContextFromInput(jsonInput))
     }
 
-    fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> {
-        return entities.map {
-            expandJsonLdEntity(serializeObject(it))
+    fun expandJsonLdEntities(entities: List<Map<String, Any>>): List<JsonLdEntity> =
+        entities.map {
+            expandJsonLdEntity(it, extractContextFromInput(it))
         }
+
+    fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> =
+        entities.map {
+            expandJsonLdEntity(it, contexts)
+        }
+
+    fun expandJsonLdTerm(term: String, context: String): String? =
+        expandJsonLdTerm(term, listOf(context))
+
+    fun expandJsonLdTerm(term: String, contexts: List<String>): String? {
+        val expandedType = JsonLdProcessor.expand(mapOf(term to mapOf<String, Any>()), defaultJsonLdOptions(contexts))
+        logger.debug("Expanded type $term to $expandedType")
+        return if (expandedType.isNotEmpty())
+            (expandedType[0] as Map<String, Any>).keys.first()
+        else
+            null
     }
 
-    fun expandJsonLdEntities(entities: List<Map<String, Any>>, contexts: List<String>): List<JsonLdEntity> {
-        return entities.map {
-            expandJsonLdEntity(serializeObject(it), contexts)
+    fun expandJsonLdFragment(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> =
+        doJsonLdExpansion(fragment, contexts)
+
+    fun expandJsonLdFragment(
+        attributeName: String,
+        attributePayload: Map<String, Any>,
+        contexts: List<String>
+    ): Map<String, List<Map<String, List<Any>>>> =
+        expandJsonLdFragment(mapOf(attributeName to attributePayload), contexts)
+            as Map<String, List<Map<String, List<Any>>>>
+
+    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> =
+        expandJsonLdFragment(fragment.deserializeAsMap(), contexts)
+
+    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
+        return expandJsonLdFragment(fragment, listOf(context))
+    }
+
+    fun expandJsonLdFragment(
+        attributeName: String,
+        attributePayload: String,
+        contexts: List<String>
+    ): Map<String, List<Map<String, List<Any>>>> =
+        expandJsonLdFragment(mapOf(attributeName to deserializeAs(attributePayload)), contexts)
+            as Map<String, List<Map<String, List<Any>>>>
+
+    private fun doJsonLdExpansion(fragment: Map<String, Any>, contexts: List<String>): Map<String, Any> {
+        // transform the GeoJSON value of geo properties into WKT format before JSON-LD expansion
+        // since JSON-LD expansion breaks the data (e.g., flattening the lists of lists)
+        val parsedFragment = geoPropertyToWKT(fragment)
+
+        val usedContext = addCoreContext(contexts)
+        val jsonLdOptions = JsonLdOptions().apply { expandContext = mapOf(JSONLD_CONTEXT to usedContext) }
+
+        val expandedFragment = try {
+            // ensure there is no @context in the payload since it overrides the one from JsonLdOptions
+            JsonLdProcessor.expand(parsedFragment.minus(JSONLD_CONTEXT), jsonLdOptions)
+        } catch (e: JsonLdError) {
+            if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
+                throw LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
+            else
+                throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
         }
+        if (expandedFragment.isEmpty())
+            throw BadRequestDataException("Unable to expand input payload")
+
+        return expandedFragment[0] as Map<String, Any>
     }
 
     fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
@@ -146,21 +210,8 @@ object JsonLdUtils {
             emptyList()
     }
 
-    fun extractContextFromInput(input: String): List<String> {
-        val parsedInput = deserializeObject(input)
-        return extractContextFromInput(parsedInput)
-    }
-
-    fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> {
-        return if (input.containsKey(JSONLD_CONTEXT))
-            input.minus(JSONLD_CONTEXT)
-        else input
-    }
-
-    fun removeContextFromInput(input: String): String {
-        val parsedInput = deserializeObject(input)
-        return serializeObject(removeContextFromInput(parsedInput))
-    }
+    fun removeContextFromInput(input: Map<String, Any>): Map<String, Any> =
+        input.minus(JSONLD_CONTEXT)
 
     fun expandValueAsMap(value: Any): Map<String, List<Any>> =
         (value as List<Any>)[0] as Map<String, List<Any>>
@@ -255,39 +306,6 @@ object JsonLdUtils {
             }
     }
 
-    fun expandJsonLdKey(type: String, context: String): String? =
-        expandJsonLdKey(type, listOf(context))
-
-    fun expandJsonLdKey(type: String, contexts: List<String>): String? {
-        val usedContext = addCoreContext(contexts)
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
-        val expandedType = JsonLdProcessor.expand(mapOf(type to mapOf<String, Any>()), jsonLdOptions)
-        logger.debug("Expanded type $type to $expandedType")
-        return if (expandedType.isNotEmpty())
-            (expandedType[0] as Map<String, Any>).keys.first()
-        else
-            null
-    }
-
-    fun expandJsonLdFragment(fragment: Map<String, Map<String, Any>>, contexts: List<String>): Map<String, Any> {
-        val usedContext = addCoreContext(contexts)
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
-        return parseAndExpandJsonLdFragment(serializeObject(fragment), jsonLdOptions)
-    }
-
-    fun expandJsonLdFragment(fragment: String, contexts: List<String>): Map<String, Any> {
-        val usedContext = addCoreContext(contexts)
-        val jsonLdOptions = JsonLdOptions()
-        jsonLdOptions.expandContext = mapOf(JSONLD_CONTEXT to usedContext)
-        return parseAndExpandJsonLdFragment(fragment, jsonLdOptions)
-    }
-
-    fun expandJsonLdFragment(fragment: String, context: String): Map<String, Any> {
-        return expandJsonLdFragment(fragment, listOf(context))
-    }
-
     /**
      * Compact a term (type, attribute name, ...) using the provided context.
      */
@@ -322,6 +340,14 @@ object JsonLdUtils {
             ((expandedType[0] as? Map<*, *>)?.containsKey(NGSILD_DATASET_ID_PROPERTY) ?: false)
     }
 
+    private fun restoreGeoPropertyValue(): (Map.Entry<String, Any>) -> Any = {
+        if (it.key == NGSILD_LOCATION_TERM) {
+            val locationValues = it.value as MutableMap<String, Any>
+            locationValues[JSONLD_VALUE] = wktToGeoJson(locationValues[JSONLD_VALUE] as String)
+            locationValues
+        } else it.value
+    }
+
     fun compact(
         jsonLdEntity: JsonLdEntity,
         context: String? = null,
@@ -339,10 +365,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to contexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to contexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compact(
@@ -364,10 +392,12 @@ object JsonLdUtils {
         return if (mediaType == MediaType.APPLICATION_JSON)
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
+                .mapValues(restoreGeoPropertyValue())
         else
             JsonLdProcessor.compact(jsonLdEntity.properties, mapOf(JSONLD_CONTEXT to allContexts), JsonLdOptions())
                 .minus(JSONLD_CONTEXT)
                 .plus(JSONLD_CONTEXT to allContexts)
+                .mapValues(restoreGeoPropertyValue())
     }
 
     fun compactEntities(
@@ -440,38 +470,6 @@ object JsonLdUtils {
                 else it.toUri().right()
             }
     }
-
-    fun parseAndExpandAttributeFragment(attributeName: String, attributePayload: String, contexts: List<String>):
-        Map<String, List<Map<String, List<Any>>>> =
-        expandJsonLdFragment(
-            serializeObject(mapOf(attributeName to deserializeAs<Any>(attributePayload))),
-            contexts
-        ) as Map<String, List<Map<String, List<Any>>>>
-
-    fun reconstructPolygonCoordinates(compactedJsonLdEntity: MutableMap<String, Any>) =
-        compactedJsonLdEntity
-            .filterValues { it is Map<*, *> }
-            .filterValues {
-                it as Map<String, Any>
-                it["type"] == "GeoProperty"
-            }.filterValues {
-                it as Map<String, Any>
-                (it["value"] as Map<String, Any>)["type"] == GeoPropertyType.Polygon.value
-            }.forEach {
-                val geoPropertyValue = (it.value as Map<String, Any>)["value"] as Map<String, Any>
-                val geoPropertyCoordinates = geoPropertyValue["coordinates"] as List<Any>
-
-                compactedJsonLdEntity.replace(
-                    it.key,
-                    mapOf(
-                        "type" to "GeoProperty",
-                        "value" to mapOf(
-                            "type" to "Polygon",
-                            "coordinates" to geoPropertyCoordinates.chunked(2)
-                        )
-                    )
-                )
-            }
 }
 
 fun String.extractShortTypeFromExpanded(): String =
@@ -509,28 +507,15 @@ private fun simplifyValue(value: Map<*, *>): Any {
     }
 }
 
-fun parseAndExpandJsonLdFragment(fragment: String, jsonLdOptions: JsonLdOptions? = null): Map<String, Any> {
-    val parsedFragment = try {
-        JsonUtils.fromInputStream(fragment.byteInputStream())
-    } catch (e: JsonParseException) {
-        throw InvalidRequestException("Unexpected error while parsing payload : ${e.message}")
-    }
-    val expandedFragment = try {
-        if (jsonLdOptions != null)
-            JsonLdProcessor.expand(parsedFragment, jsonLdOptions)
-        else
-            JsonLdProcessor.expand(parsedFragment)
-    } catch (e: JsonLdError) {
-        if (e.type == JsonLdError.Error.LOADING_REMOTE_CONTEXT_FAILED)
-            throw LdContextNotAvailableException("Unable to load remote context (cause was: $e)")
-        else
-            throw BadRequestDataException("Unexpected error while parsing payload (cause was: $e)")
-    }
-    if (expandedFragment.isEmpty())
-        throw BadRequestDataException("Unable to parse input payload")
-
-    return expandedFragment[0] as Map<String, Any>
-}
+fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> =
+    if (jsonFragment.containsKey(NGSILD_LOCATION_TERM)) {
+        val locationAttribute = (jsonFragment[NGSILD_LOCATION_TERM] as MutableMap<String, Any>)
+        val geoJsonAsString = locationAttribute[JSONLD_VALUE]
+        val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
+        logger.debug("Transformed GeoJSON value into WKT: $wktGeom")
+        locationAttribute[JSONLD_VALUE] = wktGeom
+        jsonFragment
+    } else jsonFragment
 
 fun extractAttributeInstanceFromCompactedEntity(
     compactedJsonLdEntity: CompactedJsonLdEntity,

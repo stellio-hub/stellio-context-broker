@@ -5,10 +5,9 @@ import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntities
 import com.egm.stellio.shared.util.JsonLdUtils.extractContextFromInput
-import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.JsonUtils.deserializeAsList
 import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
@@ -45,11 +44,12 @@ class EntityOperationHandler(
         if (!authorizationService.userCanCreateEntities(sub))
             throw AccessDeniedException("User forbidden to create entities")
 
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         val (extractedEntities, _, ngsiLdEntities) =
-            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
         val batchOperationResult = entityOperationService.create(newEntities)
 
@@ -94,12 +94,13 @@ class EntityOperationHandler(
         @RequestParam(required = false) options: String?
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
 
         val (extractedEntities, jsonLdEntities, ngsiLdEntities) =
-            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val createBatchOperationResult = when {
@@ -171,13 +172,14 @@ class EntityOperationHandler(
         @RequestParam options: Optional<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val body = requestBody.awaitFirst()
+        val body = requestBody.awaitFirst().deserializeAsList()
+        checkBatchRequestBody(body)
         checkContext(httpHeaders, body)
         val context = getContextFromLinkHeader(httpHeaders.getOrEmpty(HttpHeaders.LINK))
         val disallowOverwrite = options.map { it == QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE }.orElse(false)
 
         val (_, jsonLdEntities, ngsiLdEntities) =
-            extractAndParseBatchOfEntities(body, context, httpHeaders.contentType)
+            expandAndPrepareBatchOfEntities(body, context, httpHeaders.contentType)
         val (existingEntities, newEntities) = entityOperationService.splitEntitiesByExistence(ngsiLdEntities)
 
         val existingEntitiesIdsAuthorized =
@@ -217,6 +219,7 @@ class EntityOperationHandler(
     suspend fun delete(@RequestBody requestBody: Mono<List<String>>): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
         val body = requestBody.awaitFirst()
+        checkBatchRequestBody(body)
 
         val (existingEntities, unknownEntities) = entityOperationService
             .splitEntitiesIdsByExistence(body.toListOfUri())
@@ -247,34 +250,23 @@ class EntityOperationHandler(
             ResponseEntity.status(HttpStatus.MULTI_STATUS).body(batchOperationResult)
     }
 
-    private fun extractAndParseBatchOfEntities(
-        payload: String,
+    private fun checkBatchRequestBody(body: List<Any>) {
+        if (body.isEmpty())
+            throw BadRequestDataException("Batch request payload shall not be empty")
+    }
+
+    private fun expandAndPrepareBatchOfEntities(
+        payload: List<Map<String, Any>>,
         context: String?,
         contentType: MediaType?
-    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> {
-        val rawEntities = JsonUtils.deserializeListOfObjects(payload)
-        if (contentType == JSON_LD_MEDIA_TYPE && rawEntities.any { !it.containsKey(JSONLD_CONTEXT) })
-            throw BadRequestDataException(
-                "One or more entities do not contain an @context and the request Content-Type is application/ld+json"
-            )
-
-        val jsonldRawEntities =
-            if (contentType == JSON_LD_MEDIA_TYPE) rawEntities
-            else
-                rawEntities.map { rawEntity ->
-                    val jsonldRawEntity = rawEntity.toMutableMap()
-                    jsonldRawEntity.putIfAbsent(JSONLD_CONTEXT, listOf(context))
-                    jsonldRawEntity
-                }
-
-        return jsonldRawEntities.let {
+    ): Triple<List<Map<String, Any>>, List<JsonLdEntity>, List<NgsiLdEntity>> =
+        payload.let {
             if (contentType == JSON_LD_MEDIA_TYPE)
                 Pair(it, expandJsonLdEntities(it))
             else
-                Pair(it, expandJsonLdEntities(it, listOf(context!!)))
+                Pair(it, expandJsonLdEntities(it, listOf(context ?: JsonLdUtils.NGSILD_CORE_CONTEXT)))
         }
             .let { Triple(it.first, it.second, it.second.map { it.toNgsiLdEntity() }) }
-    }
 
     private fun publishReplaceEvents(
         sub: String?,
@@ -283,12 +275,12 @@ class EntityOperationHandler(
         ngsiLdEntities: List<NgsiLdEntity>
     ) = ngsiLdEntities.filter { it.id in updateBatchOperationResult.getSuccessfulEntitiesIds() }
         .forEach {
-            val entityPayload = serializeObject(extractEntityPayloadById(extractedEntities, it.id))
+            val contexts = extractContextFromInput(extractEntityPayloadById(extractedEntities, it.id))
             entityEventService.publishEntityReplaceEvent(
                 sub,
                 it.id,
                 it.type,
-                extractContextFromInput(entityPayload)
+                contexts
             )
         }
 

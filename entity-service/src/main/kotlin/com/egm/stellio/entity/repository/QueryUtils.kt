@@ -12,7 +12,8 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import java.net.URI
 import java.util.regex.Pattern
 
 object QueryUtils {
@@ -124,7 +125,7 @@ object QueryUtils {
         else
             "$prefix (entity:`$expandedType`)"
 
-    private fun buildIdClause(id: List<String>?): String {
+    private fun buildIdClause(id: List<URI>?): String {
         return if (id != null) {
             val formattedIds = id.map { "'$it'" }
             " entity.id in $formattedIds "
@@ -168,7 +169,7 @@ object QueryUtils {
                     """
                        EXISTS {
                            MATCH (entity)-[:HAS_VALUE]->(p:Property)
-                           WHERE p.name = '${expandJsonLdKey(comparablePropertyPath[0], contexts)!!}'
+                           WHERE p.name = '${expandJsonLdTerm(comparablePropertyPath[0], contexts)!!}'
                            AND p.$comparablePropertyName ${parsedQueryTerm.second} $comparableValue
                        }
                     """.trimIndent()

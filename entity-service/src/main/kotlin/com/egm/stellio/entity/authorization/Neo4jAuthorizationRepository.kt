@@ -70,14 +70,19 @@ class Neo4jAuthorizationRepository(
             MATCH (entity:Entity)
             WHERE entity.id IN ${'$'}entitiesId
             WITH userEntity, entity
-            MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
-            WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
-            return entity.id as id
-            UNION
-            MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
-                [:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
-            WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
-            return entity.id as id
+            CALL {
+                WITH userEntity, entity
+                MATCH (userEntity)-[:HAS_OBJECT]->(right:Attribute:Relationship)-[]->(entity:Entity)
+                WHERE size([label IN labels(right) WHERE label IN ${'$'}rights]) > 0
+                return entity.id as id
+                UNION
+                WITH userEntity, entity
+                MATCH (userEntity)-[:HAS_OBJECT]->(:Attribute:Relationship)-
+                    [:isMemberOf]->(:Entity)-[:HAS_OBJECT]-(grpRight:Attribute:Relationship)-[]->(entity:Entity)
+                WHERE size([label IN labels(grpRight) WHERE label IN ${'$'}rights]) > 0
+                return entity.id as id
+            }
+            RETURN id
             """.trimIndent()
 
         val parameters = mapOf(

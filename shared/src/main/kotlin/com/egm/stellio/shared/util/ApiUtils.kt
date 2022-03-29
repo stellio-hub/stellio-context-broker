@@ -58,9 +58,11 @@ fun getContextFromLinkHeader(linkHeader: List<String>): String? {
 fun buildContextLinkHeader(contextLink: String): String =
     "<$contextLink>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\""
 
-fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
+fun checkAndGetContext(httpHeaders: HttpHeaders, body: Map<String, Any>): List<String> {
     checkContext(httpHeaders, body)
-    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+    return if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
+        httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
+    ) {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         listOf(contextLink)
     } else {
@@ -74,8 +76,15 @@ fun checkAndGetContext(httpHeaders: HttpHeaders, body: String): List<String> {
     }
 }
 
-fun checkContext(httpHeaders: HttpHeaders, body: String) {
-    if (httpHeaders.contentType == MediaType.APPLICATION_JSON) {
+fun checkContext(httpHeaders: HttpHeaders, body: List<Map<String, Any>>) =
+    body.forEach {
+        checkContext(httpHeaders, it)
+    }
+
+fun checkContext(httpHeaders: HttpHeaders, body: Map<String, Any>) {
+    if (httpHeaders.contentType == MediaType.APPLICATION_JSON ||
+        httpHeaders.contentType == MediaType.valueOf(JSON_MERGE_PATCH_CONTENT_TYPE)
+    ) {
         if (body.contains(JSONLD_CONTEXT))
             throw BadRequestDataException(
                 "Request payload must not contain @context term for a request having an application/json content type"
@@ -112,7 +121,7 @@ fun parseRequestParameter(requestParam: String?): Set<String> =
 fun parseAndExpandRequestParameter(requestParam: String?, contextLink: String): Set<String> =
     parseRequestParameter(requestParam)
         .map {
-            JsonLdUtils.expandJsonLdKey(it.trim(), contextLink)!!
+            JsonLdUtils.expandJsonLdTerm(it.trim(), contextLink)!!
         }.toSet()
 
 fun extractAndValidatePaginationParameters(
@@ -147,10 +156,11 @@ fun List<MediaType>.getApplicable(): MediaType {
     val mediaType = this.find {
         it.includes(MediaType.APPLICATION_JSON) || it.includes(JSON_LD_MEDIA_TYPE)
     } ?: throw NotAcceptableStatusException(listOf(MediaType.APPLICATION_JSON, JSON_LD_MEDIA_TYPE))
-    return if (mediaType.includes(JSON_LD_MEDIA_TYPE))
-        JSON_LD_MEDIA_TYPE
-    else
+    // as per 6.3.4, application/json has a higher precedence than application/ld+json
+    return if (mediaType.includes(MediaType.APPLICATION_JSON))
         MediaType.APPLICATION_JSON
+    else
+        JSON_LD_MEDIA_TYPE
 }
 
 fun buildGetSuccessResponse(mediaType: MediaType, contextLink: String): ResponseEntity.BodyBuilder {

@@ -10,7 +10,7 @@ import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
 import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.parseAndExpandAttributeFragment
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -57,7 +57,7 @@ class ObservationEventListener(
     }
 
     fun handleAttributeUpdateEvent(observationEvent: AttributeUpdateEvent) {
-        val expandedPayload = parseAndExpandAttributeFragment(
+        val expandedPayload = expandJsonLdFragment(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts
@@ -93,7 +93,7 @@ class ObservationEventListener(
     }
 
     fun handleAttributeAppendEvent(observationEvent: AttributeAppendEvent) {
-        val expandedPayload = parseAndExpandAttributeFragment(
+        val expandedPayload = expandJsonLdFragment(
             observationEvent.attributeName,
             observationEvent.operationPayload,
             observationEvent.contexts

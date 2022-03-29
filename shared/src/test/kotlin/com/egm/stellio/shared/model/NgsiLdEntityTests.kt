@@ -617,13 +617,13 @@ class NgsiLdEntityTests {
                     "type": "GeoProperty",
                     "value": {
                         "type": "Polygon",
-                        "coordinates": [
+                        "coordinates": [[
                             [100.0, 0.0],
                             [101.0, 0.0], 
                             [101.0, 1.0],
                             [100.0, 1.0],
                             [100.0, 0.0]
-                        ]
+                        ]]
                     }
                 }
             }
@@ -636,17 +636,59 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location!!.instances.size)
         val locationInstance = location.instances[0]
-        assertEquals("Polygon", locationInstance.geoPropertyType.value)
-        val coordinates = listOf(
-            listOf(100.0, 0.0),
-            listOf(101.0, 0.0),
-            listOf(101.0, 1.0),
-            listOf(100.0, 1.0),
-            listOf(100.0, 0.0)
-        )
-        assertEquals(coordinates, locationInstance.coordinates)
+        assertEquals("POLYGON ((100 0, 101 0, 101 1, 100 1, 100 0))", locationInstance.coordinates.value)
         assertNull(locationInstance.createdAt)
         assertNull(locationInstance.modifiedAt)
+    }
+
+    @Test
+    fun `it should parse an entity with a MultiPolygon location`() {
+        val rawEntity =
+            """
+            {
+                "id":"urn:ngsi-ld:Device:01234",
+                "type":"Device",
+                "location": {
+                    "type": "GeoProperty",
+                    "value": {
+                        "type": "MultiPolygon",
+                        "coordinates": [[
+                            [
+                                [703459.5, 114441.8],
+                                [703494.3, 114477.6],
+                                [703709.8, 114268.8],
+                                [703675, 114232.8],
+                                [703459.5, 114441.8]
+                            ],
+                            [
+                                [703458.5, 114441.8],
+                                [703494.3, 114477.6],
+                                [703709.8, 114268.8],
+                                [703675, 114232.8],
+                                [703458.5, 114441.8]
+                            ]
+                        ]] 
+                    }
+                }
+            }
+            """.trimIndent()
+
+        val ngsiLdEntity = expandJsonLdEntity(rawEntity, DEFAULT_CONTEXTS).toNgsiLdEntity()
+
+        val location = ngsiLdEntity.getLocation()
+        assertNotNull(location)
+        assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
+        assertEquals(1, location!!.instances.size)
+        val locationInstance = location.instances[0]
+        assertEquals(
+            """
+            MULTIPOLYGON ((
+            (703459.5 114441.8, 703494.3 114477.6, 703709.8 114268.8, 703675 114232.8, 703459.5 114441.8), 
+            (703458.5 114441.8, 703494.3 114477.6, 703709.8 114268.8, 703675 114232.8, 703458.5 114441.8)
+            ))
+            """.trimIndent().replace("\n", ""),
+            locationInstance.coordinates.value
+        )
     }
 
     @Test
@@ -676,8 +718,7 @@ class NgsiLdEntityTests {
         assertEquals("https://uri.etsi.org/ngsi-ld/location", location?.name)
         assertEquals(1, location!!.instances.size)
         val locationInstance = location.instances[0]
-        assertEquals("Point", locationInstance.geoPropertyType.value)
-        assertEquals(listOf(24.30623, 60.07966), locationInstance.coordinates)
+        assertEquals("POINT (24.30623 60.07966)", locationInstance.coordinates.value)
     }
 
     @Test
@@ -753,26 +794,5 @@ class NgsiLdEntityTests {
             listOf(targetRelationshipUri, targetRelationshipUri2)
                 .containsAll(expandedEntity.getLinkedEntitiesIds())
         )
-    }
-
-    @Test
-    fun `it should correctly transform a Point to WKT format`() {
-        val formattedPoint = NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
-        assertEquals("POINT (24.30623 60.07966)", formattedPoint)
-    }
-
-    @Test
-    fun `it should correctly transform a Polygon to WKT format`() {
-        val wktFormattedPolygon = NgsiLdGeoPropertyInstance.toWktFormat(
-            GeoPropertyType.Polygon,
-            listOf(
-                listOf(100.0, 0.0),
-                listOf(101.0, 0.0),
-                listOf(101.0, 1.0),
-                listOf(100.0, 1.0),
-                listOf(100.0, 0.0)
-            )
-        )
-        assertEquals("POLYGON ((100.0 0.0, 101.0 0.0, 101.0 1.0, 100.0 1.0, 100.0 0.0))", wktFormattedPolygon)
     }
 }

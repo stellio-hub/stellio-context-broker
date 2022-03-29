@@ -86,14 +86,11 @@ class ApiUtilsTests {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
-        val jsonLdInput =
-            """
-                {
-                    "id": "urn:ngsi-ld:Building:farm001",
-                    "type": "Building",
-                    "@context": "https://fiware.github.io/data-models/context.jsonld"
-                }
-            """
+        val jsonLdInput = mapOf(
+            "id" to "urn:ngsi-ld:Building:farm001",
+            "type" to "Building",
+            "@context" to "https://fiware.github.io/data-models/context.jsonld"
+        )
 
         val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
         assertEquals(1, contexts.size)
@@ -105,17 +102,14 @@ class ApiUtilsTests {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
-        val jsonLdInput =
-            """
-                {
-                    "id": "urn:ngsi-ld:Building:farm001",
-                    "type": "Building",
-                    "@context": [
-                        "https://fiware.github.io/data-models/context.jsonld",
-                        "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-                    ]
-                }
-            """
+        val jsonLdInput = mapOf(
+            "id" to "urn:ngsi-ld:Building:farm001",
+            "type" to "Building",
+            "@context" to listOf(
+                "https://fiware.github.io/data-models/context.jsonld",
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+            )
+        )
 
         val contexts = checkAndGetContext(httpHeaders, jsonLdInput)
         assertEquals(2, contexts.size)
@@ -134,13 +128,10 @@ class ApiUtilsTests {
         val httpHeaders = HttpHeaders().apply {
             set("Content-Type", "application/ld+json")
         }
-        val jsonLdInput =
-            """
-                {
-                    "id": "urn:ngsi-ld:Building:farm001",
-                    "type": "Building"
-                }
-            """
+        val jsonLdInput = mapOf(
+            "id" to "urn:ngsi-ld:Building:farm001",
+            "type" to "Building"
+        )
 
         val exception = assertThrows<BadRequestDataException> {
             checkAndGetContext(httpHeaders, jsonLdInput)

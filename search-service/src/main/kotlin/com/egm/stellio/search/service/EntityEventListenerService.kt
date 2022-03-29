@@ -10,7 +10,7 @@ import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
-import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdKey
+import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
@@ -103,7 +103,8 @@ class EntityEventListenerService(
             )
 
     private fun handleAttributeDeleteEvent(attributeDeleteEvent: AttributeDeleteEvent) {
-        val expandedAttributeName = expandJsonLdKey(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
+        val expandedAttributeName =
+            expandJsonLdTerm(attributeDeleteEvent.attributeName, attributeDeleteEvent.contexts)!!
         val compactedJsonLdEntity = addContextsToEntity(
             deserializeObject(attributeDeleteEvent.updatedEntity),
             attributeDeleteEvent.contexts
@@ -138,7 +139,7 @@ class EntityEventListenerService(
     private fun handleAttributeDeleteAllInstancesEvent(
         attributeDeleteAllInstancesEvent: AttributeDeleteAllInstancesEvent
     ) {
-        val expandedAttributeName = expandJsonLdKey(
+        val expandedAttributeName = expandJsonLdTerm(
             attributeDeleteAllInstancesEvent.attributeName, attributeDeleteAllInstancesEvent.contexts
         )!!
         val compactedJsonLdEntity = addContextsToEntity(
@@ -231,7 +232,7 @@ class EntityEventListenerService(
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
+                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)!!
                 temporalEntityAttributeService.getForEntityAndAttribute(
                     entityId, expandedAttributeName, attributeMetadata.datasetId
                 ).switchIfEmpty {
@@ -239,7 +240,7 @@ class EntityEventListenerService(
                     // we transparently create the temporal entity attribute
                     val temporalEntityAttribute = TemporalEntityAttribute(
                         entityId = entityId,
-                        type = expandJsonLdKey(entityType, contexts)!!,
+                        type = expandJsonLdTerm(entityType, contexts)!!,
                         attributeName = expandedAttributeName,
                         attributeType = attributeMetadata.type,
                         attributeValueType = attributeMetadata.valueType,
@@ -296,11 +297,11 @@ class EntityEventListenerService(
             }
             is Valid -> {
                 val attributeMetadata = extractedAttributeMetadata.value
-                val expandedAttributeName = expandJsonLdKey(attributeName, contexts)!!
+                val expandedAttributeName = expandJsonLdTerm(attributeName, contexts)!!
 
                 val temporalEntityAttribute = TemporalEntityAttribute(
                     entityId = entityId,
-                    type = expandJsonLdKey(entityType, contexts)!!,
+                    type = expandJsonLdTerm(entityType, contexts)!!,
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,

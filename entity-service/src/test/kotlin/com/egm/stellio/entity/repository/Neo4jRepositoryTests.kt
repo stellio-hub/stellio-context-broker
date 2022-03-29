@@ -1,23 +1,12 @@
 package com.egm.stellio.entity.repository
 
 import com.egm.stellio.entity.config.WithNeo4jContainer
-import com.egm.stellio.entity.model.Entity
-import com.egm.stellio.entity.model.PartialEntity
-import com.egm.stellio.entity.model.Property
-import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.model.toRelationshipTypeName
-import com.egm.stellio.shared.model.GeoPropertyType
-import com.egm.stellio.shared.model.NgsiLdGeoPropertyInstance
+import com.egm.stellio.entity.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_OBSERVED_BY
 import com.egm.stellio.shared.util.toUri
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -839,7 +828,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "humidity", value = 65)
             ),
-            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
+            "POINT (24.30623 60.07966))"
         )
         createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -926,7 +915,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "name", value = "Beehive TESTB")
             ),
-            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
+            "POINT (24.30623 60.07966))"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Sensor:TESTC".toUri(),
@@ -977,7 +966,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "deviceParameter", value = 30),
                 Property(name = "isContainedIn", value = 61)
             ),
-            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
+            "POINT (24.30623 60.07966))"
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)
@@ -1013,7 +1002,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
                 Property(name = "temperature", value = 36),
                 Property(name = "isContainedIn", value = 61)
             ),
-            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(24.30623, 60.07966))
+            "POINT (24.30623 60.07966))"
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:TESTB".toUri(),
@@ -1021,7 +1010,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
             mutableListOf(
                 Property(name = "humidity", value = 65)
             ),
-            NgsiLdGeoPropertyInstance.toWktFormat(GeoPropertyType.Point, listOf(4.30623, 20.07966))
+            "POINT (4.30623 20.07966)"
         )
 
         createRelationship(EntitySubjectNode(firstEntity.id), "observedBy", secondEntity.id)

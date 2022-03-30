@@ -134,7 +134,7 @@ class TimeIntervalNotificationJobTest {
                 )
         )
 
-        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed>50;foodName==dietary fibres"
+        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
         runBlocking {
             val entity = timeIntervalNotificationJob.getEntities(query)
             assertEquals(1, entity.size)
@@ -233,12 +233,12 @@ class TimeIntervalNotificationJobTest {
                 EntityInfo(
                     id = null,
                     idPattern = null,
-                    type = "BeeHive"
+                    type = "https://uri.fiware.org/ns/data-models#BeeHive"
                 )
             )
         )
 
-        val encodedQuery = "?type=BeeHive&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
+        val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
         every {
             runBlocking {

@@ -89,7 +89,7 @@ class TimeIntervalNotificationJobTest {
             EntityInfo(
                 id = "urn:ngsi-ld:FishContainment:1234567890".toUri(),
                 idPattern = ".*FishContainment.*",
-                type = "FishContainment"
+                type = "https://uri.fiware.org/ns/data-models#FishContainment"
             )
         )
         val q = "speed>50;foodName==dietary fibres"
@@ -97,32 +97,32 @@ class TimeIntervalNotificationJobTest {
         assertEquals(
             "?type=FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(0), q)
         )
         assertEquals(
             "?type=FishContainment" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(1), q)
         )
         assertEquals(
             "?type=FishContainment" +
                 "&idPattern=.*FishContainment.*" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(2), q)
         )
         assertEquals(
-            "?type=FishContainment" +
+            "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23FishContainment" +
                 "&id=urn:ngsi-ld:FishContainment:1234567890" +
                 "&idPattern=.*FishContainment.*" +
-                "&q=speed>50;foodName==dietary fibres",
+                "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres",
             timeIntervalNotificationJob.extractParam(entities.elementAt(3), q)
         )
     }
 
     @Test
     fun `it should return one entity if the query sent to entity service matches one entity`() {
-        val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
+        val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
                 .willReturn(
@@ -134,7 +134,7 @@ class TimeIntervalNotificationJobTest {
                 )
         )
 
-        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed>50;foodName==dietary fibres"
+        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         runBlocking {
             val entity = timeIntervalNotificationJob.getEntities(query)
             assertEquals(1, entity.size)
@@ -233,12 +233,13 @@ class TimeIntervalNotificationJobTest {
                 EntityInfo(
                     id = null,
                     idPattern = null,
-                    type = "BeeHive"
+                    type = "https://uri.fiware.org/ns/data-models#BeeHive"
                 )
             )
         )
 
-        val encodedQuery = "?type=BeeHive&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
+        val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
+            "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
         every {
             runBlocking {

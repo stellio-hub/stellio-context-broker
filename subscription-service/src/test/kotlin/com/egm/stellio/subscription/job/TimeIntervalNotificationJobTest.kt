@@ -122,7 +122,7 @@ class TimeIntervalNotificationJobTest {
 
     @Test
     fun `it should return one entity if the query sent to entity service matches one entity`() {
-        val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
+        val encodedQuery = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
                 .willReturn(
@@ -134,7 +134,7 @@ class TimeIntervalNotificationJobTest {
                 )
         )
 
-        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50;foodName%3D%3Ddietary%20fibres"
+        val query = "?type=BeeHive&id=urn:ngsi-ld:BeeHive:TESTC&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
         runBlocking {
             val entity = timeIntervalNotificationJob.getEntities(query)
             assertEquals(1, entity.size)
@@ -238,7 +238,8 @@ class TimeIntervalNotificationJobTest {
             )
         )
 
-        val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
+        val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
+            "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
         every {
             runBlocking {

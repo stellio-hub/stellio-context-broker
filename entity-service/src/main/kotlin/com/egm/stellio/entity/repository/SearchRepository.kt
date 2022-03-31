@@ -30,6 +30,15 @@ interface SearchRepository {
         contexts: List<String>
     ): Pair<Int, List<URI>>
 
+    @Transactional(readOnly = true)
+    fun getEntitiesIdsHaveRights(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<URI>>
+
     fun prepareResults(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<URI>> =
         if (limit == 0)
             Pair(

@@ -7,6 +7,7 @@ import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
@@ -24,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -593,5 +595,127 @@ class EntityAccessControlHandlerTests {
             )
         }
         confirmVerified(authorizationService, entityService, entityEventService)
+    }
+
+    @Test
+    fun `get entitiesIdsRights should return 200 and the number of results`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.searchEntitiesIdsHaveRights(
+                any(),
+                any(),
+                any(),
+                any(),
+                NGSILD_CORE_CONTEXT,
+                false
+            )
+        } returns Pair(
+            3,
+            emptyList()
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/?&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get entitiesIdsRights should return 200 and empty response if requested offset does not exists`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.searchEntitiesIdsHaveRights(
+                any(),
+                any(),
+                any(),
+                any(),
+                NGSILD_CORE_CONTEXT,
+                false
+            )
+        } returns Pair(0, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/?limit=1&offset=9")
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json("[]")
+    }
+
+    @Test
+    fun `get entitiesIdsRights should return 400 if the number of results is requested with a limit less than zero`() {
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/?limit=-1&offset=1&count=true")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().json(
+                """
+                {
+                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
+                    "title":"The request includes input data which does not meet the requirements of the operation",
+                    "detail":"Offset and limit must be greater than zero"
+                }
+                """.trimIndent()
+            )
+    }
+
+
+    @Test
+    fun `get entitiesIdsRights should return ids I have rigts`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            entityService.searchEntitiesIdsHaveRights(
+                any(),
+                any(),
+                any(),
+                any(),
+                NGSILD_CORE_CONTEXT,
+                false
+            )
+        } returns Pair(1, listOf(
+            JsonLdEntity(
+                mapOf(
+                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                    "@type" to listOf("Beehive")
+
+                ),
+                listOf(NGSILD_CORE_CONTEXT)
+            )
+        ))
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/?limit=1&offset=1&count=true")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+            .jsonPath("[0].createdAt").doesNotExist()
+            .jsonPath("[0].modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `it should return bad request because value of q paramter are not valid`() {
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl?q=rcanwrite")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath(
+                "$.detail",
+                "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
+            )
     }
 }

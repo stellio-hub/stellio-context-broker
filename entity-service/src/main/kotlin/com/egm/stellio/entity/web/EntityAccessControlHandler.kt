@@ -2,6 +2,7 @@ package com.egm.stellio.entity.web
 
 import arrow.core.*
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
@@ -13,6 +14,9 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
@@ -30,6 +34,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import kotlin.collections.flatten
@@ -37,10 +42,11 @@ import kotlin.collections.flatten
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityAccessControl")
 class EntityAccessControlHandler(
+    private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService,
-    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -393,5 +399,83 @@ class EntityAccessControlHandler(
             }
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+    }
+
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getEntitiesIdsHaveRights(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
+        val type = params.getFirst(QUERY_PARAM_TYPE)
+        var q = params.getFirst(QUERY_PARAM_FILTER)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+        val sub = getSubFromSecurityContext()
+        val expandedAttrs = parseAndExpandRequestParameter(null, contextLink)
+
+         if (q!=null &&
+                 (!q.equals(AUTH_TERM_CAN_READ) ||
+                !q.equals(AUTH_TERM_CAN_WRITE) ||
+                !q.equals(AUTH_TERM_CAN_ADMIN)))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
+                    )
+                )
+
+        val countAndEntitiesIds = entityService.searchEntitiesIdsHaveRights(
+            QueryParams(null, type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) }, null, q?.decode(), expandedAttrs),
+            sub,
+            offset,
+            limit,
+            contextLink,
+            includeSysAttrs
+        )
+
+        if (countAndEntitiesIds.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndEntitiesIds.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
+
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndEntitiesIds.second,
+            useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+            .map { it.toMutableMap() }
+
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entityAccessControl",
+            params,
+            countAndEntitiesIds.first,
+            offset,
+            limit
+        )
+        val tmp = PagingUtils.buildPaginationResponse(
+            serializeObject(compactedEntities),
+            countAndEntitiesIds.first,
+            count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
+        return tmp
     }
 }

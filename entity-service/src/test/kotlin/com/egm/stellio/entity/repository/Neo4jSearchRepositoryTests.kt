@@ -19,6 +19,7 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
@@ -370,6 +371,105 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         ).second
 
         assertTrue(entities.containsAll(expectedEntitiesIds))
+    }
+
+    @Test
+    fun `it should return matching entities id that user have rights`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val listUri = searchRepository.getEntitiesIdsHaveRights(
+            QueryParams(),
+            sub,
+            offset,
+            limit,
+            listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
+
+        assertEquals(3, listUri.second.size)
+    }
+
+    @Test
+    fun `it should return matching entities id with filter on rCanWrite`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val listUri = searchRepository.getEntitiesIdsHaveRights(
+            QueryParams(q="rCanWrite;rCanRead"),
+            sub,
+            offset,
+            limit,
+            listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
+
+        assertEquals(2, listUri.second.size)
+    }
+
+    @Test
+    fun `it should return matching entities id with filter on type`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            beekeeperUri,
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beehive:1232".toUri(),
+            listOf("Beehive"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val listUri = searchRepository.getEntitiesIdsHaveRights(
+            QueryParams(expandedType = "Beekeeper"),
+            sub,
+            offset,
+            limit,
+            listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
+        )
+
+        assertEquals(2, listUri.second.size)
     }
 
     fun createEntity(

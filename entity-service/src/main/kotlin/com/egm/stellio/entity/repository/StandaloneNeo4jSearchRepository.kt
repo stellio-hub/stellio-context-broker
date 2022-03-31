@@ -25,4 +25,17 @@ class StandaloneNeo4jSearchRepository(
         val result = neo4jClient.query(query).fetch().all()
         return prepareResults(limit, result)
     }
+
+    override fun getEntitiesIdsHaveRights(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<URI>> {
+        val query = QueryUtils.prepareQueryForEntitiesIdsHaveRightsWithoutAuthentication(queryParams,offset, limit)
+        val result = neo4jClient.query(query).fetch().all()
+        return prepareResults(limit, result)
+    }
+
 }

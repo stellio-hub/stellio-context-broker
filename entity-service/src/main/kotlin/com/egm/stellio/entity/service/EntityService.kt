@@ -626,5 +626,43 @@ class EntityService(
             )
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
+
     }
+
+    @Transactional(readOnly = true)
+    fun searchEntitiesIdsHaveRights(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contextLink: String,
+        includeSysAttrs: Boolean
+    ): Pair<Int, List<JsonLdEntity>> {
+        val result = searchRepository.getEntitiesIdsHaveRights(
+            queryParams,
+            sub,
+            offset,
+            limit,
+            listOf(contextLink)
+        )
+
+        return Pair(result.first, getEntitiesWithIdAndTypeById(result.second, includeSysAttrs))
+    }
+    //Maybe add parameter in getFullEntitiesById to have only type and id in JsonLdEntity
+    fun getEntitiesWithIdAndTypeById(entitiesIds: List<URI>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
+        entitiesIds
+            .map {
+                entityRepository.findById(it)
+            }
+            .filter { it.isPresent }
+            .map {
+                val entity = it.get()
+                JsonLdEntity(
+                    entity.serializeCoreProperties(includeSysAttrs),
+                    entity.contexts
+                )
+            }.sortedBy {
+                // as findAllById does not preserve order of the results, sort them back by id (search order)
+                it.id
+            }
 }

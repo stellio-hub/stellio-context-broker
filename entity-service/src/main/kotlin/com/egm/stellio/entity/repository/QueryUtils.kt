@@ -191,4 +191,89 @@ object QueryUtils {
                }
             """.trimIndent()
         }
+
+    fun prepareQueryForEntitiesIdsHaveRightsWithAuthentication(
+        queryParams: QueryParams,
+        offset: Int,
+        limit: Int
+    ): String {
+        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
+        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
+        val authTerm = buildAuthTerm(q)
+        val matchAuthorizedEntitiesClause =
+            """
+            CALL {
+                MATCH (user)
+                WHERE user.id IN ${'$'}userAndGroupIds
+                WITH user
+                MATCH (user)-[]->()-
+                [$authTerm]->$matchEntityClause
+                RETURN collect(id(entity)) as entitiesIds
+                UNION
+                MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
+                WHERE prop.value IN [
+                    '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
+                    '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
+                ]
+                RETURN collect(id(entity)) as entitiesIds
+            }
+            WITH entitiesIds
+            MATCH (entity)
+            WHERE id(entity) IN entitiesIds
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(entity.id) as count
+            """.trimIndent()
+        else
+            """
+                WITH collect(distinct(entity.id)) as entityIds, count(entity.id) as count
+                UNWIND entityIds as id
+                RETURN id, count
+                ORDER BY id
+                SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        return """
+            $matchAuthorizedEntitiesClause
+            $pagingClause
+            """
+    }
+
+    fun prepareQueryForEntitiesIdsHaveRightsWithoutAuthentication(
+        queryParams: QueryParams,
+        offset: Int,
+        limit: Int
+    ): String {
+        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
+        val matchEntityClause = buildMatchEntityClause(expandedType)
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(entity) as count
+            """.trimIndent()
+        else
+            """
+            WITH collect(entity.id) as entitiesIds, count(entity) as count
+            UNWIND entitiesIds as entityId
+            RETURN entityId as id, count
+            ORDER BY id
+            SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        return """
+            $matchEntityClause
+            $pagingClause
+            """
+    }
+
+    fun buildAuthTerm(q: String?): String =
+        if (q == null) {
+            ":$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN"
+        } else
+            q.replace(qPattern.toRegex()) { matchResult ->
+            ":${matchResult.value}"
+        }
+            .replace(";", "|")
+
 }

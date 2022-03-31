@@ -39,4 +39,28 @@ class Neo4jSearchRepository(
             .all()
         return prepareResults(limit, result)
     }
+
+    override fun getEntitiesIdsHaveRights(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<URI>> {
+        val query = if (neo4jAuthorizationService.userIsAdmin(sub))
+            QueryUtils.prepareQueryForEntitiesIdsHaveRightsWithoutAuthentication(queryParams, offset, limit)
+        else
+            QueryUtils.prepareQueryForEntitiesIdsHaveRightsWithAuthentication(queryParams, offset, limit)
+
+        val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
+            .plus(neo4jAuthorizationService.getSubjectUri(sub))
+            .map { it.toString() }
+
+        val result = neo4jClient
+            .query(query)
+            .bind(userAndGroupIds).to("userAndGroupIds")
+            .fetch()
+            .all()
+        return prepareResults(limit, result)
+    }
 }

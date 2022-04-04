@@ -55,7 +55,7 @@ class QueryServiceTests {
                     entityUri,
                     TemporalQuery(
                         timerel = TemporalQuery.Timerel.AFTER,
-                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                        timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
                         expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
                     ),
                     withTemporalValues = false,
@@ -104,7 +104,7 @@ class QueryServiceTests {
                 entityUri,
                 TemporalQuery(
                     timerel = TemporalQuery.Timerel.AFTER,
-                    time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                    timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                 ),
                 withTemporalValues = false,
                 withAudit = false,
@@ -116,7 +116,7 @@ class QueryServiceTests {
                 attributeInstanceService.search(
                     match { temporalQuery ->
                         temporalQuery.timerel == TemporalQuery.Timerel.AFTER &&
-                            temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                            temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                     },
                     any<List<TemporalEntityAttribute>>(),
                     false
@@ -172,7 +172,7 @@ class QueryServiceTests {
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
-                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
                     withAudit = false,
@@ -195,7 +195,7 @@ class QueryServiceTests {
                 attributeInstanceService.search(
                     match { temporalQuery ->
                         temporalQuery.timerel == TemporalQuery.Timerel.BEFORE &&
-                            temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                            temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                     },
                     any<List<TemporalEntityAttribute>>(),
                     false
@@ -247,7 +247,7 @@ class QueryServiceTests {
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
-                        time = ZonedDateTime.parse("2019-10-17T07:31:39Z")
+                        timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
                     withAudit = false,

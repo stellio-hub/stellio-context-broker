@@ -123,10 +123,10 @@ class AttributeInstanceService(
                 )
 
         selectQuery = when (temporalQuery.timerel) {
-            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND time < '${temporalQuery.time}'")
-            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND time > '${temporalQuery.time}'")
+            TemporalQuery.Timerel.BEFORE -> selectQuery.plus(" AND time < '${temporalQuery.timeAt}'")
+            TemporalQuery.Timerel.AFTER -> selectQuery.plus(" AND time > '${temporalQuery.timeAt}'")
             TemporalQuery.Timerel.BETWEEN -> selectQuery.plus(
-                " AND time > '${temporalQuery.time}' AND time < '${temporalQuery.endTime}'"
+                " AND time > '${temporalQuery.timeAt}' AND time < '${temporalQuery.endTimeAt}'"
             )
             else -> selectQuery
         }

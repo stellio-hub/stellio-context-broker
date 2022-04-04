@@ -193,7 +193,7 @@ object QueryUtils {
             """.trimIndent()
         }
 
-    fun prepareQueryForEntitiesIdsHaveRightsWithAuthentication(
+    fun prepareQueryForAuthorizedEntitiesWithAuthentication(
         queryParams: QueryParams,
         offset: Int,
         limit: Int
@@ -219,7 +219,7 @@ object QueryUtils {
                 RETURN collect(id(entity)) as entitiesIds
             }
             WITH entitiesIds
-            MATCH (entity)
+            MATCH (entity:Entity)
             WHERE id(entity) IN entitiesIds
             """.trimIndent()
 
@@ -229,9 +229,10 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-                WITH collect(distinct(entity.id)) as entityIds, count(entity.id) as count
+                WITH collect(distinct(entity.id)) as entityIds, collect(DISTINCT(labels(entity))) as entityTypes, count(entity.id) as count
                 UNWIND entityIds as id
-                RETURN id, count
+                UNWIND entityTypes as type
+                RETURN id, type, count
                 ORDER BY id
                 SKIP $offset LIMIT $limit
             """.trimIndent()
@@ -242,7 +243,7 @@ object QueryUtils {
             """
     }
 
-    fun prepareQueryForEntitiesIdsHaveRightsWithoutAuthentication(
+    fun prepareQueryForAuthorizedEntitiesWithoutAuthentication(
         queryParams: QueryParams,
         offset: Int,
         limit: Int

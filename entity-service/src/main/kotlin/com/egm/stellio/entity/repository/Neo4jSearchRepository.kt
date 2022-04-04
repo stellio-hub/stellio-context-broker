@@ -2,6 +2,7 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
+import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -40,17 +41,17 @@ class Neo4jSearchRepository(
         return prepareResults(limit, result)
     }
 
-    override fun getEntitiesIdsHaveRights(
+    override fun getAuthorizedEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Pair<Int, List<URI>> {
+    ): Pair<Int, List<Entity>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
-            QueryUtils.prepareQueryForEntitiesIdsHaveRightsWithoutAuthentication(queryParams, offset, limit)
+            QueryUtils.prepareQueryForAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
         else
-            QueryUtils.prepareQueryForEntitiesIdsHaveRightsWithAuthentication(queryParams, offset, limit)
+            QueryUtils.prepareQueryForAuthorizedEntitiesWithAuthentication(queryParams, offset, limit)
 
         val userAndGroupIds = neo4jAuthorizationService.getSubjectGroups(sub)
             .plus(neo4jAuthorizationService.getSubjectUri(sub))
@@ -61,6 +62,6 @@ class Neo4jSearchRepository(
             .bind(userAndGroupIds).to("userAndGroupIds")
             .fetch()
             .all()
-        return prepareResults(limit, result)
+        return prepareResultsEntities(limit, result)
     }
 }

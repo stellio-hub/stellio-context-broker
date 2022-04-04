@@ -630,7 +630,7 @@ class EntityService(
     }
 
     @Transactional(readOnly = true)
-    fun searchEntitiesIdsHaveRights(
+    fun searchAuthorizedEntities(
         queryParams: QueryParams,
         sub: Option<Sub>,
         offset: Int,
@@ -638,7 +638,7 @@ class EntityService(
         contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> {
-        val result = searchRepository.getEntitiesIdsHaveRights(
+        val result = searchRepository.getAuthorizedEntities(
             queryParams,
             sub,
             offset,
@@ -646,20 +646,15 @@ class EntityService(
             listOf(contextLink)
         )
 
-        return Pair(result.first, getEntitiesWithIdAndTypeById(result.second, includeSysAttrs))
+        return Pair(result.first, getAuthorizedEntities(result.second, includeSysAttrs))
     }
     //Maybe add parameter in getFullEntitiesById to have only type and id in JsonLdEntity
-    fun getEntitiesWithIdAndTypeById(entitiesIds: List<URI>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
+    fun getAuthorizedEntities(entitiesIds: List<Entity>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
         entitiesIds
             .map {
-                entityRepository.findById(it)
-            }
-            .filter { it.isPresent }
-            .map {
-                val entity = it.get()
                 JsonLdEntity(
-                    entity.serializeCoreProperties(includeSysAttrs),
-                    entity.contexts
+                    it.serializeCoreProperties(includeSysAttrs),
+                    it.contexts
                 )
             }.sortedBy {
                 // as findAllById does not preserve order of the results, sort them back by id (search order)

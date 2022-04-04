@@ -395,7 +395,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
-        val listUri = searchRepository.getEntitiesIdsHaveRights(
+        val entities = searchRepository.getAuthorizedEntities(
             QueryParams(),
             sub,
             offset,
@@ -403,7 +403,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
 
-        assertEquals(3, listUri.second.size)
+        assertEquals(3, entities.second.size)
     }
 
     @Test
@@ -428,7 +428,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
-        val listUri = searchRepository.getEntitiesIdsHaveRights(
+        val entities = searchRepository.getAuthorizedEntities(
             QueryParams(q="rCanWrite;rCanRead"),
             sub,
             offset,
@@ -436,7 +436,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
 
-        assertEquals(2, listUri.second.size)
+        assertEquals(2, entities.second.size)
     }
 
     @Test
@@ -461,7 +461,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
-        val listUri = searchRepository.getEntitiesIdsHaveRights(
+        val entities = searchRepository.getAuthorizedEntities(
             QueryParams(expandedType = "Beekeeper"),
             sub,
             offset,
@@ -469,7 +469,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
 
-        assertEquals(2, listUri.second.size)
+        assertEquals(2, entities.second.size)
     }
 
     fun createEntity(

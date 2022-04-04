@@ -51,6 +51,79 @@ class EntityAccessControlHandler(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getAuthorizedEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
+        val type = params.getFirst(QUERY_PARAM_TYPE)
+        var q = params.getFirst(QUERY_PARAM_FILTER)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
+        val sub = getSubFromSecurityContext()
+
+        if (q!=null && !listOf(AUTH_TERM_CAN_READ,AUTH_TERM_CAN_WRITE,AUTH_TERM_CAN_ADMIN).contains(q))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
+                    )
+                )
+
+        val countAndEntitiesIds = entityService.searchAuthorizedEntities(
+            QueryParams(null, type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) }, null, q?.decode(), emptySet()),
+            sub,
+            offset,
+            limit,
+            contextLink,
+            includeSysAttrs
+        )
+
+        if (countAndEntitiesIds.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndEntitiesIds.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
+
+        val compactedEntities = JsonLdUtils.compactEntities(
+            countAndEntitiesIds.second,
+            useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        )
+            .map { it.toMutableMap() }
+
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entityAccessControl",
+            params,
+            countAndEntitiesIds.first,
+            offset,
+            limit
+        )
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedEntities),
+            countAndEntitiesIds.first,
+            count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
+    }
+
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(
         @RequestHeader httpHeaders: HttpHeaders,
@@ -399,83 +472,5 @@ class EntityAccessControlHandler(
             }
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
-    }
-
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
-    suspend fun getEntitiesIdsHaveRights(
-        @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>
-    ): ResponseEntity<*> {
-        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val (offset, limit) = extractAndValidatePaginationParameters(
-            params,
-            applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax,
-            count
-        )
-        val type = params.getFirst(QUERY_PARAM_TYPE)
-        var q = params.getFirst(QUERY_PARAM_FILTER)
-        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
-        val mediaType = getApplicableMediaType(httpHeaders)
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
-        val sub = getSubFromSecurityContext()
-        val expandedAttrs = parseAndExpandRequestParameter(null, contextLink)
-
-         if (q!=null &&
-                 (!q.equals(AUTH_TERM_CAN_READ) ||
-                !q.equals(AUTH_TERM_CAN_WRITE) ||
-                !q.equals(AUTH_TERM_CAN_ADMIN)))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    BadRequestDataResponse(
-                        "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
-                    )
-                )
-
-        val countAndEntitiesIds = entityService.searchEntitiesIdsHaveRights(
-            QueryParams(null, type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) }, null, q?.decode(), expandedAttrs),
-            sub,
-            offset,
-            limit,
-            contextLink,
-            includeSysAttrs
-        )
-
-        if (countAndEntitiesIds.second.isEmpty())
-            return PagingUtils.buildPaginationResponse(
-                serializeObject(emptyList<JsonLdEntity>()),
-                countAndEntitiesIds.first,
-                count,
-                Pair(null, null),
-                mediaType, contextLink
-            )
-
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndEntitiesIds.second,
-            useSimplifiedRepresentation,
-            contextLink,
-            mediaType
-        )
-            .map { it.toMutableMap() }
-
-        val prevAndNextLinks = PagingUtils.getPagingLinks(
-            "/ngsi-ld/v1/entityAccessControl",
-            params,
-            countAndEntitiesIds.first,
-            offset,
-            limit
-        )
-        val tmp = PagingUtils.buildPaginationResponse(
-            serializeObject(compactedEntities),
-            countAndEntitiesIds.first,
-            count,
-            prevAndNextLinks,
-            mediaType,
-            contextLink
-        )
-        return tmp
     }
 }

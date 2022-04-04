@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.client.InMemoryReactiveOAuth2Authoriz
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.util.DefaultUriBuilderFactory
 
 @Configuration
 class WebClientConfig {
@@ -24,7 +25,10 @@ class WebClientConfig {
             AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(clientRegistrations, clientService)
         val oauth = ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
         oauth.setDefaultClientRegistrationId("keycloak")
+        val factory = DefaultUriBuilderFactory(entityServiceUrl)
+        factory.encodingMode = DefaultUriBuilderFactory.EncodingMode.NONE
         return WebClient.builder()
+            .uriBuilderFactory(factory)
             .baseUrl(entityServiceUrl)
             .filter(oauth)
             .build()
@@ -33,7 +37,10 @@ class WebClientConfig {
     @Bean
     @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
     fun webClientNoAuthentification(@Value("\${application.entity.service-url}") entityServiceUrl: String): WebClient {
+        val factory = DefaultUriBuilderFactory(entityServiceUrl)
+        factory.encodingMode = DefaultUriBuilderFactory.EncodingMode.NONE
         return WebClient.builder()
+            .uriBuilderFactory(factory)
             .baseUrl(entityServiceUrl)
             .build()
     }

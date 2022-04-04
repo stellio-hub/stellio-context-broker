@@ -35,10 +35,10 @@ class TimeIntervalNotificationJob(
 
     fun extractParam(entityInfo: EntityInfo, q: String?): String {
         val param = java.lang.StringBuilder()
-        param.append("?$QUERY_PARAM_TYPE=${entityInfo.type}")
+        param.append("?$QUERY_PARAM_TYPE=${entityInfo.type.encode()}")
         if (entityInfo.id != null) param.append("&$QUERY_PARAM_ID=${entityInfo.id}")
         if (entityInfo.idPattern != null) param.append("&$QUERY_PARAM_ID_PATTERN=${entityInfo.idPattern}")
-        if (q != null) param.append("&$QUERY_PARAM_FILTER=$q")
+        if (q != null) param.append("&$QUERY_PARAM_FILTER=${q.encode()}")
         return param.toString()
     }
 

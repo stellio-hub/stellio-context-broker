@@ -11,6 +11,7 @@ val APIC_HEADER_LINK = buildContextLinkHeader(APIC_COMPOUND_CONTEXT)
 
 const val BEEHIVE_COMPACT_TYPE = "BeeHive"
 const val BEEHIVE_TYPE = "https://ontology.eglobalmark.com/apic#$BEEHIVE_COMPACT_TYPE"
+const val APIARY_COMPACT_TYPE = "Apiary"
 const val APIARY_TYPE = "https://ontology.eglobalmark.com/apic#Apiary"
 const val INCOMING_COMPACT_PROPERTY = "incoming"
 const val INCOMING_PROPERTY = "https://ontology.eglobalmark.com/apic#$INCOMING_COMPACT_PROPERTY"

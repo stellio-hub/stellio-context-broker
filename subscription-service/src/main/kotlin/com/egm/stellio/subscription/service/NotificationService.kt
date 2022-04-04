@@ -123,7 +123,7 @@ class NotificationService(
         }
 
         val response = fcmService.sendMessage(
-            mapOf("title" to subscription.name, "body" to subscription.description),
+            mapOf("title" to subscription.subscriptionName, "body" to subscription.description),
             mapOf(
                 "id_alert" to notification.id.toString(),
                 "id_subscription" to subscription.id.toString(),

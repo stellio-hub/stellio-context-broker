@@ -102,11 +102,11 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: Strin
 
 fun buildTimerelAndTime(
     timerelParam: String?,
-    timeParam: String?
+    timeAtParam: String?
 ): Either<String, Pair<TemporalQuery.Timerel?, ZonedDateTime?>> =
-    if (timerelParam == null && timeParam == null) {
+    if (timerelParam == null && timeAtParam == null) {
         Pair(null, null).right()
-    } else if (timerelParam != null && timeParam != null) {
+    } else if (timerelParam != null && timeAtParam != null) {
         val timeRelResult = try {
             TemporalQuery.Timerel.valueOf(timerelParam.uppercase()).right()
         } catch (e: IllegalArgumentException) {
@@ -114,7 +114,7 @@ fun buildTimerelAndTime(
         }
 
         timeRelResult.flatMap { timerel ->
-            timeParam.parseTimeParameter("'time' parameter is not a valid date")
+            timeAtParam.parseTimeParameter("'timeAt' parameter is not a valid date")
                 .map {
                     Pair(timerel, it)
                 }

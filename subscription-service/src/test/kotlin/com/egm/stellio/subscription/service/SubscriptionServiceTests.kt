@@ -653,7 +653,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should update a subscription`() {
         val parsedInput = mapOf(
-            "name" to "My Subscription Updated",
+            "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
             "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")

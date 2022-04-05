@@ -202,8 +202,8 @@ class SubscriptionService(
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
                 listOf(
-                    "name", "description", "watchedAttributes", "timeInterval", "q", "isActive", "modifiedAt",
-                    "expiresAt"
+                    "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
+                    "modifiedAt", "expiresAt"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)

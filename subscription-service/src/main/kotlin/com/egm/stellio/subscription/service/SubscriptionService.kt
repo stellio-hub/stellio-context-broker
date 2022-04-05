@@ -57,8 +57,9 @@ class SubscriptionService(
         INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
             time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
             times_sent, is_active, expires_at, sub)
-        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :time_interval, :q, :notif_attributes,
-            :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+        VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, :time_interval, :q,
+            :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active,
+            :expires_at, :sub)
             """.trimIndent()
 
         return databaseClient.sql(insertStatement)

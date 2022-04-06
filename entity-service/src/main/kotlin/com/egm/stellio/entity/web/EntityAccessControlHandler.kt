@@ -51,7 +51,7 @@ class EntityAccessControlHandler(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getAuthorizedEntities(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
@@ -64,16 +64,14 @@ class EntityAccessControlHandler(
             count
         )
         val type = params.getFirst(QUERY_PARAM_TYPE)
-        var q = params.getFirst(QUERY_PARAM_FILTER)
+        val q = params.getFirst(QUERY_PARAM_FILTER)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val sub = getSubFromSecurityContext()
 
-        if (q!=null && !listOf(AUTH_TERM_CAN_READ,AUTH_TERM_CAN_WRITE,AUTH_TERM_CAN_ADMIN).contains(q))
+        if (q != null && !listOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN).contains(q))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
@@ -82,7 +80,13 @@ class EntityAccessControlHandler(
                 )
 
         val countAndEntitiesIds = entityService.searchAuthorizedEntities(
-            QueryParams(null, type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) }, null, q?.decode(), emptySet()),
+            QueryParams(
+                null,
+                type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
+                null,
+                q?.decode(),
+                emptySet()
+            ),
             sub,
             offset,
             limit,
@@ -101,14 +105,14 @@ class EntityAccessControlHandler(
 
         val compactedEntities = JsonLdUtils.compactEntities(
             countAndEntitiesIds.second,
-            useSimplifiedRepresentation,
+            false,
             contextLink,
             mediaType
         )
             .map { it.toMutableMap() }
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
-            "/ngsi-ld/v1/entityAccessControl",
+            "/ngsi-ld/v1/entityAccessControl/entities",
             params,
             countAndEntitiesIds.first,
             offset,

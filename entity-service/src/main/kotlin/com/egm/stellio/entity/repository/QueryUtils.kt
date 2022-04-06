@@ -228,11 +228,9 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-                WITH collect(distinct(entity.id)) as entityIds, collect(DISTINCT(labels(entity))) as entityTypes, count(entity.id) as count
-                UNWIND entityIds as id
-                UNWIND entityTypes as type
-                RETURN id, type, count
-                ORDER BY id
+                WITH collect(entity) as entities, count(entity.id) as count
+                RETURN entities, count
+                ORDER BY entities
                 SKIP $offset LIMIT $limit
             """.trimIndent()
 
@@ -256,8 +254,8 @@ object QueryUtils {
         else
             """
             WITH collect(entity.id) as entitiesIds, count(entity) as count
-            UNWIND entitiesIds as entityId
-            RETURN entityId as id, count
+            UNWIND entitiesIds as id
+            RETURN id, count
             ORDER BY id
             SKIP $offset LIMIT $limit
             """.trimIndent()
@@ -269,12 +267,11 @@ object QueryUtils {
     }
 
     fun buildAuthTerm(q: String?): String =
-        if (q == null) {
+        if (q == null)
             ":$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN"
-        } else
-            q.replace(qPattern.toRegex()) { matchResult ->
+        else q.replace(qPattern.toRegex()) {
+            matchResult ->
             ":${matchResult.value}"
         }
             .replace(";", "|")
-
 }

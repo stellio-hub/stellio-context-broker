@@ -626,7 +626,6 @@ class EntityService(
             )
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
-
     }
 
     @Transactional(readOnly = true)
@@ -648,16 +647,12 @@ class EntityService(
 
         return Pair(result.first, getAuthorizedEntities(result.second, includeSysAttrs))
     }
-    //Maybe add parameter in getFullEntitiesById to have only type and id in JsonLdEntity
+
     fun getAuthorizedEntities(entitiesIds: List<Entity>, includeSysAttrs: Boolean = false): List<JsonLdEntity> =
-        entitiesIds
-            .map {
-                JsonLdEntity(
-                    it.serializeCoreProperties(includeSysAttrs),
-                    it.contexts
-                )
-            }.sortedBy {
-                // as findAllById does not preserve order of the results, sort them back by id (search order)
-                it.id
-            }
+        entitiesIds.map {
+            JsonLdEntity(
+                it.serializeCoreProperties(includeSysAttrs),
+                it.contexts
+            )
+        }
 }

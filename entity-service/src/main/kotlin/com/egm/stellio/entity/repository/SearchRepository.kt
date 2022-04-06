@@ -60,10 +60,7 @@ interface SearchRepository {
         else Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
             result.map {
-                Entity(
-                    id = (it["id"] as String).toUri(),
-                    type = listOf((it["type"] as List<String>).get(1))
-                )
+                it["entities"] as Entity
             }
         )
 }

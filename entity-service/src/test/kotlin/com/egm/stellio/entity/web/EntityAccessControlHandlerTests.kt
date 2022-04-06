@@ -598,7 +598,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get entitiesIdsRights should return 200 and the number of results`() {
+    fun `get authorized entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
         every {
             entityService.searchAuthorizedEntities(
@@ -615,7 +615,7 @@ class EntityAccessControlHandlerTests {
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/?&limit=0&offset=1&count=true")
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?&limit=0&offset=1&count=true")
             .exchange()
             .expectStatus().isOk
             .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
@@ -623,7 +623,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get entitiesIdsRights should return 200 and empty response if requested offset does not exists`() {
+    fun `get authorized entities should return 200 and empty response if requested offset does not exists`() {
         every { entityService.exists(any()) } returns true
         every {
             entityService.searchAuthorizedEntities(
@@ -637,32 +637,14 @@ class EntityAccessControlHandlerTests {
         } returns Pair(0, emptyList())
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/?limit=1&offset=9")
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=9")
             .exchange()
             .expectStatus().isOk
             .expectBody().json("[]")
     }
 
     @Test
-    fun `get entitiesIdsRights should return 400 if the number of results is requested with a limit less than zero`() {
-        webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/?limit=-1&offset=1&count=true")
-            .exchange()
-            .expectStatus().isBadRequest
-            .expectBody().json(
-                """
-                {
-                    "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
-                    "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"Offset and limit must be greater than zero"
-                }
-                """.trimIndent()
-            )
-    }
-
-
-    @Test
-    fun `get entitiesIdsRights should return ids I have rigts`() {
+    fun `get authorized entities should return ids I have rigts`() {
         every { entityService.exists(any()) } returns true
         every {
             entityService.searchAuthorizedEntities(
@@ -673,19 +655,21 @@ class EntityAccessControlHandlerTests {
                 NGSILD_CORE_CONTEXT,
                 false
             )
-        } returns Pair(1, listOf(
-            JsonLdEntity(
-                mapOf(
-                    "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                    "@type" to listOf("Beehive")
-
-                ),
-                listOf(NGSILD_CORE_CONTEXT)
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@type" to listOf("Beehive")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
             )
-        ))
+        )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/?limit=1&offset=1&count=true")
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?limit=1&offset=1&count=true")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -708,7 +692,7 @@ class EntityAccessControlHandlerTests {
     fun `it should return bad request because value of q paramter are not valid`() {
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl?q=rcanwrite")
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?q=rcanwrite")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isBadRequest

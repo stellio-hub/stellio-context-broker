@@ -429,7 +429,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val entities = searchRepository.getAuthorizedEntities(
-            QueryParams(q="rCanWrite;rCanRead"),
+            QueryParams(q = "rCanWrite;rCanRead"),
             sub,
             offset,
             limit,

@@ -206,15 +206,15 @@ object QueryUtils {
                 MATCH (user)
                 WHERE user.id IN ${'$'}userAndGroupIds
                 WITH user
-                MATCH (user)-[]->()-[$authTerm]->$matchEntityClause
-                RETURN entity
+                MATCH (user)-[]->()-[right$authTerm]->$matchEntityClause
+                RETURN {entity: entity, right:right} as entity
                 UNION
                 MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
                 WHERE prop.value IN [
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
                 ]
-                RETURN entity
+                RETURN {entity:entity, right:"rCanRead"} as entity
             }
             WITH collect(entity) as entities, count(entity) as count
             """.trimIndent()
@@ -225,9 +225,9 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-                RETURN entities, count
-                ORDER BY entities
-                SKIP $offset LIMIT $limit
+            RETURN entities, count
+            ORDER BY entities
+            SKIP $offset LIMIT $limit
             """.trimIndent()
 
         return """
@@ -264,10 +264,9 @@ object QueryUtils {
 
     fun buildAuthTerm(q: String?): String =
         if (q == null)
-            ":$AUTH_TERM_CAN_READ|:$AUTH_TERM_CAN_WRITE|:$AUTH_TERM_CAN_ADMIN"
+            ":$AUTH_TERM_CAN_READ|$AUTH_TERM_CAN_WRITE|$AUTH_TERM_CAN_ADMIN"
         else q.replace(qPattern.toRegex()) {
-            matchResult ->
-            ":${matchResult.value}"
+            matchResult -> matchResult.value
         }
             .replace(";", "|")
 }

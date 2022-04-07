@@ -7,6 +7,7 @@ import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.driver.internal.value.StringValue
 import org.neo4j.driver.types.Node
+import org.neo4j.driver.types.Relationship
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
@@ -61,10 +62,12 @@ interface SearchRepository {
             )
         else Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            (result.firstOrNull()?.get("entities") as List<Node>).map {
+            (result.firstOrNull()?.get("entities") as List<Map<String, Any>>).map {
+                val entityNode = it["entity"] as Node
+                val rightOnEntity = (it["right"] as Relationship).type()
                 Entity(
-                    id = (it.get("id") as StringValue).asString().toUri(),
-                    type = it.labels() as List<String>
+                    id = (entityNode.get("id") as StringValue).asString().toUri(),
+                    type = entityNode.labels() as List<String>
                 )
             }
         )

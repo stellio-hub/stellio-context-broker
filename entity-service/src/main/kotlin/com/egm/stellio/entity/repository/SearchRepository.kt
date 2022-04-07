@@ -5,6 +5,8 @@ import com.egm.stellio.entity.model.Entity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
+import org.neo4j.driver.internal.value.StringValue
+import org.neo4j.driver.types.Node
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
@@ -59,8 +61,11 @@ interface SearchRepository {
             )
         else Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            result.map {
-                it["entities"] as Entity
+            (result.firstOrNull()?.get("entities") as List<Node>).map {
+                Entity(
+                    id = (it.get("id") as StringValue).asString().toUri(),
+                    type = it.labels() as List<String>
+                )
             }
         )
 }

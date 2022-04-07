@@ -197,7 +197,7 @@ object QueryUtils {
         offset: Int,
         limit: Int
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
+        val (_, expandedType, _, q, _) = queryParams
         val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
         val authTerm = buildAuthTerm(q)
         val matchAuthorizedEntitiesClause =
@@ -206,29 +206,25 @@ object QueryUtils {
                 MATCH (user)
                 WHERE user.id IN ${'$'}userAndGroupIds
                 WITH user
-                MATCH (user)-[]->()-
-                [$authTerm]->$matchEntityClause
-                RETURN collect(id(entity)) as entitiesIds
+                MATCH (user)-[]->()-[$authTerm]->$matchEntityClause
+                RETURN entity
                 UNION
                 MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
                 WHERE prop.value IN [
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
                 ]
-                RETURN collect(id(entity)) as entitiesIds
+                RETURN entity
             }
-            WITH entitiesIds
-            MATCH (entity:Entity)
-            WHERE id(entity) IN entitiesIds
+            WITH collect(entity) as entities, count(entity) as count
             """.trimIndent()
 
         val pagingClause = if (limit == 0)
             """
-            RETURN count(entity.id) as count
+            RETURN count
             """.trimIndent()
         else
             """
-                WITH collect(entity) as entities, count(entity.id) as count
                 RETURN entities, count
                 ORDER BY entities
                 SKIP $offset LIMIT $limit

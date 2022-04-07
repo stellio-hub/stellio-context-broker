@@ -404,10 +404,11 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(3, entities.second.size)
+        assertEquals(3, entities.third.size)
     }
 
     @Test
-    fun `it should return matching entities id with filter on rCanWrite`() {
+    fun `it should return matching entities id with filter on rCanWrite and rCanRead`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             beekeeperUri,
@@ -437,6 +438,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(2, entities.second.size)
+        assertEquals(2, entities.third.size)
     }
 
     @Test
@@ -470,6 +472,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(2, entities.second.size)
+        assertEquals(2, entities.third.size)
     }
 
     fun createEntity(

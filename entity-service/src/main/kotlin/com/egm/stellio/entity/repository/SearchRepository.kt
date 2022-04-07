@@ -41,7 +41,7 @@ interface SearchRepository {
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Pair<Int, List<Entity>>
+    ): Triple<Int, List<Entity>, List<String>>
 
     fun prepareResults(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<URI>> =
         if (limit == 0)
@@ -54,21 +54,23 @@ interface SearchRepository {
             result.map { (it["id"] as String).toUri() }
         )
 
-    fun prepareResultsEntities(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<Entity>> =
+    fun prepareResultsEntities(limit: Int, result: Collection<Map<String, Any>>): Triple<Int, List<Entity>, List<String>> =
         if (limit == 0)
-            Pair(
+            Triple(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                emptyList(),
                 emptyList()
             )
-        else Pair(
+        else Triple(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            (result.firstOrNull()?.get("entities") as List<Map<String, Any>>).map {
-                val entityNode = it["entity"] as Node
-                val rightOnEntity = (it["right"] as Relationship).type()
+            (result.firstOrNull()?.get("entities") as List<Node>).map {
                 Entity(
-                    id = (entityNode.get("id") as StringValue).asString().toUri(),
-                    type = entityNode.labels() as List<String>
+                    id = (it.get("id") as StringValue).asString().toUri(),
+                    type = it.labels() as List<String>
                 )
+            },
+            (result.firstOrNull()?.get("rights") as List<Relationship>).map {
+                it.type()
             }
         )
 }

@@ -206,17 +206,17 @@ object QueryUtils {
                 MATCH (user)
                 WHERE user.id IN ${'$'}userAndGroupIds
                 WITH user
-                MATCH (user)-[]->()-[right$authTerm]->$matchEntityClause
-                RETURN {entity: entity, right:right} as entity
+                MATCH (user)-[]->()-[right:$authTerm]->$matchEntityClause
+                RETURN {entity: entity, right: right} as entity
                 UNION
                 MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
                 WHERE prop.value IN [
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
                 ]
-                RETURN {entity:entity, right:"rCanRead"} as entity
+                RETURN entity
             }
-            WITH collect(entity) as entities, count(entity) as count
+            WITH collect(entity.entity) as entities, collect(entity.right) as rights, count(entity) as count 
             """.trimIndent()
 
         val pagingClause = if (limit == 0)
@@ -225,7 +225,7 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-            RETURN entities, count
+            RETURN entities, rights, count
             ORDER BY entities
             SKIP $offset LIMIT $limit
             """.trimIndent()
@@ -241,7 +241,7 @@ object QueryUtils {
         offset: Int,
         limit: Int
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
+        val (_, expandedType, _, _, _) = queryParams
         val matchEntityClause = buildMatchEntityClause(expandedType)
         val pagingClause = if (limit == 0)
             """
@@ -249,10 +249,9 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-            WITH collect(entity.id) as entitiesIds, count(entity) as count
-            UNWIND entitiesIds as id
-            RETURN id, count
-            ORDER BY id
+            WITH collect(entity) as entities, count(entity) as count
+            RETURN entities, "rCanAdmin", count
+            ORDER BY entities
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
@@ -264,7 +263,7 @@ object QueryUtils {
 
     fun buildAuthTerm(q: String?): String =
         if (q == null)
-            ":$AUTH_TERM_CAN_READ|$AUTH_TERM_CAN_WRITE|$AUTH_TERM_CAN_ADMIN"
+            "$AUTH_TERM_CAN_READ|$AUTH_TERM_CAN_WRITE|$AUTH_TERM_CAN_ADMIN"
         else q.replace(qPattern.toRegex()) {
             matchResult -> matchResult.value
         }

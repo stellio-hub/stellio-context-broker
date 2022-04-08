@@ -49,8 +49,7 @@ class SubscriptionEventListenerService(
             entityId = subscription.id,
             type = "https://uri.etsi.org/ngsi-ld/Subscription",
             attributeName = "https://uri.etsi.org/ngsi-ld/notification",
-            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY,
-            entityPayload = subscriptionCreateEvent.operationPayload
+            attributeValueType = TemporalEntityAttribute.AttributeValueType.ANY
         )
         temporalEntityAttributeService.create(entityTemporalProperty)
             .then(

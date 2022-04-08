@@ -265,7 +265,8 @@ object QueryUtils {
         if (q == null)
             "$AUTH_TERM_CAN_READ|$AUTH_TERM_CAN_WRITE|$AUTH_TERM_CAN_ADMIN"
         else q.replace(qPattern.toRegex()) {
-            matchResult -> matchResult.value
+            matchResult ->
+            matchResult.value
         }
             .replace(";", "|")
 }

@@ -62,6 +62,6 @@ class Neo4jSearchRepository(
             .bind(userAndGroupIds).to("userAndGroupIds")
             .fetch()
             .all()
-        return prepareResultsEntities(limit, result)
+        return prepareResultsAuthorizedEntities(limit, result)
     }
 }

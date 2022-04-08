@@ -689,7 +689,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `it should return bad request because value of q paramter are not valid`() {
+    fun `it should return bad request because value of q parameter are not valid`() {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?q=rcanwrite")

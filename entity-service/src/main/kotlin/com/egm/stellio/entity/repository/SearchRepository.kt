@@ -54,7 +54,10 @@ interface SearchRepository {
             result.map { (it["id"] as String).toUri() }
         )
 
-    fun prepareResultsEntities(limit: Int, result: Collection<Map<String, Any>>): Triple<Int, List<Entity>, List<String>> =
+    fun prepareResultsAuthorizedEntities(
+        limit: Int,
+        result: Collection<Map<String, Any>>
+    ): Triple<Int, List<Entity>, List<String>> =
         if (limit == 0)
             Triple(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,

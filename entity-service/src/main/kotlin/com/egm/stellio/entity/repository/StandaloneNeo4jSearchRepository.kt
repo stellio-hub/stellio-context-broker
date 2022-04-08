@@ -36,6 +36,6 @@ class StandaloneNeo4jSearchRepository(
     ): Triple<Int, List<Entity>, List<String>> {
         val query = QueryUtils.prepareQueryForAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
         val result = neo4jClient.query(query).fetch().all()
-        return prepareResultsEntities(limit, result)
+        return prepareResultsAuthorizedEntities(limit, result)
     }
 }

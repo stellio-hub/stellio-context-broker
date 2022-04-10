@@ -60,6 +60,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     private lateinit var subscription4Id: URI
     private lateinit var subscription5Id: URI
     private lateinit var subscription6Id: URI
+    private lateinit var subscription7Id: URI
 
     private val entity =
         ClassPathResource("/ngsild/aquac/FeedingService.json").inputStream.readBytes().toString(Charsets.UTF_8)
@@ -72,6 +73,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         createSubscription4()
         createSubscription5()
         createSubscription6()
+        createSubscription7()
     }
 
     private fun createSubscription(subscription: Subscription): URI {
@@ -166,6 +168,17 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             expiresAt = ZonedDateTime.parse("2012-08-12T08:33:38Z")
         )
         subscription6Id = createSubscription(subscription)
+    }
+
+    private fun createSubscription7() {
+        val subscription = gimmeRawSubscription().copy(
+            subscriptionName = "Subscription 7",
+            entities = setOf(
+                EntityInfo(id = null, idPattern = null, type = "Apiary")
+            ),
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
+        )
+        subscription7Id = createSubscription(subscription)
     }
 
     @Test
@@ -1015,5 +1028,14 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         subscriptionService.delete(subscriptionId1).block()
         subscriptionService.delete(subscriptionId2).block()
+    }
+
+    @Test
+    fun `it should retrieve a context of subscription`() {
+        runBlocking {
+            val contexts = subscriptionService.getContextsBySubscriptionId(subscription7Id).awaitFirst()
+
+            assertEquals(listOf(APIC_COMPOUND_CONTEXT), contexts)
+        }
     }
 }

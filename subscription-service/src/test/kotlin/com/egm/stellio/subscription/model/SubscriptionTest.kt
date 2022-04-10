@@ -96,6 +96,7 @@ class SubscriptionTest {
     fun `it should serialize a subscription with a context if JSON-LD media type is asked`() {
         val serializedSubscription = subscription.toJson(NGSILD_CORE_CONTEXT, includeSysAttrs = true)
         assertTrue(serializedSubscription.contains("@context"))
+        assertFalse(serializedSubscription.contains("contexts"))
     }
 
     @Test
@@ -103,6 +104,7 @@ class SubscriptionTest {
         val serializedSubscription =
             subscription.toJson(NGSILD_CORE_CONTEXT, MediaType.APPLICATION_JSON, includeSysAttrs = true)
         assertFalse(serializedSubscription.contains("@context"))
+        assertFalse(serializedSubscription.contains("contexts"))
     }
 
     @Test

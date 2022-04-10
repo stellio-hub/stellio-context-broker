@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConstructorBinding
 @ConstructorBinding
 @ConfigurationProperties("application")
 data class ApplicationProperties(
-    val pagination: Pagination
+    val pagination: Pagination,
+    val stellioUrl: String
 ) {
     data class Pagination(
         val limitDefault: Int,

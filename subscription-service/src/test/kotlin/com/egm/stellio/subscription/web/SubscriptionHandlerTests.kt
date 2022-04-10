@@ -25,6 +25,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
 import org.springframework.context.annotation.Import
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.test.context.support.WithAnonymousUser
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -64,7 +65,7 @@ class SubscriptionHandlerTests {
     fun `get subscription by id should return 200 when subscription exists`() {
         val subscription = gimmeRawSubscription()
 
-        every { subscriptionService.exists(any()) } returns Mono.just(true)
+        every { subscriptionService.exists(any()) } answers { Mono.just(true) }
         every { subscriptionService.isCreatorOf(any(), any()) } returns Mono.just(true)
         every { subscriptionService.getById(any()) } returns Mono.just(subscription)
 
@@ -140,6 +141,28 @@ class SubscriptionHandlerTests {
 
         verify { subscriptionService.exists(subscriptionId) }
         verify { subscriptionService.isCreatorOf(subscriptionId, sub) }
+    }
+
+    @Test
+    fun `get subscription context should return a list of contexts`() {
+        val subscription = gimmeRawSubscription().copy(contexts = listOf(APIC_COMPOUND_CONTEXT))
+        every { subscriptionService.exists(any()) } answers { Mono.just(true) }
+        every { subscriptionService.isCreatorOf(any(), any()) } answers { Mono.just(true) }
+        every { subscriptionService.getContextsBySubscriptionId(any()) } answers { Mono.just(subscription.contexts) }
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/subscriptions/${subscription.id}/context")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """{
+                    "@context" : [
+                        "$APIC_COMPOUND_CONTEXT"
+                    ]
+                }
+                """.trimIndent()
+            )
     }
 
     @Test

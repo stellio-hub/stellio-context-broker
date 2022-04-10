@@ -1,13 +1,12 @@
 package com.egm.stellio.subscription.model
 
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
-import com.egm.stellio.shared.util.JsonLdUtils
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToElement
 import com.egm.stellio.shared.util.JsonLdUtils.addContextToListOfElements
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.toUri
 import com.fasterxml.jackson.annotation.JsonFilter
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.springframework.data.annotation.Id
@@ -34,7 +33,9 @@ data class Subscription(
     val notification: NotificationParams,
     @JsonInclude(value = JsonInclude.Include.CUSTOM, valueFilter = JsonBooleanFilter::class)
     val isActive: Boolean = true,
-    val expiresAt: ZonedDateTime? = null
+    val expiresAt: ZonedDateTime? = null,
+    @JsonIgnore
+    val contexts: List<String> = listOf(NGSILD_CORE_CONTEXT)
 ) {
 
     @Transient

@@ -1,10 +1,14 @@
 package com.egm.stellio.subscription.service
 
 import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
+import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
@@ -12,15 +16,7 @@ import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock.configureFor
-import com.github.tomakehurst.wiremock.client.WireMock.ok
-import com.github.tomakehurst.wiremock.client.WireMock.post
-import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
-import com.github.tomakehurst.wiremock.client.WireMock.reset
-import com.github.tomakehurst.wiremock.client.WireMock.stubFor
-import com.github.tomakehurst.wiremock.client.WireMock.urlMatching
-import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import com.github.tomakehurst.wiremock.client.WireMock.verify
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -30,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -38,6 +35,9 @@ import reactor.test.StepVerifier
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [NotificationService::class])
 @ActiveProfiles("test")
 class NotificationServiceTests {
+
+    @MockkBean
+    private lateinit var applicationProperties: ApplicationProperties
 
     @MockkBean
     private lateinit var subscriptionService: SubscriptionService
@@ -90,8 +90,6 @@ class NotificationServiceTests {
             } 
         """.trimIndent()
 
-    private val parsedEntity = expandJsonLdEntity(rawEntity).toNgsiLdEntity()
-
     @BeforeAll
     fun beforeAll() {
         wireMockServer = WireMockServer(wireMockConfig().port(8089))
@@ -113,6 +111,7 @@ class NotificationServiceTests {
     @Test
     fun `it should notify the subscriber and update the subscription`() {
         val subscription = gimmeRawSubscription()
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
@@ -148,7 +147,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/Apiary"),
                 "name"
             )
         }
@@ -164,9 +163,10 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
-                listOf("https://schema.org/name", "https://uri.etsi.org/ngsi-ld/location")
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/name", "https://uri.etsi.org/ngsi-ld/location")
             )
         )
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
@@ -200,6 +200,7 @@ class NotificationServiceTests {
     @Test
     fun `it should send a simplified payload when format is keyValues and include only the specified attributes`() {
         val subscription = gimmeRawSubscription(withNotifParams = Pair(FormatType.KEY_VALUES, listOf("location")))
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers { Flux.just(subscription) }
         every { subscriptionService.isMatchingQuery(any(), any()) } answers { true }
@@ -235,7 +236,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/Apiary"),
                 "name"
             )
         }
@@ -250,6 +251,7 @@ class NotificationServiceTests {
     fun `it should notify the two subscribers`() {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription1.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
@@ -277,7 +279,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/Apiary"),
                 "name"
             )
         }
@@ -309,6 +311,7 @@ class NotificationServiceTests {
                 )
             )
         val subscription2 = gimmeRawSubscription()
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription1.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
@@ -339,7 +342,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/Apiary"),
                 "name"
             )
         }
@@ -355,6 +358,7 @@ class NotificationServiceTests {
     fun `it should notify the subscriber that matches the geoQuery`() {
         val subscription1 = gimmeRawSubscription()
         val subscription2 = gimmeRawSubscription()
+        val parsedEntity = expandJsonLdEntity(rawEntity, subscription1.contexts).toNgsiLdEntity()
 
         every { subscriptionService.getMatchingSubscriptions(any(), any(), any()) } answers {
             Flux.just(subscription1, subscription2)
@@ -383,7 +387,7 @@ class NotificationServiceTests {
         verify {
             subscriptionService.getMatchingSubscriptions(
                 apiaryId.toUri(),
-                listOf("https://ontology.eglobalmark.com/apic#Apiary"),
+                listOf("https://uri.etsi.org/ngsi-ld/default-context/Apiary"),
                 "name"
             )
         }
@@ -395,6 +399,146 @@ class NotificationServiceTests {
         confirmVerified(subscriptionService)
 
         verify(1, postRequestedFor(urlPathEqualTo("/notification")))
+    }
+
+    @Test
+    fun `it should return notification with data using contexts of subscription`() {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSONLD,
+                    info = null
+                ),
+                status = null,
+                lastNotification = null,
+                lastFailure = null,
+                lastSuccess = null
+            ),
+            contexts = listOf(APIC_COMPOUND_CONTEXT)
+        )
+
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity, subscription.contexts)
+            )
+        )
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                    it.second.subscriptionId == subscription.id &&
+                    it.second.data.size == 1 &&
+                    it.second.data[0].containsKey("name") &&
+                    it.second.data[0][JSONLD_CONTEXT] == listOf(APIC_COMPOUND_CONTEXT) &&
+                    it.third
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should add link header with context of subscription`() {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON,
+                    info = null
+                ),
+                status = null,
+                lastNotification = null,
+                lastFailure = null,
+                lastSuccess = null
+            )
+        )
+
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity, subscription.contexts)
+            )
+        )
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                    it.second.subscriptionId == subscription.id &&
+                    it.second.data.size == 1 &&
+                    !it.second.data[0].containsKey(JSONLD_CONTEXT) &&
+                    it.third
+            }
+            .expectComplete()
+            .verify()
+
+        val link = buildContextLinkHeader(subscription.contexts[0])
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(HttpHeaders.LINK, equalTo(link))
+        )
+    }
+
+    @Test
+    fun `it should add link header when subscription contexts size exceeds 1`() {
+        val subscription = gimmeRawSubscription().copy(
+            notification = NotificationParams(
+                attributes = emptyList(),
+                endpoint = Endpoint(
+                    uri = "http://localhost:8089/notification".toUri(),
+                    accept = Endpoint.AcceptType.JSON,
+                    info = null
+                ),
+                status = null,
+                lastNotification = null,
+                lastFailure = null,
+                lastSuccess = null
+            ),
+            contexts = listOf(NGSILD_CORE_CONTEXT, NGSILD_CORE_CONTEXT)
+        )
+
+        every { subscriptionService.updateSubscriptionNotification(any(), any(), any()) } answers { Mono.just(1) }
+        every { subscriptionEventService.publishNotificationCreateEvent(any(), any()) } just Runs
+        every { applicationProperties.stellioUrl } answers { "http://localhost:8080" }
+
+        stubFor(
+            post(urlMatching("/notification"))
+                .willReturn(ok())
+        )
+
+        StepVerifier.create(
+            notificationService.callSubscriber(
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity, subscription.contexts)
+            )
+        )
+            .expectNextMatches {
+                it.first.id == subscription.id &&
+                    it.second.subscriptionId == subscription.id &&
+                    it.second.data.size == 1 &&
+                    it.third
+            }
+            .expectComplete()
+            .verify()
+
+        val link = buildContextLinkHeader("http://localhost:8080/ngsi-ld/v1/subscriptions/${subscription.id}/context")
+        verify(
+            1,
+            postRequestedFor(urlPathEqualTo("/notification"))
+                .withHeader(HttpHeaders.LINK, equalTo(link))
+        )
     }
 
     @Test
@@ -411,7 +555,7 @@ class NotificationServiceTests {
 
         StepVerifier.create(
             notificationService.callSubscriber(
-                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity)
+                subscription, apiaryId.toUri(), expandJsonLdEntity(rawEntity, subscription.contexts)
             )
         )
             .expectNextMatches {
@@ -455,7 +599,7 @@ class NotificationServiceTests {
             notificationService.callSubscriber(
                 subscription,
                 apiaryId.toUri(),
-                expandJsonLdEntity(rawEntity)
+                expandJsonLdEntity(rawEntity, subscription.contexts)
             )
         )
             .expectNextMatches {
@@ -495,7 +639,7 @@ class NotificationServiceTests {
             notificationService.callSubscriber(
                 subscription,
                 apiaryId.toUri(),
-                expandJsonLdEntity(rawEntity)
+                expandJsonLdEntity(rawEntity, subscription.contexts)
             )
         )
             .expectNextMatches {

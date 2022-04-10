@@ -111,10 +111,10 @@ class SubscriptionService(
                 """
                 INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                     time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
-                    endpoint_info, times_sent, is_active, expires_at, sub)
+                    endpoint_info, times_sent, is_active, expires_at, sub, contexts)
                 VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                     :time_interval, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
-                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
                 """.trimIndent()
 
             databaseClient.sql(insertStatement)
@@ -135,6 +135,7 @@ class SubscriptionService(
                 .bind("is_active", subscription.isActive)
                 .bind("expires_at", subscription.expiresAt)
                 .bind("sub", sub.toStringValue())
+                .bind("contexts", subscription.contexts.toTypedArray())
                 .execute().bind()
 
             createGeometryQuery(subscription.geoQ, subscription.id).bind()
@@ -200,7 +201,8 @@ class SubscriptionService(
                 modified_at, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
                 endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
                 last_failure, last_success, entity_info.id as entity_id, id_pattern,
-                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, 
+                expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -214,6 +216,21 @@ class SubscriptionService(
             .reduce { t: Subscription, u: Subscription ->
                 t.copy(entities = t.entities.plus(u.entities))
             }
+    }
+
+    fun getContextsBySubscriptionId(id: URI): Mono<List<String>> {
+        val selectStatement =
+            """
+            SELECT contexts
+            FROM subscription 
+            WHERE subscription.id = :id
+            """.trimIndent()
+
+        return databaseClient.sql(selectStatement)
+            .bind("id", id)
+            .fetch()
+            .one()
+            .map { (it["contexts"] as Array<String>).toList() }
     }
 
     fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Mono<Boolean> {
@@ -273,7 +290,7 @@ class SubscriptionService(
 
                     listOf(
                         "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
-                        "modifiedAt"
+                        "modifiedAt", "contexts"
                     ).contains(it.key) -> {
                         val columnName = it.key.toSqlColumnName()
                         val value = it.value.toSqlValue(it.key)
@@ -445,7 +462,7 @@ class SubscriptionService(
                 modified_At, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
                 endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
                 last_failure, last_success, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+                georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -489,7 +506,7 @@ class SubscriptionService(
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info, contexts
             FROM subscription 
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
@@ -620,7 +637,8 @@ class SubscriptionService(
                 lastFailure = row.get("last_failure", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
                 lastSuccess = row.get("last_success", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC)
             ),
-            isActive = row.get("is_active", Object::class.java).toString() == "true"
+            isActive = row.get("is_active", Object::class.java).toString() == "true",
+            contexts = (row.get("contexts", Array::class.java)!! as Array<String>).toList()
         )
     }
 
@@ -645,7 +663,8 @@ class SubscriptionService(
                 lastNotification = null,
                 lastFailure = null,
                 lastSuccess = null
-            )
+            ),
+            contexts = (row.get("contexts", Array::class.java)!! as Array<String>).toList()
         )
     }
 
@@ -681,7 +700,7 @@ class SubscriptionService(
                 modified_At, expires_at, description, watched_attributes, time_interval, q,  notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, times_sent, last_notification,
                 last_failure, last_success, is_active, entity_info.id as entity_id, id_pattern,
-                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, contexts
             FROM subscription
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

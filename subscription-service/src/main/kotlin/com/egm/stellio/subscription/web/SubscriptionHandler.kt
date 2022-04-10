@@ -10,9 +10,11 @@ import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.AlreadyExistsException
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.removeContextFromInput
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serialize
+import com.egm.stellio.shared.util.JsonUtils.serializeObject
 import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.model.Subscription
 import com.egm.stellio.subscription.model.toJson
@@ -129,6 +131,27 @@ class SubscriptionHandler(
             { it.toErrorResponse() },
             { it }
         )
+    }
+
+    /**
+     * Return the context associated to a given subscription.
+     *
+     * It is used when a notification is sent using JSON media type and the associated context contains more than
+     * one link.
+     */
+    @GetMapping("/{subscriptionId}/context", produces = [MediaType.APPLICATION_JSON_VALUE])
+    suspend fun getSubscriptionContext(
+        @PathVariable subscriptionId: String
+    ): ResponseEntity<*> {
+        val subscriptionIdUri = subscriptionId.toUri()
+        checkSubscriptionExists(subscriptionIdUri).awaitFirst()
+
+        val sub = getSubFromSecurityContext()
+        checkIsAllowed(subscriptionIdUri, sub).awaitFirst()
+
+        val contexts = subscriptionService.getContextsBySubscriptionId(subscriptionIdUri).awaitFirst()
+
+        return ResponseEntity.ok(serializeObject(mapOf(JSONLD_CONTEXT to contexts)))
     }
 
     /**

@@ -48,6 +48,7 @@ object JsonLdUtils {
     const val JSONLD_TYPE = "@type"
     const val JSONLD_VALUE = "value"
     const val JSONLD_VALUE_KW = "@value"
+    const val JSON_CONTEXT = "contexts"
     const val JSONLD_CONTEXT = "@context"
     val JSONLD_EXPANDED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID, JSONLD_TYPE, JSONLD_CONTEXT)
     val JSONLD_COMPACTED_ENTITY_MANDATORY_FIELDS = setOf(JSONLD_ID_TERM, JSONLD_TYPE_TERM, JSONLD_CONTEXT)
@@ -192,13 +193,13 @@ object JsonLdUtils {
     fun addContextToListOfElements(listOfElements: String, contexts: List<String>): String {
         val updatedPayload = deserializeListOfObjects(listOfElements)
             .map {
-                it.plus(Pair(JSONLD_CONTEXT, contexts))
+                it.minus(JSON_CONTEXT).plus(Pair(JSONLD_CONTEXT, contexts))
             }
         return serializeObject(updatedPayload)
     }
 
     fun addContextToElement(element: String, contexts: List<String>): String {
-        val parsedPayload = deserializeObject(element).plus(Pair(JSONLD_CONTEXT, contexts))
+        val parsedPayload = deserializeObject(element).minus(JSON_CONTEXT).plus(Pair(JSONLD_CONTEXT, contexts))
         return serializeObject(parsedPayload)
     }
 

@@ -3,18 +3,20 @@ package com.egm.stellio.subscription.service
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.model.Notification
-import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.filterJsonLdEntityOnAttributes
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
+import com.egm.stellio.shared.util.buildContextLinkHeader
 import com.egm.stellio.shared.util.decode
 import com.egm.stellio.shared.util.toKeyValues
 import com.egm.stellio.shared.util.toNgsiLdFormat
+import com.egm.stellio.subscription.config.ApplicationProperties
 import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.NotificationParams
 import com.egm.stellio.subscription.model.Subscription
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
@@ -24,6 +26,7 @@ import java.net.URI
 
 @Service
 class NotificationService(
+    private val applicationProperties: ApplicationProperties,
     private val subscriptionService: SubscriptionService,
     private val subscriptionEventService: SubscriptionEventService,
     private val fcmService: FCMService
@@ -46,7 +49,7 @@ class NotificationService(
                 subscriptionService.isMatchingGeoQuery(it.id, ngsiLdEntity.getGeoProperty(it.geoQ?.geoproperty))
             }
             .flatMap {
-                callSubscriber(it, id, expandJsonLdEntity(rawEntity, ngsiLdEntity.contexts))
+                callSubscriber(it, id, expandJsonLdEntity(rawEntity, it.contexts))
             }
             .collectList()
     }
@@ -56,9 +59,10 @@ class NotificationService(
         entityId: URI,
         entity: JsonLdEntity
     ): Mono<Triple<Subscription, Notification, Boolean>> {
+        val mediaType = MediaType.valueOf(subscription.notification.endpoint.accept.accept)
         val notification = Notification(
             subscriptionId = subscription.id,
-            data = buildNotificationData(entity, subscription.notification)
+            data = buildNotificationData(entity, subscription, mediaType)
         )
         val uri = subscription.notification.endpoint.uri.toString()
         logger.info("Notification is about to be sent to $uri for subscription ${subscription.id}")
@@ -66,12 +70,20 @@ class NotificationService(
             val fcmDeviceToken = subscription.notification.endpoint.getInfoValue("deviceToken")
             return callFCMSubscriber(entityId, subscription, notification, fcmDeviceToken)
         } else {
-            var request = WebClient.create(uri).post() as WebClient.RequestBodySpec
-            subscription.notification.endpoint.info?.forEach {
-                request = request.header(it.key, it.value)
-            }
-            // FIXME hardcoding a JSON content type for now
-            request = request.contentType(MediaType.APPLICATION_JSON)
+            val request =
+                WebClient.create(uri).post().contentType(mediaType).headers {
+                    if (mediaType == MediaType.APPLICATION_JSON) {
+                        if (subscription.contexts.size > 1) {
+                            val linkToRetrieveContexts = "${applicationProperties.stellioUrl}" +
+                                "/ngsi-ld/v1/subscriptions/${subscription.id}/context"
+                            it.set(HttpHeaders.LINK, buildContextLinkHeader(linkToRetrieveContexts))
+                        } else
+                            it.set(HttpHeaders.LINK, buildContextLinkHeader(subscription.contexts[0]))
+                    }
+                    subscription.notification.endpoint.info?.forEach { endpointInfo ->
+                        it.set(endpointInfo.key, endpointInfo.value)
+                    }
+                }
             return request
                 .bodyValue(serializeObject(notification))
                 .exchangeToMono { response ->
@@ -97,13 +109,14 @@ class NotificationService(
 
     private fun buildNotificationData(
         entity: JsonLdEntity,
-        params: NotificationParams
+        subscription: Subscription,
+        mediaType: MediaType
     ): List<Map<String, Any>> {
         val filteredEntity =
-            filterJsonLdEntityOnAttributes(entity, params.attributes?.toSet() ?: emptySet())
+            filterJsonLdEntityOnAttributes(entity, subscription.notification.attributes?.toSet() ?: emptySet())
         val filteredCompactedEntity =
-            compact(JsonLdEntity(filteredEntity, entity.contexts), entity.contexts, JSON_LD_MEDIA_TYPE)
-        val processedEntity = if (params.format == NotificationParams.FormatType.KEY_VALUES)
+            compact(JsonLdEntity(filteredEntity, subscription.contexts), subscription.contexts, mediaType)
+        val processedEntity = if (subscription.notification.format == NotificationParams.FormatType.KEY_VALUES)
             filteredCompactedEntity.toKeyValues()
         else
             filteredCompactedEntity

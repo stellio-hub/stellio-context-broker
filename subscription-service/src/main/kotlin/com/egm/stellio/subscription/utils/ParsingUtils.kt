@@ -18,7 +18,10 @@ object ParsingUtils {
     suspend fun parseSubscription(input: Map<String, Any>, context: List<String>): Either<APIException, Subscription> =
         try {
             either {
-                val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
+                val subscription = mapper.convertValue(
+                    input.minus(JSONLD_CONTEXT),
+                    Subscription::class.java
+                ).copy(contexts = context)
                 subscription.expandTypes(context)
                 subscription
             }
@@ -62,7 +65,7 @@ object ParsingUtils {
 
     fun Any.toSqlValue(columnName: String): Any? =
         when (columnName) {
-            "watchedAttributes" -> {
+            "watchedAttributes", "contexts" -> {
                 val valueAsArrayList = this as ArrayList<String>
                 if (valueAsArrayList.isEmpty())
                     null

@@ -545,29 +545,6 @@ class TemporalEntityAttributeService(
             .replace("|", " OR ")
     }
 
-    /**
-     * Parse a query term to return a triple consisting of (attribute, operator, comparable value)
-     */
-    private fun extractComparisonParametersFromQuery(queryTerm: String): Triple<String, String, String> {
-        return when {
-            queryTerm.contains("==") ->
-                Triple(queryTerm.split("==")[0], "==", queryTerm.split("==")[1])
-            queryTerm.contains("!=") ->
-                Triple(queryTerm.split("!=")[0], "<>", queryTerm.split("!=")[1])
-            queryTerm.contains(">=") ->
-                Triple(queryTerm.split(">=")[0], ">=", queryTerm.split(">=")[1])
-            queryTerm.contains(">") ->
-                Triple(queryTerm.split(">")[0], ">", queryTerm.split(">")[1])
-            queryTerm.contains("<=") ->
-                Triple(queryTerm.split("<=")[0], "<=", queryTerm.split("<=")[1])
-            queryTerm.contains("<") ->
-                Triple(queryTerm.split("<")[0], "<", queryTerm.split("<")[1])
-            queryTerm.contains("=~") ->
-                Triple(queryTerm.split("=~")[0], "like_regex", queryTerm.split("=~")[1])
-            else -> throw OperationNotSupportedException("Unsupported query term : $queryTerm")
-        }
-    }
-
     suspend fun getForEntity(id: URI, attrs: Set<String>): List<TemporalEntityAttribute> {
         val selectQuery =
             """
@@ -959,11 +936,3 @@ class TemporalEntityAttributeService(
                 )
         }
 }
-
-fun String.prepareDateValue(regexPattern: String) =
-    if (this.isDate() || this.isDateTime() || this.isTime())
-        if (regexPattern != "like_regex")
-            "\"".plus(this).plus("\"").plus(".datetime($DATETIME_TEMPLATE)")
-        else "\"".plus(this).plus("\"")
-    else
-        this

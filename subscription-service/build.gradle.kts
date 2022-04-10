@@ -13,15 +13,13 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     // required for Flyway's direct access to the DB to apply migration scripts
     implementation("org.springframework:spring-jdbc")
     implementation("org.flywaydb:flyway-core")
     implementation("org.postgresql:r2dbc-postgresql")
     implementation("com.jayway.jsonpath:json-path:2.7.0")
     implementation(project(":shared"))
-    // firebase SDK
-    implementation("com.google.firebase:firebase-admin:9.1.1")
-    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.22.0")
 

@@ -14,11 +14,10 @@ import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,8 +26,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
-import reactor.core.publisher.Mono
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [TimeIntervalNotificationJob::class])
 @WireMockTest(httpPort = 8089)
 @Import(WebClientConfig::class)
@@ -185,24 +184,22 @@ class TimeIntervalNotificationJobTest {
     }
 
     @Test
-    fun `it should call 'notificationService' once`() {
+    fun `it should call 'notificationService' once`() = runTest {
         val entity = JsonLdEntity(mapOf("@id" to "urn:ngsi-ld:Entity:01"), emptyList())
         val subscription = mockkClass(Subscription::class)
 
-        every {
-            notificationService.callSubscriber(any(), any(), any())
-        } answers { Mono.just(Triple(subscription, mockkClass(Notification::class), true)) }
+        coEvery {
+            notificationService.callSubscriber(any(), any())
+        } returns Triple(subscription, mockkClass(Notification::class), true)
 
-        runBlocking {
-            timeIntervalNotificationJob.sendNotification(entity, subscription)
-        }
+        timeIntervalNotificationJob.sendNotification(entity, subscription)
 
-        verify(exactly = 1) { notificationService.callSubscriber(subscription, entity.id.toUri(), entity) }
-        confirmVerified(notificationService)
+        coVerify(exactly = 1) { notificationService.callSubscriber(subscription, entity) }
+        confirmVerified()
     }
 
     @Test
-    fun `it should notify the recurring subscriptions that have reached the time interval`() {
+    fun `it should notify the recurring subscriptions that have reached the time interval`() = runTest {
         val entity = loadSampleData("beehive.jsonld")
         val jsonLdEntity = JsonLdUtils.expandJsonLdEntity(entity)
         val subscription = gimmeRawSubscription(withEndpointInfo = false).copy(
@@ -218,15 +215,11 @@ class TimeIntervalNotificationJobTest {
         val encodedQuery = "?type=https%3A%2F%2Furi.fiware.org%2Fns%2Fdata-models%23BeeHive" +
             "&q=speed%3E50%3BfoodName%3D%3Ddietary+fibres"
 
-        every {
-            runBlocking {
-                subscriptionService.getRecurringSubscriptionsToNotify()
-            }
-        } returns listOf(subscription)
+        coEvery { subscriptionService.getRecurringSubscriptionsToNotify() } returns listOf(subscription)
 
-        every {
-            notificationService.callSubscriber(any(), any(), any())
-        } answers { Mono.just(Triple(subscription, mockkClass(Notification::class), true)) }
+        coEvery {
+            notificationService.callSubscriber(any(), any())
+        } returns Triple(subscription, mockkClass(Notification::class), true)
 
         stubFor(
             get(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
@@ -245,7 +238,9 @@ class TimeIntervalNotificationJobTest {
             getRequestedFor(urlEqualTo("/ngsi-ld/v1/entities$encodedQuery"))
         )
 
-        verify(exactly = 1) { notificationService.callSubscriber(subscription, jsonLdEntity.id.toUri(), jsonLdEntity) }
+        coVerify(exactly = 1) {
+            notificationService.callSubscriber(subscription, jsonLdEntity)
+        }
         confirmVerified(notificationService)
     }
 }

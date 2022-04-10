@@ -48,9 +48,8 @@ class TimeIntervalNotificationJob(
     ): Triple<Subscription, Notification, Boolean> =
         notificationService.callSubscriber(
             subscription,
-            entity.id.toUri(),
             entity
-        ).awaitFirst()
+        )
 
     suspend fun getEntitiesToNotify(entitiesInfo: Set<EntityInfo>, q: String?): Set<JsonLdEntity> =
         entitiesInfo

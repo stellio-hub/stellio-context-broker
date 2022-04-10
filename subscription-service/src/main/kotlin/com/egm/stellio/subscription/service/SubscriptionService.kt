@@ -1,10 +1,7 @@
 package com.egm.stellio.subscription.service
 
-import arrow.core.Either
-import arrow.core.Option
+import arrow.core.*
 import arrow.core.continuations.either
-import arrow.core.left
-import arrow.core.right
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE_TERM
@@ -13,22 +10,18 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
 import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.model.GeoQuery
 import com.egm.stellio.subscription.model.Subscription
-import com.egm.stellio.subscription.repository.SubscriptionRepository
-import com.egm.stellio.subscription.utils.ParsingUtils
+import com.egm.stellio.subscription.utils.*
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEndpointInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.parseEntityInfo
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlColumnName
 import com.egm.stellio.subscription.utils.ParsingUtils.toSqlValue
-import com.egm.stellio.subscription.utils.QueryUtils
 import com.egm.stellio.subscription.utils.QueryUtils.createGeoQueryStatement
-import com.egm.stellio.subscription.utils.execute
-import com.jayway.jsonpath.JsonPath.read
+import com.egm.stellio.subscription.utils.QueryUtils.createQueryStatement
 import io.r2dbc.postgresql.codec.Json
-import io.r2dbc.spi.Row
-import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactive.awaitFirst
+import org.locationtech.jts.geom.Geometry
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -38,8 +31,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
@@ -49,8 +40,7 @@ import java.util.regex.Pattern
 @Component
 class SubscriptionService(
     private val databaseClient: DatabaseClient,
-    private val r2dbcEntityTemplate: R2dbcEntityTemplate,
-    private val subscriptionRepository: SubscriptionRepository
+    private val r2dbcEntityTemplate: R2dbcEntityTemplate
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -123,10 +113,10 @@ class SubscriptionService(
                 """
                 INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
                     time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
-                    endpoint_info, times_sent, is_active, expires_at, sub)
+                    endpoint_info, times_sent, is_active, expires_at, sub, contexts)
                 VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, 
                     :time_interval, :q, :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, 
-                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+                    :endpoint_info, :times_sent, :is_active, :expires_at, :sub, :contexts)
                 """.trimIndent()
 
             databaseClient.sql(insertStatement)
@@ -147,6 +137,7 @@ class SubscriptionService(
                 .bind("is_active", subscription.isActive)
                 .bind("expires_at", subscription.expiresAt)
                 .bind("sub", sub.toStringValue())
+                .bind("contexts", subscription.contexts.toTypedArray())
                 .execute().bind()
 
             createGeometryQuery(subscription.geoQ, subscription.id).bind()
@@ -157,8 +148,17 @@ class SubscriptionService(
         }
     }
 
-    fun exists(subscriptionId: URI): Mono<Boolean> =
-        subscriptionRepository.existsById(subscriptionId.toString())
+    suspend fun exists(subscriptionId: URI): Either<APIException, Boolean> =
+        databaseClient.sql(
+            """
+            SELECT exists (
+                SELECT 1
+                FROM subscription
+                WHERE id = :id
+            ) as exists
+            """.trimIndent()
+        ).bind("id", subscriptionId)
+            .oneToResult { toBoolean(it["exists"]) }
 
     private suspend fun createEntityInfo(entityInfo: EntityInfo, subscriptionId: URI): Either<APIException, Unit> =
         either {
@@ -205,14 +205,15 @@ class SubscriptionService(
                 Unit.right()
         }
 
-    fun getById(id: URI): Mono<Subscription> {
+    suspend fun getById(id: URI): Subscription {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
                 modified_at, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
                 endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
                 last_failure, last_success, entity_info.id as entity_id, id_pattern,
-                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, 
+                expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -221,14 +222,28 @@ class SubscriptionService(
 
         return databaseClient.sql(selectStatement)
             .bind("id", id)
-            .map(rowToSubscription)
-            .all()
+            .allToMappedList { rowToSubscription(it) }
             .reduce { t: Subscription, u: Subscription ->
                 t.copy(entities = t.entities.plus(u.entities))
             }
     }
 
-    fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Mono<Boolean> {
+    suspend fun getContextsForSubscription(id: URI): Either<APIException, List<String>> {
+        val selectStatement =
+            """
+            SELECT contexts
+            FROM subscription 
+            WHERE id = :id
+            """.trimIndent()
+
+        return databaseClient.sql(selectStatement)
+            .bind("id", id)
+            .oneToResult {
+                toList(it["contexts"])
+            }
+    }
+
+    suspend fun isCreatorOf(subscriptionId: URI, sub: Option<Sub>): Either<APIException, Boolean> {
         val selectStatement =
             """
             SELECT sub
@@ -238,9 +253,9 @@ class SubscriptionService(
 
         return databaseClient.sql(selectStatement)
             .bind("id", subscriptionId)
-            .map(rowToSub)
-            .first()
-            .map { it == sub.toStringValue() }
+            .oneToResult {
+                it["sub"] == sub.toStringValue()
+            }
     }
 
     @Transactional
@@ -439,11 +454,10 @@ class SubscriptionService(
         }
     }
 
-    fun delete(subscriptionId: URI): Mono<Long> =
-        r2dbcEntityTemplate.delete(
-            query(where("id").`is`(subscriptionId)),
-            Subscription::class.java
-        )
+    suspend fun delete(subscriptionId: URI): Either<APIException, Unit> =
+        r2dbcEntityTemplate.delete(Subscription::class.java)
+            .matching(query(where("id").`is`(subscriptionId)))
+            .execute()
 
     suspend fun deleteEntityInfo(subscriptionId: URI): Either<APIException, Unit> =
         databaseClient.sql(
@@ -455,14 +469,14 @@ class SubscriptionService(
             .bind("subscription_id", subscriptionId)
             .execute()
 
-    fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): Flux<Subscription> {
+    suspend fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
                 modified_At, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
                 endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
                 last_failure, last_success, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+                georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at, contexts
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -478,35 +492,38 @@ class SubscriptionService(
             .bind("limit", limit)
             .bind("offset", offset)
             .bind("sub", sub.toStringValue())
-            .map(rowToSubscription)
-            .all()
+            .allToMappedList { rowToSubscription(it) }
             .groupBy { t: Subscription ->
                 t.id
             }
-            .flatMap { grouped ->
-                grouped.reduce { t: Subscription, u: Subscription ->
+            .mapValues { grouped ->
+                grouped.value.reduce { t: Subscription, u: Subscription ->
                     t.copy(entities = t.entities.plus(u.entities))
                 }
-            }
+            }.values.toList()
     }
 
-    fun getSubscriptionsCount(sub: Option<Sub>): Mono<Int> {
+    suspend fun getSubscriptionsCount(sub: Option<Sub>): Either<APIException, Int> {
         val selectStatement =
             """
-            SELECT count(*) from subscription
+            SELECT count(*)
+            FROM subscription
             WHERE subscription.sub = :sub
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("sub", sub.toStringValue())
-            .map(rowToSubscriptionCount)
-            .first()
+            .oneToResult { toInt(it["count"]) }
     }
 
-    fun getMatchingSubscriptions(id: URI, types: List<String>, updatedAttributes: String): Flux<Subscription> {
+    suspend fun getMatchingSubscriptions(
+        id: URI,
+        types: List<ExpandedTerm>,
+        updatedAttributes: Set<ExpandedTerm>
+    ): List<Subscription> {
         val selectStatement =
             """
             SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
-                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
+                   notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info, contexts
             FROM subscription 
             WHERE is_active
             AND ( expires_at is null OR expires_at >= :date )
@@ -524,46 +541,48 @@ class SubscriptionService(
         return databaseClient.sql(selectStatement)
             .bind("id", id)
             .bind("types", types)
-            .bind("updatedAttributes", updatedAttributes)
+            .bind("updatedAttributes", updatedAttributes.joinToString(separator = ","))
             .bind("date", Instant.now().atZone(ZoneOffset.UTC))
-            .map(rowToRawSubscription)
-            .all()
+            .allToMappedList { rowToRawSubscription(it) }
     }
 
-    fun isMatchingQuery(query: String?, entity: String): Boolean {
+    suspend fun isMatchingQuery(
+        query: String?,
+        jsonLdEntity: JsonLdEntity,
+        contexts: List<String>
+    ): Either<APIException, Boolean> {
         // TODO Add support for REGEX
         return if (query == null)
-            true
+            true.right()
         else {
-            try {
-                runQuery(query, entity)
-            } catch (e: Exception) {
-                false
-            }
+            runQuery(query, jsonLdEntity, contexts)
         }
     }
 
-    fun runQuery(query: String, entity: String): Boolean {
-        val jsonPathQuery = QueryUtils.createQueryStatement(query, entity)
-        val res: List<String> = read(entity, "$[?($jsonPathQuery)]")
-        return res.isNotEmpty()
-    }
+    suspend fun runQuery(
+        query: String,
+        jsonLdEntity: JsonLdEntity,
+        contexts: List<String>
+    ): Either<APIException, Boolean> =
+        databaseClient
+            .sql(createQueryStatement(query, jsonLdEntity, contexts))
+            .oneToResult { toBoolean(it["match"]) }
 
-    fun isMatchingGeoQuery(subscriptionId: URI, geoProperty: NgsiLdGeoProperty?): Mono<Boolean> {
+    suspend fun isMatchingGeoQuery(
+        subscriptionId: URI,
+        geoProperty: NgsiLdGeoProperty?
+    ): Either<APIException, Boolean> {
         return if (geoProperty == null)
-            Mono.just(true)
+            true.right()
         else {
-            getMatchingGeoQuery(subscriptionId)
-                .map {
-                    createGeoQueryStatement(it, geoProperty)
-                }.flatMap {
-                    runGeoQueryStatement(it)
-                }
-                .switchIfEmpty(Mono.just(true))
+            getMatchingGeoQuery(subscriptionId)?.let {
+                val geoQueryStatement = createGeoQueryStatement(it, geoProperty)
+                runGeoQueryStatement(geoQueryStatement)
+            } ?: true.right()
         }
     }
 
-    fun getMatchingGeoQuery(subscriptionId: URI): Mono<GeoQuery?> {
+    suspend fun getMatchingGeoQuery(subscriptionId: URI): GeoQuery? {
         val selectStatement =
             """
             SELECT *
@@ -572,21 +591,20 @@ class SubscriptionService(
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("sub_id", subscriptionId)
-            .map(rowToGeoQuery)
-            .first()
+            .oneToResult { rowToGeoQuery(it) }
+            .getOrElse { null }
     }
 
-    fun runGeoQueryStatement(geoQueryStatement: String): Mono<Boolean> {
+    suspend fun runGeoQueryStatement(geoQueryStatement: String): Either<APIException, Boolean> {
         return databaseClient.sql(geoQueryStatement.trimIndent())
-            .map(matchesGeoQuery)
-            .first()
+            .oneToResult { toBoolean(it["match"]) }
     }
 
-    fun updateSubscriptionNotification(
+    suspend fun updateSubscriptionNotification(
         subscription: Subscription,
         notification: Notification,
         success: Boolean
-    ): Mono<Long> {
+    ): Long {
         val subscriptionStatus =
             if (success) NotificationParams.StatusType.OK.name else NotificationParams.StatusType.FAILED.name
         val lastStatusName = if (success) "last_success" else "last_failure"
@@ -599,96 +617,85 @@ class SubscriptionService(
             query(where("id").`is`(subscription.id)),
             updateStatement,
             Subscription::class.java
-        )
+        ).awaitFirst()
     }
 
-    private var rowToSubscription: ((Row, RowMetadata) -> Subscription) = { row, rowMetadata ->
+    private var rowToSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.toUri(),
-            type = row.get("sub_type", String::class.java)!!,
-            subscriptionName = row.get("subscription_name", String::class.java),
-            createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
-            modifiedAt = row.get("modified_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
-            expiresAt = row.get("expires_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
-            description = row.get("description", String::class.java),
-            watchedAttributes = row.get("watched_attributes", String::class.java)?.split(","),
-            timeInterval = row.get("time_interval", Integer::class.java)?.toInt(),
-            q = row.get("q", String::class.java),
+            id = toUri(row["sub_id"]),
+            type = row["sub_type"] as String,
+            subscriptionName = row["subscription_name"] as String,
+            createdAt = toZonedDateTime(row["created_at"]),
+            modifiedAt = toNullableZonedDateTime(row["modified_at"]),
+            expiresAt = toNullableZonedDateTime(row["expires_at"]),
+            description = row["description"] as String,
+            watchedAttributes = (row["watched_attributes"] as? String)?.split(","),
+            timeInterval = toNullableInt(row["time_interval"]),
+            q = row["q"] as String,
             entities = setOf(
                 EntityInfo(
-                    id = row.get("entity_id", String::class.java)?.toUri(),
-                    idPattern = row.get("id_pattern", String::class.java),
-                    type = row.get("entity_type", String::class.java)!!
+                    id = toNullableUri(row["entity_id"]),
+                    idPattern = row["id_pattern"] as? String,
+                    type = row["entity_type"] as String
                 )
             ),
-            geoQ = rowToGeoQuery(row, rowMetadata),
+            geoQ = rowToGeoQuery(row),
             notification = NotificationParams(
-                attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
-                format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
+                attributes = (row["notif_attributes"] as? String)?.split(","),
+                format = toEnum(row["notif_format"]!!),
                 endpoint = Endpoint(
-                    uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
-                    info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
+                    uri = toUri(row["endpoint_uri"]),
+                    accept = toEnum(row["endpoint_accept"]!!),
+                    info = parseEndpointInfo(toJsonString(row["endpoint_info"]))
                 ),
-                status = row.get("status", String::class.java)?.let { NotificationParams.StatusType.valueOf(it) },
-                timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
-                lastNotification = row.get("last_notification", ZonedDateTime::class.java)?.toInstant()
-                    ?.atZone(ZoneOffset.UTC),
-                lastFailure = row.get("last_failure", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
-                lastSuccess = row.get("last_success", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC)
+                status = toOptionalEnum<NotificationParams.StatusType>(row["status"]),
+                timesSent = row["times_sent"] as Int,
+                lastNotification = toNullableZonedDateTime(row["last_notification"]),
+                lastFailure = toNullableZonedDateTime(row["last_failure"]),
+                lastSuccess = toNullableZonedDateTime(row["last_success"])
             ),
-            isActive = row.get("is_active", Object::class.java).toString() == "true"
+            isActive = toBoolean(row["is_active"]),
+            contexts = toList(row["contexts"])
         )
     }
 
-    private var rowToRawSubscription: ((Row, RowMetadata) -> Subscription) = { row, _ ->
+    private var rowToRawSubscription: ((Map<String, Any>) -> Subscription) = { row ->
         Subscription(
-            id = row.get("sub_id", String::class.java)!!.toUri(),
-            type = row.get("sub_type", String::class.java)!!,
-            subscriptionName = row.get("subscription_name", String::class.java),
-            description = row.get("description", String::class.java),
-            q = row.get("q", String::class.java),
+            id = toUri(row["sub_id"]),
+            type = row["sub_type"] as String,
+            subscriptionName = row["subscription_name"] as String,
+            description = row["description"] as String,
+            q = row["q"] as String,
             entities = emptySet(),
             notification = NotificationParams(
-                attributes = row.get("notif_attributes", String::class.java)?.split(",").orEmpty(),
-                format = NotificationParams.FormatType.valueOf(row.get("notif_format", String::class.java)!!),
+                attributes = (row["notif_attributes"] as? String)?.split(","),
+                format = toEnum(row["notif_format"]!!),
                 endpoint = Endpoint(
-                    uri = URI(row.get("endpoint_uri", String::class.java)!!),
-                    accept = Endpoint.AcceptType.valueOf(row.get("endpoint_accept", String::class.java)!!),
-                    info = parseEndpointInfo(row.get("endpoint_info", String::class.java))
+                    uri = toUri(row["endpoint_uri"]),
+                    accept = toEnum(row["endpoint_accept"]!!),
+                    info = parseEndpointInfo(toJsonString(row["endpoint_info"]))
                 ),
                 status = null,
-                timesSent = row.get("times_sent", Integer::class.java)!!.toInt(),
+                timesSent = row["times_sent"] as Int,
                 lastNotification = null,
                 lastFailure = null,
                 lastSuccess = null
-            )
+            ),
+            contexts = toList(row["contexts"])
         )
     }
 
-    private var rowToGeoQuery: ((Row, RowMetadata) -> GeoQuery?) = { row, _ ->
-        if (row.get("georel", String::class.java) != null)
+    private var rowToGeoQuery: ((Map<String, Any>) -> GeoQuery?) = { row ->
+        if (row["georel"] != null)
             GeoQuery(
-                georel = row.get("georel", String::class.java)!!,
-                geometry = row.get("geometry", String::class.java)!!,
-                coordinates = row.get("coordinates", String::class.java)!!,
-                pgisGeometry = row.get("pgis_geometry", String::class.java)!!,
-                geoproperty = row.get("geoproperty", ExpandedTerm::class.java) ?: NGSILD_LOCATION_PROPERTY
+                georel = row["georel"] as String,
+                geometry = row["geometry"] as String,
+                coordinates = row["coordinates"] as String,
+                pgisGeometry = (row["pgis_geometry"] as Geometry).toText(),
+                geoproperty = row["geoproperty"] as? ExpandedTerm ?: NGSILD_LOCATION_PROPERTY
             )
         else
             null
-    }
-
-    private var matchesGeoQuery: ((Row, RowMetadata) -> Boolean) = { row, _ ->
-        row.get("match", Object::class.java).toString() == "true"
-    }
-
-    private var rowToSubscriptionCount: ((Row, RowMetadata) -> Int) = { row, _ ->
-        row.get("count", Integer::class.java)!!.toInt()
-    }
-
-    private var rowToSub: (Row, RowMetadata) -> String = { row, _ ->
-        row.get("sub", String::class.java)!!
     }
 
     suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {
@@ -698,7 +705,7 @@ class SubscriptionService(
                 modified_At, expires_at, description, watched_attributes, time_interval, q,  notif_attributes,
                 notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, times_sent, last_notification,
                 last_failure, last_success, is_active, entity_info.id as entity_id, id_pattern,
-                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, contexts
             FROM subscription
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -710,17 +717,14 @@ class SubscriptionService(
             """.trimIndent()
         return databaseClient.sql(selectStatement)
             .bind("currentDate", Instant.now().atZone(ZoneOffset.UTC))
-            .map(rowToSubscription)
-            .all()
+            .allToMappedList { rowToSubscription(it) }
             .groupBy { t: Subscription ->
                 t.id
             }
-            .flatMap { grouped ->
-                grouped.reduce { t: Subscription, u: Subscription ->
+            .mapValues { grouped ->
+                grouped.value.reduce { t: Subscription, u: Subscription ->
                     t.copy(entities = t.entities.plus(u.entities))
                 }
-            }
-            .collectList()
-            .awaitFirst()
+            }.values.toList()
     }
 }

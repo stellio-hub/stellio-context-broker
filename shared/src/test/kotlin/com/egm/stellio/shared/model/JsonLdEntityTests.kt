@@ -29,7 +29,7 @@ class JsonLdEntityTests {
             DEFAULT_CONTEXTS
         )
 
-        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NAME_PROPERTY))
+        val checkResult = jsonLdEntity.checkContainsAnyOf(setOf(TEMPERATURE_PROPERTY, NGSILD_NAME_PROPERTY))
 
         checkResult.fold({
             assertEquals(

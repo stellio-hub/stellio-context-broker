@@ -3,11 +3,12 @@ package com.egm.stellio.subscription.utils
 import com.egm.stellio.shared.model.LdContextNotAvailableException
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_SUBSCRIPTION_TERM
+import com.egm.stellio.shared.util.shouldSucceedWith
+import com.egm.stellio.shared.util.toUri
 import com.egm.stellio.subscription.model.EndpointInfo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.boot.test.context.SpringBootTest
@@ -17,6 +18,8 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [ParsingUtils::class])
 @ActiveProfiles("test")
 class ParsingUtilsTests {
+
+    private val beehiveId = "urn:ngsi-ld:BeeHive:TESTC".toUri()
 
     @Test
     fun `it should correctly parse an endpoint info`() {
@@ -32,6 +35,20 @@ class ParsingUtilsTests {
         val info = ParsingUtils.parseEndpointInfo(input)
 
         assertEquals(info, null)
+    }
+
+    @Test
+    fun `it should correctly parse a subscription`() = runTest {
+        val subscription = mapOf(
+            "id" to beehiveId,
+            "type" to "Subscription",
+            "entities" to listOf(mapOf("type" to BEEHIVE_TYPE)),
+            "notification" to mapOf("endpoint" to mapOf("uri" to "http://my.endpoint/notifiy"))
+        )
+
+        ParsingUtils.parseSubscription(subscription, emptyList()).shouldSucceedWith {
+            assertNotNull(it)
+        }
     }
 
     @Test

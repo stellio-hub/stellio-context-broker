@@ -79,8 +79,7 @@ class TemporalEntityAttributeService(
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,
-                    datasetId = attributeMetadata.datasetId,
-                    entityPayload = payload
+                    datasetId = attributeMetadata.datasetId
                 )
 
                 val attributeCreatedAtInstance = AttributeInstance(
@@ -399,8 +398,7 @@ class TemporalEntityAttributeService(
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),
-            datasetId = (row["dataset_id"] as String?)?.toUri(),
-            entityPayload = row["payload"] as String?
+            datasetId = (row["dataset_id"] as String?)?.toUri()
         )
 
     private var rowToId: ((Row) -> UUID) = { row ->

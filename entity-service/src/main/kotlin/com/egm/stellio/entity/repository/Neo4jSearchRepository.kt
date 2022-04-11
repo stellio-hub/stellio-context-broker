@@ -47,7 +47,7 @@ class Neo4jSearchRepository(
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Triple<Int, List<Entity>, List<String>> {
+    ): Pair<Int, List<Entity>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
             QueryUtils.prepareQueryForAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
         else

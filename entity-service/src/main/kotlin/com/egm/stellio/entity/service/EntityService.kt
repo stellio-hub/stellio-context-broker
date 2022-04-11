@@ -645,19 +645,19 @@ class EntityService(
             listOf(contextLink)
         )
 
-        return Pair(result.first, getAuthorizedEntities(result.second, result.third, includeSysAttrs))
+        return Pair(result.first, getAuthorizedEntities(result.second, includeSysAttrs))
     }
 
     fun getAuthorizedEntities(
         entities: List<Entity>,
-        rights: List<String>,
         includeSysAttrs: Boolean = false
     ): List<JsonLdEntity> =
-        entities.zip(rights).map {
+        entities.map {
             JsonLdEntity(
-                it.first.serializeCoreProperties(includeSysAttrs)
-                    .plus(mapOf("right" to it.second)),
-                it.first.contexts
+                it.serializeCoreProperties(includeSysAttrs)
+                    .plus(serializeEntityProperties(it.properties, includeSysAttrs))
+                    .plus(serializeEntityRelationships(it.relationships, includeSysAttrs)),
+                it.contexts
             )
         }
 }

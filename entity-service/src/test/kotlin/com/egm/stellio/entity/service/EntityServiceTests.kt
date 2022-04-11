@@ -7,7 +7,6 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.SearchRepository
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
@@ -1122,30 +1121,5 @@ class EntityServiceTests {
             exception.message
         )
         confirmVerified()
-    }
-
-    @Test
-    fun `it should return list of JsonLd which contains right`() {
-        val jsonLdEntities = entityService.getAuthorizedEntities(
-            listOf(
-                Entity(
-                    id = "urn:ngsi-ld:Beehive:123456".toUri(),
-                    type = listOf("Beehive"),
-                    contexts = listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-                )
-            ),
-            listOf("rCanWrite"),
-            false
-        )
-
-        val jsonLdEntity = JsonLdEntity(
-            mapOf(
-                "@id" to "urn:ngsi-ld:Beehive:123456",
-                "@type" to listOf("Beehive"),
-                "right" to "rCanWrite"
-            ),
-            contexts = listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
-        assertEquals(listOf(jsonLdEntity), jsonLdEntities)
     }
 }

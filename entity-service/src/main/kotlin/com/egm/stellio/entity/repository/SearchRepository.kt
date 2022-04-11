@@ -2,7 +2,9 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.model.Property
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
 import org.neo4j.driver.internal.value.StringValue
@@ -41,7 +43,7 @@ interface SearchRepository {
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Triple<Int, List<Entity>, List<String>>
+    ): Pair<Int, List<Entity>>
 
     fun prepareResults(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<URI>> =
         if (limit == 0)
@@ -57,23 +59,43 @@ interface SearchRepository {
     fun prepareResultsAuthorizedEntities(
         limit: Int,
         result: Collection<Map<String, Any>>
-    ): Triple<Int, List<Entity>, List<String>> =
+    ): Pair<Int, List<Entity>> =
         if (limit == 0)
-            Triple(
+            Pair(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                emptyList(),
                 emptyList()
             )
-        else Triple(
+        else Pair(
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            (result.firstOrNull()?.get("entities") as List<Node>).map {
-                Entity(
-                    id = (it.get("id") as StringValue).asString().toUri(),
-                    type = it.labels() as List<String>
-                )
-            },
-            (result.firstOrNull()?.get("rights") as List<Relationship>).map {
-                it.type()
-            }
+            constructEntities((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
         )
+
+
+    fun constructEntities(entities: List<Map<String, Any>>): List<Entity> =
+        entities.map {
+            val entityNode = it["entity"] as Node
+            val rightOnEntity = (it["right"] as Relationship).type()
+            val specificAccessPolicy = it["specificAccessPolicy"] as String?
+            val entityId = (entityNode.get("id") as StringValue).asString().toUri()
+
+            if (specificAccessPolicy!= null) {
+                 Entity(
+                    id = entityId,
+                    type = entityNode.labels() as List<String>,
+                    relationships = mutableListOf(
+                        com.egm.stellio.entity.model.Relationship(objectId = entityId, type = listOf(rightOnEntity))
+                    ),
+                    properties = mutableListOf(
+                        Property(name = AuthContextModel.AUTH_PROP_SAP, value = specificAccessPolicy)
+                    )
+                )
+            } else
+                Entity(
+                    id = entityId,
+                    type = entityNode.labels() as List<String>,
+                    relationships = mutableListOf(
+                        com.egm.stellio.entity.model.Relationship(objectId = entityId, type = listOf(rightOnEntity))
+                    )
+                )
+        }
 }

@@ -207,16 +207,13 @@ object QueryUtils {
                 WHERE user.id IN ${'$'}userAndGroupIds
                 WITH user
                 MATCH (user)-[]->()-[right:$authTerm]->$matchEntityClause
-                RETURN {entity: entity, right: right} as entity
-                UNION
-                MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
+                OPTIONAL MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
                 WHERE prop.value IN [
-                    '${AuthContextModel.SpecificAccessPolicy.AUTH_WRITE.name}',
                     '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
                 ]
-                RETURN entity
+                RETURN {entity: entity, right: right, specificAccessPolicy: prop.value} as entities 
             }
-            WITH collect(entity.entity) as entities, collect(entity.right) as rights, count(entity) as count 
+            WITH collect(distinct(entities)) as entities, count(distinct(entities)) as count 
             """.trimIndent()
 
         val pagingClause = if (limit == 0)
@@ -225,7 +222,7 @@ object QueryUtils {
             """.trimIndent()
         else
             """
-            RETURN entities, rights, count
+            RETURN entities, count
             ORDER BY entities
             SKIP $offset LIMIT $limit
             """.trimIndent()
@@ -250,7 +247,7 @@ object QueryUtils {
         else
             """
             WITH collect(entity) as entities, count(entity) as count
-            RETURN entities, "rCanAdmin", count
+            RETURN {entity: entities, right: "rCanWrite"} as entities, count
             ORDER BY entities
             SKIP $offset LIMIT $limit
             """.trimIndent()

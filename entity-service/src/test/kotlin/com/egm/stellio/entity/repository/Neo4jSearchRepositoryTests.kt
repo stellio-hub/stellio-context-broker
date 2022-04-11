@@ -391,9 +391,21 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf("Beekeeper"),
             mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
         )
+        val fouthEntity = createEntity(
+            "urn:ngsi-ld:Beehive:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = expandedNameProperty, value = "Scalpa"),
+                Property(
+                    name = AUTH_PROP_SAP,
+                    value = AuthContextModel.SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, fouthEntity.id)
 
         val entities = searchRepository.getAuthorizedEntities(
             QueryParams(),
@@ -403,8 +415,8 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
             listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
         )
 
-        assertEquals(3, entities.second.size)
-        assertEquals(3, entities.third.size)
+        assertEquals(4, entities.second.size)
+        assertEquals(1, entities.second.get(3).relationships.size)
     }
 
     @Test
@@ -438,7 +450,6 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(2, entities.second.size)
-        assertEquals(2, entities.third.size)
     }
 
     @Test
@@ -472,7 +483,6 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(2, entities.second.size)
-        assertEquals(2, entities.third.size)
     }
 
     fun createEntity(

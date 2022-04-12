@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.repository
 
 import arrow.core.Option
-import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.model.EntityAccessControl
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -33,7 +33,7 @@ class StandaloneNeo4jSearchRepository(
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Pair<Int, List<Entity>> {
+    ): Pair<Int, List<EntityAccessControl>> {
         val query = QueryUtils.prepareQueryForAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
         val result = neo4jClient.query(query).fetch().all()
         return prepareResultsAuthorizedEntities(limit, result)

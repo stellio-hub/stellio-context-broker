@@ -2,7 +2,7 @@ package com.egm.stellio.entity.repository
 
 import arrow.core.Option
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationService
-import com.egm.stellio.entity.model.Entity
+import com.egm.stellio.entity.model.EntityAccessControl
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -47,7 +47,7 @@ class Neo4jSearchRepository(
         offset: Int,
         limit: Int,
         contexts: List<String>
-    ): Pair<Int, List<Entity>> {
+    ): Pair<Int, List<EntityAccessControl>> {
         val query = if (neo4jAuthorizationService.userIsAdmin(sub))
             QueryUtils.prepareQueryForAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
         else

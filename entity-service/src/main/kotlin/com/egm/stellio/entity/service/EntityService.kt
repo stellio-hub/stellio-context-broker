@@ -6,11 +6,6 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.repository.AttributeSubjectNode
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.EntitySubjectNode
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
@@ -649,14 +644,12 @@ class EntityService(
     }
 
     fun getAuthorizedEntities(
-        entities: List<Entity>,
+        entities: List<EntityAccessControl>,
         includeSysAttrs: Boolean = false
     ): List<JsonLdEntity> =
         entities.map {
             JsonLdEntity(
-                it.serializeCoreProperties(includeSysAttrs)
-                    .plus(serializeEntityProperties(it.properties, includeSysAttrs))
-                    .plus(serializeEntityRelationships(it.relationships, includeSysAttrs)),
+                it.serializeCoreProperties(includeSysAttrs),
                 it.contexts
             )
         }

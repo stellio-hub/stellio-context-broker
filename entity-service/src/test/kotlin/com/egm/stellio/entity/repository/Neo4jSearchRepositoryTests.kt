@@ -416,7 +416,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         )
 
         assertEquals(4, entities.second.size)
-        assertEquals(1, entities.second.get(3).relationships.size)
+        assertEquals(AuthContextModel.SpecificAccessPolicy.AUTH_READ.name, entities.second.get(3).specificAccessPolicy)
     }
 
     @Test

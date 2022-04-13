@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
@@ -10,10 +11,23 @@ import java.net.URI
 
 @Component
 @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
-class StandaloneAuthorizationService : AuthorizationService {
+class StandaloneAuthorizationService(
+    private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
+) : AuthorizationService {
     override fun getSubjectUri(sub: Option<Sub>): URI = (USER_TYPE + "None").toUri()
 
     override fun getSubjectGroups(sub: Option<Sub>): Set<URI> = emptySet()
+
+    override fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contexts: List<String>
+    ): Pair<Int, List<EntityAccessControl>>{
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
+        return prepareResultsAuthorizedEntities(limit, result)
+    }
 
     override fun userIsAdmin(sub: Option<Sub>): Boolean {
         return true

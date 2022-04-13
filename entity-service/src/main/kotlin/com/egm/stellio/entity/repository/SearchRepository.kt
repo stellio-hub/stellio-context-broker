@@ -1,13 +1,9 @@
 package com.egm.stellio.entity.repository
 
 import arrow.core.Option
-import com.egm.stellio.entity.model.EntityAccessControl
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
-import org.neo4j.driver.internal.value.StringValue
-import org.neo4j.driver.types.Node
-import org.neo4j.driver.types.Relationship
 import org.springframework.transaction.annotation.Transactional
 import java.net.URI
 
@@ -34,15 +30,6 @@ interface SearchRepository {
         contexts: List<String>
     ): Pair<Int, List<URI>>
 
-    @Transactional(readOnly = true)
-    fun getAuthorizedEntities(
-        queryParams: QueryParams,
-        sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        contexts: List<String>
-    ): Pair<Int, List<EntityAccessControl>>
-
     fun prepareResults(limit: Int, result: Collection<Map<String, Any>>): Pair<Int, List<URI>> =
         if (limit == 0)
             Pair(
@@ -53,33 +40,4 @@ interface SearchRepository {
             (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
             result.map { (it["id"] as String).toUri() }
         )
-
-    fun prepareResultsAuthorizedEntities(
-        limit: Int,
-        result: Collection<Map<String, Any>>
-    ): Pair<Int, List<EntityAccessControl>> =
-        if (limit == 0)
-            Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                emptyList()
-            )
-        else Pair(
-            (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            constructEntities((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
-        )
-
-    fun constructEntities(entities: List<Map<String, Any>>): List<EntityAccessControl> =
-        entities.map {
-            val entityNode = it["entity"] as Node
-            val rightOnEntity = (it["right"] as Relationship).type()
-            val specificAccessPolicy = it["specificAccessPolicy"] as String?
-            val entityId = (entityNode.get("id") as StringValue).asString().toUri()
-
-            EntityAccessControl(
-                id = entityId,
-                type = entityNode.labels() as List<String>,
-                right = rightOnEntity,
-                specificAccessPolicy = specificAccessPolicy,
-            )
-        }
 }

@@ -1,44 +1,26 @@
-package com.egm.stellio.entity.model
+package com.egm.stellio.entity.authorization
 
-import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
+import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toNgsiLdFormat
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonProperty
-import org.springframework.data.annotation.LastModifiedDate
-import org.springframework.data.neo4j.core.convert.ConvertWith
-import org.springframework.data.neo4j.core.schema.DynamicLabels
-import org.springframework.data.neo4j.core.schema.Id
-import org.springframework.data.neo4j.core.schema.Node
 import java.net.URI
-import java.time.Instant
-import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
-@Node
-@JsonIgnoreProperties(ignoreUnknown = true)
 data class EntityAccessControl(
 
-    @Id
-    @JsonProperty("@id")
-    @ConvertWith(converter = Neo4jUriPropertyConverter::class)
     val id: URI,
 
-    @DynamicLabels
-    @JsonProperty("@type")
     val type: List<String>,
 
-    @JsonIgnore
-    val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
+    val createdAt: ZonedDateTime,
 
-    @JsonIgnore
-    @LastModifiedDate
     var modifiedAt: ZonedDateTime? = null,
 
-    val right: String,
+    val right: AccessRight,
 
-    val specificAccessPolicy: String? = null,
+    val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
 
     var contexts: List<String> = mutableListOf()
 ) {
@@ -61,7 +43,7 @@ data class EntityAccessControl(
             }
         }
 
-        resultEntity["right"] = mutableMapOf(
+        resultEntity[AUTH_PROP_RIGHT] = mutableMapOf(
             JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
             JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
                 JsonLdUtils.JSONLD_VALUE_KW to right
@@ -69,7 +51,7 @@ data class EntityAccessControl(
         )
 
         if (specificAccessPolicy != null) {
-            resultEntity["specificAccessPolicy"] = mutableMapOf(
+            resultEntity[AuthContextModel.AUTH_PROP_SAP] = mutableMapOf(
                 JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
                 JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
                     JsonLdUtils.JSONLD_VALUE_KW to specificAccessPolicy

@@ -42,6 +42,8 @@ object AuthContextModel {
     const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
     const val AUTH_TERM_SAP = "specificAccessPolicy"
     const val AUTH_PROP_SAP = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SAP
+    const val AUTH_TERM_RIGHT = "right"
+    const val AUTH_PROP_RIGHT: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_RIGHT
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF

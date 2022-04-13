@@ -1,14 +1,12 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.model.Entity
-import com.egm.stellio.entity.model.EntityAccessControl
 import com.egm.stellio.entity.model.Property
 import com.egm.stellio.entity.model.Relationship
 import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.entity.repository.SearchRepository
-import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.NgsiLdPropertyInstance
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.model.parseToNgsiLdAttributes
@@ -1123,42 +1121,5 @@ class EntityServiceTests {
             exception.message
         )
         confirmVerified()
-    }
-
-    @Test
-    fun `it should return list of JsonLd build with EntityAccessControl `() {
-        val jsonLdEntities = entityService.getAuthorizedEntities(
-            listOf(
-                EntityAccessControl(
-                    id = "urn:ngsi-ld:Beehive:123456".toUri(),
-                    type = listOf("Beehive"),
-                    right = "rCanWrite",
-                    specificAccessPolicy = "AUTH_WRITE",
-                    contexts = listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-                )
-            ),
-            false
-        )
-
-        val jsonLdEntity = JsonLdEntity(
-            mapOf(
-                "@id" to "urn:ngsi-ld:Beehive:123456",
-                "@type" to listOf("Beehive"),
-                "right" to mapOf(
-                    JsonLdUtils.JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        JsonLdUtils.JSONLD_VALUE_KW to "rCanWrite"
-                    )
-                ),
-                "specificAccessPolicy" to mapOf(
-                    JsonLdUtils.JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
-                    NGSILD_PROPERTY_VALUE to mapOf(
-                        JsonLdUtils.JSONLD_VALUE_KW to "AUTH_WRITE"
-                    )
-                )
-            ),
-            contexts = listOf(JsonLdUtils.NGSILD_CORE_CONTEXT)
-        )
-        assertEquals(listOf(jsonLdEntity), jsonLdEntities)
     }
 }

@@ -622,35 +622,4 @@ class EntityService(
 
         throw ResourceNotFoundException("Default instance of $expandedAttributeName not found in entity $entityId")
     }
-
-    @Transactional(readOnly = true)
-    fun searchAuthorizedEntities(
-        queryParams: QueryParams,
-        sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        contextLink: String,
-        includeSysAttrs: Boolean
-    ): Pair<Int, List<JsonLdEntity>> {
-        val result = searchRepository.getAuthorizedEntities(
-            queryParams,
-            sub,
-            offset,
-            limit,
-            listOf(contextLink)
-        )
-
-        return Pair(result.first, getAuthorizedEntities(result.second, includeSysAttrs))
-    }
-
-    fun getAuthorizedEntities(
-        entities: List<EntityAccessControl>,
-        includeSysAttrs: Boolean = false
-    ): List<JsonLdEntity> =
-        entities.map {
-            JsonLdEntity(
-                it.serializeCoreProperties(includeSysAttrs),
-                it.contexts
-            )
-        }
 }

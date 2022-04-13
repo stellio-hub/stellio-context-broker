@@ -4,6 +4,9 @@ import com.egm.stellio.entity.config.SUBJECT_GROUPS_CACHE
 import com.egm.stellio.entity.config.SUBJECT_ROLES_CACHE
 import com.egm.stellio.entity.config.SUBJECT_URI_CACHE
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.entity.repository.QueryUtils
+import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
@@ -19,11 +22,14 @@ import org.springframework.cache.annotation.Caching
 import org.springframework.data.neo4j.core.Neo4jClient
 import org.springframework.stereotype.Component
 import java.net.URI
+import java.util.regex.Pattern
 
 @Component
 class Neo4jAuthorizationRepository(
     private val neo4jClient: Neo4jClient
 ) {
+
+    private val qPattern = Pattern.compile("([^();|]+)")
 
     @Cacheable(SUBJECT_URI_CACHE)
     fun getSubjectUri(defaultSubUri: URI): URI {
@@ -227,4 +233,95 @@ class Neo4jAuthorizationRepository(
 
         return neo4jClient.query(matchQuery).bindAll(parameters).run().counters().nodesDeleted()
     }
+
+    fun getAuthorizedEntitiesWithAuthentication(
+        queryParams: QueryParams,
+        offset: Int,
+        limit: Int,
+        userAndGroupIds: List<String>
+    ): Collection<Map<String, Any>> {
+        val (_, expandedType, _, q, _) = queryParams
+        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
+        val authTerm = buildAuthTerm(q)
+        val matchAuthorizedEntitiesClause =
+            """
+            CALL {
+                MATCH (user)
+                WHERE user.id IN ${'$'}userAndGroupIds
+                MATCH (user)-[]->()-[right:$authTerm]->$matchEntityClause
+                OPTIONAL MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
+                WHERE prop.value IN [
+                    '${AuthContextModel.SpecificAccessPolicy.AUTH_READ.name}'
+                ]              
+                RETURN {entity: entity, right: right, specificAccessPolicy: prop.value} as entities 
+            }
+            WITH collect(distinct(entities)) as entities, count(distinct(entities)) as count 
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count
+            """.trimIndent()
+        else
+            """
+            RETURN entities, count
+            ORDER BY entities
+            SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        return neo4jClient
+            .query("""
+                $matchAuthorizedEntitiesClause
+                $pagingClause
+                """)
+            .bind(userAndGroupIds).to("userAndGroupIds")
+            .fetch()
+            .all()
+    }
+
+    //Here user are admin so we return systematically `rCanAdmin`like right and there are not specificAccessPolicy
+    fun getAuthorizedEntitiesWithoutAuthentication(
+        queryParams: QueryParams,
+        offset: Int,
+        limit: Int
+    ): Collection<Map<String, Any>> {
+        val (_, expandedType, _, q, _) = queryParams
+        val matchEntityClause = buildMatchEntityClause(expandedType)
+        val authTerm = buildAuthTerm(q)
+        val pagingClause = if(!authTerm.contains("rCandAdmin"))
+            """
+            RETURN 0 as count
+            """.trimIndent()
+        else if (limit == 0)
+            """
+            RETURN count(entity) as count
+            """.trimIndent()
+        else
+            """
+            WITH collect(entity) as entities, count(entity) as count
+            RETURN {entity: entities, right: "rCanAdmin"} as entities, count
+            ORDER BY entities
+            SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        return neo4jClient
+            .query("""
+                $matchEntityClause
+                $pagingClause
+                """)
+            .fetch()
+            .all()
+    }
+
+    private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
+        if (expandedType == null)
+            "$prefix (entity:Entity)"
+        else
+            "$prefix (entity:`$expandedType`)"
+
+    fun buildAuthTerm(q: String?): String =
+        q?.replace(qPattern.toRegex()) { matchResult ->
+            matchResult.value
+        }?.replace(";", "|")
+            ?: "${AuthContextModel.AUTH_TERM_CAN_READ}|${AuthContextModel.AUTH_TERM_CAN_WRITE}|${AuthContextModel.AUTH_TERM_CAN_ADMIN}"
 }

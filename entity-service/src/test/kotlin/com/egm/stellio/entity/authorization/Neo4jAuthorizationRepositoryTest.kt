@@ -11,6 +11,7 @@ import com.egm.stellio.entity.repository.EntityRepository
 import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
@@ -22,6 +23,8 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
+import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
+import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -57,6 +60,9 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     private val serviceAccountUri = "urn:ngsi-ld:ServiceAccount:01".toUri()
     private val apiaryUri = "urn:ngsi-ld:Apiary:01".toUri()
     private val apiary02Uri = "urn:ngsi-ld:Apiary:02".toUri()
+    private val expandedNameProperty = JsonLdUtils.expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
+    private val offset = 0
+    private val limit = 20
 
     @AfterEach
     fun cleanData() {
@@ -611,6 +617,122 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         neo4jRepository.deleteEntity(userUri)
         neo4jRepository.deleteEntity(apiaryUri)
+    }
+
+    @Test
+    fun `it should return matching entities that user have rights`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1230".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val fouthEntity = createEntity(
+            "urn:ngsi-ld:Beehive:1233".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(
+                Property(name = expandedNameProperty, value = "Scalpa"),
+                Property(
+                    name = AuthContextModel.AUTH_PROP_SAP,
+                    value = SpecificAccessPolicy.AUTH_READ.name
+                )
+            )
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, fouthEntity.id)
+
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+            QueryParams(),
+            offset,
+            limit,
+            listOf(userUri.toString())
+        )
+
+        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
+        val specificAccessPolicies = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["specificAccessPolicy"] }
+
+        assertEquals(4, entities.size)
+        assertEquals(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.valueOf(specificAccessPolicies[3] as String))
+    }
+
+    @Test
+    fun `it should return matching entities with filter on rCanWrite and rCanRead`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1230".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+            QueryParams(q = "rCanWrite;rCanRead"),
+            offset,
+            limit,
+            listOf(userUri.toString())
+        )
+
+        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
+
+        assertEquals(2, entities.size)
+    }
+
+    @Test
+    fun `it should return matching entities with filter on type`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1230".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val secondEntity = createEntity(
+            "urn:ngsi-ld:Beekeeper:1231".toUri(),
+            listOf("Beekeeper"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        val thirdEntity = createEntity(
+            "urn:ngsi-ld:Beehive:1232".toUri(),
+            listOf("Beehive"),
+            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
+
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+            QueryParams(expandedType = "Beekeeper"),
+            offset,
+            limit,
+            listOf(userUri.toString())
+        )
+
+        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
+
+        assertEquals(2, entities.size)
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {

@@ -58,7 +58,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
+    fun createEntityTemporalReferences(payload: String, contexts: List<String>, sub: String? = null): Mono<Int> {
         val ngsiLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         val parsedPayload = JsonUtils.deserializeObject(payload)
 
@@ -92,7 +92,8 @@ class TemporalEntityAttributeService(
                         parsedPayload,
                         compactTerm(expandedAttributeName, contexts),
                         attributeMetadata.datasetId
-                    )
+                    ),
+                    sub = sub
                 )
 
                 val attributeObservedAtInstance =

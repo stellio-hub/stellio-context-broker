@@ -54,7 +54,8 @@ class EntityEventListenerService(
         val operationPayload = addContextToElement(entityCreateEvent.operationPayload, entityCreateEvent.contexts)
         temporalEntityAttributeService.createEntityTemporalReferences(
             operationPayload,
-            entityCreateEvent.contexts
+            entityCreateEvent.contexts,
+            entityCreateEvent.sub
         ).then(
             entityAccessRightsService.setAdminRoleOnEntity(
                 entityCreateEvent.sub,
@@ -74,7 +75,8 @@ class EntityEventListenerService(
             .then(
                 temporalEntityAttributeService.createEntityTemporalReferences(
                     operationPayload,
-                    entityReplaceEvent.contexts
+                    entityReplaceEvent.contexts,
+                    entityReplaceEvent.sub
                 )
             ).then(
                 entityAccessRightsService.setAdminRoleOnEntity(

@@ -100,7 +100,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         val temporalReferencesResults = temporalEntityAttributeService.createEntityTemporalReferences(
             rawEntity,
-            listOf(APIC_COMPOUND_CONTEXT)
+            listOf(APIC_COMPOUND_CONTEXT),
+            "0123456789-1234-5678-987654321"
         )
 
         StepVerifier.create(temporalReferencesResults)
@@ -122,7 +123,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
                     it.value == null &&
                         it.measuredValue == 1543.0 &&
                         it.timeProperty == AttributeInstance.TemporalProperty.CREATED_AT &&
-                        it.time == ZonedDateTime.parse("2020-01-24T13:01:22.066Z")
+                        it.time == ZonedDateTime.parse("2020-01-24T13:01:22.066Z") &&
+                        it.sub == "0123456789-1234-5678-987654321"
                 }
             )
             attributeInstanceService.create(

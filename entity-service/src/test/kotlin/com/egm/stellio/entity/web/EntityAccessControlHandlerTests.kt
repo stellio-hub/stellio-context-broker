@@ -601,7 +601,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.searchAuthorizedEntities(
+            authorizationService.getAuthorizedEntities(
                 any(),
                 any(),
                 any(),
@@ -626,7 +626,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exists`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.searchAuthorizedEntities(
+            authorizationService.getAuthorizedEntities(
                 any(),
                 any(),
                 any(),
@@ -647,7 +647,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return ids I have rigts`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.searchAuthorizedEntities(
+            authorizationService.getAuthorizedEntities(
                 any(),
                 any(),
                 any(),

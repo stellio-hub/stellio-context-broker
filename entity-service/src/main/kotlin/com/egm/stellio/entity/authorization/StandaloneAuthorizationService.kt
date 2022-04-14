@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.Sub
@@ -23,10 +24,19 @@ class StandaloneAuthorizationService(
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contexts: List<String>
-    ): Pair<Int, List<EntityAccessControl>>{
+        contextLink: String,
+        includeSysAttrs: Boolean
+    ): Pair<Int, List<JsonLdEntity>> {
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
-        return prepareResultsAuthorizedEntities(limit, result)
+
+        val jsonLdEntities = result.second.map {
+            JsonLdEntity(
+                it.serializeCoreProperties(includeSysAttrs),
+                it.contexts
+            )
+        }
+
+        return Pair(result.first, jsonLdEntities)
     }
 
     override fun userIsAdmin(sub: Option<Sub>): Boolean {

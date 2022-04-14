@@ -79,7 +79,7 @@ class EntityAccessControlHandler(
                     )
                 )
 
-        val countAndEntitiesIds = authorizationService.searchAuthorizedEntities(
+        val countAndEntitiesIds = authorizationService.getAuthorizedEntities(
             QueryParams(
                 null,
                 type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },

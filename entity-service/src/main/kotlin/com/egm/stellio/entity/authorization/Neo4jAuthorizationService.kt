@@ -3,6 +3,7 @@ package com.egm.stellio.entity.authorization
 import arrow.core.Option
 import arrow.core.flattenOption
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ADMIN_RIGHTS
@@ -164,17 +165,34 @@ class Neo4jAuthorizationService(
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contexts: List<String>
-    ): Pair<Int, List<EntityAccessControl>> {
+        contextLink: String,
+        includeSysAttrs: Boolean
+    ): Pair<Int, List<JsonLdEntity>> {
         val userAndGroupIds = getSubjectGroups(sub)
             .plus(getSubjectUri(sub))
             .map { it.toString() }
 
         val result = if (userIsAdmin(sub))
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithoutAuthentication(
+                queryParams,
+                offset,
+                limit
+            )
         else
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(queryParams, offset, limit, userAndGroupIds)
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+                queryParams,
+                offset,
+                limit,
+                userAndGroupIds
+            )
 
-        return prepareResultsAuthorizedEntities(limit, result)
+        val jsonLdEntities = result.second.map {
+            JsonLdEntity(
+                it.serializeCoreProperties(includeSysAttrs),
+                it.contexts
+            )
+        }
+
+        return Pair(result.first, jsonLdEntities)
     }
 }

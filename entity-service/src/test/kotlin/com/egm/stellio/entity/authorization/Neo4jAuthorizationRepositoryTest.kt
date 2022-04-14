@@ -12,7 +12,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
@@ -23,9 +23,6 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
-import com.egm.stellio.shared.util.DEFAULT_CONTEXTS
-import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -660,11 +657,16 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf(userUri.toString())
         )
 
-        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
-        val specificAccessPolicies = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["specificAccessPolicy"] }
-
-        assertEquals(4, entities.size)
-        assertEquals(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.valueOf(specificAccessPolicies[3] as String))
+        assertEquals(4, result.first)
+        assertEquals(4, result.second.size)
+        assertTrue {
+            result.second.any {
+                it.specificAccessPolicy == SpecificAccessPolicy.AUTH_READ
+                it.right == AccessRight.R_CAN_ADMIN
+                it.right == AccessRight.R_CAN_READ
+                it.right == AccessRight.R_CAN_WRITE
+            }
+        }
     }
 
     @Test
@@ -696,9 +698,15 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf(userUri.toString())
         )
 
-        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
-
-        assertEquals(2, entities.size)
+        assertEquals(2, result.first)
+        assertEquals(2, result.second.size)
+        assertTrue {
+            result.second.any {
+                it.right != AccessRight.R_CAN_ADMIN
+                it.right == AccessRight.R_CAN_READ
+                it.right == AccessRight.R_CAN_WRITE
+            }
+        }
     }
 
     @Test
@@ -730,9 +738,15 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf(userUri.toString())
         )
 
-        val entities = (result.firstOrNull()?.get("entities")as List<Map<String, Any>>).map { it["entity"] }
-
-        assertEquals(2, entities.size)
+        assertEquals(2, result.first)
+        assertEquals(2, result.second.size)
+        assertTrue {
+            result.second.any {
+                it.right == AccessRight.R_CAN_ADMIN
+                it.right != AccessRight.R_CAN_READ
+                it.right == AccessRight.R_CAN_WRITE
+            }
+        }
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {

@@ -2,14 +2,9 @@ package com.egm.stellio.entity.authorization
 
 import arrow.core.*
 import com.egm.stellio.shared.model.*
-import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
 import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toUri
-import org.neo4j.driver.internal.value.DateTimeValue
-import org.neo4j.driver.internal.value.StringValue
-import org.neo4j.driver.types.Node
 import java.net.URI
 
 interface AuthorizationService {
@@ -20,8 +15,9 @@ interface AuthorizationService {
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contexts: List<String>
-    ): Pair<Int, List<EntityAccessControl>>
+        contextLink: String,
+        includeSysAttrs: Boolean
+    ): Pair<Int, List<JsonLdEntity>>
     fun userIsAdmin(sub: Option<Sub>): Boolean
     fun userCanCreateEntities(sub: Option<Sub>): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI>
@@ -111,72 +107,4 @@ interface AuthorizationService {
         }.flatMap {
             checkEntityTypeIsAuthorized(entityType)
         }
-
-    fun prepareResultsAuthorizedEntities(
-        limit: Int,
-        result: Collection<Map<String, Any>>
-    ): Pair<Int, List<EntityAccessControl>> =
-        if (limit == 0)
-            Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                emptyList()
-            )
-        else Pair(
-            (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-            constructEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
-        )
-
-    fun constructEntityAccessControl(entities: List<Map<String, Any>>): List<EntityAccessControl> =
-        entities.map {
-            val entityNode = it["entity"] as Node
-            val rightOnEntity = (it["right"] as org.neo4j.driver.types.Relationship).type()
-            val specificAccessPolicy = it["specificAccessPolicy"] as String?
-            val entityId = (entityNode.get("id") as StringValue).asString().toUri()
-
-            if(specificAccessPolicy!=null){
-                EntityAccessControl(
-                    id = entityId,
-                    type = entityNode.labels() as List<String>,
-                    right = AccessRight.forAttributeName(rightOnEntity).orNull()!!,
-                    createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
-                    modifiedAt = (entityNode?.get("modifiedAt") as DateTimeValue)?.asZonedDateTime(),
-                    specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.valueOf(specificAccessPolicy)
-                )
-            }
-            else {
-                EntityAccessControl(
-                    id = entityId,
-                    type = entityNode.labels() as List<String>,
-                    right = AccessRight.forAttributeName(rightOnEntity).orNull()!!,
-                    createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
-                    modifiedAt = (entityNode?.get("modifiedAt") as DateTimeValue)?.asZonedDateTime(),
-                )
-            }
-        }
-
-    fun searchAuthorizedEntities(
-        queryParams: QueryParams,
-        sub: Option<Sub>,
-        offset: Int,
-        limit: Int,
-        contextLink: String,
-        includeSysAttrs: Boolean
-    ): Pair<Int, List<JsonLdEntity>> {
-        val result = getAuthorizedEntities(
-            queryParams,
-            sub,
-            offset,
-            limit,
-            listOf(contextLink)
-        )
-
-        val jsonLdEntities = result.second.map {
-            JsonLdEntity(
-                it.serializeCoreProperties(includeSysAttrs),
-                it.contexts
-            )
-        }
-
-        return Pair(result.first, jsonLdEntities)
-    }
 }

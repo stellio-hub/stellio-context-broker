@@ -4,8 +4,8 @@ import com.egm.stellio.entity.config.SUBJECT_GROUPS_CACHE
 import com.egm.stellio.entity.config.SUBJECT_ROLES_CACHE
 import com.egm.stellio.entity.config.SUBJECT_URI_CACHE
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.entity.repository.QueryUtils
 import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -15,6 +15,9 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.toListOfString
 import com.egm.stellio.shared.util.toUri
+import org.neo4j.driver.internal.value.DateTimeValue
+import org.neo4j.driver.internal.value.StringValue
+import org.neo4j.driver.types.Node
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.CachePut
 import org.springframework.cache.annotation.Cacheable
@@ -239,7 +242,7 @@ class Neo4jAuthorizationRepository(
         offset: Int,
         limit: Int,
         userAndGroupIds: List<String>
-    ): Collection<Map<String, Any>> {
+    ): Pair<Int, List<EntityAccessControl>> {
         val (_, expandedType, _, q, _) = queryParams
         val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
         val authTerm = buildAuthTerm(q)
@@ -269,26 +272,30 @@ class Neo4jAuthorizationRepository(
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
-        return neo4jClient
-            .query("""
+        val result = neo4jClient
+            .query(
+                """
                 $matchAuthorizedEntitiesClause
                 $pagingClause
-                """)
+                """
+            )
             .bind(userAndGroupIds).to("userAndGroupIds")
             .fetch()
             .all()
+
+        return prepareResultsAuthorizedEntities(limit, result)
     }
 
-    //Here user are admin so we return systematically `rCanAdmin`like right and there are not specificAccessPolicy
+    // Here user are admin so we return systematically `rCanAdmin`like right and there are not specificAccessPolicy
     fun getAuthorizedEntitiesWithoutAuthentication(
         queryParams: QueryParams,
         offset: Int,
         limit: Int
-    ): Collection<Map<String, Any>> {
+    ): Pair<Int, List<EntityAccessControl>> {
         val (_, expandedType, _, q, _) = queryParams
         val matchEntityClause = buildMatchEntityClause(expandedType)
         val authTerm = buildAuthTerm(q)
-        val pagingClause = if(!authTerm.contains("rCandAdmin"))
+        val pagingClause = if (!authTerm.contains("rCandAdmin"))
             """
             RETURN 0 as count
             """.trimIndent()
@@ -304,13 +311,17 @@ class Neo4jAuthorizationRepository(
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
-        return neo4jClient
-            .query("""
+        val result = neo4jClient
+            .query(
+                """
                 $matchEntityClause
                 $pagingClause
-                """)
+                """
+            )
             .fetch()
             .all()
+
+        return prepareResultsAuthorizedEntities(limit, result)
     }
 
     private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
@@ -323,5 +334,48 @@ class Neo4jAuthorizationRepository(
         q?.replace(qPattern.toRegex()) { matchResult ->
             matchResult.value
         }?.replace(";", "|")
-            ?: "${AuthContextModel.AUTH_TERM_CAN_READ}|${AuthContextModel.AUTH_TERM_CAN_WRITE}|${AuthContextModel.AUTH_TERM_CAN_ADMIN}"
+            ?: "${AuthContextModel.AUTH_TERM_CAN_READ}|" +
+                "${AuthContextModel.AUTH_TERM_CAN_WRITE}|" +
+                "${AuthContextModel.AUTH_TERM_CAN_ADMIN}"
+
+    fun prepareResultsAuthorizedEntities(
+        limit: Int,
+        result: Collection<Map<String, Any>>
+    ): Pair<Int, List<EntityAccessControl>> =
+        if (limit == 0)
+            Pair(
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                emptyList()
+            )
+        else Pair(
+            (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+            constructEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
+        )
+
+    fun constructEntityAccessControl(entities: List<Map<String, Any>>): List<EntityAccessControl> =
+        entities.map {
+            val entityNode = it["entity"] as Node
+            val rightOnEntity = (it["right"] as org.neo4j.driver.types.Relationship).type()
+            val specificAccessPolicy = it["specificAccessPolicy"] as String?
+            val entityId = (entityNode.get("id") as StringValue).asString().toUri()
+
+            if (specificAccessPolicy != null) {
+                EntityAccessControl(
+                    id = entityId,
+                    type = entityNode.labels() as List<String>,
+                    right = AccessRight.forAttributeName(rightOnEntity).orNull()!!,
+                    createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
+                    modifiedAt = (entityNode?.get("modifiedAt") as DateTimeValue)?.asZonedDateTime(),
+                    specificAccessPolicy = AuthContextModel.SpecificAccessPolicy.valueOf(specificAccessPolicy)
+                )
+            } else {
+                EntityAccessControl(
+                    id = entityId,
+                    type = entityNode.labels() as List<String>,
+                    right = AccessRight.forAttributeName(rightOnEntity).orNull()!!,
+                    createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
+                    modifiedAt = (entityNode?.get("modifiedAt") as DateTimeValue)?.asZonedDateTime(),
+                )
+            }
+        }
 }

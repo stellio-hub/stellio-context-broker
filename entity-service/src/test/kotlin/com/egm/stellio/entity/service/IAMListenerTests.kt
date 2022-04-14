@@ -65,12 +65,10 @@ class IAMListenerTests {
                 "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri(),
                 match {
                     it.size == 1 &&
-                        it.any {
-                            it.compactName == "givenName"
-                            it is NgsiLdProperty
-                            (it as NgsiLdProperty).instances.size == 1
-                            it.instances.any { it.value == "Jonathan" }
-                        }
+                        it[0].compactName == "givenName" &&
+                        it[0] is NgsiLdProperty &&
+                        (it[0] as NgsiLdProperty).instances.size == 1 &&
+                        (it[0] as NgsiLdProperty).instances[0].value == "Jonathan"
                 }
             )
         }

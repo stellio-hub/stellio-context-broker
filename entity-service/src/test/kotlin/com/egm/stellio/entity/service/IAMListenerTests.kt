@@ -43,9 +43,11 @@ class IAMListenerTests {
                 match {
                     it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri() &&
                         it.properties.size == 3 &&
-                        it.properties[2].compactName == "username" &&
-                        it.properties[2].instances.size == 1 &&
-                        it.properties[2].instances[0].value == "stellio"
+                        it.properties.any {
+                            it.compactName == "username"
+                            it.instances.size == 1
+                            it.instances.any { it.value == "stellio" }
+                        }
                 }
             )
         }
@@ -63,6 +65,12 @@ class IAMListenerTests {
                 "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri(),
                 match {
                     it.size == 1 &&
+                        it.any {
+                            it.compactName == "givenName"
+                            it is NgsiLdProperty
+                            (it as NgsiLdProperty).instances.size == 1
+                            (it as NgsiLdProperty).instances.any { it.value == "Jonathan" }
+                        }
                         it[0].compactName == "givenName" &&
                         it[0] is NgsiLdProperty &&
                         (it[0] as NgsiLdProperty).instances.size == 1 &&

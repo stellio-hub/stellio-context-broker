@@ -69,12 +69,8 @@ class IAMListenerTests {
                             it.compactName == "givenName"
                             it is NgsiLdProperty
                             (it as NgsiLdProperty).instances.size == 1
-                            (it as NgsiLdProperty).instances.any { it.value == "Jonathan" }
+                            it.instances.any { it.value == "Jonathan" }
                         }
-                        it[0].compactName == "givenName" &&
-                        it[0] is NgsiLdProperty &&
-                        (it[0] as NgsiLdProperty).instances.size == 1 &&
-                        (it[0] as NgsiLdProperty).instances[0].value == "Jonathan"
                 }
             )
         }

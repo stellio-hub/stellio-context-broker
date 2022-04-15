@@ -24,7 +24,7 @@ data class EntityAccessControl(
 
     var contexts: List<String> = mutableListOf()
 ) {
-    fun serializeCoreProperties(includeSysAttrs: Boolean): Map<String, Any> {
+    fun serializeProperties(includeSysAttrs: Boolean): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JsonLdUtils.JSONLD_ID] = id.toString()
         resultEntity[JsonLdUtils.JSONLD_TYPE] = type
@@ -50,7 +50,7 @@ data class EntityAccessControl(
             )
         )
 
-        if (specificAccessPolicy != null) {
+        specificAccessPolicy?.run {
             resultEntity[AuthContextModel.AUTH_PROP_SAP] = mutableMapOf(
                 JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
                 JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(

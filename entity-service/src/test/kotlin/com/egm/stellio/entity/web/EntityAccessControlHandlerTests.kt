@@ -623,7 +623,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 200 and empty response if requested offset does not exists`() {
+    fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getAuthorizedEntities(
@@ -644,7 +644,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return ids I have rigts`() {
+    fun `get authorized entities should return entities I have rigt on`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getAuthorizedEntities(
@@ -689,7 +689,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `it should return bad request because value of q parameter are not valid`() {
+    fun `get authorized entities should return 400 if q parameter is not valid`() {
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?q=rcanwrite")

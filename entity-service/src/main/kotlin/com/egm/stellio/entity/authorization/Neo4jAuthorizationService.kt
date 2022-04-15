@@ -188,7 +188,7 @@ class Neo4jAuthorizationService(
 
         val jsonLdEntities = result.second.map {
             JsonLdEntity(
-                it.serializeCoreProperties(includeSysAttrs),
+                it.serializeProperties(includeSysAttrs),
                 it.contexts
             )
         }

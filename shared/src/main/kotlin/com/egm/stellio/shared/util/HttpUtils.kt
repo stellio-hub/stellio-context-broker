@@ -5,6 +5,7 @@ import java.net.URLDecoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.util.regex.Pattern
 
 object HttpUtils {
 
@@ -13,6 +14,8 @@ object HttpUtils {
     private val httpClient: HttpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .build()
+
+    val qPattern = Pattern.compile("([^();|]+)")
 
     fun doGet(uri: String): String? {
         val request = HttpRequest.newBuilder().GET().uri(uri.toUri()).build()

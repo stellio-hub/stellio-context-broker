@@ -24,10 +24,7 @@ import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -57,7 +54,6 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     private val serviceAccountUri = "urn:ngsi-ld:ServiceAccount:01".toUri()
     private val apiaryUri = "urn:ngsi-ld:Apiary:01".toUri()
     private val apiary02Uri = "urn:ngsi-ld:Apiary:02".toUri()
-    private val expandedNameProperty = JsonLdUtils.expandJsonLdTerm("name", DEFAULT_CONTEXTS)!!
     private val offset = 0
     private val limit = 20
 
@@ -617,28 +613,24 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return matching entities that user have rights`() {
+    fun `it should return authorized entities that user have rights on`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1230".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val fouthEntity = createEntity(
             "urn:ngsi-ld:Beehive:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(
-                Property(name = expandedNameProperty, value = "Scalpa"),
                 Property(
                     name = AuthContextModel.AUTH_PROP_SAP,
                     value = SpecificAccessPolicy.AUTH_READ.name
@@ -662,30 +654,24 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertTrue {
             result.second.any {
                 it.specificAccessPolicy == SpecificAccessPolicy.AUTH_READ
-                it.right == AccessRight.R_CAN_ADMIN
-                it.right == AccessRight.R_CAN_READ
-                it.right == AccessRight.R_CAN_WRITE
             }
         }
     }
 
     @Test
-    fun `it should return matching entities with filter on rCanWrite and rCanRead`() {
+    fun `it should return authorized entities with filter on rCanWrite and rCanRead`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1230".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1232".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
@@ -701,31 +687,32 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
         assertTrue {
-            result.second.any {
-                it.right != AccessRight.R_CAN_ADMIN
-                it.right == AccessRight.R_CAN_READ
-                it.right == AccessRight.R_CAN_WRITE
+            result.second.all {
+                it.right == AccessRight.R_CAN_READ || it.right == AccessRight.R_CAN_WRITE
+            }
+        }
+
+        assertFalse {
+            result.second.all {
+                it.right == AccessRight.R_CAN_ADMIN
             }
         }
     }
 
     @Test
-    fun `it should return matching entities with filter on type`() {
+    fun `it should return authorized entities with filter on type`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1230".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val secondEntity = createEntity(
             "urn:ngsi-ld:Beekeeper:1231".toUri(),
-            listOf("Beekeeper"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beekeeper")
         )
         val thirdEntity = createEntity(
             "urn:ngsi-ld:Beehive:1232".toUri(),
-            listOf("Beehive"),
-            mutableListOf(Property(name = expandedNameProperty, value = "Scalpa"))
+            listOf("Beehive")
         )
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
@@ -741,10 +728,14 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
         assertTrue {
-            result.second.any {
-                it.right == AccessRight.R_CAN_ADMIN
-                it.right != AccessRight.R_CAN_READ
-                it.right == AccessRight.R_CAN_WRITE
+            result.second.all {
+                it.right == AccessRight.R_CAN_ADMIN || it.right == AccessRight.R_CAN_WRITE
+            }
+        }
+
+        assertFalse {
+            result.second.all {
+                it.right == AccessRight.R_CAN_READ
             }
         }
     }

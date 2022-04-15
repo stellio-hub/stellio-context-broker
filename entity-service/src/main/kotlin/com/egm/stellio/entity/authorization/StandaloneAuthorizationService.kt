@@ -12,9 +12,7 @@ import java.net.URI
 
 @Component
 @ConditionalOnProperty("application.authentication.enabled", havingValue = "false")
-class StandaloneAuthorizationService(
-    private val neo4jAuthorizationRepository: Neo4jAuthorizationRepository
-) : AuthorizationService {
+class StandaloneAuthorizationService : AuthorizationService {
     override fun getSubjectUri(sub: Option<Sub>): URI = (USER_TYPE + "None").toUri()
 
     override fun getSubjectGroups(sub: Option<Sub>): Set<URI> = emptySet()
@@ -26,18 +24,7 @@ class StandaloneAuthorizationService(
         limit: Int,
         contextLink: String,
         includeSysAttrs: Boolean
-    ): Pair<Int, List<JsonLdEntity>> {
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithoutAuthentication(queryParams, offset, limit)
-
-        val jsonLdEntities = result.second.map {
-            JsonLdEntity(
-                it.serializeCoreProperties(includeSysAttrs),
-                it.contexts
-            )
-        }
-
-        return Pair(result.first, jsonLdEntities)
-    }
+    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 
     override fun userIsAdmin(sub: Option<Sub>): Boolean {
         return true

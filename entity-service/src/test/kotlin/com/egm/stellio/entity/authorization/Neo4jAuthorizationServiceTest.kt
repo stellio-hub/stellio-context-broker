@@ -2,25 +2,26 @@ package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
 import arrow.core.Some
+import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toListOfUri
-import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
@@ -36,6 +37,10 @@ class Neo4jAuthorizationServiceTest {
     private val mockUserSub = Some(UUID.randomUUID().toString())
     private val mockUserUri = (USER_PREFIX + mockUserSub.value).toUri()
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
+    private val groupUri = "urn:ngsi-ld:Group:01".toUri()
+
+    private val offset = 0
+    private val limit = 20
 
     @BeforeEach
     fun createGlobalMockResponses() {
@@ -239,6 +244,100 @@ class Neo4jAuthorizationServiceTest {
             )
         }
         confirmVerified()
+    }
+
+    @Test
+    fun `it should return authorized JsonLdEntities without specificAccessPolicy`() {
+        every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns Pair(
+            1,
+            listOf(
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = AccessRight.R_CAN_READ
+                )
+            )
+        )
+
+        val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
+            queryParams = QueryParams(),
+            sub = mockUserSub,
+            offset = offset,
+            limit = limit,
+            contextLink = JsonLdUtils.NGSILD_CORE_CONTEXT,
+            includeSysAttrs = false
+        )
+
+        assertEquals(1, countAndAuthorizedEntities.first)
+        assertEquals(1, countAndAuthorizedEntities.second.size)
+
+        assertTrue {
+            countAndAuthorizedEntities.second.all {
+                it.id.equals("urn:ngsi-ld:Beekeeper:1230".toUri())
+                it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT)
+            }
+        }
+
+        assertFalse(
+            countAndAuthorizedEntities.second.all {
+                it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+            }
+        )
+    }
+
+    @Test
+    fun `it should return authorized JsonLdEntities with specificAccessPolicy`() {
+        every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        } returns Pair(
+            1,
+            listOf(
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = AccessRight.R_CAN_READ,
+                    specificAccessPolicy = SpecificAccessPolicy.AUTH_READ
+                )
+            )
+        )
+
+        val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
+            queryParams = QueryParams(),
+            sub = mockUserSub,
+            offset = offset,
+            limit = limit,
+            contextLink = JsonLdUtils.NGSILD_CORE_CONTEXT,
+            includeSysAttrs = false
+        )
+
+        assertEquals(1, countAndAuthorizedEntities.first)
+        assertEquals(1, countAndAuthorizedEntities.second.size)
+
+        assertTrue {
+            countAndAuthorizedEntities.second.all {
+                it.id.equals("urn:ngsi-ld:Beekeeper:1230".toUri())
+                it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT)
+                it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+            }
+        }
     }
 
     private fun assertUserHasRightOnEntity(

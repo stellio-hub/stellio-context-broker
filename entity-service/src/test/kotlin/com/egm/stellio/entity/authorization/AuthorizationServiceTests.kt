@@ -9,16 +9,13 @@ import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.toUri
-import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 
 class AuthorizationServiceTests {
-    @MockkBean
-    private lateinit var neo4jAuthorizationRepository: Neo4jAuthorizationRepository
 
-    private val authorizationService = spyk(StandaloneAuthorizationService(neo4jAuthorizationRepository))
+    private val authorizationService = spyk(StandaloneAuthorizationService())
 
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
 

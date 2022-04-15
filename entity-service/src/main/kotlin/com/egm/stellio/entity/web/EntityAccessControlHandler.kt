@@ -79,7 +79,7 @@ class EntityAccessControlHandler(
                     )
                 )
 
-        val countAndEntitiesIds = authorizationService.getAuthorizedEntities(
+        val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
             QueryParams(
                 null,
                 type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
@@ -94,17 +94,21 @@ class EntityAccessControlHandler(
             includeSysAttrs
         )
 
-        if (countAndEntitiesIds.second.isEmpty())
+        if (countAndAuthorizedEntities.first == -1) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
+
+        if (countAndAuthorizedEntities.second.isEmpty())
             return PagingUtils.buildPaginationResponse(
                 serializeObject(emptyList<JsonLdEntity>()),
-                countAndEntitiesIds.first,
+                countAndAuthorizedEntities.first,
                 count,
                 Pair(null, null),
                 mediaType, contextLink
             )
 
-        val compactedEntities = JsonLdUtils.compactEntities(
-            countAndEntitiesIds.second,
+        val compactedAuthorizedEntities = JsonLdUtils.compactEntities(
+            countAndAuthorizedEntities.second,
             false,
             contextLink,
             mediaType
@@ -114,13 +118,13 @@ class EntityAccessControlHandler(
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/entityAccessControl/entities",
             params,
-            countAndEntitiesIds.first,
+            countAndAuthorizedEntities.first,
             offset,
             limit
         )
         return PagingUtils.buildPaginationResponse(
-            serializeObject(compactedEntities),
-            countAndEntitiesIds.first,
+            serializeObject(compactedAuthorizedEntities),
+            countAndAuthorizedEntities.first,
             count,
             prevAndNextLinks,
             mediaType,

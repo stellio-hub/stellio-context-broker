@@ -127,6 +127,39 @@ class EntityAccessControlHandler(
         )
     }
 
+    @GetMapping("/groups", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getGroupsMemberships(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val sub = getSubFromSecurityContext()
+
+        val countAndGroupEntities = authorizationService.getGroupsMemberships(sub, contextLink)
+
+        if (countAndGroupEntities.first == -1) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
+
+        val compactedGroupEntities = JsonLdUtils.compactEntities(
+            countAndGroupEntities.second,
+            false,
+            contextLink,
+            mediaType
+        )
+            .map { it.toMutableMap() }
+
+        val responseHeaders = buildGetSuccessResponse(mediaType, contextLink)
+
+        return if (count) responseHeaders
+            .header(RESULTS_COUNT_HEADER, countAndGroupEntities.first.toString())
+            .body(compactedGroupEntities)
+        else responseHeaders.body(compactedGroupEntities)
+    }
+
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(
         @RequestHeader httpHeaders: HttpHeaders,

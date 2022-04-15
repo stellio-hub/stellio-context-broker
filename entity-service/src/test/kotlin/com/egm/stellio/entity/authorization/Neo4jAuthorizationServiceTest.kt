@@ -9,13 +9,16 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
 import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedRelationship
@@ -298,7 +301,7 @@ class Neo4jAuthorizationServiceTest {
             offset = offset,
             limit = limit,
             includeSysAttrs = false,
-            JsonLdUtils.NGSILD_CORE_CONTEXT
+            NGSILD_CORE_CONTEXT
         )
 
         assertEquals(3, countAndAuthorizedEntities.first)
@@ -353,7 +356,7 @@ class Neo4jAuthorizationServiceTest {
             offset = offset,
             limit = limit,
             includeSysAttrs = true,
-            JsonLdUtils.NGSILD_CORE_CONTEXT
+            NGSILD_CORE_CONTEXT
         )
 
         verify { neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, limit) }
@@ -369,6 +372,69 @@ class Neo4jAuthorizationServiceTest {
             entityProperties[NGSILD_MODIFIED_AT_PROPERTY] ==
                 buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))
         )
+    }
+
+    @Test
+    fun `it should return group membership JsonLdEntities`() {
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns mockUserUri
+        every { neo4jAuthorizationRepository.getSubjectRoles(any()) } returns emptySet()
+        every { neo4jAuthorizationRepository.getSubjectGroups(any()) } returns setOf(groupUri)
+        every {
+            neo4jAuthorizationRepository.getGroupEntity(setOf(groupUri))
+        } returns listOf(Group(id = groupUri, type = GROUP_TYPE, name = "egm"))
+
+        val groupMembership = neo4jAuthorizationService.getGroupsMemberships(
+            Some(userUri.toString()),
+            NGSILD_CORE_CONTEXT
+        )
+
+        assertEquals(1, groupMembership.first)
+        assertEquals(1, groupMembership.second.size)
+        assertTrue {
+            groupMembership.second.all {
+                it.id == groupUri.toString() &&
+                    it.properties[NGSILD_NAME_PROPERTY] == buildJsonLdExpandedProperty("egm")
+            }
+        }
+    }
+
+    @Test
+    fun `it should return group membership JsonLdEntities while being admin`() {
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns mockUserUri
+        every { neo4jAuthorizationRepository.getSubjectRoles(any()) } returns setOf("stellio-admin")
+        every { neo4jAuthorizationRepository.getSubjectGroups(any()) } returns setOf(groupUri)
+        every {
+            neo4jAuthorizationRepository.getGroupsAdmin(setOf(groupUri))
+        } returns listOf(
+            Group(id = groupUri, type = GROUP_TYPE, name = "egm", isMember = true),
+            Group(id = "urn:ngsi-ld:Group:02".toUri(), type = GROUP_TYPE, name = "stellio", isMember = false)
+        )
+
+        val groupMembership = neo4jAuthorizationService.getGroupsMemberships(
+            Some(userUri.toString()),
+            NGSILD_CORE_CONTEXT
+        )
+
+        assertEquals(2, groupMembership.first)
+        assertEquals(2, groupMembership.second.size)
+        assertTrue {
+            groupMembership.second.find { it.id == "urn:ngsi-ld:Group:01" }
+                ?.properties?.get(NGSILD_NAME_PROPERTY) == buildJsonLdExpandedProperty("egm")
+        }
+        assertTrue {
+            groupMembership.second.find { it.id == "urn:ngsi-ld:Group:01" }
+                ?.properties?.get(AuthContextModel.AUTH_REL_IS_MEMBER_OF) ==
+                buildJsonLdExpandedProperty("true")
+        }
+        assertTrue {
+            groupMembership.second.find { it.id == "urn:ngsi-ld:Group:02" }
+                ?.properties?.get(NGSILD_NAME_PROPERTY) == buildJsonLdExpandedProperty("stellio")
+        }
+        assertTrue {
+            groupMembership.second.find { it.id == "urn:ngsi-ld:Group:02" }
+                ?.properties?.get(AuthContextModel.AUTH_REL_IS_MEMBER_OF) ==
+                buildJsonLdExpandedProperty("false")
+        }
     }
 
     private fun assertUserHasRightOnEntity(

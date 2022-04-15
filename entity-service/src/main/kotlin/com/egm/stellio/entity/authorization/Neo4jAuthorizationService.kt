@@ -28,6 +28,30 @@ class Neo4jAuthorizationService(
     override fun getSubjectGroups(sub: Option<Sub>): Set<URI> =
         neo4jAuthorizationRepository.getSubjectGroups(getSubjectUri(sub))
 
+    override fun getGroupsMemberships(
+        sub: Option<Sub>,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>> {
+
+        val groupsEntities = if (userIsAdmin(sub))
+            neo4jAuthorizationRepository.getGroupsAdmin(
+                neo4jAuthorizationRepository.getSubjectGroups((USER_PREFIX + sub.toStringValue()).toUri())
+            )
+        else
+            neo4jAuthorizationRepository.getGroupEntity(
+                neo4jAuthorizationRepository.getSubjectGroups((USER_PREFIX + sub.toStringValue()).toUri())
+            )
+
+        val jsonLdEntities = groupsEntities.map {
+            JsonLdEntity(
+                it.serializeProperties(),
+                listOf(contextLink)
+            )
+        }
+
+        return Pair(groupsEntities.size, jsonLdEntities)
+    }
+
     override fun userIsAdmin(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(ADMIN_ROLES, sub)
 
     override fun userCanCreateEntities(sub: Option<Sub>): Boolean = userIsOneOfGivenRoles(CREATION_ROLES, sub)

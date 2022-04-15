@@ -26,6 +26,11 @@ class StandaloneAuthorizationService : AuthorizationService {
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 
+    override fun getGroupsMemberships(
+        sub: Option<Sub>,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
+
     override fun userIsAdmin(sub: Option<Sub>): Boolean {
         return true
     }

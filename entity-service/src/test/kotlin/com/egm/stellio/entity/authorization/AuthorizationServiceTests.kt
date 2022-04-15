@@ -290,4 +290,14 @@ class AuthorizationServiceTests {
         assertEquals(-1, authorizedEntities.first)
         assertEquals(0, authorizedEntities.second.size)
     }
+
+    @Test
+    fun `get group membership should return a count of -1 if authentication is not enabled`() {
+        val authorizedEntities = authorizationService.getGroupsMemberships(
+            None,
+            NGSILD_CORE_CONTEXT
+        )
+        assertEquals(-1, authorizedEntities.first)
+        assertEquals(0, authorizedEntities.second.size)
+    }
 }

@@ -512,7 +512,6 @@ fun geoPropertyToWKT(jsonFragment: Map<String, Any>): Map<String, Any> =
         val locationAttribute = (jsonFragment[NGSILD_LOCATION_TERM] as MutableMap<String, Any>)
         val geoJsonAsString = locationAttribute[JSONLD_VALUE]
         val wktGeom = geoJsonToWkt(geoJsonAsString!! as Map<String, Any>)
-        logger.debug("Transformed GeoJSON value into WKT: $wktGeom")
         locationAttribute[JSONLD_VALUE] = wktGeom
         jsonFragment
     } else jsonFragment

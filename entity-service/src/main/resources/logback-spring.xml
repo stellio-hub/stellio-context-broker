@@ -30,9 +30,7 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
-    <logger name="org.springframework.data.neo4j.cypher" level="DEBUG" />
     <logger name="org.apache.kafka" level="WARN"/>
-    <logger name="org.springframework.web.server.adapter.HttpWebHandlerAdapter" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="console" />

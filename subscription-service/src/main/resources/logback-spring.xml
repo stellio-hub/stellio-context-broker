@@ -30,10 +30,8 @@
     </appender>
 
     <logger name="com.egm.stellio" level="DEBUG"/>
-    <logger name="org.springframework.data.r2dbc" level="DEBUG"/>
     <logger name="org.flywaydb" level="DEBUG"/>
     <logger name="org.apache.kafka" level="WARN"/>
-    <logger name="org.springframework.web.server.adapter.HttpWebHandlerAdapter" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="console" />

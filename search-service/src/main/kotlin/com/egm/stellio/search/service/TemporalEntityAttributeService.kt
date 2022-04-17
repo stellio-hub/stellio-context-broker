@@ -58,7 +58,7 @@ class TemporalEntityAttributeService(
             .fetch()
             .rowsUpdated()
 
-    fun createEntityTemporalReferences(payload: String, contexts: List<String>): Mono<Int> {
+    fun createEntityTemporalReferences(payload: String, contexts: List<String>, sub: String? = null): Mono<Int> {
         val ngsiLdEntity = JsonLdUtils.expandJsonLdEntity(payload, contexts).toNgsiLdEntity()
         val parsedPayload = JsonUtils.deserializeObject(payload)
 
@@ -79,8 +79,7 @@ class TemporalEntityAttributeService(
                     attributeName = expandedAttributeName,
                     attributeType = attributeMetadata.type,
                     attributeValueType = attributeMetadata.valueType,
-                    datasetId = attributeMetadata.datasetId,
-                    entityPayload = payload
+                    datasetId = attributeMetadata.datasetId
                 )
 
                 val attributeCreatedAtInstance = AttributeInstance(
@@ -93,7 +92,8 @@ class TemporalEntityAttributeService(
                         parsedPayload,
                         compactTerm(expandedAttributeName, contexts),
                         attributeMetadata.datasetId
-                    )
+                    ),
+                    sub = sub
                 )
 
                 val attributeObservedAtInstance =
@@ -399,8 +399,7 @@ class TemporalEntityAttributeService(
             attributeValueType = TemporalEntityAttribute.AttributeValueType.valueOf(
                 row["attribute_value_type"] as String
             ),
-            datasetId = (row["dataset_id"] as String?)?.toUri(),
-            entityPayload = row["payload"] as String?
+            datasetId = (row["dataset_id"] as String?)?.toUri()
         )
 
     private var rowToId: ((Row) -> UUID) = { row ->

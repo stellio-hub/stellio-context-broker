@@ -1,11 +1,14 @@
 package com.egm.stellio.apigateway
 
+import io.netty.handler.logging.LogLevel
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.cloud.gateway.route.RouteLocator
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder
 import org.springframework.context.annotation.Bean
+import reactor.netty.http.client.HttpClient
+import reactor.netty.transport.logging.AdvancedByteBufFormat
 
 @SpringBootApplication
 class ApiGatewayApplication {
@@ -17,6 +20,11 @@ class ApiGatewayApplication {
 
     @Value("\${application.subscription-service.url:subscription-service}")
     private val subscriptionServiceUrl: String = ""
+
+    @Bean
+    fun httpClient(): HttpClient {
+        return HttpClient.create().wiretap("LoggingFilter", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
+    }
 
     @Bean
     fun myRoutes(builder: RouteLocatorBuilder): RouteLocator {

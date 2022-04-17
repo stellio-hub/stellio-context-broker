@@ -121,8 +121,8 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTC".toUri(),
                             type = "https://ontology.eglobalmark.com/apic#BeeHive",
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            attributeType = TemporalEntityAttribute.AttributeType.Relationship
+                            attributeType = TemporalEntityAttribute.AttributeType.Relationship,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),
@@ -151,8 +151,8 @@ class QueryParameterizedTests {
                             entityId = "urn:ngsi-ld:BeeHive:TESTD".toUri(),
                             type = "https://ontology.eglobalmark.com/apic#BeeHive",
                             attributeName = "https://ontology.eglobalmark.com/egm#managedBy",
-                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE,
-                            attributeType = TemporalEntityAttribute.AttributeType.Relationship
+                            attributeType = TemporalEntityAttribute.AttributeType.Relationship,
+                            attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
                         ) to listOf(
                             SimplifiedAttributeInstanceResult(
                                 temporalEntityAttribute = UUID.randomUUID(),

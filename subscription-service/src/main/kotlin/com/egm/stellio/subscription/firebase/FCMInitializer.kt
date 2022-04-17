@@ -20,7 +20,7 @@ class FCMInitializer {
     fun initialize() {
         if (credentials != "") {
             try {
-                val options = FirebaseOptions.Builder()
+                val options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.getApplicationDefault())
                     .build()
 

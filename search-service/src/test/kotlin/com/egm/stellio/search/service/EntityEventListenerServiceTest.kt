@@ -114,7 +114,9 @@ class EntityEventListenerServiceTest {
     fun `it should handle an ENTITY_CREATE event`() {
         val entityCreateEventPayload = loadSampleData("events/entity/entityCreateEvent.json")
 
-        every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } answers { Mono.just(1) }
+        every {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any())
+        } answers { Mono.just(1) }
         every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(entityCreateEventPayload)
@@ -124,7 +126,8 @@ class EntityEventListenerServiceTest {
                 match {
                     it.contains(expectedEntityId)
                 },
-                listOf(APIC_COMPOUND_CONTEXT)
+                listOf(APIC_COMPOUND_CONTEXT),
+                eq("0123456789-1234-5678-987654321")
             )
             entityAccessRightsService.setAdminRoleOnEntity(
                 eq("0123456789-1234-5678-987654321"),
@@ -139,7 +142,9 @@ class EntityEventListenerServiceTest {
         val entityCreateEventPayload = loadSampleData("events/entity/entityReplaceEvent.json")
 
         every { temporalEntityAttributeService.deleteTemporalEntityReferences(any()) } answers { Mono.just(1) }
-        every { temporalEntityAttributeService.createEntityTemporalReferences(any(), any()) } answers { Mono.just(1) }
+        every {
+            temporalEntityAttributeService.createEntityTemporalReferences(any(), any(), any())
+        } answers { Mono.just(1) }
         every { entityAccessRightsService.setAdminRoleOnEntity(any(), any()) } answers { Mono.just(1) }
 
         entityEventListenerService.processMessage(entityCreateEventPayload)

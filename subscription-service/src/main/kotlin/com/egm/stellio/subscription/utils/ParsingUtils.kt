@@ -24,6 +24,7 @@ object ParsingUtils {
                 val subscription = mapper.convertValue(input.minus(JSONLD_CONTEXT), Subscription::class.java)
                 subscription.expandTypes(context)
 
+                checkIdIsValid(subscription).bind()
                 checkTimeIntervalGreaterThanZero(subscription).bind()
                 checkSubscriptionValidity(subscription).bind()
             }
@@ -73,6 +74,13 @@ object ParsingUtils {
             }
             else -> this
         }
+
+    private fun checkIdIsValid(subscription: Subscription): Either<APiException, Subscription> =
+        if (!subscription.id.isAbsolute)
+            BadRequestDataException(
+                "The supplied identifier was expected to be an URI but it is not: ${subscription.id}"
+            ).left()
+        else subscription.right()
 
     fun checkSubscriptionValidity(subscription: Subscription): Either<APiException, Subscription> =
         if (subscription.watchedAttributes != null && subscription.timeInterval != null)

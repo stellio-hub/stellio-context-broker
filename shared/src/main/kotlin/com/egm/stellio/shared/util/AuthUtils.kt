@@ -1,10 +1,6 @@
 package com.egm.stellio.shared.util
 
-import arrow.core.None
-import arrow.core.Option
-import arrow.core.Some
-import arrow.core.getOrElse
-import arrow.core.toOption
+import arrow.core.*
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
@@ -53,6 +49,7 @@ object AuthContextModel {
     const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_WRITE
     const val AUTH_TERM_CAN_ADMIN = "rCanAdmin"
     const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
+    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN)
     val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
     val ADMIN_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_ADMIN)
     val WRITE_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_WRITE).plus(ADMIN_RIGHTS)

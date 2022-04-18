@@ -10,13 +10,11 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
-import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
@@ -71,26 +69,22 @@ class EntityAccessControlHandler(
             .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val sub = getSubFromSecurityContext()
 
-        if (q != null && !listOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN).contains(q))
+        if (q != null && !ALL_IAM_RIGHTS_TERMS.contains(q))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
-                        "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
+                        "The parameter q only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
                     )
                 )
 
         val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
             QueryParams(
-                null,
-                type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
-                null,
-                q?.decode(),
-                emptySet()
+                expandedType = type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
+                q = q?.decode()
             ),
             sub,
             offset,
             limit,
-            contextLink,
             includeSysAttrs
         )
 
@@ -113,7 +107,6 @@ class EntityAccessControlHandler(
             contextLink,
             mediaType
         )
-            .map { it.toMutableMap() }
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/entityAccessControl/entities",

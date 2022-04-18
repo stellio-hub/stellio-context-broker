@@ -15,7 +15,6 @@ interface AuthorizationService {
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>>
     fun userIsAdmin(sub: Option<Sub>): Boolean

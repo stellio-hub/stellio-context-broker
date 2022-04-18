@@ -22,7 +22,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
 @ActiveProfiles("test")
@@ -274,7 +274,6 @@ class Neo4jAuthorizationServiceTest {
             sub = mockUserSub,
             offset = offset,
             limit = limit,
-            contextLink = JsonLdUtils.NGSILD_CORE_CONTEXT,
             includeSysAttrs = false
         )
 
@@ -324,7 +323,6 @@ class Neo4jAuthorizationServiceTest {
             sub = mockUserSub,
             offset = offset,
             limit = limit,
-            contextLink = JsonLdUtils.NGSILD_CORE_CONTEXT,
             includeSysAttrs = false
         )
 

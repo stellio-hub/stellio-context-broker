@@ -9,19 +9,12 @@ import java.net.URI
 import java.time.ZonedDateTime
 
 data class EntityAccessControl(
-
     val id: URI,
-
     val type: List<String>,
-
     val createdAt: ZonedDateTime,
-
     var modifiedAt: ZonedDateTime? = null,
-
     val right: AccessRight,
-
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
-
     var contexts: List<String> = mutableListOf()
 ) {
     fun serializeProperties(includeSysAttrs: Boolean): Map<String, Any> {

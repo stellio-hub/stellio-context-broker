@@ -22,7 +22,6 @@ class StandaloneAuthorizationService : AuthorizationService {
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 

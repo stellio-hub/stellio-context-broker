@@ -165,7 +165,6 @@ class Neo4jAuthorizationService(
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        contextLink: String,
         includeSysAttrs: Boolean
     ): Pair<Int, List<JsonLdEntity>> {
         val userAndGroupIds = getSubjectGroups(sub)

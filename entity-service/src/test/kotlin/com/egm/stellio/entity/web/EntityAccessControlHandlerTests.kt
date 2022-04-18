@@ -601,18 +601,8 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(
-                any(),
-                any(),
-                any(),
-                any(),
-                NGSILD_CORE_CONTEXT,
-                false
-            )
-        } returns Pair(
-            3,
-            emptyList()
-        )
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
+        } returns Pair(3, emptyList())
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?&limit=0&offset=1&count=true")
@@ -626,14 +616,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(
-                any(),
-                any(),
-                any(),
-                any(),
-                NGSILD_CORE_CONTEXT,
-                false
-            )
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
         } returns Pair(0, emptyList())
 
         webClient.get()
@@ -647,14 +630,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return entities I have rigt on`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(
-                any(),
-                any(),
-                any(),
-                any(),
-                NGSILD_CORE_CONTEXT,
-                false
-            )
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
         } returns Pair(
             1,
             listOf(

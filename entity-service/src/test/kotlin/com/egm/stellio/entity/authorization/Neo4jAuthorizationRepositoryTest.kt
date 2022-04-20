@@ -595,7 +595,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                     it.specificAccessPolicy == SpecificAccessPolicy.AUTH_READ &&
                     it.modifiedAt is ZonedDateTime
             } &&
-            result.second.all { it.createdAt is ZonedDateTime }
+                result.second.all { it.createdAt is ZonedDateTime }
         }
     }
 
@@ -622,7 +622,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertTrue {
             result.second.all {
                 it.type.size == 1 &&
-                it.right == AccessRight.R_CAN_READ || it.right == AccessRight.R_CAN_WRITE
+                    it.right == AccessRight.R_CAN_READ || it.right == AccessRight.R_CAN_WRITE
             }
         }
 

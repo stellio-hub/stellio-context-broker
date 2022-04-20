@@ -68,7 +68,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.0.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.0")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.18.2")
 

@@ -9,13 +9,17 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.JsonLdEntity
 import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
@@ -29,6 +33,8 @@ import org.springframework.http.MediaType
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.time.Instant
+import java.time.ZoneOffset
 
 @ActiveProfiles("test")
 @WebFluxTest(EntityAccessControlHandler::class)
@@ -90,20 +96,12 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
-        }
+        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
 
         verify {
             entityService.appendEntityRelationship(
                 eq(subjectId),
-                match {
-                    it.name == AUTH_REL_CAN_READ &&
-                        it.instances.size == 1
-                },
+                match { it.name == AUTH_REL_CAN_READ && it.instances.size == 1 },
                 match { it.objectId == entityUri1 },
                 eq(false)
             )
@@ -156,12 +154,7 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
-        }
+        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
 
         verify {
             entityService.appendEntityRelationship(
@@ -301,16 +294,9 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
-        }
+        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
 
-        verify {
-            authorizationService.removeUserRightsOnEntity(eq(entityUri1), eq(subjectId))
-        }
+        verify { authorizationService.removeUserRightsOnEntity(eq(entityUri1), eq(subjectId)) }
 
         verify {
             entityEventService.publishAttributeDeleteEvent(
@@ -333,12 +319,7 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isForbidden
 
-        verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
-        }
+        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
     }
 
     @Test
@@ -375,9 +356,7 @@ class EntityAccessControlHandlerTests {
         every { entityService.appendEntityAttributes(any(), any(), any()) } returns
             UpdateResult(
                 notUpdated = emptyList(),
-                updated = listOf(
-                    UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED)
-                )
+                updated = listOf(UpdatedDetails(AUTH_TERM_SAP, entityUri1, UpdateOperationResult.REPLACED))
             )
         every {
             entityEventService.publishAttributeAppendEvent(any(), any(), any(), any(), any(), any(), any(), any())
@@ -391,16 +370,11 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
+            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+
             entityService.appendEntityAttributes(
                 eq(entityUri1),
-                match {
-                    it.size == 1 &&
-                        it[0].name == AUTH_PROP_SAP
-                },
+                match { it.size == 1 && it[0].name == AUTH_PROP_SAP },
                 false
             )
             entityEventService.publishAttributeAppendEvent(
@@ -577,14 +551,10 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
 
         verify {
-            authorizationService.userIsAdminOfEntity(
-                eq(entityUri1),
-                eq(sub)
-            )
-            entityService.deleteEntityAttribute(
-                eq(entityUri1),
-                eq(AUTH_PROP_SAP)
-            )
+            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+
+            entityService.deleteEntityAttribute(eq(entityUri1), eq(AUTH_PROP_SAP))
+
             entityEventService.publishAttributeDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(entityUri1),
@@ -601,7 +571,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and the number of results`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(3, emptyList())
 
         webClient.get()
@@ -616,7 +586,7 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(0, emptyList())
 
         webClient.get()
@@ -630,14 +600,20 @@ class EntityAccessControlHandlerTests {
     fun `get authorized entities should return entities I have rigt on`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false)
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(
             1,
             listOf(
                 JsonLdEntity(
                     mapOf(
                         "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                        "@type" to listOf("Beehive")
+                        "@type" to listOf("Beehive"),
+                        AUTH_PROP_RIGHT to mutableMapOf(
+                            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                                JsonLdUtils.JSONLD_VALUE_KW to AUTH_TERM_CAN_READ
+                            )
+                        )
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
                 )
@@ -655,6 +631,7 @@ class EntityAccessControlHandlerTests {
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
+                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
                     ]
@@ -665,8 +642,61 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 400 if q parameter is not valid`() {
+    fun `get authorized entities should return entities I have rigt on with system attributes`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), true, NGSILD_CORE_CONTEXT)
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
+                        "@type" to listOf("Beehive"),
+                        AUTH_PROP_RIGHT to mutableMapOf(
+                            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                                JsonLdUtils.JSONLD_VALUE_KW to AUTH_TERM_CAN_READ
+                            )
+                        ),
+                        NGSILD_CREATED_AT_PROPERTY to
+                            mapOf(
+                                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                            ),
+                        NGSILD_MODIFIED_AT_PROPERTY to
+                            mapOf(
+                                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
+                            )
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        )
 
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities?options=sysAttrs")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "createdAt": "2015-10-18T11:20:30.000001Z",
+                            "modifiedAt": "2015-10-18T11:20:30.000001Z",
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+    }
+
+    @Test
+    fun `get authorized entities should return 400 if q parameter is not valid`() {
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?q=rcanwrite")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -675,7 +705,7 @@ class EntityAccessControlHandlerTests {
             .expectBody()
             .jsonPath(
                 "$.detail",
-                "The parameter q only accepts as a value: `rCanRead`, `rCanWrite`, `rCanAdmin`"
+                "The parameter q only accepts as a value one or more of ${AuthContextModel.ALL_IAM_RIGHTS_TERMS}"
             )
     }
 }

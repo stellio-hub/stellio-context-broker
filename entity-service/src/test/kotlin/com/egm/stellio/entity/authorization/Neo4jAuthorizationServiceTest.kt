@@ -9,6 +9,8 @@ import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -251,12 +253,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
         every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-                any(),
-                any(),
-                any(),
-                any()
-            )
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -274,7 +271,8 @@ class Neo4jAuthorizationServiceTest {
             sub = mockUserSub,
             offset = offset,
             limit = limit,
-            includeSysAttrs = false
+            includeSysAttrs = false,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
         )
 
         assertEquals(1, countAndAuthorizedEntities.first)
@@ -282,14 +280,16 @@ class Neo4jAuthorizationServiceTest {
 
         assertTrue {
             countAndAuthorizedEntities.second.all {
-                it.id.equals("urn:ngsi-ld:Beekeeper:1230".toUri())
-                it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT)
+                it.id.equals("urn:ngsi-ld:Beekeeper:1230") &&
+                    it.type.equals("Beekeeper") &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT)
             }
         }
 
         assertFalse(
             countAndAuthorizedEntities.second.all {
-                it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+                it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP) &&
+                    it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY)
             }
         )
     }
@@ -299,12 +299,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
         every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
         every {
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-                any(),
-                any(),
-                any(),
-                any()
-            )
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
         } returns Pair(
             1,
             listOf(
@@ -312,6 +307,7 @@ class Neo4jAuthorizationServiceTest {
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
                     createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
                     right = AccessRight.R_CAN_READ,
                     specificAccessPolicy = SpecificAccessPolicy.AUTH_READ
                 )
@@ -323,7 +319,8 @@ class Neo4jAuthorizationServiceTest {
             sub = mockUserSub,
             offset = offset,
             limit = limit,
-            includeSysAttrs = false
+            includeSysAttrs = true,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
         )
 
         assertEquals(1, countAndAuthorizedEntities.first)
@@ -331,9 +328,54 @@ class Neo4jAuthorizationServiceTest {
 
         assertTrue {
             countAndAuthorizedEntities.second.all {
-                it.id.equals("urn:ngsi-ld:Beekeeper:1230".toUri())
-                it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT)
-                it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+                it.id.equals("urn:ngsi-ld:Beekeeper:1230") &&
+                    it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) &&
+                    it.properties.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT) &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+            }
+        }
+    }
+
+    @Test
+    fun `it should return authorized JsonLdEntities while being admin`() {
+        every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
+        } returns Pair(
+            1,
+            listOf(
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = AccessRight.R_CAN_READ,
+                    specificAccessPolicy = SpecificAccessPolicy.AUTH_READ
+                )
+            )
+        )
+
+        val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
+            queryParams = QueryParams(),
+            sub = mockUserSub,
+            offset = offset,
+            limit = limit,
+            includeSysAttrs = true,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
+        )
+
+        assertEquals(1, countAndAuthorizedEntities.first)
+        assertEquals(1, countAndAuthorizedEntities.second.size)
+
+        assertTrue {
+            countAndAuthorizedEntities.second.all {
+                it.id.equals("urn:ngsi-ld:Beekeeper:1230") &&
+                    it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) &&
+                    it.properties.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT) &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
             }
         }
     }

@@ -22,7 +22,8 @@ class StandaloneAuthorizationService : AuthorizationService {
         sub: Option<Sub>,
         offset: Int,
         limit: Int,
-        includeSysAttrs: Boolean
+        includeSysAttrs: Boolean,
+        contextLink: String
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 
     override fun userIsAdmin(sub: Option<Sub>): Boolean {

@@ -14,8 +14,7 @@ data class EntityAccessControl(
     val createdAt: ZonedDateTime,
     var modifiedAt: ZonedDateTime? = null,
     val right: AccessRight,
-    val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null,
-    var contexts: List<String> = mutableListOf()
+    val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
 ) {
     fun serializeProperties(includeSysAttrs: Boolean): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()

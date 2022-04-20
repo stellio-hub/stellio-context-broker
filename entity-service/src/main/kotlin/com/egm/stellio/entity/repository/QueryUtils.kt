@@ -7,8 +7,8 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
-import com.egm.stellio.shared.util.HttpUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.qPattern
 
 object QueryUtils {
 
@@ -131,7 +131,7 @@ object QueryUtils {
 
     private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
 
-        rawQuery.replace(HttpUtils.qPattern.toRegex()) { matchResult ->
+        rawQuery.replace(qPattern.toRegex()) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
             if (parsedQueryTerm.third.isRelationshipTarget()) {
                 """

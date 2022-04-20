@@ -85,7 +85,8 @@ class EntityAccessControlHandler(
             sub,
             offset,
             limit,
-            includeSysAttrs
+            includeSysAttrs,
+            contextLink
         )
 
         if (countAndAuthorizedEntities.first == -1) {
@@ -115,6 +116,7 @@ class EntityAccessControlHandler(
             offset,
             limit
         )
+
         return PagingUtils.buildPaginationResponse(
             serializeObject(compactedAuthorizedEntities),
             countAndAuthorizedEntities.first,

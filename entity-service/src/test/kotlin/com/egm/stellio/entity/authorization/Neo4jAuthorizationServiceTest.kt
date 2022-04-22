@@ -339,19 +339,23 @@ class Neo4jAuthorizationServiceTest {
 
     @Test
     fun `it should return authorized JsonLdEntities while being admin`() {
-        every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
-        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
+        val users = listOf("urn:ngsi-ld:user:01".toUri(), "urn:ngsi-ld:user:02".toUri())
+
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns users.first()
+        every { neo4jAuthorizationRepository.getSubjectGroups(any()) } returns setOf(groupUri)
+        every { neo4jAuthorizationRepository.getSubjectRoles(users.first()) } returns setOf("stellio-admin")
         every {
-            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
+            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(any(), any(), any())
         } returns Pair(
             1,
             listOf(
                 EntityAccessControl(
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
+                    rCanWriteUsers = users,
                     createdAt = Instant.now().atZone(ZoneOffset.UTC),
                     modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
-                    right = AccessRight.R_CAN_READ,
+                    right = AccessRight.R_CAN_ADMIN,
                     specificAccessPolicy = SpecificAccessPolicy.AUTH_READ
                 )
             )
@@ -359,7 +363,7 @@ class Neo4jAuthorizationServiceTest {
 
         val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
             queryParams = QueryParams(),
-            sub = mockUserSub,
+            sub = Some(users.first().toString()),
             offset = offset,
             limit = limit,
             includeSysAttrs = true,
@@ -374,8 +378,22 @@ class Neo4jAuthorizationServiceTest {
                 it.id.equals("urn:ngsi-ld:Beekeeper:1230") &&
                     it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) &&
                     it.properties.containsKey(NGSILD_MODIFIED_AT_PROPERTY) &&
+                    it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP) &&
                     it.properties.containsKey(AuthContextModel.AUTH_PROP_RIGHT) &&
-                    it.properties.containsKey(AuthContextModel.AUTH_PROP_SAP)
+                    it.properties.get(AuthContextModel.AUTH_PROP_RIGHT) == mutableMapOf(
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                    JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                        JsonLdUtils.JSONLD_VALUE_KW to AccessRight.R_CAN_ADMIN.attributeName
+                    )
+                ) &&
+                    it.properties.get(AccessRight.R_CAN_WRITE.attributeName) == users.map {
+                    mutableMapOf(
+                        JsonLdUtils.NGSILD_RELATIONSHIP_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                        JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                            JsonLdUtils.JSONLD_ID to it
+                        )
+                    )
+                }
             }
         }
     }

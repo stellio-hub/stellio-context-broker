@@ -168,19 +168,20 @@ class Neo4jAuthorizationService(
         includeSysAttrs: Boolean,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> {
-        val userAndGroupIds = getSubjectGroups(sub)
-            .plus(getSubjectUri(sub))
-            .map { it.toString() }
-
-        val result = if (userIsAdmin(sub))
+        val result = if (userIsAdmin(sub)) {
             neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(queryParams, offset, limit)
-        else
+        } else {
+            val userAndGroupIds = getSubjectGroups(sub)
+                .plus(getSubjectUri(sub))
+                .map { it.toString() }
+
             neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
                 queryParams,
                 offset,
                 limit,
                 userAndGroupIds
             )
+        }
 
         val jsonLdEntities = result.second.map {
             JsonLdEntity(

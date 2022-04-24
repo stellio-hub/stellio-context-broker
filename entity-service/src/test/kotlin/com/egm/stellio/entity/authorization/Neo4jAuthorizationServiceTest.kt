@@ -297,7 +297,7 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(3, countAndAuthorizedEntities.second.size)
         assertTrue {
             countAndAuthorizedEntities.second.all {
-                it.type.equals("Beekeeper") && it.properties.containsKey(AUTH_PROP_RIGHT)
+                it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
             }
         }
         assertTrue(countAndAuthorizedEntities.second.any { it.properties.containsKey(AUTH_PROP_SAP) })
@@ -362,7 +362,7 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(1, countAndAuthorizedEntities.second.size)
         assertTrue {
             countAndAuthorizedEntities.second.all {
-                it.id.equals("urn:ngsi-ld:Beekeeper:1230") &&
+                it.id == "urn:ngsi-ld:Beekeeper:1230" &&
                     it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) &&
                     it.properties.containsKey(NGSILD_MODIFIED_AT_PROPERTY)
             }

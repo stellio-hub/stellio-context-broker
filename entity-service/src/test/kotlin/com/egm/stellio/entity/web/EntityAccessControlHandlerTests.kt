@@ -563,7 +563,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 200 and the number of results`() {
+    fun `get authorized entities should return 200 and the number of results if requested limit is 0`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
@@ -592,7 +592,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return entities I have rigt on`() {
+    fun `get authorized entities should return entities I have a right on`() {
         val userUri = "urn:ngsi-ld:User:01"
         every { entityService.exists(any()) } returns true
         every {
@@ -653,7 +653,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return entities I have right on with system attributes`() {
+    fun `get authorized entities should return entities I have a right on with system attributes`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getAuthorizedEntities(any(), any(), any(), any(), true, NGSILD_AUTHORIZATION_CONTEXT)
@@ -720,7 +720,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isNoContent
     }
 
-    fun createJsonLdEntity(
+    private fun createJsonLdEntity(
         id: String,
         type: String,
         right: String,

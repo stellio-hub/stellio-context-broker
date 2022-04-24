@@ -3,6 +3,10 @@ package com.egm.stellio.entity.authorization
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import java.net.URI
@@ -15,7 +19,7 @@ data class EntityAccessControl(
     val rCanAdminUsers: List<URI>? = null,
     val rCanWriteUsers: List<URI>? = null,
     val rCanReadUsers: List<URI>? = null,
-    var modifiedAt: ZonedDateTime? = null,
+    val modifiedAt: ZonedDateTime? = null,
     val right: AccessRight,
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
 ) {
@@ -45,14 +49,14 @@ data class EntityAccessControl(
         )
 
         specificAccessPolicy?.run {
-            resultEntity[AuthContextModel.AUTH_PROP_SAP] = mutableMapOf(
+            resultEntity[AUTH_PROP_SAP] = mutableMapOf(
                 JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
                 JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(JsonLdUtils.JSONLD_VALUE_KW to specificAccessPolicy)
             )
         }
 
         rCanAdminUsers?.run {
-            resultEntity[AccessRight.R_CAN_ADMIN.attributeName] = rCanAdminUsers.map {
+            resultEntity[AUTH_REL_CAN_ADMIN] = rCanAdminUsers.map {
                 mutableMapOf(
                     JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)
@@ -60,7 +64,7 @@ data class EntityAccessControl(
             }
         }
         rCanWriteUsers?.run {
-            resultEntity[AccessRight.R_CAN_WRITE.attributeName] = rCanWriteUsers.map {
+            resultEntity[AUTH_REL_CAN_WRITE] = rCanWriteUsers.map {
                 mutableMapOf(
                     JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)
@@ -68,7 +72,7 @@ data class EntityAccessControl(
             }
         }
         rCanReadUsers?.run {
-            resultEntity[AccessRight.R_CAN_READ.attributeName] = rCanReadUsers.map {
+            resultEntity[AUTH_REL_CAN_READ] = rCanReadUsers.map {
                 mutableMapOf(
                     JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)

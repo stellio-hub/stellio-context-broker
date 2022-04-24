@@ -4,6 +4,7 @@ import com.egm.stellio.entity.config.SUBJECT_GROUPS_CACHE
 import com.egm.stellio.entity.config.SUBJECT_ROLES_CACHE
 import com.egm.stellio.entity.config.SUBJECT_URI_CACHE
 import com.egm.stellio.entity.model.Relationship
+import com.egm.stellio.entity.repository.QueryUtils.buildMatchEntityClause
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
@@ -299,7 +300,7 @@ class Neo4jAuthorizationRepository(
                 NOT '$GROUP_TYPE' IN labels(entity) AND
                 NOT '$CLIENT_TYPE' IN labels(entity)
             )
-            OPTIONAL MATCH $matchEntityClause -[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
+            OPTIONAL MATCH $matchEntityClause-[:HAS_VALUE]->(prop:Property { name: '$AUTH_PROP_SAP' })
             WITH entity, prop.value as specificAccessPolicy
             ORDER BY entity.id
             """.trimIndent()
@@ -334,12 +335,12 @@ class Neo4jAuthorizationRepository(
         return prepareResultsAuthorizedEntities(result, limit)
     }
 
-    fun getEntityRightPerUser(entityId: URI): List<Map<String, URI>> {
+    fun getEntityRightsPerUser(entityId: URI): List<Map<String, URI>> {
         val authTerm = buildAuthTerm(null)
         val query =
             """
             MATCH (user)-[]->()-[right:$authTerm]->(entity:Entity { id: ${'$'}entityId })
-            RETURN collect(distinct(user.id)) as usersId, collect(distinct(right)) as right
+            RETURN collect(distinct(user.id)) as usersIds, collect(distinct(right)) as rights
             """.trimIndent()
 
         val parameters = mapOf(
@@ -348,24 +349,13 @@ class Neo4jAuthorizationRepository(
 
         val result = neo4jClient.query(query).bindAll(parameters).fetch().one().get()
 
-        val usersId = (result["usersId"]as List<String>).map { it.toUri() }
+        val usersIds = (result["usersIds"] as List<String>).map { it.toUri() }
+        val rights = (result["rights"] as List<org.neo4j.driver.types.Relationship>).map { it.type() }
 
-        val rights = (result["right"] as List<org.neo4j.driver.types.Relationship>).map { it.type() }
-
-        val pair = rights
-            .zip(usersId)
-
-        val tmp = pair.map {
-            mapOf(it.first to it.second)
-        }
-        return tmp
+        return rights
+            .zip(usersIds)
+            .map { mapOf(it.first to it.second) }
     }
-
-    private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
-        if (expandedType == null)
-            "$prefix (entity:Entity)"
-        else
-            "$prefix (entity:`$expandedType`)"
 
     fun buildAuthTerm(q: String?): String =
         q?.replace(qPattern.toRegex()) { matchResult ->
@@ -397,10 +387,11 @@ class Neo4jAuthorizationRepository(
                 else it["right"] as String
             val specificAccessPolicy = it["specificAccessPolicy"] as String?
             val entityId = (entityNode.get("id") as StringValue).asString().toUri()
+            val userRightOnEntity = AccessRight.forAttributeName(rightOnEntity).orNull()!!
 
-            val userPerRight =
-                if (AccessRight.forAttributeName(rightOnEntity).orNull()!! == AccessRight.R_CAN_ADMIN)
-                    getEntityRightPerUser(entityId)
+            val usersRightsOnEntity =
+                if (userRightOnEntity == AccessRight.R_CAN_ADMIN)
+                    getEntityRightsPerUser(entityId)
                 else null
 
             EntityAccessControl(
@@ -409,21 +400,19 @@ class Neo4jAuthorizationRepository(
                     .labels()
                     .toList()
                     .filter { !AuthContextModel.IAM_TYPES.plus("Entity").contains(it) },
-                right = AccessRight.forAttributeName(rightOnEntity).orNull()!!,
-                rCanAdminUsers = userPerRight
-                    ?.filter { it.containsKey(AccessRight.R_CAN_ADMIN.attributeName) }
-                    ?.map { it.getValue(AccessRight.R_CAN_ADMIN.attributeName) },
-                rCanWriteUsers = userPerRight
-                    ?.filter { it.containsKey(AccessRight.R_CAN_WRITE.attributeName) }
-                    ?.map { it.getValue(AccessRight.R_CAN_WRITE.attributeName) },
-                rCanReadUsers = userPerRight
-                    ?.filter { it.containsKey(AccessRight.R_CAN_READ.attributeName) }
-                    ?.map { it.getValue(AccessRight.R_CAN_READ.attributeName) },
+                right = userRightOnEntity,
+                rCanAdminUsers = usersRightsOnEntity.valuesForRight(AccessRight.R_CAN_ADMIN),
+                rCanWriteUsers = usersRightsOnEntity.valuesForRight(AccessRight.R_CAN_WRITE),
+                rCanReadUsers = usersRightsOnEntity.valuesForRight(AccessRight.R_CAN_READ),
                 createdAt = (entityNode.get("createdAt") as DateTimeValue).asZonedDateTime(),
-                modifiedAt = (entityNode.get("modifiedAt") as DateTimeValue)?.asZonedDateTime(),
+                modifiedAt = (entityNode.get("modifiedAt") as? DateTimeValue)?.asZonedDateTime(),
                 specificAccessPolicy = specificAccessPolicy?.let { it ->
                     AuthContextModel.SpecificAccessPolicy.valueOf(it)
                 }
             )
         }
+
+    private fun List<Map<String, URI>>?.valuesForRight(accessRight: AccessRight) =
+        this?.filter { it.containsKey(accessRight.attributeName) }
+            ?.map { it.getValue(accessRight.attributeName) }
 }

@@ -111,7 +111,7 @@ object QueryUtils {
             """
     }
 
-    private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
+    fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
         if (expandedType == null)
             "$prefix (entity:Entity)"
         else

@@ -96,29 +96,24 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
-
         verify {
+            authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub))
+
             entityService.appendEntityRelationship(
                 eq(subjectId),
                 match { it.name == AUTH_REL_CAN_READ && it.instances.size == 1 },
                 match { it.objectId == entityUri1 },
                 eq(false)
             )
-        }
-
-        verify {
             entityEventService.publishAttributeAppendEvents(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(subjectId),
                 any(),
-                match {
-                    it.updated.size == 1 &&
-                        it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED
-                },
+                match { it.updated.size == 1 && it.updated[0].updateOperationResult == UpdateOperationResult.APPENDED },
                 eq(listOf(NGSILD_AUTHORIZATION_CONTEXT, NGSILD_CORE_CONTEXT))
             )
         }
+        confirmVerified(authorizationService, entityEventService)
     }
 
     @Test
@@ -385,8 +380,7 @@ class EntityAccessControlHandlerTests {
                 eq(true),
                 match {
                     val jsonNode = mapper.readTree(it)
-                    jsonNode["type"].textValue() == "Property" &&
-                        jsonNode["value"].textValue() == "AUTH_READ"
+                    jsonNode["type"].textValue() == "Property" && jsonNode["value"].textValue() == "AUTH_READ"
                 },
                 eq(UpdateOperationResult.REPLACED),
                 eq(COMPOUND_AUTHZ_CONTEXT)
@@ -540,9 +534,7 @@ class EntityAccessControlHandlerTests {
     fun `it should allow an authorized user to delete the specific access policy on an entity`() {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns true
         every { entityService.deleteEntityAttribute(any(), any()) } returns true
-        every {
-            entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any())
-        } just Runs
+        every { entityEventService.publishAttributeDeleteEvent(any(), any(), any(), any(), any(), any()) } just Runs
 
         webClient.delete()
             .uri("/ngsi-ld/v1/entityAccessControl/$entityUri1/attrs/specificAccessPolicy")
@@ -663,11 +655,6 @@ class EntityAccessControlHandlerTests {
                             mapOf(
                                 "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
                                 "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
-                            ),
-                        NGSILD_MODIFIED_AT_PROPERTY to
-                            mapOf(
-                                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
                             )
                     ),
                     listOf(NGSILD_CORE_CONTEXT)
@@ -687,7 +674,6 @@ class EntityAccessControlHandlerTests {
                             "type": "Beehive",
                             "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
                             "createdAt": "2015-10-18T11:20:30.000001Z",
-                            "modifiedAt": "2015-10-18T11:20:30.000001Z",
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
                     ]
@@ -707,5 +693,18 @@ class EntityAccessControlHandlerTests {
                 "$.detail",
                 "The parameter q only accepts as a value one or more of ${AuthContextModel.ALL_IAM_RIGHTS_TERMS}"
             )
+    }
+
+    @Test
+    fun `get authorized entities should return 204 while being no authentification`() {
+        every {
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
+        } returns Pair(-1, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/entities")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNoContent
     }
 }

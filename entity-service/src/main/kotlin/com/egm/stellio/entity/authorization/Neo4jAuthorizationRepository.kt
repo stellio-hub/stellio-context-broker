@@ -291,7 +291,6 @@ class Neo4jAuthorizationRepository(
     ): Pair<Int, List<EntityAccessControl>> {
         val (_, expandedType, _, _, _) = queryParams
         val matchEntityClause = buildMatchEntityClause(expandedType, "")
-        val authTerm = buildAuthTerm(null)
         val matchAuthorizedEntitiesClause =
             """
             MATCH $matchEntityClause
@@ -305,11 +304,7 @@ class Neo4jAuthorizationRepository(
             ORDER BY entity.id
             """.trimIndent()
 
-        val pagingClause = if (!authTerm.contains(AUTH_TERM_CAN_ADMIN))
-            """
-            RETURN 0 as count
-            """.trimIndent()
-        else if (limit == 0)
+        val pagingClause = if (limit == 0)
             """
             RETURN count(entity) as count
             """.trimIndent()

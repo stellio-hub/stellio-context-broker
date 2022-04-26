@@ -729,6 +729,22 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
+    fun `it should return none entities while being admin and limit is 0`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
+            QueryParams(),
+            offset,
+            0
+        )
+
+        assertEquals(1, result.first)
+        assertEquals(0, result.second.size)
+    }
+
+    @Test
     fun `it should return none entities when limit is 0`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))

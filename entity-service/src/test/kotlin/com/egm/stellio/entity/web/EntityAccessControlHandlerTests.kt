@@ -19,7 +19,6 @@ import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.BeforeAll

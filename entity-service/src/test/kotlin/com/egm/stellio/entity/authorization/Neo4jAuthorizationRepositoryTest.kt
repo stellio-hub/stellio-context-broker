@@ -12,8 +12,9 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
+import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
+import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
@@ -572,7 +573,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         val secondEntity = createEntity("urn:ngsi-ld:Beekeeper:1231".toUri(), listOf("Beekeeper"))
         val thirdEntity = createEntity("urn:ngsi-ld:Beekeeper:1232".toUri(), listOf("Beekeeper"))
         val fourthEntity = createEntity(
-            "urn:ngsi-ld:Beehive:1233".toUri(),
+            "urn:ngsi-ld:Beekeeper:1233".toUri(),
             listOf("Beekeeper"),
             mutableListOf(
                 Property(name = AUTH_PROP_SAP, value = AUTH_READ.name)
@@ -596,10 +597,10 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             listOf(firstEntity.id, secondEntity.id, thirdEntity.id, fourthEntity.id),
             result.second.map { it.id }
         )
-        assertTrue(result.second.find { it.id == fourthEntity.id }?.specificAccessPolicy == AUTH_READ)
-        assertTrue(result.second.filter { it.id != fourthEntity.id }.none { it.specificAccessPolicy != null })
-        assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
         assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" })
+        assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
+        assertTrue(result.second.filter { it.id != fourthEntity.id }.none { it.specificAccessPolicy != null })
+        assertTrue(result.second.find { it.id == fourthEntity.id }?.specificAccessPolicy == AUTH_READ)
     }
 
     @Test
@@ -622,16 +623,9 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
-        assertTrue {
-            result.second.all {
-                it.type.size == 1 &&
-                    it.right == AccessRight.R_CAN_READ || it.right == AccessRight.R_CAN_WRITE
-            }
-        }
-
-        assertFalse {
-            result.second.all { it.right == R_CAN_ADMIN }
-        }
+        assertFalse(result.second.all { it.right == R_CAN_ADMIN })
+        assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_WRITE)
+        assertTrue(result.second.find { it.id == thirdEntity.id }?.right == R_CAN_READ)
     }
 
     @Test
@@ -654,36 +648,29 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
-        assertTrue {
-            result.second.all {
-                it.type.size == 1 &&
-                    it.right == R_CAN_ADMIN || it.right == AccessRight.R_CAN_WRITE
-            }
-        }
-
-        assertFalse {
-            result.second.all { it.right == AccessRight.R_CAN_READ }
-        }
+        assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" })
+        assertFalse(result.second.all { it.right == R_CAN_READ })
+        assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_WRITE)
+        assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
     }
 
     @Test
     fun `it should return authorized entities while being stellio-admin`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-
         val userEntity2 = createEntity("urn:ngsi-ld:User:02".toUri(), listOf(USER_TYPE), mutableListOf())
+
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
         val secondEntity = createEntity("urn:ngsi-ld:Beekeeper:1231".toUri(), listOf("Beekeeper"))
         val thirdEntity = createEntity(
-            "urn:ngsi-ld:Beehive:1232".toUri(),
+            "urn:ngsi-ld:Beekeeper:1232".toUri(),
             listOf("Beehive"),
             mutableListOf(
                 Property(name = AUTH_PROP_SAP, value = AUTH_READ.name)
             )
         )
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
-
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
@@ -691,14 +678,16 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             offset,
             limit
         )
+        val users = listOf(userUri, "urn:ngsi-ld:User:02".toUri())
 
         assertEquals(3, result.first)
         assertEquals(3, result.second.size)
-        assertTrue {
-            result.second.all { it.right == R_CAN_ADMIN } &&
-                result.second.any { it.specificAccessPolicy == AUTH_READ } &&
-                result.second.any { it.rCanWriteUsers?.size == 2 }
-        }
+        assertTrue(result.second.all { it.right == R_CAN_ADMIN })
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers?.size == 2)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers == users)
+        assertTrue(result.second.find { it.id == secondEntity.id }?.rCanAdminUsers?.size == 1)
+        assertTrue(result.second.find { it.id == thirdEntity.id }?.rCanReadUsers?.size == 1)
+        assertTrue(result.second.find { it.id == thirdEntity.id }?.specificAccessPolicy == AUTH_READ)
     }
 
     @Test
@@ -713,22 +702,24 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
             QueryParams(),
             offset,
-            limit
+            limit,
+            listOf(userUri.toString())
         )
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
-        assertTrue {
-            result.second.any {
-                it.right == R_CAN_ADMIN &&
-                    it.rCanAdminUsers?.size == 1 &&
-                    it.rCanWriteUsers?.size == 1 &&
-                    it.rCanReadUsers?.size == 0
-            }
-        }
+        assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_ADMIN)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanAdminUsers?.size == 1)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanReadUsers?.size == 0)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers?.size == 1)
+        assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_READ)
+        assertTrue(
+            result.second.filter { it.id != firstEntity.id }
+                .none { it.rCanAdminUsers != null && it.rCanReadUsers != null && it.rCanWriteUsers != null }
+        )
     }
 
     @Test

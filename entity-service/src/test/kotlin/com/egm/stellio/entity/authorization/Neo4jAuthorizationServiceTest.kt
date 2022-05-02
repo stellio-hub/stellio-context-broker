@@ -26,6 +26,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
@@ -298,26 +299,29 @@ class Neo4jAuthorizationServiceTest {
         assertTrue {
             countAndAuthorizedEntities.second.all {
                 it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
-            }
-        }
-        assertTrue(countAndAuthorizedEntities.second.any { it.properties.containsKey(AUTH_PROP_SAP) })
-        assertTrue {
-            countAndAuthorizedEntities.second.any {
-                it.properties[AUTH_PROP_RIGHT] == mutableMapOf(
-                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                    JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                        JsonLdUtils.JSONLD_VALUE_KW to AccessRight.R_CAN_ADMIN.attributeName
+            } &&
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1231" }
+                ?.properties?.get(AUTH_PROP_SAP) == mutableMapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                    JsonLdUtils.JSONLD_VALUE_KW to SpecificAccessPolicy.AUTH_READ
+                )
+            ) &&
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
+                ?.properties?.get(AUTH_PROP_RIGHT) == mutableMapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                    JsonLdUtils.JSONLD_VALUE_KW to AccessRight.R_CAN_ADMIN.attributeName
+                )
+            ) &&
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
+                ?.properties?.get(AuthContextModel.AUTH_REL_CAN_READ) == users.map {
+                mutableMapOf(
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                    JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                        JsonLdUtils.JSONLD_ID to it
                     )
-                ) &&
-                    it.properties.containsKey(AccessRight.R_CAN_READ.attributeName) &&
-                    it.properties[AccessRight.R_CAN_READ.attributeName] == users.map {
-                    mutableMapOf(
-                        JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
-                        JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
-                            JsonLdUtils.JSONLD_ID to it
-                        )
-                    )
-                }
+                )
             }
         }
         assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
@@ -339,8 +343,8 @@ class Neo4jAuthorizationServiceTest {
                     id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
                     type = listOf("Beekeeper"),
                     rCanWriteUsers = listOf(user),
-                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
-                    modifiedAt = Instant.now().atZone(ZoneOffset.UTC),
+                    createdAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
+                    modifiedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
                     right = AccessRight.R_CAN_ADMIN,
                     specificAccessPolicy = SpecificAccessPolicy.AUTH_READ
                 )
@@ -360,13 +364,18 @@ class Neo4jAuthorizationServiceTest {
 
         assertEquals(1, countAndAuthorizedEntities.first)
         assertEquals(1, countAndAuthorizedEntities.second.size)
-        assertTrue {
-            countAndAuthorizedEntities.second.all {
-                it.id == "urn:ngsi-ld:Beekeeper:1230" &&
-                    it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) &&
-                    it.properties.containsKey(NGSILD_MODIFIED_AT_PROPERTY)
-            }
-        }
+        assertTrue(
+            countAndAuthorizedEntities.second.first().properties[NGSILD_CREATED_AT_PROPERTY] == mapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                JsonLdUtils.JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z"
+            )
+        )
+        assertTrue(
+            countAndAuthorizedEntities.second.first().properties[NGSILD_MODIFIED_AT_PROPERTY] == mapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                JsonLdUtils.JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z"
+            )
+        )
     }
 
     private fun assertUserHasRightOnEntity(

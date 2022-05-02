@@ -318,7 +318,6 @@ class Neo4jAuthorizationRepository(
                     specificAccessPolicy: specificAccessPolicy
                 })) as entities, 
                 count(distinct(entity)) as count 
-            ORDER BY entities
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
@@ -340,6 +339,8 @@ class Neo4jAuthorizationRepository(
         val query =
             """
             MATCH (user)-[]->()-[right:$authTerm]->(entity:Entity { id: ${'$'}entityId })
+            WITH user, right
+            ORDER BY user.id
             RETURN collect(distinct(user.id)) as usersIds, collect(distinct(right)) as rights
             """.trimIndent()
 

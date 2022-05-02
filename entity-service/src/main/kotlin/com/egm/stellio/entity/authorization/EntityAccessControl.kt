@@ -52,9 +52,9 @@ data class EntityAccessControl(
         }
 
         rCanAdminUsers?.run {
-            resultEntity[AccessRight.R_CAN_WRITE.attributeName] = rCanAdminUsers.map {
+            resultEntity[AccessRight.R_CAN_ADMIN.attributeName] = rCanAdminUsers.map {
                 mutableMapOf(
-                    JsonLdUtils.NGSILD_RELATIONSHIP_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)
                 )
             }
@@ -62,15 +62,15 @@ data class EntityAccessControl(
         rCanWriteUsers?.run {
             resultEntity[AccessRight.R_CAN_WRITE.attributeName] = rCanWriteUsers.map {
                 mutableMapOf(
-                    JsonLdUtils.NGSILD_RELATIONSHIP_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)
                 )
             }
         }
         rCanReadUsers?.run {
-            resultEntity[AccessRight.R_CAN_WRITE.attributeName] = rCanReadUsers.map {
+            resultEntity[AccessRight.R_CAN_READ.attributeName] = rCanReadUsers.map {
                 mutableMapOf(
-                    JsonLdUtils.NGSILD_RELATIONSHIP_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
                     JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to it)
                 )
             }

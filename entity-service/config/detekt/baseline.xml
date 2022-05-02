@@ -3,6 +3,7 @@
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
     <ID>EmptyFunctionBlock:StandaloneAuthorizationService.kt$StandaloneAuthorizationService${}</ID>
+    <ID>LargeClass:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests</ID>
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
     <ID>LargeClass:EntityOperationHandlerTests.kt$EntityOperationHandlerTests</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
@@ -13,8 +14,10 @@
     <ID>LongMethod:EntityEventServiceTests.kt$EntityEventServiceTests$@Test fun `it should publish ATTRIBUTE_APPEND and ATTRIBUTE_REPLACE events if attributes were appended and replaced`()</ID>
     <ID>LongMethod:EntityHandler.kt$EntityHandler$ @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
+    <ID>LongMethod:Neo4jAuthorizationServiceTest.kt$Neo4jAuthorizationServiceTest$@Test fun `it should return authorized JsonLdEntities`()</ID>
     <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes`()</ID>
     <ID>LongParameterList:AuthorizationService.kt$AuthorizationService$( queryParams: QueryParams, sub: Option&lt;Sub&gt;, offset: Int, limit: Int, includeSysAttrs: Boolean, contextLink: String )</ID>
+    <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, right: String, specificAccessPolicy: String? = null, rCanReadUser: String? = null, createdAt: String? = null, modifiedAt: String? = null, context: String )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, overwrite: Boolean, operationPayload: String, updateOperationResult: UpdateOperationResult, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityService.kt$EntityService$( queryParams: QueryParams, sub: Option&lt;Sub&gt;, offset: Int, limit: Int, contextLink: String, includeSysAttrs: Boolean )</ID>

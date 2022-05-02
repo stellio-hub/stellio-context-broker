@@ -17,8 +17,10 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
@@ -40,6 +42,8 @@ import java.time.ZoneOffset
 @Import(WebSecurityTestConfig::class)
 @WithMockCustomUser(name = "Mock User", sub = "60AAEBA3-C0C7-42B6-8CB0-0D30857F210E")
 class EntityAccessControlHandlerTests {
+
+    private val authzHeaderLink = buildContextLinkHeader(NGSILD_AUTHORIZATION_CONTEXT)
 
     @Autowired
     private lateinit var webClient: WebTestClient
@@ -589,24 +593,32 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get authorized entities should return entities I have rigt on`() {
+        val userUri = "urn:ngsi-ld:User:01"
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(
-            1,
+            2,
             listOf(
-                JsonLdEntity(
-                    mapOf(
-                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                        "@type" to listOf("Beehive"),
-                        AUTH_PROP_RIGHT to mutableMapOf(
-                            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                                JsonLdUtils.JSONLD_VALUE_KW to AUTH_TERM_CAN_READ
-                            )
-                        )
-                    ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                createJsonLdEntity(
+                    "urn:ngsi-ld:Beehive:TESTC",
+                    "Beehive",
+                    AUTH_TERM_CAN_READ,
+                    null,
+                    null,
+                    null,
+                    null,
+                    NGSILD_CORE_CONTEXT
+                ),
+                createJsonLdEntity(
+                    "urn:ngsi-ld:Beehive:TESTC",
+                    "Beehive",
+                    AUTH_TERM_CAN_READ,
+                    AUTH_READ.toString(),
+                    userUri,
+                    null,
+                    null,
+                    NGSILD_CORE_CONTEXT
                 )
             )
         )
@@ -616,13 +628,21 @@ class EntityAccessControlHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
-            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "2")
             .expectBody().json(
                 """[
+                    {
+                            "id": "urn:ngsi-ld:Beehive:TESTC",
+                            "type": "Beehive",
+                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        },
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
                             "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "$AUTH_PROP_SAP": {"type":"Property", "value": "$AUTH_READ"},
+                            "$AUTH_REL_CAN_READ": {"type":"Relationship", "object": "$userUri"},
                             "@context": ["$NGSILD_CORE_CONTEXT"]
                         }
                     ]
@@ -633,37 +653,29 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return entities I have rigt on with system attributes`() {
+    fun `get authorized entities should return entities I have right on with system attributes`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), true, NGSILD_CORE_CONTEXT)
+            authorizationService.getAuthorizedEntities(any(), any(), any(), any(), true, NGSILD_AUTHORIZATION_CONTEXT)
         } returns Pair(
             1,
             listOf(
-                JsonLdEntity(
-                    mapOf(
-                        "@id" to "urn:ngsi-ld:Beehive:TESTC",
-                        "@type" to listOf("Beehive"),
-                        AUTH_PROP_RIGHT to mutableMapOf(
-                            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                                JsonLdUtils.JSONLD_VALUE_KW to AUTH_TERM_CAN_READ
-                            )
-                        ),
-                        NGSILD_CREATED_AT_PROPERTY to
-                            mapOf(
-                                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                                "@value" to Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC)
-                            )
-                    ),
-                    listOf(NGSILD_CORE_CONTEXT)
+                createJsonLdEntity(
+                    "urn:ngsi-ld:Beehive:TESTC",
+                    "Beehive",
+                    AUTH_TERM_CAN_READ,
+                    null,
+                    null,
+                    "2015-10-18T11:20:30.000001Z",
+                    "2015-10-18T11:20:30.000001Z",
+                    NGSILD_AUTHORIZATION_CONTEXT
                 )
             )
         )
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities?options=sysAttrs")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .header(HttpHeaders.LINK, authzHeaderLink)
             .exchange()
             .expectStatus().isOk
             .expectBody().json(
@@ -671,9 +683,10 @@ class EntityAccessControlHandlerTests {
                         {
                             "id": "urn:ngsi-ld:Beehive:TESTC",
                             "type": "Beehive",
-                            "$AUTH_PROP_RIGHT": {"type":"Property", "value": "rCanRead"},
+                            "right": {"type":"Property", "value": "rCanRead"},
                             "createdAt": "2015-10-18T11:20:30.000001Z",
-                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                            "modifiedAt": "2015-10-18T11:20:30.000001Z",
+                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
                         }
                     ]
                 """.trimMargin()
@@ -705,5 +718,54 @@ class EntityAccessControlHandlerTests {
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNoContent
+    }
+
+    fun createJsonLdEntity(
+        id: String,
+        type: String,
+        right: String,
+        specificAccessPolicy: String? = null,
+        rCanReadUser: String? = null,
+        createdAt: String? = null,
+        modifiedAt: String? = null,
+        context: String
+    ): JsonLdEntity {
+        val jsonLdEntity = mutableMapOf<String, Any>()
+        jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
+        jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
+        jsonLdEntity[AUTH_PROP_RIGHT] = mutableMapOf(
+            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
+                JsonLdUtils.JSONLD_VALUE_KW to right
+            )
+        )
+        specificAccessPolicy?.run {
+            jsonLdEntity[AUTH_PROP_SAP] = mutableMapOf(
+                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
+                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(JsonLdUtils.JSONLD_VALUE_KW to specificAccessPolicy)
+            )
+        }
+        rCanReadUser?.run {
+            jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
+                mutableMapOf(
+                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
+                    JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to rCanReadUser)
+                )
+            )
+        }
+        createdAt?.run {
+            jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
+                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                "@value" to Instant.parse(createdAt).atZone(ZoneOffset.UTC)
+            )
+        }
+        modifiedAt?.run {
+            jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
+                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
+                "@value" to Instant.parse(modifiedAt).atZone(ZoneOffset.UTC)
+            )
+        }
+
+        return JsonLdEntity(jsonLdEntity, listOf(context))
     }
 }

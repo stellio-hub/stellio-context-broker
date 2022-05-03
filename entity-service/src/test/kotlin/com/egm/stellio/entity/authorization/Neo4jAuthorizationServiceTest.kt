@@ -13,9 +13,9 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
-import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdDateTime
-import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdProperty
-import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdRelationship
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedRelationship
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -307,17 +307,19 @@ class Neo4jAuthorizationServiceTest {
         assertTrue(
             countAndAuthorizedEntities.second
                 .find { it.id == "urn:ngsi-ld:Beekeeper:1231" }
-                ?.properties?.get(AUTH_PROP_SAP) == constructJsonLdProperty(SpecificAccessPolicy.AUTH_READ)
+                ?.properties?.get(AUTH_PROP_SAP) == buildJsonLdExpandedProperty(SpecificAccessPolicy.AUTH_READ.name)
         )
         assertTrue(
             countAndAuthorizedEntities.second
                 .find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
-                ?.properties?.get(AUTH_PROP_RIGHT) == constructJsonLdProperty(AccessRight.R_CAN_ADMIN.attributeName)
+                ?.properties?.get(AUTH_PROP_RIGHT) == buildJsonLdExpandedProperty(AccessRight.R_CAN_ADMIN.attributeName)
         )
         assertTrue(
             countAndAuthorizedEntities.second
                 .find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
-                ?.properties?.get(AuthContextModel.AUTH_REL_CAN_READ) == users.map { constructJsonLdRelationship(it) }
+                ?.properties?.get(AuthContextModel.AUTH_REL_CAN_READ) == users.map {
+                buildJsonLdExpandedRelationship(it)
+            }
         )
         assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
     }
@@ -361,11 +363,13 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(1, countAndAuthorizedEntities.second.size)
         assertTrue(
             countAndAuthorizedEntities.second.first()
-                .properties[NGSILD_CREATED_AT_PROPERTY] == constructJsonLdDateTime("2015-10-18T11:20:30.000001Z")
+                .properties[NGSILD_CREATED_AT_PROPERTY] ==
+                buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))
         )
         assertTrue(
             countAndAuthorizedEntities.second.first()
-                .properties[NGSILD_MODIFIED_AT_PROPERTY] == constructJsonLdDateTime("2015-10-18T11:20:30.000001Z")
+                .properties[NGSILD_MODIFIED_AT_PROPERTY] ==
+                buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))
         )
     }
 

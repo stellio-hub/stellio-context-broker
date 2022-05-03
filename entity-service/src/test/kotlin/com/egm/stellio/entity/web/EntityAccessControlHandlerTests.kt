@@ -34,6 +34,7 @@ import org.springframework.http.MediaType
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -615,7 +616,7 @@ class EntityAccessControlHandlerTests {
                     "Beehive",
                     AUTH_TERM_CAN_READ,
                     AUTH_READ.toString(),
-                    userUri,
+                    userUri.toUri(),
                     null,
                     null,
                     NGSILD_CORE_CONTEXT
@@ -725,7 +726,7 @@ class EntityAccessControlHandlerTests {
         type: String,
         right: String,
         specificAccessPolicy: String? = null,
-        rCanReadUser: String? = null,
+        rCanReadUser: URI? = null,
         createdAt: String? = null,
         modifiedAt: String? = null,
         context: String
@@ -733,22 +734,22 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.constructJsonLdProperty(right)
+        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right)
         specificAccessPolicy?.run {
-            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.constructJsonLdProperty(specificAccessPolicy)
+            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)
         }
         rCanReadUser?.run {
             jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
-                JsonLdUtils.constructJsonLdRelationship(rCanReadUser)
+                JsonLdUtils.buildJsonLdExpandedRelationship(rCanReadUser)
             )
         }
         createdAt?.run {
             jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] =
-                JsonLdUtils.constructJsonLdDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
+                JsonLdUtils.buildJsonLdExpandedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         modifiedAt?.run {
             jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] =
-                JsonLdUtils.constructJsonLdDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
+                JsonLdUtils.buildJsonLdExpandedDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         return JsonLdEntity(jsonLdEntity, listOf(context))
     }

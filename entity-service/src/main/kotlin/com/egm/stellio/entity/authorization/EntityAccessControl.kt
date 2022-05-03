@@ -8,8 +8,6 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils
-import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdDateTime
-import com.egm.stellio.shared.util.toNgsiLdFormat
 import java.net.URI
 import java.time.ZonedDateTime
 
@@ -29,31 +27,31 @@ data class EntityAccessControl(
 
         resultEntity[JsonLdUtils.JSONLD_ID] = id.toString()
         resultEntity[JsonLdUtils.JSONLD_TYPE] = type
-        resultEntity[AUTH_PROP_RIGHT] = JsonLdUtils.constructJsonLdProperty(right.attributeName)
+        resultEntity[AUTH_PROP_RIGHT] = JsonLdUtils.buildJsonLdExpandedProperty(right.attributeName)
 
         if (includeSysAttrs) {
-            resultEntity[JsonLdUtils.NGSILD_CREATED_AT_PROPERTY] = constructJsonLdDateTime(createdAt.toNgsiLdFormat())
+            resultEntity[JsonLdUtils.NGSILD_CREATED_AT_PROPERTY] = JsonLdUtils.buildJsonLdExpandedDateTime(createdAt)
             modifiedAt?.run {
-                resultEntity[JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY] = constructJsonLdDateTime(this.toNgsiLdFormat())
+                resultEntity[JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY] = JsonLdUtils.buildJsonLdExpandedDateTime(this)
             }
         }
         specificAccessPolicy?.run {
-            resultEntity[AUTH_PROP_SAP] = JsonLdUtils.constructJsonLdProperty(specificAccessPolicy)
+            resultEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy.toString())
         }
 
         rCanAdminUsers?.run {
             resultEntity[AUTH_REL_CAN_ADMIN] = rCanAdminUsers.map {
-                JsonLdUtils.constructJsonLdRelationship(it)
+                JsonLdUtils.buildJsonLdExpandedRelationship(it)
             }
         }
         rCanWriteUsers?.run {
             resultEntity[AUTH_REL_CAN_WRITE] = rCanWriteUsers.map {
-                JsonLdUtils.constructJsonLdRelationship(it)
+                JsonLdUtils.buildJsonLdExpandedRelationship(it)
             }
         }
         rCanReadUsers?.run {
             resultEntity[AUTH_REL_CAN_READ] = rCanReadUsers.map {
-                JsonLdUtils.constructJsonLdRelationship(it)
+                JsonLdUtils.buildJsonLdExpandedRelationship(it)
             }
         }
         return resultEntity

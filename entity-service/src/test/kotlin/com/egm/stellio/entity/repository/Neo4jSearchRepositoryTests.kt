@@ -34,7 +34,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.net.URI
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -367,7 +367,7 @@ class Neo4jSearchRepositoryTests : WithNeo4jContainer {
         properties: MutableList<Property> = mutableListOf(),
         location: String? = null
     ): Entity {
-        val entity = Entity(id = id, type = type, properties = properties, location = location)
+        val entity = Entity(id = id, types = type, properties = properties, location = location)
         return entityRepository.save(entity)
     }
 

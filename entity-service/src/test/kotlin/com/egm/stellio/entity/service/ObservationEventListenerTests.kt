@@ -42,7 +42,8 @@ class ObservationEventListenerTests {
             entityService.createEntity(
                 match {
                     it.id == expectedEntityId &&
-                        it.type == BEEHIVE_TYPE &&
+                        it.types.size == 1 &&
+                        it.types[0] == BEEHIVE_TYPE &&
                         it.relationships.size == 2 &&
                         it.properties.size == 2 &&
                         it.geoProperties.size == 1
@@ -54,7 +55,7 @@ class ObservationEventListenerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("0123456789-1234-5678-987654321"),
                 eq(expectedEntityId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }

@@ -27,7 +27,7 @@ import java.time.ZonedDateTime
 
 class NgsiLdEntity private constructor(
     val id: URI,
-    val type: String,
+    val types: List<String>,
     val relationships: List<NgsiLdRelationship>,
     val properties: List<NgsiLdProperty>,
     // TODO by 5.2.4, it is at most one location, one observationSpace and one operationSpace (to be enforced)
@@ -43,9 +43,9 @@ class NgsiLdEntity private constructor(
 
             if (!parsedKeys.containsKey(JSONLD_TYPE))
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
-            val type = (parsedKeys[JSONLD_TYPE]!! as List<String>)[0]
-            if (!type.extractShortTypeFromExpanded().isNgsiLdSupportedName())
-                throw BadRequestDataException("The provided NGSI-LD entity has a type with invalid characters")
+            val types = (parsedKeys[JSONLD_TYPE]!! as List<String>)
+            if (types.any { !it.extractShortTypeFromExpanded().isNgsiLdSupportedName() })
+                throw BadRequestDataException("The provided NGSI-LD entity has one or more types with invalid characters")
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)
@@ -54,7 +54,7 @@ class NgsiLdEntity private constructor(
             if (attributes.size > relationships.size + properties.size + geoProperties.size)
                 throw BadRequestDataException("Entity has unknown attributes types: $attributes")
 
-            return NgsiLdEntity(id, type, relationships, properties, geoProperties, contexts)
+            return NgsiLdEntity(id, types, relationships, properties, geoProperties, contexts)
         }
     }
 

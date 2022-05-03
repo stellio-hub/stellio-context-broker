@@ -65,28 +65,32 @@ class EntityEventService(
     fun publishEntityCreateEvent(
         sub: String?,
         entityId: URI,
-        entityType: ExpandedTerm,
+        entityTypes: List<String>,
         contexts: List<String>
     ) {
         logger.debug("Sending create event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
-        publishEntityEvent(
-            EntityCreateEvent(sub, entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
-        )
+        entityTypes.forEach {
+            publishEntityEvent(
+                EntityCreateEvent(sub, entityId, compactTerm(it, contexts), typeAndPayload.second, contexts)
+            )
+        }
     }
 
     @Async
     fun publishEntityReplaceEvent(
         sub: String?,
         entityId: URI,
-        entityType: ExpandedTerm,
+        entityTypes: List<String>,
         contexts: List<String>
     ) {
         logger.debug("Sending replace event for entity $entityId")
         val typeAndPayload = getSerializedEntity(entityId, contexts)
-        publishEntityEvent(
-            EntityReplaceEvent(sub, entityId, compactTerm(entityType, contexts), typeAndPayload.second, contexts)
-        )
+        entityTypes.forEach {
+            publishEntityEvent(
+                EntityReplaceEvent(sub, entityId, compactTerm(it, contexts), typeAndPayload.second, contexts)
+            )
+        }
     }
 
     @Async

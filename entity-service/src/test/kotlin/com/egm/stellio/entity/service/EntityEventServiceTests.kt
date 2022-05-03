@@ -92,7 +92,7 @@ class EntityEventServiceTests {
         entityEventService.publishEntityCreateEvent(
             null,
             breedingServiceUri,
-            "https://some.host/type",
+            listOf("https://some.host/type"),
             listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
@@ -104,7 +104,7 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityCreateEvent(
-            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
@@ -115,7 +115,7 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityReplaceEvent(
-            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }

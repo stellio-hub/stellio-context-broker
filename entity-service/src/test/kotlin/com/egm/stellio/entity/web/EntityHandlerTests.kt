@@ -123,7 +123,7 @@ class EntityHandlerTests {
             entityEventService.publishEntityCreateEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(breedingServiceId),
-                eq(breedingServiceType),
+                eq(listOf(breedingServiceType)),
                 eq(hcmrContext)
             )
         }
@@ -1678,7 +1678,7 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
         every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
@@ -1736,7 +1736,7 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(any()) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
 
@@ -1760,7 +1760,7 @@ class EntityHandlerTests {
         val entity = mockkClass(Entity::class, relaxed = true)
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(beehiveId) } returns entity
-        every { entity.type } returns listOf(BEEHIVE_TYPE)
+        every { entity.types } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isAdminAuthorized(beehiveId, any(), sub)
         } returns AccessDeniedException("User forbidden admin access to entity $beehiveId").left()

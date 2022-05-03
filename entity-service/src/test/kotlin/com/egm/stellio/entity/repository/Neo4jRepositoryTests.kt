@@ -58,7 +58,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
         assertFalse(partialEntityRepository.existsById(beekeeperUri))
         assertTrue(entityRepository.existsById(beekeeperUri))
         val beekeeper = entityRepository.findById(beekeeperUri)
-        assertEquals(listOf("Beekeeper"), beekeeper.get().type)
+        assertEquals(listOf("Beekeeper"), beekeeper.get().types)
     }
 
     @Test
@@ -1306,7 +1306,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
 
     fun createEntity(
         id: URI,
-        type: List<String>,
+        types: List<String>,
         properties: MutableList<Property> = mutableListOf(),
         location: String? = null,
         operationSpace: String? = null,
@@ -1314,7 +1314,7 @@ class Neo4jRepositoryTests : WithNeo4jContainer {
     ): Entity {
         val entity = Entity(
             id = id,
-            type = type,
+            types = types,
             properties = properties,
             location = location,
             operationSpace = operationSpace,

@@ -61,7 +61,7 @@ class EntityHandler(
             entityEventService.publishEntityCreateEvent(
                 sub.orNull(),
                 ngsiLdEntity.id,
-                ngsiLdEntity.type,
+                ngsiLdEntity.types,
                 contexts
             )
 
@@ -190,11 +190,11 @@ class EntityHandler(
             entityService.checkExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityService.getEntityCoreProperties(entityId.toUri())
-            authorizationService.isAdminAuthorized(entityUri, entity.type[0], sub).bind()
+            authorizationService.isAdminAuthorized(entityUri, entity.types[0], sub).bind()
 
             entityService.deleteEntity(entityUri)
 
-            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.type[0], entity.contexts)
+            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types[0], entity.contexts)
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(

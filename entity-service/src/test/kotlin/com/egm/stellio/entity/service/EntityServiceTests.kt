@@ -100,7 +100,7 @@ class EntityServiceTests {
         val mockkedRelationship = mockkClass(Relationship::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
@@ -164,7 +164,7 @@ class EntityServiceTests {
         val createdRelationships = mutableListOf<Relationship>()
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { mockkedRelationship.type } returns listOf("Relationship")
         every { mockkedRelationship.id } returns relationshipId
         every { mockkedRelationshipTarget.id } returns relationshipTargetId
@@ -218,7 +218,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
@@ -253,7 +253,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.hasPropertyInstance(any(), any(), capture(datasetSetIds)) } returns true
         every { neo4jRepository.createPropertyOfSubject(any(), capture(updatedInstances)) } returns true
@@ -303,7 +303,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasPropertyInstance(any(), any(), any()) } returns true
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1
 
@@ -337,7 +337,7 @@ class EntityServiceTests {
         val mockkedSensor = mockkClass(Entity::class)
 
         every { mockkedSensor.id } returns sensorId
-        every { mockkedSensor.type } returns listOf("Sensor")
+        every { mockkedSensor.types } returns listOf("Sensor")
         every { neo4jRepository.hasGeoPropertyOfName(any(), any()) } returns true
         every { neo4jRepository.updateGeoPropertyOfEntity(any(), any(), any()) } returns 1
         every { neo4jRepository.updateEntityModifiedDate(any()) } returns 1

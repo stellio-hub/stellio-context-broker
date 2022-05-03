@@ -47,7 +47,7 @@ class ObservationEventListener(
         entityEventService.publishEntityCreateEvent(
             observationEvent.sub,
             ngsiLdEntity.id,
-            ngsiLdEntity.type,
+            ngsiLdEntity.types,
             observationEvent.contexts
         )
     }

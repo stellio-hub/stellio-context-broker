@@ -31,7 +31,7 @@ class EntityService(
             throw AlreadyExistsException("Already Exists")
 
         val rawEntity =
-            Entity(id = ngsiLdEntity.id, type = listOf(ngsiLdEntity.type), contexts = ngsiLdEntity.contexts)
+            Entity(id = ngsiLdEntity.id, types = ngsiLdEntity.types, contexts = ngsiLdEntity.contexts)
         entityRepository.save(rawEntity)
         if (existsAsPartial(ngsiLdEntity.id))
             neo4jRepository.mergePartialWithNormalEntity(ngsiLdEntity.id)

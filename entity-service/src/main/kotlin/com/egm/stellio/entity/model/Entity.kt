@@ -36,7 +36,7 @@ data class Entity(
 
     @DynamicLabels
     @JsonProperty("@type")
-    val type: List<String>,
+    val types: List<String>,
 
     @JsonIgnore
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
@@ -67,7 +67,7 @@ data class Entity(
     fun serializeCoreProperties(includeSysAttrs: Boolean): Map<String, Any> {
         val resultEntity = mutableMapOf<String, Any>()
         resultEntity[JSONLD_ID] = id.toString()
-        resultEntity[JSONLD_TYPE] = type
+        resultEntity[JSONLD_TYPE] = types
 
         if (includeSysAttrs) {
             resultEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(

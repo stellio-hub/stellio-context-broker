@@ -470,6 +470,28 @@ object JsonLdUtils {
                 else it.toUri().right()
             }
     }
+
+    fun constructJsonLdProperty(value: Any): MutableMap<String, Any> =
+        mutableMapOf(
+            JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+            NGSILD_PROPERTY_VALUE to mapOf(
+                JSONLD_VALUE_KW to value
+            )
+        )
+
+    fun constructJsonLdRelationship(value: Any): MutableMap<String, Any> =
+        mutableMapOf(
+            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                JSONLD_ID to value
+            )
+        )
+
+    fun constructJsonLdDateTime(value: Any): Map<String, Any> =
+        mapOf(
+            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
+            JSONLD_VALUE_KW to value
+        )
 }
 
 fun String.extractShortTypeFromExpanded(): String =

@@ -623,7 +623,6 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
-        assertFalse(result.second.all { it.right == R_CAN_ADMIN })
         assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_WRITE)
         assertTrue(result.second.find { it.id == thirdEntity.id }?.right == R_CAN_READ)
     }
@@ -649,7 +648,6 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(2, result.first)
         assertEquals(2, result.second.size)
         assertTrue(result.second.all { it.type.size == 1 && it.type[0] == "Beekeeper" })
-        assertFalse(result.second.all { it.right == R_CAN_READ })
         assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_WRITE)
         assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_ADMIN)
     }
@@ -713,8 +711,10 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         assertEquals(2, result.second.size)
         assertTrue(result.second.find { it.id == firstEntity.id }?.right == R_CAN_ADMIN)
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanAdminUsers?.size == 1)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanAdminUsers == listOf(userEntity.id))
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanReadUsers?.size == 0)
         assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers?.size == 1)
+        assertTrue(result.second.find { it.id == firstEntity.id }?.rCanWriteUsers == listOf(userEntity2.id))
         assertTrue(result.second.find { it.id == secondEntity.id }?.right == R_CAN_READ)
         assertTrue(
             result.second.filter { it.id != firstEntity.id }

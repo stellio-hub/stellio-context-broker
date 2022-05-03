@@ -733,39 +733,23 @@ class EntityAccessControlHandlerTests {
         val jsonLdEntity = mutableMapOf<String, Any>()
         jsonLdEntity[JsonLdUtils.JSONLD_ID] = id
         jsonLdEntity[JsonLdUtils.JSONLD_TYPE] = type
-        jsonLdEntity[AUTH_PROP_RIGHT] = mutableMapOf(
-            JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-            JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                JsonLdUtils.JSONLD_VALUE_KW to right
-            )
-        )
+        jsonLdEntity[AUTH_PROP_RIGHT] = JsonLdUtils.constructJsonLdProperty(right)
         specificAccessPolicy?.run {
-            jsonLdEntity[AUTH_PROP_SAP] = mutableMapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(JsonLdUtils.JSONLD_VALUE_KW to specificAccessPolicy)
-            )
+            jsonLdEntity[AUTH_PROP_SAP] = JsonLdUtils.constructJsonLdProperty(specificAccessPolicy)
         }
         rCanReadUser?.run {
             jsonLdEntity[AUTH_REL_CAN_READ] = listOf(
-                mutableMapOf(
-                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
-                    JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(JsonLdUtils.JSONLD_ID to rCanReadUser)
-                )
+                JsonLdUtils.constructJsonLdRelationship(rCanReadUser)
             )
         }
         createdAt?.run {
-            jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] = mapOf(
-                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                "@value" to Instant.parse(createdAt).atZone(ZoneOffset.UTC)
-            )
+            jsonLdEntity[NGSILD_CREATED_AT_PROPERTY] =
+                JsonLdUtils.constructJsonLdDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
         modifiedAt?.run {
-            jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] = mapOf(
-                "@type" to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                "@value" to Instant.parse(modifiedAt).atZone(ZoneOffset.UTC)
-            )
+            jsonLdEntity[NGSILD_MODIFIED_AT_PROPERTY] =
+                JsonLdUtils.constructJsonLdDateTime(Instant.parse(createdAt).atZone(ZoneOffset.UTC))
         }
-
         return JsonLdEntity(jsonLdEntity, listOf(context))
     }
 }

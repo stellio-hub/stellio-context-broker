@@ -13,6 +13,9 @@ import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdProperty
+import com.egm.stellio.shared.util.JsonLdUtils.constructJsonLdRelationship
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -296,34 +299,26 @@ class Neo4jAuthorizationServiceTest {
 
         assertEquals(3, countAndAuthorizedEntities.first)
         assertEquals(3, countAndAuthorizedEntities.second.size)
-        assertTrue {
+        assertTrue(
             countAndAuthorizedEntities.second.all {
                 it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
-            } &&
-                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1231" }
-                ?.properties?.get(AUTH_PROP_SAP) == mutableMapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                    JsonLdUtils.JSONLD_VALUE_KW to SpecificAccessPolicy.AUTH_READ
-                )
-            ) &&
-                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
-                ?.properties?.get(AUTH_PROP_RIGHT) == mutableMapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_PROPERTY_TYPE.uri,
-                JsonLdUtils.NGSILD_PROPERTY_VALUE to mapOf(
-                    JsonLdUtils.JSONLD_VALUE_KW to AccessRight.R_CAN_ADMIN.attributeName
-                )
-            ) &&
-                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
-                ?.properties?.get(AuthContextModel.AUTH_REL_CAN_READ) == users.map {
-                mutableMapOf(
-                    JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri,
-                    JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
-                        JsonLdUtils.JSONLD_ID to it
-                    )
-                )
             }
-        }
+        )
+        assertTrue(
+            countAndAuthorizedEntities.second
+                .find { it.id == "urn:ngsi-ld:Beekeeper:1231" }
+                ?.properties?.get(AUTH_PROP_SAP) == constructJsonLdProperty(SpecificAccessPolicy.AUTH_READ)
+        )
+        assertTrue(
+            countAndAuthorizedEntities.second
+                .find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
+                ?.properties?.get(AUTH_PROP_RIGHT) == constructJsonLdProperty(AccessRight.R_CAN_ADMIN.attributeName)
+        )
+        assertTrue(
+            countAndAuthorizedEntities.second
+                .find { it.id == "urn:ngsi-ld:Beekeeper:1232" }
+                ?.properties?.get(AuthContextModel.AUTH_REL_CAN_READ) == users.map { constructJsonLdRelationship(it) }
+        )
         assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
     }
 
@@ -365,16 +360,12 @@ class Neo4jAuthorizationServiceTest {
         assertEquals(1, countAndAuthorizedEntities.first)
         assertEquals(1, countAndAuthorizedEntities.second.size)
         assertTrue(
-            countAndAuthorizedEntities.second.first().properties[NGSILD_CREATED_AT_PROPERTY] == mapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                JsonLdUtils.JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z"
-            )
+            countAndAuthorizedEntities.second.first()
+                .properties[NGSILD_CREATED_AT_PROPERTY] == constructJsonLdDateTime("2015-10-18T11:20:30.000001Z")
         )
         assertTrue(
-            countAndAuthorizedEntities.second.first().properties[NGSILD_MODIFIED_AT_PROPERTY] == mapOf(
-                JsonLdUtils.JSONLD_TYPE to JsonLdUtils.NGSILD_DATE_TIME_TYPE,
-                JsonLdUtils.JSONLD_VALUE_KW to "2015-10-18T11:20:30.000001Z"
-            )
+            countAndAuthorizedEntities.second.first()
+                .properties[NGSILD_MODIFIED_AT_PROPERTY] == constructJsonLdDateTime("2015-10-18T11:20:30.000001Z")
         )
     }
 

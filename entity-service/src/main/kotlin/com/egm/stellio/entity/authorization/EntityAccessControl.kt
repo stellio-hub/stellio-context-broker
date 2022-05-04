@@ -1,5 +1,6 @@
 package com.egm.stellio.entity.authorization
 
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AccessRight
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
@@ -13,12 +14,12 @@ import java.time.ZonedDateTime
 
 data class EntityAccessControl(
     val id: URI,
-    val type: List<String>,
+    val type: List<ExpandedTerm>,
     val createdAt: ZonedDateTime,
+    val modifiedAt: ZonedDateTime? = null,
     val rCanAdminUsers: List<URI>? = null,
     val rCanWriteUsers: List<URI>? = null,
     val rCanReadUsers: List<URI>? = null,
-    val modifiedAt: ZonedDateTime? = null,
     val right: AccessRight,
     val specificAccessPolicy: AuthContextModel.SpecificAccessPolicy? = null
 ) {

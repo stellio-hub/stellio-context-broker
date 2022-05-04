@@ -376,10 +376,10 @@ class Neo4jAuthorizationRepository(
         else
             Pair(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                constructEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
+                toEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
             )
 
-    fun constructEntityAccessControl(entities: List<Map<String, Any>>): List<EntityAccessControl> =
+    fun toEntityAccessControl(entities: List<Map<String, Any>>): List<EntityAccessControl> =
         entities.map {
             val entityNode = it["entity"] as Node
             val rightOnEntity =
@@ -413,7 +413,7 @@ class Neo4jAuthorizationRepository(
             )
         }
 
-    private fun List<Map<String, URI>>?.valuesForRight(accessRight: AccessRight) =
+    private fun List<Map<String, URI>>?.valuesForRight(accessRight: AccessRight): List<URI>? =
         this?.filter { it.containsKey(accessRight.attributeName) }
             ?.map { it.getValue(accessRight.attributeName) }
 }

@@ -12,9 +12,7 @@ import com.egm.stellio.entity.repository.EntitySubjectNode
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.entity.repository.SubjectNodeInfo
 import com.egm.stellio.shared.model.QueryParams
-import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
-import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
-import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_ROLES
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SID
@@ -579,6 +577,8 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
                 Property(name = AUTH_PROP_SAP, value = AUTH_READ.name)
             )
         )
+        createEntity("urn:ngsi-ld:Beekeeper:1234".toUri(), listOf("Beekeeper"))
+
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
@@ -604,7 +604,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return authorized entities with filter on rCanWrite and rCanRead`() {
+    fun `it should return authorized entities filtered on specific rights`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1232".toUri(), listOf("Beekeeper"))
         val secondEntity = createEntity("urn:ngsi-ld:Beekeeper:1231".toUri(), listOf("Beekeeper"))
@@ -628,11 +628,12 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return authorized entities with filter on type`() {
+    fun `it should return authorized entities filtered on entity type`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
         val secondEntity = createEntity("urn:ngsi-ld:Beekeeper:1231".toUri(), listOf("Beekeeper"))
         val thirdEntity = createEntity("urn:ngsi-ld:Beehive:1232".toUri(), listOf("Beehive"))
+        createEntity("urn:ngsi-ld:Beekeeper:1233".toUri(), listOf("Beekeeper"))
 
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, secondEntity.id)
@@ -653,7 +654,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return authorized entities while being stellio-admin`() {
+    fun `it should return entities with authorized users for a stellio-admin user`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val userEntity2 = createEntity("urn:ngsi-ld:User:02".toUri(), listOf(USER_TYPE), mutableListOf())
 
@@ -689,7 +690,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return authorized entities while being admin of one of this entity`() {
+    fun `it should return authorized entities with authorized users for entities user is admin of`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val userEntity2 = createEntity("urn:ngsi-ld:User:02".toUri(), listOf(USER_TYPE), mutableListOf())
 
@@ -723,7 +724,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return none entities while being admin and limit is 0`() {
+    fun `it should return none entities if user is stellio-admin and limit is 0`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
@@ -739,7 +740,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return none entities when limit is 0`() {
+    fun `it should return none entities if limit is 0`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
 

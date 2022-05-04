@@ -36,7 +36,7 @@ data class EntityAccessControl(
             }
         }
         specificAccessPolicy?.run {
-            resultEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy.toString())
+            resultEntity[AUTH_PROP_SAP] = JsonLdUtils.buildJsonLdExpandedProperty(specificAccessPolicy)
         }
 
         rCanAdminUsers?.run {

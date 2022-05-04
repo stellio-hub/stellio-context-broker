@@ -307,7 +307,7 @@ class Neo4jAuthorizationServiceTest {
         assertTrue(
             countAndAuthorizedEntities.second
                 .find { it.id == "urn:ngsi-ld:Beekeeper:1231" }
-                ?.properties?.get(AUTH_PROP_SAP) == buildJsonLdExpandedProperty(SpecificAccessPolicy.AUTH_READ.name)
+                ?.properties?.get(AUTH_PROP_SAP) == buildJsonLdExpandedProperty(SpecificAccessPolicy.AUTH_READ)
         )
         assertTrue(
             countAndAuthorizedEntities.second

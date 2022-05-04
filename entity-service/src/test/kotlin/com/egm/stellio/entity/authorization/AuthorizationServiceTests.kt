@@ -3,15 +3,21 @@ package com.egm.stellio.entity.authorization
 import arrow.core.None
 import com.egm.stellio.shared.model.NgsiLdAttribute
 import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.BEEHIVE_TYPE
 import com.egm.stellio.shared.util.INCOMING_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OUTGOING_PROPERTY
 import com.egm.stellio.shared.util.toUri
-import io.mockk.*
-import org.junit.jupiter.api.*
+import io.mockk.clearMocks
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.spyk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 
 class AuthorizationServiceTests {
 
@@ -269,5 +275,19 @@ class AuthorizationServiceTests {
             .fold({}, {
                 fail("it should have failed as entity type is related to authorization")
             })
+    }
+
+    @Test
+    fun `get authorized entities should return a count of -1 if authentication is not enabled`() {
+        val authorizedEntities = authorizationService.getAuthorizedEntities(
+            QueryParams(),
+            None,
+            0,
+            0,
+            false,
+            NGSILD_CORE_CONTEXT
+        )
+        assertEquals(-1, authorizedEntities.first)
+        assertEquals(0, authorizedEntities.second.size)
     }
 }

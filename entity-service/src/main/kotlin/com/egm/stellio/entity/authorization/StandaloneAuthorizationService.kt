@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.toUri
@@ -14,6 +16,15 @@ class StandaloneAuthorizationService : AuthorizationService {
     override fun getSubjectUri(sub: Option<Sub>): URI = (USER_TYPE + "None").toUri()
 
     override fun getSubjectGroups(sub: Option<Sub>): Set<URI> = emptySet()
+
+    override fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        includeSysAttrs: Boolean,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 
     override fun userIsAdmin(sub: Option<Sub>): Boolean {
         return true

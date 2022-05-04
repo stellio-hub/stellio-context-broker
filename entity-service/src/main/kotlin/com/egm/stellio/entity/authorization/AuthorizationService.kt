@@ -10,6 +10,14 @@ import java.net.URI
 interface AuthorizationService {
     fun getSubjectUri(sub: Option<Sub>): URI
     fun getSubjectGroups(sub: Option<Sub>): Set<URI>
+    fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        includeSysAttrs: Boolean,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>>
     fun userIsAdmin(sub: Option<Sub>): Boolean
     fun userCanCreateEntities(sub: Option<Sub>): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI>

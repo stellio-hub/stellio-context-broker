@@ -3,18 +3,15 @@ package com.egm.stellio.entity.authorization
 import arrow.core.Option
 import arrow.core.flattenOption
 import com.egm.stellio.entity.model.Relationship
-import com.egm.stellio.shared.util.ADMIN_ROLES
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ADMIN_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
-import com.egm.stellio.shared.util.CREATION_ROLES
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toStringValue
-import com.egm.stellio.shared.util.toUri
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -162,4 +159,37 @@ class Neo4jAuthorizationService(
 
     override fun removeUserRightsOnEntity(entityId: URI, subjectId: URI) =
         neo4jAuthorizationRepository.removeUserRightsOnEntity(subjectId, entityId)
+
+    override fun getAuthorizedEntities(
+        queryParams: QueryParams,
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        includeSysAttrs: Boolean,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>> {
+        val result = if (userIsAdmin(sub)) {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(queryParams, offset, limit)
+        } else {
+            val userAndGroupIds = getSubjectGroups(sub)
+                .plus(getSubjectUri(sub))
+                .map { it.toString() }
+
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
+                queryParams,
+                offset,
+                limit,
+                userAndGroupIds
+            )
+        }
+
+        val jsonLdEntities = result.second.map {
+            JsonLdEntity(
+                it.serializeProperties(includeSysAttrs),
+                listOf(contextLink)
+            )
+        }
+
+        return Pair(result.first, jsonLdEntities)
+    }
 }

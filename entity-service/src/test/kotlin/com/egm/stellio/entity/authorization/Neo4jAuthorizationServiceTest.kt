@@ -2,26 +2,38 @@ package com.egm.stellio.entity.authorization
 
 import arrow.core.Option
 import arrow.core.Some
+import com.egm.stellio.shared.model.QueryParams
+import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_RIGHT
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
+import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.READ_RIGHTS
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
+import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.AuthContextModel.USER_PREFIX
 import com.egm.stellio.shared.util.AuthContextModel.WRITE_RIGHTS
-import com.egm.stellio.shared.util.GlobalRole
-import com.egm.stellio.shared.util.Sub
-import com.egm.stellio.shared.util.toListOfUri
-import com.egm.stellio.shared.util.toUri
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedDateTime
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedProperty
+import com.egm.stellio.shared.util.JsonLdUtils.buildJsonLdExpandedRelationship
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.net.URI
-import java.util.UUID
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
 @ActiveProfiles("test")
@@ -36,6 +48,11 @@ class Neo4jAuthorizationServiceTest {
     private val mockUserSub = Some(UUID.randomUUID().toString())
     private val mockUserUri = (USER_PREFIX + mockUserSub.value).toUri()
     private val entityUri = "urn:ngsi-ld:Entity:01".toUri()
+    private val groupUri = "urn:ngsi-ld:Group:01".toUri()
+    private val userUri = "urn:ngsi-ld:User:01".toUri()
+
+    private val offset = 0
+    private val limit = 20
 
     @BeforeEach
     fun createGlobalMockResponses() {
@@ -132,7 +149,7 @@ class Neo4jAuthorizationServiceTest {
         every {
             neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
                 entitiesId,
-                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, AUTH_READ.name)
             )
         } returns emptyList()
         every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
@@ -157,7 +174,7 @@ class Neo4jAuthorizationServiceTest {
         every {
             neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
                 entitiesId,
-                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, AUTH_READ.name)
             )
         } returns listOf("urn:ngsi-ld:Entity:1", "urn:ngsi-ld:Entity:4").toListOfUri()
         every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
@@ -207,7 +224,7 @@ class Neo4jAuthorizationServiceTest {
         every {
             neo4jAuthorizationRepository.filterEntitiesWithSpecificAccessPolicy(
                 entitiesIds,
-                listOf(SpecificAccessPolicy.AUTH_WRITE.name, SpecificAccessPolicy.AUTH_READ.name)
+                listOf(SpecificAccessPolicy.AUTH_WRITE.name, AUTH_READ.name)
             )
         } returns emptyList()
         every {
@@ -239,6 +256,119 @@ class Neo4jAuthorizationServiceTest {
             )
         }
         confirmVerified()
+    }
+
+    @Test
+    fun `it should get and transform authorized entities into JSON-LD entities`() {
+        val users = listOf(userUri, "urn:ngsi-ld:user:02".toUri())
+
+        every { neo4jAuthorizationRepository.getSubjectGroups(mockUserUri) } returns setOf(groupUri)
+        every { neo4jAuthorizationRepository.getSubjectRoles(mockUserUri) } returns emptySet()
+        every {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(any(), any(), any(), any())
+        } returns Pair(
+            3,
+            listOf(
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = AccessRight.R_CAN_READ
+                ),
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1231".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = AccessRight.R_CAN_WRITE,
+                    specificAccessPolicy = AUTH_READ
+                ),
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1232".toUri(),
+                    type = listOf("Beekeeper"),
+                    createdAt = Instant.now().atZone(ZoneOffset.UTC),
+                    right = R_CAN_ADMIN,
+                    rCanReadUsers = users
+                )
+            )
+        )
+
+        val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
+            queryParams = QueryParams(),
+            sub = mockUserSub,
+            offset = offset,
+            limit = limit,
+            includeSysAttrs = false,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
+        )
+
+        assertEquals(3, countAndAuthorizedEntities.first)
+        assertEquals(3, countAndAuthorizedEntities.second.size)
+        assertTrue(
+            countAndAuthorizedEntities.second.all {
+                it.type == "Beekeeper" && it.properties.containsKey(AUTH_PROP_RIGHT)
+            }
+        )
+        assertTrue {
+            val properties =
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1231" }?.properties
+            properties != null && properties[AUTH_PROP_SAP] == buildJsonLdExpandedProperty(AUTH_READ)
+        }
+        assertTrue {
+            val properties =
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }?.properties
+            properties != null && properties[AUTH_PROP_RIGHT] == buildJsonLdExpandedProperty(R_CAN_ADMIN.attributeName)
+        }
+        assertTrue {
+            val properties =
+                countAndAuthorizedEntities.second.find { it.id == "urn:ngsi-ld:Beekeeper:1232" }?.properties
+            properties != null && properties[AUTH_REL_CAN_READ] == users.map { buildJsonLdExpandedRelationship(it) }
+        }
+        assertFalse(countAndAuthorizedEntities.second.all { it.properties.containsKey(NGSILD_CREATED_AT_PROPERTY) })
+    }
+
+    @Test
+    fun `it should get and transform authorized entities into JSON-LD entities for a stellio-admin user`() {
+        every { neo4jAuthorizationRepository.getSubjectUri(any()) } returns userUri
+        every { neo4jAuthorizationRepository.getSubjectRoles(userUri) } returns setOf(GlobalRole.STELLIO_ADMIN.key)
+        every {
+            neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(any(), any(), any())
+        } returns Pair(
+            1,
+            listOf(
+                EntityAccessControl(
+                    id = "urn:ngsi-ld:Beekeeper:1230".toUri(),
+                    type = listOf("Beekeeper"),
+                    rCanWriteUsers = listOf(userUri),
+                    createdAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
+                    modifiedAt = ZonedDateTime.parse("2015-10-18T11:20:30.000001Z"),
+                    right = R_CAN_ADMIN,
+                    specificAccessPolicy = AUTH_READ
+                )
+            )
+        )
+
+        val countAndAuthorizedEntities = neo4jAuthorizationService.getAuthorizedEntities(
+            queryParams = QueryParams(),
+            sub = Some(userUri.toString()),
+            offset = offset,
+            limit = limit,
+            includeSysAttrs = true,
+            JsonLdUtils.NGSILD_CORE_CONTEXT
+        )
+
+        verify { neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, limit) }
+
+        assertEquals(1, countAndAuthorizedEntities.first)
+        assertEquals(1, countAndAuthorizedEntities.second.size)
+        val entityProperties = countAndAuthorizedEntities.second.first().properties
+        assertTrue(
+            entityProperties[NGSILD_CREATED_AT_PROPERTY] ==
+                buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))
+        )
+        assertTrue(
+            entityProperties[NGSILD_MODIFIED_AT_PROPERTY] ==
+                buildJsonLdExpandedDateTime(Instant.parse("2015-10-18T11:20:30.000001Z").atZone(ZoneOffset.UTC))
+        )
     }
 
     private fun assertUserHasRightOnEntity(

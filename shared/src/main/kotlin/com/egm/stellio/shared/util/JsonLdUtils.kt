@@ -471,7 +471,7 @@ object JsonLdUtils {
             }
     }
 
-    fun buildJsonLdExpandedProperty(value: String): Map<String, Any> =
+    fun buildJsonLdExpandedProperty(value: Any): Map<String, Any> =
         mapOf(
             JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
             NGSILD_PROPERTY_VALUE to mapOf(

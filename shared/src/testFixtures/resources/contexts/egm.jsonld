@@ -31,6 +31,6 @@
     "monitors": "https://ontology.eglobalmark.com/egm#monitors",
     "voltage": "https://ontology.eglobalmark.com/egm#voltage",
     "raised": "https://ontology.eglobalmark.com/egm#raised",
-    "specificAccessPolicy": "https://ontology.eglobalmark.com/egm#specificAccessPolicy"
+    "name": "https://schema.org/name"
   }
 }

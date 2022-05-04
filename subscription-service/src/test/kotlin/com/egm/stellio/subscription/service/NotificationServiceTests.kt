@@ -1,6 +1,6 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.toNgsiLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.EGM_BASE_CONTEXT_URL
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
@@ -9,7 +9,7 @@ import com.egm.stellio.subscription.firebase.FCMService
 import com.egm.stellio.subscription.model.Endpoint
 import com.egm.stellio.subscription.model.EndpointInfo
 import com.egm.stellio.subscription.model.NotificationParams
-import com.egm.stellio.subscription.model.NotificationParams.*
+import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import com.egm.stellio.subscription.utils.gimmeRawSubscription
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.configureFor
@@ -23,12 +23,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.verify
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.Called
-import io.mockk.Runs
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.just
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -169,7 +164,7 @@ class NotificationServiceTests {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(
                 FormatType.NORMALIZED,
-                listOf("https://uri.etsi.org/ngsi-ld/default-context/name", "https://uri.etsi.org/ngsi-ld/location")
+                listOf("https://schema.org/name", "https://uri.etsi.org/ngsi-ld/location")
             )
         )
 

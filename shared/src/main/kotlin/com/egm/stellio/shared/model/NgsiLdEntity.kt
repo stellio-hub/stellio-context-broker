@@ -45,7 +45,7 @@ class NgsiLdEntity private constructor(
                 throw BadRequestDataException("The provided NGSI-LD entity does not contain a type property")
             val types = (parsedKeys[JSONLD_TYPE]!! as List<String>)
             if (types.any { !it.extractShortTypeFromExpanded().isNgsiLdSupportedName() })
-                throw BadRequestDataException("The provided NGSI-LD entity has one or more types with invalid characters")
+                throw BadRequestDataException("The provided NGSI-LD entity has a type with invalid characters")
 
             val attributes = getNonCoreAttributes(parsedKeys, NGSILD_ENTITY_CORE_MEMBERS)
             val relationships = getAttributesOfType<NgsiLdRelationship>(attributes, NGSILD_RELATIONSHIP_TYPE)

@@ -54,17 +54,18 @@ class SubscriptionService(
     fun create(subscription: Subscription, sub: Option<Sub>): Mono<Int> {
         val insertStatement =
             """
-        INSERT INTO subscription(id, type, name, created_at, description, watched_attributes, time_interval, q,
-            notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info, times_sent, is_active,
-            expires_at, sub)
-        VALUES(:id, :type, :name, :created_at, :description, :watched_attributes, :time_interval, :q, :notif_attributes,
-            :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active, :expires_at, :sub)
+        INSERT INTO subscription(id, type, subscription_name, created_at, description, watched_attributes,
+            time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, endpoint_info,
+            times_sent, is_active, expires_at, sub)
+        VALUES(:id, :type, :subscription_name, :created_at, :description, :watched_attributes, :time_interval, :q,
+            :notif_attributes, :notif_format, :endpoint_uri, :endpoint_accept, :endpoint_info, :times_sent, :is_active,
+            :expires_at, :sub)
             """.trimIndent()
 
         return databaseClient.sql(insertStatement)
             .bind("id", subscription.id)
             .bind("type", subscription.type)
-            .bind("name", subscription.name)
+            .bind("subscription_name", subscription.subscriptionName)
             .bind("created_at", subscription.createdAt)
             .bind("description", subscription.description)
             .bind("watched_attributes", subscription.watchedAttributes?.joinToString(separator = ","))
@@ -143,11 +144,11 @@ class SubscriptionService(
     fun getById(id: URI): Mono<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_at, description,
-                   watched_attributes, time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept, 
-                   endpoint_info, status, times_sent, is_active, last_notification, last_failure, last_success,
-                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
+                modified_at, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
+                endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
+                last_failure, last_success, entity_info.id as entity_id, id_pattern,
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = :id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = :id 
@@ -201,8 +202,8 @@ class SubscriptionService(
                     updates.add(updateEntities(subscriptionId, entities, contexts))
                 }
                 listOf(
-                    "name", "description", "watchedAttributes", "timeInterval", "q", "isActive", "modifiedAt",
-                    "expiresAt"
+                    "subscriptionName", "description", "watchedAttributes", "timeInterval", "q", "isActive",
+                    "modifiedAt", "expiresAt"
                 ).contains(it.key) -> {
                     val columnName = it.key.toSqlColumnName()
                     val value = it.value.toSqlValue(it.key)
@@ -364,11 +365,11 @@ class SubscriptionService(
     fun getSubscriptions(limit: Int, offset: Int, sub: Option<Sub>): Flux<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, description,
-                   watched_attributes, time_interval, q, notif_attributes, notif_format, endpoint_uri, endpoint_accept,
-                   endpoint_info, status, times_sent, is_active, last_notification, last_failure, last_success,
-                   entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
-                   georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
+            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at, 
+                modified_At, description, watched_attributes, time_interval, q, notif_attributes, notif_format,
+                endpoint_uri, endpoint_accept, endpoint_info, status, times_sent, is_active, last_notification,
+                last_failure, last_success, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type,
+                georel, geometry, coordinates, pgis_geometry, geoproperty, expires_at
             FROM subscription 
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id
@@ -411,7 +412,7 @@ class SubscriptionService(
     fun getMatchingSubscriptions(id: URI, type: String, updatedAttributes: String): Flux<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, description, q,
+            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, description, q,
                    notif_attributes, notif_format, endpoint_uri, endpoint_accept, times_sent, endpoint_info
             FROM subscription 
             WHERE is_active
@@ -512,7 +513,7 @@ class SubscriptionService(
         Subscription(
             id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
-            name = row.get("name", String::class.java),
+            subscriptionName = row.get("subscription_name", String::class.java),
             createdAt = row.get("created_at", ZonedDateTime::class.java)!!.toInstant().atZone(ZoneOffset.UTC),
             modifiedAt = row.get("modified_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
             expiresAt = row.get("expires_at", ZonedDateTime::class.java)?.toInstant()?.atZone(ZoneOffset.UTC),
@@ -551,7 +552,7 @@ class SubscriptionService(
         Subscription(
             id = row.get("sub_id", String::class.java)!!.toUri(),
             type = row.get("sub_type", String::class.java)!!,
-            name = row.get("name", String::class.java),
+            subscriptionName = row.get("subscription_name", String::class.java),
             description = row.get("description", String::class.java),
             q = row.get("q", String::class.java),
             entities = emptySet(),
@@ -599,11 +600,11 @@ class SubscriptionService(
     suspend fun getRecurringSubscriptionsToNotify(): List<Subscription> {
         val selectStatement =
             """
-            SELECT subscription.id as sub_id, subscription.type as sub_type, name, created_at, modified_At, expires_at,
-                description, watched_attributes, time_interval, q,  notif_attributes, notif_format, endpoint_uri, 
-                endpoint_accept, endpoint_info,  status, times_sent, last_notification, last_failure, last_success, 
-                is_active, entity_info.id as entity_id, id_pattern, entity_info.type as entity_type, georel, geometry, 
-                coordinates, pgis_geometry, geoproperty
+            SELECT subscription.id as sub_id, subscription.type as sub_type, subscription_name, created_at,
+                modified_At, expires_at, description, watched_attributes, time_interval, q,  notif_attributes,
+                notif_format, endpoint_uri, endpoint_accept, endpoint_info,  status, times_sent, last_notification,
+                last_failure, last_success, is_active, entity_info.id as entity_id, id_pattern,
+                entity_info.type as entity_type, georel, geometry, coordinates, pgis_geometry, geoproperty
             FROM subscription
             LEFT JOIN entity_info ON entity_info.subscription_id = subscription.id
             LEFT JOIN geometry_query ON geometry_query.subscription_id = subscription.id

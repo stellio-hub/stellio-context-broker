@@ -5,8 +5,8 @@ import java.time.ZonedDateTime
 data class TemporalQuery(
     val expandedAttrs: Set<String> = emptySet(),
     val timerel: Timerel? = null,
-    val time: ZonedDateTime? = null,
-    val endTime: ZonedDateTime? = null,
+    val timeAt: ZonedDateTime? = null,
+    val endTimeAt: ZonedDateTime? = null,
     val timeBucket: String? = null,
     val aggregate: Aggregate? = null,
     val lastN: Int? = null,

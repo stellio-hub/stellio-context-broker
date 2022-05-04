@@ -3,5 +3,5 @@
   "type" : "Subscription",
   "description" : "Description de mon alerte frelons",
   "name" : "Alerte frelons",
-  "@context" : "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+  "@context" : "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
 }

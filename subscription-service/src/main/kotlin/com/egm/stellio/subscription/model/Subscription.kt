@@ -19,7 +19,7 @@ import java.util.UUID
 data class Subscription(
     @Id val id: URI = "urn:ngsi-ld:Subscription:${UUID.randomUUID()}".toUri(),
     val type: String = "Subscription",
-    val name: String? = null,
+    val subscriptionName: String? = null,
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),
     val modifiedAt: ZonedDateTime? = null,
     val description: String? = null,

@@ -82,7 +82,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 1",
+            subscriptionName = "Subscription 1",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive"),
                 EntityInfo(id = null, idPattern = "urn:ngsi-ld:Beekeeper:1234*", type = "Beekeeper")
@@ -96,7 +96,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             withEndpointInfo = true,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 2",
+            subscriptionName = "Subscription 2",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beekeeper"),
                 EntityInfo(id = "urn:ngsi-ld:Beehive:1234567890".toUri(), idPattern = null, type = "Beehive")
@@ -111,7 +111,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 3",
+            subscriptionName = "Subscription 3",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Apiary")
             ),
@@ -125,7 +125,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
             withEndpointInfo = false,
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 4",
+            subscriptionName = "Subscription 4",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "Beehive")
             ),
@@ -139,7 +139,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 5",
+            subscriptionName = "Subscription 5",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:77".toUri(), idPattern = null, type = "smartDoor")
             ),
@@ -153,7 +153,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
         val subscription = gimmeRawSubscription(
             withNotifParams = Pair(FormatType.NORMALIZED, listOf("incoming"))
         ).copy(
-            name = "Subscription 6",
+            subscriptionName = "Subscription 6",
             entities = setOf(
                 EntityInfo(id = "urn:ngsi-ld:smartDoor:88".toUri(), idPattern = null, type = "smartDoor")
             ),
@@ -259,7 +259,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 1" &&
+                it.subscriptionName == "Subscription 1" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == FormatType.NORMALIZED &&
@@ -291,7 +291,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 3" &&
+                it.subscriptionName == "Subscription 3" &&
                     it.description == "My beautiful subscription" &&
                     it.q == "speed>50;foodName==dietary fibres" &&
                     it.notification.attributes == listOf("incoming") &&
@@ -312,7 +312,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 2" &&
+                it.subscriptionName == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == FormatType.NORMALIZED &&
@@ -336,7 +336,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 2" &&
+                it.subscriptionName == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == FormatType.NORMALIZED &&
@@ -357,7 +357,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 4" &&
+                it.subscriptionName == "Subscription 4" &&
                     it.description == "My beautiful subscription" &&
                     it.notification.attributes == listOf("incoming") &&
                     it.notification.format == FormatType.NORMALIZED &&
@@ -378,7 +378,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 4" &&
+                it.subscriptionName == "Subscription 4" &&
                     it.description == "My beautiful subscription" &&
                     it.entities.size == 1 &&
                     it.watchedAttributes!! == listOf("incoming", "outgoing")
@@ -392,7 +392,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 2" &&
+                it.subscriptionName == "Subscription 2" &&
                     it.description == "My beautiful subscription" &&
                     it.entities.size == 2 &&
                     it.watchedAttributes == null
@@ -474,7 +474,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 2"
+                it.subscriptionName == "Subscription 2"
             }
             .verifyComplete()
     }
@@ -490,7 +490,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 1" &&
+                it.subscriptionName == "Subscription 1" &&
                     it.notification.endpoint == Endpoint(
                     URI("http://localhost:8089/notification"),
                     Endpoint.AcceptType.JSONLD
@@ -553,7 +553,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(persistedSubscription)
             .expectNextMatches {
-                it.name == "Subscription 5"
+                it.subscriptionName == "Subscription 5"
             }
             .verifyComplete()
     }
@@ -575,7 +575,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a subscription if watched attributes is null`() {
         val subscription = gimmeRawSubscription().copy(
-            name = "My subscription",
+            subscriptionName = "My subscription",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "BeeHive")
             ),
@@ -601,7 +601,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should retrieve a subscription if watched attributes contains at least one of the updated attributes`() {
         val subscription = gimmeRawSubscription().copy(
-            name = "My subscription",
+            subscriptionName = "My subscription",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "BeeHive")
             ),
@@ -627,7 +627,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should not retrieve a subscription if watched attributes do not match any updated attributes`() {
         val subscription = gimmeRawSubscription().copy(
-            name = "My subscription",
+            subscriptionName = "My subscription",
             entities = setOf(
                 EntityInfo(id = null, idPattern = null, type = "BeeHive")
             ),
@@ -653,7 +653,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
     @Test
     fun `it should update a subscription`() {
         val parsedInput = mapOf(
-            "name" to "My Subscription Updated",
+            "subscriptionName" to "My Subscription Updated",
             "description" to "My beautiful subscription has been updated",
             "q" to "foodQuantity>=150",
             "geoQ" to mapOf("georel" to "equals", "geometry" to "Point", "coordinates" to "[100.0, 0.0]")
@@ -664,7 +664,7 @@ class SubscriptionServiceTests : WithTimescaleContainer {
 
         StepVerifier.create(updateResult)
             .expectNextMatches {
-                it.name == "My Subscription Updated" &&
+                it.subscriptionName == "My Subscription Updated" &&
                     it.description == "My beautiful subscription has been updated" &&
                     it.q == "foodQuantity>=150" &&
                     it.geoQ!!.georel == "equals" &&

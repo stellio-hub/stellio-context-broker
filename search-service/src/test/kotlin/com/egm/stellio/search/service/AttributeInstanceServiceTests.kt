@@ -91,7 +91,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1)
+            timeAt = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -116,7 +116,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -139,7 +139,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeproperty = AttributeInstance.TemporalProperty.CREATED_AT
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -165,7 +165,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeproperty = AttributeInstance.TemporalProperty.MODIFIED_AT
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -182,7 +182,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1)
+            timeAt = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -260,7 +260,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeBucket = "1 day",
             aggregate = TemporalQuery.Aggregate.SUM
         )
@@ -285,7 +285,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeBucket = "1 day",
             aggregate = TemporalQuery.Aggregate.COUNT
         )
@@ -310,7 +310,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeBucket = "1 day",
             aggregate = TemporalQuery.Aggregate.MIN
         )
@@ -335,7 +335,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             timeBucket = "1 day",
             aggregate = TemporalQuery.Aggregate.MAX
         )
@@ -365,7 +365,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(12),
+            timeAt = now.minusHours(12),
             timeBucket = "2 hours",
             aggregate = TemporalQuery.Aggregate.SUM,
             lastN = 3
@@ -389,7 +389,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1),
+            timeAt = now.minusHours(1),
             lastN = 5
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -425,7 +425,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1)
+            timeAt = now.minusHours(1)
         )
         val enrichedEntity = attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
 
@@ -446,7 +446,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.minusHours(1)
+            timeAt = now.minusHours(1)
         )
         val enrichedEntity =
             attributeInstanceService.search(temporalQuery, temporalEntityAttribute.copy(id = UUID.randomUUID()), false)
@@ -465,7 +465,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
 
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.AFTER,
-            time = now.plusHours(1)
+            timeAt = now.plusHours(1)
         )
         val enrichedEntity =
             attributeInstanceService.search(temporalQuery, temporalEntityAttribute, false)
@@ -495,7 +495,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 attributeInstanceService.search(
                     TemporalQuery(
                         timerel = TemporalQuery.Timerel.AFTER,
-                        time = now.minusHours(1)
+                        timeAt = now.minusHours(1)
                     ),
                     temporalEntityAttribute,
                     true

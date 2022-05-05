@@ -18,11 +18,11 @@ plugins {
     java // why did I have to add that ?!
     // only apply the plugin in the subprojects requiring it because it expects a Spring Boot app
     // and the shared lib is obviously not one
-    id("org.springframework.boot") version "2.6.6" apply false
+    id("org.springframework.boot") version "2.6.7" apply false
     id("io.spring.dependency-management") version "1.0.11.RELEASE" apply false
-    kotlin("jvm") version "1.6.20" apply false
-    kotlin("plugin.spring") version "1.6.20" apply false
-    id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
+    kotlin("jvm") version "1.6.21" apply false
+    kotlin("plugin.spring") version "1.6.21" apply false
+    id("org.jlleitschuh.gradle.ktlint") version "10.3.0"
     id("com.google.cloud.tools.jib") version "3.2.1" apply false
     id("io.gitlab.arturbosch.detekt") version "1.19.0" apply false
     id("org.sonarqube") version "3.3"
@@ -68,7 +68,7 @@ subprojects {
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
         implementation("com.github.jsonld-java:jsonld-java:0.13.4")
 
-        implementation("io.arrow-kt:arrow-fx-coroutines:1.0.1")
+        implementation("io.arrow-kt:arrow-fx-coroutines:1.1.2")
 
         implementation("org.locationtech.jts.io:jts-io-common:1.18.2")
 

@@ -64,8 +64,8 @@ class TemporalEntityOperationsHandlerTests {
     fun `it should return a 200 and retrieve requested temporal attributes`() {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
-            time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-            endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+            timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
         )
 
@@ -86,8 +86,8 @@ class TemporalEntityOperationsHandlerTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
+        queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
         queryParams.add("type", "BeeHive,Apiary")
         queryParams.add("attrs", "incoming,outgoing")
 
@@ -127,8 +127,8 @@ class TemporalEntityOperationsHandlerTests {
     fun `it should return a 200 and the number of results if count is asked for`() {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
-            time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-            endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+            timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
             expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
         )
 
@@ -149,8 +149,8 @@ class TemporalEntityOperationsHandlerTests {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("options", "temporalValues")
         queryParams.add("timerel", "between")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
+        queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
         queryParams.add("type", "BeeHive,Apiary")
         queryParams.add("attrs", "incoming,outgoing")
 

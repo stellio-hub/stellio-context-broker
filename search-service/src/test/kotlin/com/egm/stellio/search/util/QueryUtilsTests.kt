@@ -39,7 +39,7 @@ class QueryUtilsTests {
     fun `it should throw a BadRequestData exception if neither type nor attrs is present`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "before")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
 
         val pagination = mockkClass(ApplicationProperties.Pagination::class)
         every { pagination.limitDefault } returns 30
@@ -72,8 +72,8 @@ class QueryUtilsTests {
         assertEquals(
             TemporalQuery(
                 timerel = TemporalQuery.Timerel.BETWEEN,
-                time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-                endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
+                timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+                endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z"),
                 expandedAttrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
             ),
             temporalEntitiesQuery.temporalQuery
@@ -102,8 +102,8 @@ class QueryUtilsTests {
     private fun gimmeFullParamsMap(): LinkedMultiValueMap<String, String> {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "between")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
-        queryParams.add("endTime", "2019-10-18T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
+        queryParams.add("endTimeAt", "2019-10-18T07:31:39Z")
         queryParams.add("type", "BeeHive,Apiary")
         queryParams.add("attrs", "incoming,outgoing")
         queryParams.add("id", "urn:ngsi-ld:BeeHive:TESTC,urn:ngsi-ld:BeeHive:TESTB")
@@ -118,7 +118,7 @@ class QueryUtilsTests {
     fun `it should parse a query containing one attrs parameter`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "outgoing")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
@@ -131,7 +131,7 @@ class QueryUtilsTests {
     fun `it should parse a query containing two attrs parameter`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("attrs", "incoming,outgoing")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
@@ -144,7 +144,7 @@ class QueryUtilsTests {
     fun `it should parse a query containing no attrs parameter`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
@@ -155,7 +155,7 @@ class QueryUtilsTests {
     fun `it should parse lastN parameter if it is a positive integer`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "2")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
@@ -167,7 +167,7 @@ class QueryUtilsTests {
     fun `it should ignore lastN parameter if it is not an integer`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "A")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
@@ -179,7 +179,7 @@ class QueryUtilsTests {
     fun `it should ignore lastN parameter if it is not a positive integer`() {
         val queryParams = LinkedMultiValueMap<String, String>()
         queryParams.add("timerel", "after")
-        queryParams.add("time", "2019-10-17T07:31:39Z")
+        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
         queryParams.add("lastN", "-2")
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
@@ -193,7 +193,7 @@ class QueryUtilsTests {
 
         val temporalQuery = buildTemporalQuery(queryParams, APIC_COMPOUND_CONTEXT)
 
-        assertNull(temporalQuery.time)
+        assertNull(temporalQuery.timeAt)
         assertNull(temporalQuery.timerel)
     }
 

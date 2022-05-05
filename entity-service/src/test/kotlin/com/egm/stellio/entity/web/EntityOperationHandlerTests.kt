@@ -12,6 +12,8 @@ import com.egm.stellio.entity.service.EntityOperationService
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
@@ -130,11 +132,10 @@ class EntityOperationHandlerTests {
     private val batchDeleteEndpoint = "/ngsi-ld/v1/entityOperations/delete"
 
     private val hcmrContext = listOf(
-        "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
-            "master/shared-jsonld-contexts/egm.jsonld",
+        NGSILD_EGM_CONTEXT,
         "https://raw.githubusercontent.com/easy-global-market/ngsild-api-data-models/" +
             "master/aquac/jsonld-contexts/aquac.jsonld",
-        "http://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+        NGSILD_CORE_CONTEXT
     )
 
     private val upsertUpdateBatchOperationResult = BatchOperationResult(

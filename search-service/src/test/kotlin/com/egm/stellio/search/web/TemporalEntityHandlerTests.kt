@@ -296,7 +296,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should raise a 400 if time is present without timerel query param`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?time=2020-10-29T18:00:00Z")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timeAt=2020-10-29T18:00:00Z")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -334,9 +334,9 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is between and no endTime provided`() {
+    fun `it should raise a 400 if timerel is between and no endTimeAt provided`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&time=startTime")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=between&timeAt=startTime")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -344,7 +344,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'endTime' request parameter is mandatory if 'timerel' is 'between'"
+                    "detail":"'endTimeAt' request parameter is mandatory if 'timerel' is 'between'"
                 } 
                 """
             )
@@ -353,7 +353,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should raise a 400 if time is not parsable`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&time=badTime")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=before&timeAt=badTime")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -361,7 +361,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'time' parameter is not a valid date"
+                    "detail":"'timeAt' parameter is not a valid date"
                 } 
                 """
             )
@@ -370,7 +370,7 @@ class TemporalEntityHandlerTests {
     @Test
     fun `it should raise a 400 if timerel is not a valid value`() {
         webClient.get()
-            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&time=badTime")
+            .uri("/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?timerel=befor&timeAt=badTime")
             .exchange()
             .expectStatus().isBadRequest
             .expectBody().json(
@@ -385,11 +385,11 @@ class TemporalEntityHandlerTests {
     }
 
     @Test
-    fun `it should raise a 400 if timerel is between and endTime is not parseable`() {
+    fun `it should raise a 400 if timerel is between and endTimeAt is not parseable`() {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=endTime"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=endTime"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -398,7 +398,7 @@ class TemporalEntityHandlerTests {
                 {
                     "type":"https://uri.etsi.org/ngsi-ld/errors/BadRequestData",
                     "title":"The request includes input data which does not meet the requirements of the operation",
-                    "detail":"'endTime' parameter is not a valid date"
+                    "detail":"'endTimeAt' parameter is not a valid date"
                 } 
                 """
             )
@@ -409,7 +409,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -429,7 +429,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/urn:ngsi-ld:Entity:01?" +
-                    "timerel=after&time=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown"
+                    "timerel=after&timeAt=2020-01-31T07:31:39Z&timeBucket=1 minute&aggregate=unknown"
             )
             .exchange()
             .expectStatus().isBadRequest
@@ -454,7 +454,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .exchange()
             .expectStatus().isNotFound
@@ -477,7 +477,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -488,7 +488,7 @@ class TemporalEntityHandlerTests {
                 eq(entityUri),
                 match { temporalQuery ->
                     temporalQuery.timerel == TemporalQuery.Timerel.BETWEEN &&
-                        temporalQuery.time!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
+                        temporalQuery.timeAt!!.isEqual(ZonedDateTime.parse("2019-10-17T07:31:39Z"))
                 },
                 withTemporalValues = false,
                 withAudit = false,
@@ -506,7 +506,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -531,7 +531,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -554,7 +554,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -575,7 +575,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z"
             )
             .header("Link", apicHeaderLink)
             .header("Accept", MediaType.APPLICATION_JSON.toString())
@@ -598,7 +598,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities/$entityUri?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&options=temporalValues"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&options=temporalValues"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -682,8 +682,8 @@ class TemporalEntityHandlerTests {
     fun `it should return a 200 with empty payload if no temporal attribute is found`() {
         val temporalQuery = TemporalQuery(
             timerel = TemporalQuery.Timerel.BETWEEN,
-            time = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
-            endTime = ZonedDateTime.parse("2019-10-18T07:31:39Z")
+            timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z"),
+            endTimeAt = ZonedDateTime.parse("2019-10-18T07:31:39Z")
         )
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
@@ -696,7 +696,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&type=BeeHive"
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&type=BeeHive"
             )
             .header("Link", apicHeaderLink)
             .exchange()
@@ -709,8 +709,8 @@ class TemporalEntityHandlerTests {
                 match {
                     it.size == 4 &&
                         it.getFirst("timerel") == "between" &&
-                        it.getFirst("time") == "2019-10-17T07:31:39Z" &&
-                        it.getFirst("endTime") == "2019-10-18T07:31:39Z" &&
+                        it.getFirst("timeAt") == "2019-10-17T07:31:39Z" &&
+                        it.getFirst("endTimeAt") == "2019-10-18T07:31:39Z" &&
                         it.getFirst("type") == "BeeHive"
                 },
                 APIC_COMPOUND_CONTEXT
@@ -750,7 +750,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive"
             )
             .header("Link", apicHeaderLink)
@@ -779,7 +779,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive"
             )
             .header("Accept", MediaType.APPLICATION_JSON.toString())
@@ -822,7 +822,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=2"
             )
             .exchange()
@@ -831,7 +831,7 @@ class TemporalEntityHandlerTests {
             .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=1>;rel=\"prev\";type=\"application/ld+json\""
             )
     }
@@ -845,7 +845,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=9"
             )
             .exchange()
@@ -862,7 +862,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=0&offset=9&count=true"
             )
             .exchange()
@@ -889,7 +889,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=0"
             )
             .exchange()
@@ -898,7 +898,7 @@ class TemporalEntityHandlerTests {
             .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=1>;rel=\"next\";type=\"application/ld+json\""
             )
     }
@@ -921,7 +921,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=1"
             )
             .exchange()
@@ -930,10 +930,10 @@ class TemporalEntityHandlerTests {
             .valueEquals(
                 "Link",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=0>;rel=\"prev\";type=\"application/ld+json\"",
                 "</ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=2>;rel=\"next\";type=\"application/ld+json\""
             )
     }
@@ -951,7 +951,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=1&offset=-1"
             )
             .exchange()
@@ -980,7 +980,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=-1&offset=1"
             )
             .exchange()
@@ -1009,7 +1009,7 @@ class TemporalEntityHandlerTests {
         webClient.get()
             .uri(
                 "/ngsi-ld/v1/temporal/entities?" +
-                    "timerel=between&time=2019-10-17T07:31:39Z&endTime=2019-10-18T07:31:39Z&" +
+                    "timerel=between&timeAt=2019-10-17T07:31:39Z&endTimeAt=2019-10-18T07:31:39Z&" +
                     "type=BeeHive&limit=200&offset=1"
             )
             .exchange()

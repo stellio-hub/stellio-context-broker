@@ -7,7 +7,7 @@
     "name": "Bucarest",
     "@context": [
       "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld",
       "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
     ]
   },
@@ -25,7 +25,7 @@
     "name": "ParisBeehive12",
     "@context": [
       "https://diatomic.eglobalmark.com/diatomic-context.jsonld",
-      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+      "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld",
       "https://fiware.github.io/dataModels/fiware-datamodels-context.jsonld"
     ]
   }

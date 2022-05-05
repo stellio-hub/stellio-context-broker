@@ -778,13 +778,16 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should return none groups if limit is 0`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
-
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(
+            groupUri,
+            listOf(GROUP_TYPE),
+            mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "egm"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
         val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups, offset, limit)
+        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups, offset, 0)
 
         assertEquals(1, groupEntities.first)
         assertEquals(0, groupEntities.second.size)
@@ -792,13 +795,16 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should return none groups if user is stellio-admin and limit is 0`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
-        val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
-
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(
+            groupUri,
+            listOf(GROUP_TYPE),
+            mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "egm"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
         val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups, offset, limit)
+        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups, offset, 0)
 
         assertEquals(1, groupEntities.first)
         assertEquals(0, groupEntities.second.size)

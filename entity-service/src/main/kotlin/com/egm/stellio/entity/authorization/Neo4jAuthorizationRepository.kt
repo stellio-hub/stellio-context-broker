@@ -418,13 +418,26 @@ class Neo4jAuthorizationRepository(
             ?.map { it.getValue(accessRight.attributeName) }
 
     fun getGroups(groupsIds: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
-        val query =
+        val matchAuthorizedGroupsClause =
             """
             MATCH (group:`$GROUP_TYPE`)
             WHERE group.id IN ${'$'}groupsIds
             MATCH (group)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
-            RETURN group.id as groupId, p.value as groupName, count(group) as count
-            ORDER BY groupId
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(distinct(group)) as count
+            """.trimIndent()
+        else
+            """
+            WITH group, p
+            ORDER BY group.id
+            return 
+                collect(distinct({
+                    groupId:group.id, groupName:p.value
+                })) as groups, 
+                count(distinct(group)) as count
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
@@ -432,15 +445,24 @@ class Neo4jAuthorizationRepository(
             "groupsIds" to groupsIds.toList().toListOfString()
         )
 
-        val result = neo4jClient.query(query).bindAll(parameters).fetch().all()
+        val result = neo4jClient
+            .query(
+                """
+                $matchAuthorizedGroupsClause
+                $pagingClause
+                """
+            )
+            .bindAll(parameters)
+            .fetch()
+            .all()
 
-        if (limit == 0)
-            return Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+        return if (limit == 0)
+            Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
         else
-            return Pair(
+            Pair(
 
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                result.map {
+                (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     Group(
                         id = (it["groupId"] as String).toUri(),
                         name = it["groupName"] as String
@@ -450,23 +472,43 @@ class Neo4jAuthorizationRepository(
     }
 
     fun getGroupsForAdmin(groupsMemberships: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
-        val query =
+        val matchAuthorizedGroupsClause =
             """
-            MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })           
-            return group.id as groupId, p.value as groupName
-            ORDER BY groupId
+            MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(distinct(group)) as count
+            """.trimIndent()
+        else
+            """
+            WITH group, p
+            ORDER BY group.id
+            return 
+                collect(distinct({
+                    groupId:group.id, groupName:p.value
+                })) as groups, 
+                count(distinct(group)) as count
             SKIP $offset LIMIT $limit
             """.trimIndent()
 
-        val result = neo4jClient.query(query).fetch().all()
+        val result = neo4jClient
+            .query(
+                """
+                $matchAuthorizedGroupsClause
+                $pagingClause
+                """
+            )
+            .fetch()
+            .all()
 
-        if (limit == 0)
-            return Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+        return if (limit == 0)
+            Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
         else
-            return Pair(
-
+            Pair(
                 (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                result.map {
+                (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     val groupId = (it["groupId"] as String).toUri()
                     Group(
                         id = groupId,

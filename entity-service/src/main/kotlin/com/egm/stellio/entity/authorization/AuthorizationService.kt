@@ -22,6 +22,8 @@ interface AuthorizationService {
 
     fun getGroupsMemberships(
         sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>>
 

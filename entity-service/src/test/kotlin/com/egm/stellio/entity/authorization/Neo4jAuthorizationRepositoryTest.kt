@@ -328,11 +328,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should get a user's single role`() {
-        createEntity(
-            userUri,
-            listOf(USER_TYPE),
-            mutableListOf(Property(name = AUTH_PROP_ROLES, value = "admin"))
-        )
+        createEntity(userUri, listOf(USER_TYPE), mutableListOf(Property(name = AUTH_PROP_ROLES, value = "admin")))
 
         val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
@@ -498,8 +494,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should create admin links to entities for a client`() {
-        createEntity(
-            clientUri,
+        createEntity(clientUri,
             listOf(CLIENT_TYPE),
             mutableListOf(Property(name = AUTH_PROP_SID, value = serviceAccountUri))
         )
@@ -641,11 +636,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
-            QueryParams(),
-            offset,
-            limit
-        )
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, limit)
         val users = listOf(userUri, "urn:ngsi-ld:User:02".toUri())
 
         assertEquals(3, result.first)
@@ -698,11 +689,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
-            QueryParams(),
-            offset,
-            0
-        )
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, 0)
 
         assertEquals(1, result.first)
         assertEquals(0, result.second.size)
@@ -742,13 +729,14 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
         val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups)
+        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups, offset, limit)
 
-        assertEquals(1, groupEntities.size)
-        assertEquals(groupUri, groupEntities.first().id)
-        assertEquals(GROUP_TYPE, groupEntities.first().type)
-        assertEquals("egm", groupEntities.first().name)
-        assertEquals(false, groupEntities.first().isMember)
+        assertEquals(1, groupEntities.first)
+        assertEquals(1, groupEntities.second.size)
+        assertEquals(groupUri, groupEntities.second.first().id)
+        assertEquals(GROUP_TYPE, groupEntities.second.first().type)
+        assertEquals("egm", groupEntities.second.first().name)
+        assertEquals(false, groupEntities.second.first().isMember)
     }
 
     @Test
@@ -767,11 +755,40 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
 
         val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups)
+        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups, offset, limit)
 
-        assertEquals(2, groupEntities.size)
-        assertTrue(groupEntities.find { it.id == groupUri }?.isMember == true)
-        assertTrue(groupEntities.find { it.id == "urn:ngsi-ld:Group:02".toUri() }?.isMember == false)
+        assertEquals(2, groupEntities.first)
+        assertEquals(2, groupEntities.second.size)
+        assertTrue(groupEntities.second.find { it.id == groupUri }?.isMember == true)
+        assertTrue(groupEntities.second.find { it.id == "urn:ngsi-ld:Group:02".toUri() }?.isMember == false)
+    }
+
+    @Test
+    fun `it should return none groups if limit is 0`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+
+        val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups, offset, limit)
+
+        assertEquals(1, groupEntities.first)
+        assertEquals(0, groupEntities.second.size)
+    }
+
+    @Test
+    fun `it should return none groups if user is stellio-admin and limit is 0`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE), mutableListOf())
+        val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
+
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
+
+        val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups, offset, limit)
+
+        assertEquals(1, groupEntities.first)
+        assertEquals(0, groupEntities.second.size)
     }
 
     fun createEntity(id: URI, type: List<String>, properties: MutableList<Property> = mutableListOf()): Entity {

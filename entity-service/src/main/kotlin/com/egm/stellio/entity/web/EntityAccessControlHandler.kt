@@ -133,16 +133,30 @@ class EntityAccessControlHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        val countAndGroupEntities = authorizationService.getGroupsMemberships(sub, contextLink)
+        val countAndGroupEntities = authorizationService.getGroupsMemberships(sub, offset, limit, contextLink)
 
         if (countAndGroupEntities.first == -1) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }
+
+        if (countAndGroupEntities.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndGroupEntities.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
 
         val compactedGroupEntities = JsonLdUtils.compactEntities(
             countAndGroupEntities.second,
@@ -151,12 +165,22 @@ class EntityAccessControlHandler(
             mediaType
         )
 
-        val responseHeaders = buildGetSuccessResponse(mediaType, contextLink)
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entityAccessControl/entities",
+            params,
+            countAndGroupEntities.first,
+            offset,
+            limit
+        )
 
-        return if (count) responseHeaders
-            .header(RESULTS_COUNT_HEADER, countAndGroupEntities.first.toString())
-            .body(compactedGroupEntities)
-        else responseHeaders.body(compactedGroupEntities)
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedGroupEntities),
+            countAndGroupEntities.first,
+            count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
     }
 
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])

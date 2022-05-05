@@ -28,6 +28,8 @@ class StandaloneAuthorizationService : AuthorizationService {
 
     override fun getGroupsMemberships(
         sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>> = Pair(-1, emptyList())
 

@@ -581,6 +581,21 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
+    fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
+        } returns Pair(3, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
@@ -727,10 +742,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return groups I am member of`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getGroupsMemberships(
-                any(),
-                NGSILD_CORE_CONTEXT
-            )
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
         } returns Pair(
             1,
             listOf(
@@ -770,10 +782,7 @@ class EntityAccessControlHandlerTests {
     fun `get groups memberships should return groups I am member of with authorization context`() {
         every { entityService.exists(any()) } returns true
         every {
-            authorizationService.getGroupsMemberships(
-                any(),
-                NGSILD_AUTHORIZATION_CONTEXT
-            )
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_AUTHORIZATION_CONTEXT)
         } returns Pair(
             1,
             listOf(
@@ -813,7 +822,9 @@ class EntityAccessControlHandlerTests {
 
     @Test
     fun `get groups memberships should return 204 if authentication is not enabled`() {
-        every { authorizationService.getGroupsMemberships(any(), NGSILD_CORE_CONTEXT) } returns Pair(-1, emptyList())
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
+        } returns Pair(-1, emptyList())
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/groups")

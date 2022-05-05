@@ -417,13 +417,15 @@ class Neo4jAuthorizationRepository(
         this?.filter { it.containsKey(accessRight.attributeName) }
             ?.map { it.getValue(accessRight.attributeName) }
 
-    fun getGroups(groupsIds: Set<URI>): List<Group> {
+    fun getGroups(groupsIds: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
         val query =
             """
             MATCH (group:`$GROUP_TYPE`)
             WHERE group.id IN ${'$'}groupsIds
             MATCH (group)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
-            RETURN group.id as groupId, p.value as groupName
+            RETURN group.id as groupId, p.value as groupName, count(group) as count
+            ORDER BY groupId
+            SKIP $offset LIMIT $limit
             """.trimIndent()
 
         val parameters = mapOf(
@@ -432,30 +434,46 @@ class Neo4jAuthorizationRepository(
 
         val result = neo4jClient.query(query).bindAll(parameters).fetch().all()
 
-        return result.map {
-            Group(
-                id = (it["groupId"] as String).toUri(),
-                name = it["groupName"] as String
+        if (limit == 0)
+            return Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+        else
+            return Pair(
+
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                result.map {
+                    Group(
+                        id = (it["groupId"] as String).toUri(),
+                        name = it["groupName"] as String
+                    )
+                }
             )
-        }
     }
 
-    fun getGroupsForAdmin(groupsMemberships: Set<URI>): List<Group> {
+    fun getGroupsForAdmin(groupsMemberships: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
         val query =
             """
-            MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
+            MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })           
             return group.id as groupId, p.value as groupName
+            ORDER BY groupId
+            SKIP $offset LIMIT $limit
             """.trimIndent()
 
         val result = neo4jClient.query(query).fetch().all()
 
-        return result.map {
-            val groupId = (it["groupId"] as String).toUri()
-            Group(
-                id = groupId,
-                isMember = groupsMemberships.contains(groupId),
-                name = it["groupName"] as String
+        if (limit == 0)
+            return Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+        else
+            return Pair(
+
+                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                result.map {
+                    val groupId = (it["groupId"] as String).toUri()
+                    Group(
+                        id = groupId,
+                        isMember = groupsMemberships.contains(groupId),
+                        name = it["groupName"] as String
+                    )
+                }
             )
-        }
     }
 }

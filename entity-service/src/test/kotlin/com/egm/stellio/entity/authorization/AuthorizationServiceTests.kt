@@ -292,7 +292,7 @@ class AuthorizationServiceTests {
     }
 
     @Test
-    fun `get group membership should return a count of -1 if authentication is not enabled`() {
+    fun `get groups memberships should return a count of -1 if authentication is not enabled`() {
         val authorizedEntities = authorizationService.getGroupsMemberships(
             None,
             NGSILD_CORE_CONTEXT

@@ -711,7 +711,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 204 while being no authentification`() {
+    fun `get authorized entities should return 204 if authentication is not enabled`() {
         every {
             authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(-1, emptyList())
@@ -724,7 +724,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get groups members should return groups of which I am member`() {
+    fun `get groups memberships should return groups I am member of`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getGroupsMemberships(
@@ -746,7 +746,7 @@ class EntityAccessControlHandlerTests {
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/groups?&count=true")
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?count=true")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isOk
@@ -767,7 +767,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get groups members should return groups of which I am member with authorization context`() {
+    fun `get groups memberships should return groups I am member of with authorization context`() {
         every { entityService.exists(any()) } returns true
         every {
             authorizationService.getGroupsMemberships(
@@ -790,7 +790,7 @@ class EntityAccessControlHandlerTests {
         )
 
         webClient.get()
-            .uri("/ngsi-ld/v1/entityAccessControl/groups?&count=true")
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?count=true")
             .header(HttpHeaders.LINK, authzHeaderLink)
             .exchange()
             .expectStatus().isOk
@@ -812,7 +812,7 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get groups membership should return 204 while being no authentification`() {
+    fun `get groups memberships should return 204 if authentication is not enabled`() {
         every { authorizationService.getGroupsMemberships(any(), NGSILD_CORE_CONTEXT) } returns Pair(-1, emptyList())
 
         webClient.get()

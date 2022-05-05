@@ -727,27 +727,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
     }
 
     @Test
-    fun `it should return group name`() {
-        val userEntity = createEntity(userUri, listOf(USER_TYPE))
-        val groupEntity = createEntity(
-            groupUri,
-            listOf(GROUP_TYPE),
-            mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "egm"))
-        )
-
-        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
-        val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroupEntity(subjectGroups)
-
-        assertEquals(1, groupEntities.size)
-        assertEquals(groupUri, groupEntities.first().id)
-        assertEquals(GROUP_TYPE, groupEntities.first().type)
-        assertEquals("egm", groupEntities.first().name)
-        assertEquals(false, groupEntities.first().isMember)
-    }
-
-    @Test
-    fun `it should return group while being admin`() {
+    fun `it should return the group the user belongs to`() {
         val userEntity = createEntity(userUri, listOf(USER_TYPE))
         val groupEntity = createEntity(
             groupUri,
@@ -760,8 +740,34 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
             mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "stellio"))
         )
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
+
         val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
-        val groupEntities = neo4jAuthorizationRepository.getGroupsAdmin(subjectGroups)
+        val groupEntities = neo4jAuthorizationRepository.getGroups(subjectGroups)
+
+        assertEquals(1, groupEntities.size)
+        assertEquals(groupUri, groupEntities.first().id)
+        assertEquals(GROUP_TYPE, groupEntities.first().type)
+        assertEquals("egm", groupEntities.first().name)
+        assertEquals(false, groupEntities.first().isMember)
+    }
+
+    @Test
+    fun `it should return all groups with membership info if user is stellio-admin`() {
+        val userEntity = createEntity(userUri, listOf(USER_TYPE))
+        val groupEntity = createEntity(
+            groupUri,
+            listOf(GROUP_TYPE),
+            mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "egm"))
+        )
+        createEntity(
+            "urn:ngsi-ld:Group:02".toUri(),
+            listOf(GROUP_TYPE),
+            mutableListOf(Property(name = JsonLdUtils.NGSILD_NAME_PROPERTY, value = "stellio"))
+        )
+        createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_IS_MEMBER_OF, groupEntity.id)
+
+        val subjectGroups = neo4jAuthorizationRepository.getSubjectGroups(userUri)
+        val groupEntities = neo4jAuthorizationRepository.getGroupsForAdmin(subjectGroups)
 
         assertEquals(2, groupEntities.size)
         assertTrue(groupEntities.find { it.id == groupUri }?.isMember == true)

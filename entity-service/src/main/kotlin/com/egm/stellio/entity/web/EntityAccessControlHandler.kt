@@ -150,7 +150,6 @@ class EntityAccessControlHandler(
             contextLink,
             mediaType
         )
-            .map { it.toMutableMap() }
 
         val responseHeaders = buildGetSuccessResponse(mediaType, contextLink)
 

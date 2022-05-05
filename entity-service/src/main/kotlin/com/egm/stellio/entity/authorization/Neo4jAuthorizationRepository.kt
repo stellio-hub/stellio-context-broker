@@ -17,8 +17,6 @@ import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
-import com.egm.stellio.shared.util.toListOfString
-import com.egm.stellio.shared.util.toUri
 import org.neo4j.driver.internal.value.DateTimeValue
 import org.neo4j.driver.internal.value.StringValue
 import org.neo4j.driver.types.Node
@@ -419,17 +417,17 @@ class Neo4jAuthorizationRepository(
         this?.filter { it.containsKey(accessRight.attributeName) }
             ?.map { it.getValue(accessRight.attributeName) }
 
-    fun getGroupEntity(groupId: Set<URI>): List<Group> {
+    fun getGroups(groupsIds: Set<URI>): List<Group> {
         val query =
             """
             MATCH (group:`$GROUP_TYPE`)
-            WHERE group.id IN ${'$'}groupId
+            WHERE group.id IN ${'$'}groupsIds
             MATCH (group)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
             RETURN group.id as groupId, p.value as groupName
             """.trimIndent()
 
         val parameters = mapOf(
-            "groupId" to groupId.toList().toListOfString()
+            "groupsIds" to groupsIds.toList().toListOfString()
         )
 
         val result = neo4jClient.query(query).bindAll(parameters).fetch().all()
@@ -442,7 +440,7 @@ class Neo4jAuthorizationRepository(
         }
     }
 
-    fun getGroupsAdmin(groupMembership: Set<URI>): List<Group> {
+    fun getGroupsForAdmin(groupsMemberships: Set<URI>): List<Group> {
         val query =
             """
             MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
@@ -455,7 +453,7 @@ class Neo4jAuthorizationRepository(
             val groupId = (it["groupId"] as String).toUri()
             Group(
                 id = groupId,
-                isMember = groupMembership.contains(groupId),
+                isMember = groupsMemberships.contains(groupId),
                 name = it["groupName"] as String
             )
         }

@@ -380,7 +380,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectRoles(any()) } returns emptySet()
         every { neo4jAuthorizationRepository.getSubjectGroups(any()) } returns setOf(groupUri)
         every {
-            neo4jAuthorizationRepository.getGroupEntity(setOf(groupUri))
+            neo4jAuthorizationRepository.getGroups(setOf(groupUri))
         } returns listOf(Group(id = groupUri, type = GROUP_TYPE, name = "egm"))
 
         val groupMembership = neo4jAuthorizationService.getGroupsMemberships(
@@ -404,7 +404,7 @@ class Neo4jAuthorizationServiceTest {
         every { neo4jAuthorizationRepository.getSubjectRoles(any()) } returns setOf("stellio-admin")
         every { neo4jAuthorizationRepository.getSubjectGroups(any()) } returns setOf(groupUri)
         every {
-            neo4jAuthorizationRepository.getGroupsAdmin(setOf(groupUri))
+            neo4jAuthorizationRepository.getGroupsForAdmin(setOf(groupUri))
         } returns listOf(
             Group(id = groupUri, type = GROUP_TYPE, name = "egm", isMember = true),
             Group(id = "urn:ngsi-ld:Group:02".toUri(), type = GROUP_TYPE, name = "stellio", isMember = false)

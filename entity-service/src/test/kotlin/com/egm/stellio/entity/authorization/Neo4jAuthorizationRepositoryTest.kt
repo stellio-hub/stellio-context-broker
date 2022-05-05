@@ -328,7 +328,11 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should get a user's single role`() {
-        createEntity(userUri, listOf(USER_TYPE), mutableListOf(Property(name = AUTH_PROP_ROLES, value = "admin")))
+        createEntity(
+            userUri,
+            listOf(USER_TYPE),
+            mutableListOf(Property(name = AUTH_PROP_ROLES, value = "admin"))
+        )
 
         val roles = neo4jAuthorizationRepository.getSubjectRoles(userUri)
 
@@ -494,7 +498,8 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
 
     @Test
     fun `it should create admin links to entities for a client`() {
-        createEntity(clientUri,
+        createEntity(
+            clientUri,
             listOf(CLIENT_TYPE),
             mutableListOf(Property(name = AUTH_PROP_SID, value = serviceAccountUri))
         )
@@ -636,7 +641,11 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, limit)
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
+            QueryParams(),
+            offset,
+            limit
+        )
         val users = listOf(userUri, "urn:ngsi-ld:User:02".toUri())
 
         assertEquals(3, result.first)
@@ -689,7 +698,11 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         val firstEntity = createEntity("urn:ngsi-ld:Beekeeper:1230".toUri(), listOf("Beekeeper"))
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
-        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(QueryParams(), offset, 0)
+        val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
+            QueryParams(),
+            offset,
+            0
+        )
 
         assertEquals(1, result.first)
         assertEquals(0, result.second.size)

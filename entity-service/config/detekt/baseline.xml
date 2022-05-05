@@ -7,6 +7,7 @@
     <ID>LargeClass:EntityHandlerTests.kt$EntityHandlerTests</ID>
     <ID>LargeClass:EntityOperationHandlerTests.kt$EntityOperationHandlerTests</ID>
     <ID>LargeClass:EntityServiceTests.kt$EntityServiceTests</ID>
+    <ID>LargeClass:Neo4jAuthorizationRepositoryTest.kt$Neo4jAuthorizationRepositoryTest : WithNeo4jContainer</ID>
     <ID>LargeClass:Neo4jRepositoryTests.kt$Neo4jRepositoryTests : WithNeo4jContainer</ID>
     <ID>LargeClass:StandaloneNeo4jSearchRepositoryTests.kt$StandaloneNeo4jSearchRepositoryTests : WithNeo4jContainer</ID>
     <ID>LongMethod:EntityAccessControlHandler.kt$EntityAccessControlHandler$@GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE]) suspend fun getAuthorizedEntities( @RequestHeader httpHeaders: HttpHeaders, @RequestParam params: MultiValueMap&lt;String, String&gt; ): ResponseEntity&lt;*&gt;</ID>

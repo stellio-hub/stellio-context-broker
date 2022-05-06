@@ -986,6 +986,32 @@ class EntityServiceTests {
     }
 
     @Test
+    fun `it should check the existence of an entity`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+
+        every { entityRepository.existsById(any()) } returns true
+
+        val checkResult = entityService.checkExistence(entityId)
+
+        assertTrue(checkResult.isRight())
+        verify { entityRepository.existsById(entityId) }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should check the non existence of an entity`() {
+        val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
+
+        every { entityRepository.existsById(any()) } returns false
+
+        val checkResult = entityService.checkExistence(entityId)
+
+        assertTrue(checkResult.isLeft())
+        verify { entityRepository.existsById(entityId) }
+        confirmVerified()
+    }
+
+    @Test
     fun `it should delete all entity property instances`() {
         val entityId = "urn:ngsi-ld:Beehive:123456".toUri()
 

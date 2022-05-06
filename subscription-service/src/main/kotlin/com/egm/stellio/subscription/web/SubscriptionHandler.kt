@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.web
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*
@@ -61,7 +61,7 @@ class SubscriptionHandler(
         val contexts = checkAndGetContext(httpHeaders, body)
         val sub = getSubFromSecurityContext()
 
-        return either<APiException, ResponseEntity<*>> {
+        return either<APIException, ResponseEntity<*>> {
             val parsedSubscription = parseSubscription(body, contexts).bind()
             checkSubscriptionNotExists(parsedSubscription).awaitFirst().bind()
 
@@ -136,7 +136,7 @@ class SubscriptionHandler(
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
 
-        return either<APiException, ResponseEntity<*>> {
+        return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
             checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
 
@@ -165,7 +165,7 @@ class SubscriptionHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
 
-        return either<APiException, ResponseEntity<*>> {
+        return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
             checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
 
@@ -193,7 +193,7 @@ class SubscriptionHandler(
      */
     @DeleteMapping("/{subscriptionId}")
     suspend fun delete(@PathVariable subscriptionId: String): ResponseEntity<*> {
-        return either<APiException, ResponseEntity<*>> {
+        return either<APIException, ResponseEntity<*>> {
             val subscriptionIdUri = subscriptionId.toUri()
             checkSubscriptionExists(subscriptionIdUri).awaitFirst().bind()
 
@@ -214,7 +214,7 @@ class SubscriptionHandler(
         )
     }
 
-    private fun checkSubscriptionExists(subscriptionId: URI): Mono<Either<APiException, URI>> =
+    private fun checkSubscriptionExists(subscriptionId: URI): Mono<Either<APIException, URI>> =
         subscriptionService.exists(subscriptionId)
             .flatMap {
                 if (!it)
@@ -223,7 +223,7 @@ class SubscriptionHandler(
                     Mono.just(subscriptionId.right())
             }
 
-    private fun checkSubscriptionNotExists(subscription: Subscription): Mono<Either<APiException, Subscription>> =
+    private fun checkSubscriptionNotExists(subscription: Subscription): Mono<Either<APIException, Subscription>> =
         subscriptionService.exists(subscription.id)
             .flatMap {
                 if (it)

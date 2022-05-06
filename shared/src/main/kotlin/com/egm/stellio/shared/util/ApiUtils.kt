@@ -15,6 +15,7 @@ import org.springframework.web.server.NotAcceptableStatusException
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.*
+import java.util.regex.Pattern
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =
     try {
@@ -39,6 +40,8 @@ const val QUERY_PARAM_OPTIONS_SYSATTRS_VALUE: String = "sysAttrs"
 const val QUERY_PARAM_OPTIONS_KEYVALUES_VALUE: String = "keyValues"
 const val QUERY_PARAM_OPTIONS_NOOVERWRITE_VALUE: String = "noOverwrite"
 val JSON_LD_MEDIA_TYPE = MediaType.valueOf(JSON_LD_CONTENT_TYPE)
+
+val qPattern: Pattern = Pattern.compile("([^();|]+)")
 
 /**
  * As per 6.3.5, extract @context from Link header. In the absence of such Link header, it returns the default

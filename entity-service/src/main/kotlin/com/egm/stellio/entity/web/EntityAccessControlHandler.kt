@@ -2,6 +2,7 @@ package com.egm.stellio.entity.web
 
 import arrow.core.*
 import com.egm.stellio.entity.authorization.AuthorizationService
+import com.egm.stellio.entity.config.ApplicationProperties
 import com.egm.stellio.entity.model.NotUpdatedDetails
 import com.egm.stellio.entity.model.updateResultFromDetailedResult
 import com.egm.stellio.entity.service.EntityEventService
@@ -9,6 +10,7 @@ import com.egm.stellio.entity.service.EntityService
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS
+import com.egm.stellio.shared.util.AuthContextModel.ALL_IAM_RIGHTS_TERMS
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_READ
@@ -30,6 +32,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import kotlin.collections.flatten
@@ -37,13 +40,148 @@ import kotlin.collections.flatten
 @RestController
 @RequestMapping("/ngsi-ld/v1/entityAccessControl")
 class EntityAccessControlHandler(
+    private val applicationProperties: ApplicationProperties,
     private val entityService: EntityService,
     private val authorizationService: AuthorizationService,
     private val entityEventService: EntityEventService,
-    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val kafkaTemplate: KafkaTemplate<String, String>
 ) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
+
+    @GetMapping("/entities", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getAuthorizedEntities(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
+        val type = params.getFirst(QUERY_PARAM_TYPE)
+        val q = params.getFirst(QUERY_PARAM_FILTER)
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
+            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
+        val sub = getSubFromSecurityContext()
+
+        if (q != null && !ALL_IAM_RIGHTS_TERMS.contains(q))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    BadRequestDataResponse(
+                        "The parameter q only accepts as a value one or more of $ALL_IAM_RIGHTS_TERMS"
+                    )
+                )
+
+        val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
+            QueryParams(
+                expandedType = type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
+                q = q?.decode()
+            ),
+            sub,
+            offset,
+            limit,
+            includeSysAttrs,
+            contextLink
+        )
+
+        if (countAndAuthorizedEntities.first == -1) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
+
+        if (countAndAuthorizedEntities.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndAuthorizedEntities.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
+
+        val compactedAuthorizedEntities = JsonLdUtils.compactEntities(
+            countAndAuthorizedEntities.second,
+            false,
+            contextLink,
+            mediaType
+        )
+
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entityAccessControl/entities",
+            params,
+            countAndAuthorizedEntities.first,
+            offset,
+            limit
+        )
+
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedAuthorizedEntities),
+            countAndAuthorizedEntities.first,
+            count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
+    }
+
+    @GetMapping("/groups", produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
+    suspend fun getGroupsMemberships(
+        @RequestHeader httpHeaders: HttpHeaders,
+        @RequestParam params: MultiValueMap<String, String>
+    ): ResponseEntity<*> {
+        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
+        val (offset, limit) = extractAndValidatePaginationParameters(
+            params,
+            applicationProperties.pagination.limitDefault,
+            applicationProperties.pagination.limitMax,
+            count
+        )
+        val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
+        val mediaType = getApplicableMediaType(httpHeaders)
+        val sub = getSubFromSecurityContext()
+
+        val countAndGroupEntities = authorizationService.getGroupsMemberships(sub, offset, limit, contextLink)
+
+        if (countAndGroupEntities.first == -1) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
+        }
+
+        if (countAndGroupEntities.second.isEmpty())
+            return PagingUtils.buildPaginationResponse(
+                serializeObject(emptyList<JsonLdEntity>()),
+                countAndGroupEntities.first,
+                count,
+                Pair(null, null),
+                mediaType, contextLink
+            )
+
+        val compactedGroupEntities = JsonLdUtils.compactEntities(
+            countAndGroupEntities.second,
+            false,
+            contextLink,
+            mediaType
+        )
+
+        val prevAndNextLinks = PagingUtils.getPagingLinks(
+            "/ngsi-ld/v1/entityAccessControl/entities",
+            params,
+            countAndGroupEntities.first,
+            offset,
+            limit
+        )
+
+        return PagingUtils.buildPaginationResponse(
+            serializeObject(compactedGroupEntities),
+            countAndGroupEntities.first,
+            count,
+            prevAndNextLinks,
+            mediaType,
+            contextLink
+        )
+    }
 
     @PostMapping("/{subjectId}/attrs", consumes = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun addRightsOnEntities(

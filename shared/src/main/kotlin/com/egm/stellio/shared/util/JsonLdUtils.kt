@@ -69,6 +69,8 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
 
+    const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
+
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =
@@ -468,6 +470,28 @@ object JsonLdUtils {
                 else it.toUri().right()
             }
     }
+
+    fun buildJsonLdExpandedProperty(value: Any): Map<String, Any> =
+        mapOf(
+            JSONLD_TYPE to NGSILD_PROPERTY_TYPE.uri,
+            NGSILD_PROPERTY_VALUE to mapOf(
+                JSONLD_VALUE_KW to value
+            )
+        )
+
+    fun buildJsonLdExpandedRelationship(value: URI): Map<String, Any> =
+        mapOf(
+            JSONLD_TYPE to NGSILD_RELATIONSHIP_TYPE.uri,
+            NGSILD_RELATIONSHIP_HAS_OBJECT to mapOf(
+                JSONLD_ID to value.toString()
+            )
+        )
+
+    fun buildJsonLdExpandedDateTime(value: ZonedDateTime): Map<String, Any> =
+        mapOf(
+            JSONLD_TYPE to NGSILD_DATE_TIME_TYPE,
+            JSONLD_VALUE_KW to value.toNgsiLdFormat()
+        )
 }
 
 fun String.extractShortTypeFromExpanded(): String =

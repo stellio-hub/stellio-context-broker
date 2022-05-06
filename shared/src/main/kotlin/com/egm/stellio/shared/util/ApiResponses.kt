@@ -11,11 +11,17 @@ fun entityOrAttrsNotFoundMessage(
     attrs: Set<String>
 ) = "Entity $entityId does not exist or it has none of the requested attributes : $attrs"
 
+const val ENTITIY_CREATION_FORBIDDEN_MESSAGE = "User forbidden to create entity"
+const val ENTITY_UPDATE_FORBIDDEN_MESSAGE = "User forbidden to modify entity"
+const val ENTITY_DELETE_FORBIDDEN_MESSAGE = "User forbidden to delete entity"
+const val ENTITY_ALREADY_EXISTS_MESSAGE = "Entity already exists"
+const val ENTITY_DOES_NOT_EXIST_MESSAGE = "Entity does not exist"
+
 /**
  * this is globally duplicating what is in ExceptionHandler#transformErrorResponse()
  * but main code there should move here when we no longer raise business exceptions
  */
-fun APiException.toErrorResponse(): ResponseEntity<*> =
+fun APIException.toErrorResponse(): ResponseEntity<*> =
     when (this) {
         is AlreadyExistsException ->
             generateErrorResponse(HttpStatus.CONFLICT, AlreadyExistsResponse(this.message))
@@ -34,7 +40,7 @@ fun APiException.toErrorResponse(): ResponseEntity<*> =
         else -> generateErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, InternalErrorResponse("$cause"))
     }
 
-private fun generateErrorResponse(status: HttpStatus, exception: Any) =
+private fun generateErrorResponse(status: HttpStatus, exception: Any): ResponseEntity<*> =
     ResponseEntity.status(status)
         .contentType(MediaType.APPLICATION_JSON)
         .body(JsonUtils.serializeObject(exception))

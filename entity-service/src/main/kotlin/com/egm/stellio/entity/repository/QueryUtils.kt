@@ -1,11 +1,6 @@
 package com.egm.stellio.entity.repository
 
-import com.egm.stellio.entity.util.extractComparisonParametersFromQuery
-import com.egm.stellio.entity.util.isDate
-import com.egm.stellio.entity.util.isDateTime
-import com.egm.stellio.entity.util.isFloat
-import com.egm.stellio.entity.util.isRelationshipTarget
-import com.egm.stellio.entity.util.isTime
+import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -13,12 +8,10 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_WRITE
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdTerm
+import com.egm.stellio.shared.util.qPattern
 import java.net.URI
-import java.util.regex.Pattern
 
 object QueryUtils {
-
-    private val qPattern = Pattern.compile("([^();|]+)")
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
@@ -119,7 +112,7 @@ object QueryUtils {
             """
     }
 
-    private fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
+    fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
         if (expandedType == null)
             "$prefix (entity:Entity)"
         else

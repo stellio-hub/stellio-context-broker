@@ -16,11 +16,13 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_REL_CAN_WRITE
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_READ
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
 import com.egm.stellio.shared.util.AuthContextModel.COMPOUND_AUTHZ_CONTEXT
+import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.NGSILD_AUTHORIZATION_CONTEXT
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy.AUTH_READ
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CREATED_AT_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
 import org.junit.jupiter.api.BeforeAll
@@ -579,6 +581,21 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
+    fun `get groups memberships should return 200 and the number of results if requested limit is 0`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
+        } returns Pair(3, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?&limit=0&offset=1&count=true")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "3")
+            .expectBody().json("[]")
+    }
+
+    @Test
     fun `get authorized entities should return 200 and empty response if requested offset does not exist`() {
         every { entityService.exists(any()) } returns true
         every {
@@ -709,13 +726,108 @@ class EntityAccessControlHandlerTests {
     }
 
     @Test
-    fun `get authorized entities should return 204 while being no authentification`() {
+    fun `get authorized entities should return 204 if authentication is not enabled`() {
         every {
             authorizationService.getAuthorizedEntities(any(), any(), any(), any(), false, NGSILD_CORE_CONTEXT)
         } returns Pair(-1, emptyList())
 
         webClient.get()
             .uri("/ngsi-ld/v1/entityAccessControl/entities")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isNoContent
+    }
+
+    @Test
+    fun `get groups memberships should return groups I am member of`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:group:1",
+                        "@type" to listOf(GROUP_TYPE),
+                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildJsonLdExpandedProperty("egm")
+                    ),
+                    listOf(NGSILD_CORE_CONTEXT)
+                )
+            )
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?count=true")
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:group:1",
+                            "type": "$GROUP_TYPE",
+                            "$NGSILD_NAME_PROPERTY" : {"type":"Property", "value": "egm"},
+                            "@context": ["$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+            .jsonPath("[0].createdAt").doesNotExist()
+            .jsonPath("[0].modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `get groups memberships should return groups I am member of with authorization context`() {
+        every { entityService.exists(any()) } returns true
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_AUTHORIZATION_CONTEXT)
+        } returns Pair(
+            1,
+            listOf(
+                JsonLdEntity(
+                    mapOf(
+                        "@id" to "urn:ngsi-ld:group:01",
+                        "@type" to listOf(GROUP_TYPE),
+                        NGSILD_NAME_PROPERTY to JsonLdUtils.buildJsonLdExpandedProperty("egm"),
+                        AuthContextModel.AUTH_REL_IS_MEMBER_OF to JsonLdUtils.buildJsonLdExpandedProperty("true")
+                    ),
+                    listOf(NGSILD_AUTHORIZATION_CONTEXT)
+                )
+            )
+        )
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/groups?count=true")
+            .header(HttpHeaders.LINK, authzHeaderLink)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(RESULTS_COUNT_HEADER, "1")
+            .expectBody().json(
+                """[
+                        {
+                            "id": "urn:ngsi-ld:group:01",
+                            "type": "Group",
+                            "name": {"type":"Property", "value": "egm"},
+                            "isMemberOf": {"type":"Property", "value": "true"},
+                            "@context": ["$NGSILD_AUTHORIZATION_CONTEXT", "$NGSILD_CORE_CONTEXT"]
+                        }
+                    ]
+                """.trimMargin()
+            )
+            .jsonPath("[0].createdAt").doesNotExist()
+            .jsonPath("[0].modifiedAt").doesNotExist()
+    }
+
+    @Test
+    fun `get groups memberships should return 204 if authentication is not enabled`() {
+        every {
+            authorizationService.getGroupsMemberships(any(), any(), any(), NGSILD_CORE_CONTEXT)
+        } returns Pair(-1, emptyList())
+
+        webClient.get()
+            .uri("/ngsi-ld/v1/entityAccessControl/groups")
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .exchange()
             .expectStatus().isNoContent

@@ -69,6 +69,8 @@ object JsonLdUtils {
 
     const val EGM_OBSERVED_BY = "https://ontology.eglobalmark.com/egm#observedBy"
 
+    const val NGSILD_NAME_PROPERTY = "https://schema.org/name"
+
     val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     private val localCoreContextPayload =

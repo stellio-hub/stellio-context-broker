@@ -19,6 +19,14 @@ interface AuthorizationService {
         contextLink: String
     ): Pair<Int, List<JsonLdEntity>>
     fun userIsAdmin(sub: Option<Sub>): Boolean
+
+    fun getGroupsMemberships(
+        sub: Option<Sub>,
+        offset: Int,
+        limit: Int,
+        contextLink: String
+    ): Pair<Int, List<JsonLdEntity>>
+
     fun userCanCreateEntities(sub: Option<Sub>): Boolean
     fun filterEntitiesUserCanRead(entitiesId: List<URI>, sub: Option<Sub>): List<URI>
     fun filterEntitiesUserCanUpdate(entitiesId: List<URI>, sub: Option<Sub>): List<URI>

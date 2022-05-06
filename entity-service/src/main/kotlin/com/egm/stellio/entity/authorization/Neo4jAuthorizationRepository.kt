@@ -16,6 +16,7 @@ import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_CAN_ADMIN
 import com.egm.stellio.shared.util.AuthContextModel.CLIENT_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.GROUP_TYPE
 import com.egm.stellio.shared.util.AuthContextModel.USER_TYPE
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_NAME_PROPERTY
 import org.neo4j.driver.internal.value.DateTimeValue
 import org.neo4j.driver.internal.value.StringValue
 import org.neo4j.driver.types.Node
@@ -31,7 +32,6 @@ import java.net.URI
 class Neo4jAuthorizationRepository(
     private val neo4jClient: Neo4jClient
 ) {
-
     @Cacheable(SUBJECT_URI_CACHE)
     fun getSubjectUri(defaultSubUri: URI): URI {
         val query =
@@ -369,13 +369,10 @@ class Neo4jAuthorizationRepository(
         limit: Int
     ): Pair<Int, List<EntityAccessControl>> =
         if (limit == 0)
-            Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                emptyList()
-            )
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
         else
             Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                (result.first()["count"] as Long).toInt(),
                 toEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
             )
 
@@ -416,4 +413,105 @@ class Neo4jAuthorizationRepository(
     private fun List<Map<String, URI>>?.valuesForRight(accessRight: AccessRight): List<URI>? =
         this?.filter { it.containsKey(accessRight.attributeName) }
             ?.map { it.getValue(accessRight.attributeName) }
+
+    fun getGroups(groupsIds: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
+        val matchAuthorizedGroupsClause =
+            """
+            MATCH (group:`$GROUP_TYPE`)
+            WHERE group.id IN ${'$'}groupsIds
+            MATCH (group)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(distinct(group)) as count
+            """.trimIndent()
+        else
+            """
+            WITH group, p
+            ORDER BY group.id
+            return 
+                collect(distinct({
+                    groupId:group.id, groupName:p.value
+                })) as groups, 
+                count(distinct(group)) as count
+            SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        val parameters = mapOf(
+            "groupsIds" to groupsIds.toList().toListOfString()
+        )
+
+        val result = neo4jClient
+            .query(
+                """
+                $matchAuthorizedGroupsClause
+                $pagingClause
+                """
+            )
+            .bindAll(parameters)
+            .fetch()
+            .all()
+
+        return if (limit == 0)
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
+        else
+            Pair(
+                (result.first()["count"] as Long).toInt(),
+                (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
+                    Group(
+                        id = (it["groupId"] as String).toUri(),
+                        name = it["groupName"] as String
+                    )
+                }
+            )
+    }
+
+    fun getGroupsForAdmin(groupsMemberships: Set<URI>, offset: Int, limit: Int): Pair<Int, List<Group>> {
+        val matchAuthorizedGroupsClause =
+            """
+            MATCH (group:`$GROUP_TYPE`)-[:HAS_VALUE]->(p:Property { name:"$NGSILD_NAME_PROPERTY" })
+            """.trimIndent()
+
+        val pagingClause = if (limit == 0)
+            """
+            RETURN count(distinct(group)) as count
+            """.trimIndent()
+        else
+            """
+            WITH group, p
+            ORDER BY group.id
+            return 
+                collect(distinct({
+                    groupId:group.id, groupName:p.value
+                })) as groups, 
+                count(distinct(group)) as count
+            SKIP $offset LIMIT $limit
+            """.trimIndent()
+
+        val result = neo4jClient
+            .query(
+                """
+                $matchAuthorizedGroupsClause
+                $pagingClause
+                """
+            )
+            .fetch()
+            .all()
+
+        return if (limit == 0)
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
+        else
+            Pair(
+                (result.first()["count"] as Long).toInt(),
+                (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
+                    val groupId = (it["groupId"] as String).toUri()
+                    Group(
+                        id = groupId,
+                        isMember = groupsMemberships.contains(groupId),
+                        name = it["groupName"] as String
+                    )
+                }
+            )
+    }
 }

@@ -369,13 +369,10 @@ class Neo4jAuthorizationRepository(
         limit: Int
     ): Pair<Int, List<EntityAccessControl>> =
         if (limit == 0)
-            Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
-                emptyList()
-            )
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
         else
             Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                (result.first()["count"] as Long).toInt(),
                 toEntityAccessControl((result.firstOrNull()?.get("entities") as List<Map<String, Any>>))
             )
 
@@ -457,11 +454,10 @@ class Neo4jAuthorizationRepository(
             .all()
 
         return if (limit == 0)
-            Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
         else
             Pair(
-
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                (result.first()["count"] as Long).toInt(),
                 (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     Group(
                         id = (it["groupId"] as String).toUri(),
@@ -504,10 +500,10 @@ class Neo4jAuthorizationRepository(
             .all()
 
         return if (limit == 0)
-            Pair((result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0, emptyList())
+            Pair((result.first()["count"] as Long).toInt(), emptyList())
         else
             Pair(
-                (result.firstOrNull()?.get("count") as Long?)?.toInt() ?: 0,
+                (result.first()["count"] as Long).toInt(),
                 (result.firstOrNull()?.get("groups") as List<Map<String, Any>>).map {
                     val groupId = (it["groupId"] as String).toUri()
                     Group(

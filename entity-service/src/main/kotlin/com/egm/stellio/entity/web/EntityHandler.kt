@@ -1,6 +1,6 @@
 package com.egm.stellio.entity.web
 
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.entity.authorization.AuthorizationService

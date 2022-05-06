@@ -32,6 +32,7 @@ import java.net.URI
 class Neo4jAuthorizationRepository(
     private val neo4jClient: Neo4jClient
 ) {
+
     @Cacheable(SUBJECT_URI_CACHE)
     fun getSubjectUri(defaultSubUri: URI): URI {
         val query =

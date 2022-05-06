@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.web
 
 import arrow.core.Either
 import arrow.core.Option
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.*

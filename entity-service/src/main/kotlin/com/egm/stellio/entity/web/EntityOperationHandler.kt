@@ -1,7 +1,7 @@
 package com.egm.stellio.entity.web
 
 import arrow.core.Option
-import arrow.core.computations.either
+import arrow.core.continuations.either
 import com.egm.stellio.entity.authorization.AuthorizationService
 import com.egm.stellio.entity.service.EntityEventService
 import com.egm.stellio.entity.service.EntityOperationService

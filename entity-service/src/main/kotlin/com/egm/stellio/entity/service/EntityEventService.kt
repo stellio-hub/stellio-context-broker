@@ -65,7 +65,7 @@ class EntityEventService(
     fun publishEntityCreateEvent(
         sub: String?,
         entityId: URI,
-        entityTypes: List<String>,
+        entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ) {
         logger.debug("Sending create event for entity $entityId")
@@ -81,7 +81,7 @@ class EntityEventService(
     fun publishEntityReplaceEvent(
         sub: String?,
         entityId: URI,
-        entityTypes: List<String>,
+        entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ) {
         logger.debug("Sending replace event for entity $entityId")
@@ -97,13 +97,15 @@ class EntityEventService(
     fun publishEntityDeleteEvent(
         sub: String?,
         entityId: URI,
-        entityType: ExpandedTerm,
+        entityTypes: List<ExpandedTerm>,
         contexts: List<String>
     ) {
         logger.debug("Sending delete event for entity $entityId")
-        publishEntityEvent(
-            EntityDeleteEvent(sub, entityId, compactTerm(entityType, contexts), contexts)
-        )
+        entityTypes.forEach {
+            publishEntityEvent(
+                EntityDeleteEvent(sub, entityId, compactTerm(it, contexts), contexts)
+            )
+        }
     }
 
     @Async

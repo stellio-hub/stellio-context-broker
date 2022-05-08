@@ -34,6 +34,7 @@ class EntityEventServiceTests {
 
     private val breedingServiceUri = "urn:ngsi-ld:BreedingService:0214".toUri()
     private val breedingServiceType = "https://ontology.eglobalmark.com/aquac#BreedingService"
+    private val feedingServiceType = "https://ontology.eglobalmark.com/aquac#FeedingService"
     private val fishNameAttribute = "https://ontology.eglobalmark.com/aquac#fishName"
     private val fishNumberAttribute = "https://ontology.eglobalmark.com/aquac#fishNumber"
     private val fishName1DatasetUri = "urn:ngsi-ld:Dataset:fishName:1".toUri()
@@ -108,6 +109,22 @@ class EntityEventServiceTests {
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
+        confirmVerified()
+    }
+
+    @Test
+    fun `it should publish two ENTITY_CREATE events if entity has two types`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityCreateEvent(
+            null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
+            kafkaTemplate.send("cim.entity.FeedingService", breedingServiceUri.toString(), any())
+        }
+        confirmVerified()
     }
 
     @Test
@@ -126,10 +143,25 @@ class EntityEventServiceTests {
         every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
 
         entityEventService.publishEntityDeleteEvent(
-            null, breedingServiceUri, breedingServiceType, listOf(AQUAC_COMPOUND_CONTEXT)
+            null, breedingServiceUri, listOf(breedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
         )
 
         verify { kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any()) }
+    }
+
+    @Test
+    fun `it should publish two ENTITY_DELETE events if entity has two types`() {
+        every { kafkaTemplate.send(any(), any(), any()) } returns SettableListenableFuture()
+
+        entityEventService.publishEntityDeleteEvent(
+            null, breedingServiceUri, listOf(breedingServiceType, feedingServiceType), listOf(AQUAC_COMPOUND_CONTEXT)
+        )
+
+        verify {
+            kafkaTemplate.send("cim.entity.BreedingService", breedingServiceUri.toString(), any())
+            kafkaTemplate.send("cim.entity.FeedingService", breedingServiceUri.toString(), any())
+        }
+        confirmVerified()
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.egm.stellio.entity.model
 
 import com.egm.stellio.entity.config.Neo4jUriPropertyConverter
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_ID
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
@@ -36,7 +37,7 @@ data class Entity(
 
     @DynamicLabels
     @JsonProperty("@type")
-    val types: List<String>,
+    val types: List<ExpandedTerm>,
 
     @JsonIgnore
     val createdAt: ZonedDateTime = Instant.now().atZone(ZoneOffset.UTC),

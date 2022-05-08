@@ -232,7 +232,7 @@ class EntityService(
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
 
-    fun getEntityType(entityId: URI): ExpandedTerm = getEntityCoreProperties(entityId).type[0]
+    fun getEntityTypes(entityId: URI): List<ExpandedTerm> = getEntityCoreProperties(entityId).types
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */

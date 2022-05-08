@@ -36,10 +36,12 @@ interface AuthorizationService {
     fun createAdminLinks(entitiesId: List<URI>, sub: Option<Sub>)
     fun removeUserRightsOnEntity(entityId: URI, subjectId: URI): Int
 
-    fun checkEntityTypeIsAuthorized(entityType: ExpandedTerm): Either<APIException, Unit> =
-        if (IAM_TYPES.contains(entityType))
-            BadRequestDataException("Entity type $entityType cannot be managed via normal entity API").left()
+    fun checkEntityTypesAreAuthorized(entityTypes: List<ExpandedTerm>): Either<APIException, Unit> {
+        val unauthorizedTypes = IAM_TYPES.intersect(entityTypes.toSet())
+        return if (unauthorizedTypes.isNotEmpty())
+            BadRequestDataException("Entity type(s) $unauthorizedTypes cannot be managed via normal entity API").left()
         else Unit.right()
+    }
 
     fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>
@@ -56,12 +58,16 @@ interface AuthorizationService {
             ).left()
         else Unit.right()
 
-    fun isAdminAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
+    fun isAdminAuthorized(
+        entityId: URI,
+        entityTypes: List<ExpandedTerm>,
+        sub: Option<Sub>
+    ): Either<APIException, Unit> =
         userIsAdminOfEntity(entityId, sub).let {
             if (!it) AccessDeniedException("User forbidden admin access to entity $entityId").left()
             else Unit.right()
         }.flatMap {
-            checkEntityTypeIsAuthorized(entityType)
+            checkEntityTypesAreAuthorized(entityTypes)
         }
 
     fun isCreationAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
@@ -69,12 +75,12 @@ interface AuthorizationService {
             if (!it) AccessDeniedException("User forbidden to create entities").left()
             else Unit.right()
         }.flatMap {
-            checkEntityTypeIsAuthorized(ngsiLdEntity.type)
+            checkEntityTypesAreAuthorized(ngsiLdEntity.types)
         }
 
     fun isUpdateAuthorized(
         entityId: URI,
-        entityType: ExpandedTerm,
+        entityTypes: List<ExpandedTerm>,
         ngsiLdAttributes: List<NgsiLdAttribute>,
         sub: Option<Sub>
     ): Either<APIException, Unit> =
@@ -82,14 +88,14 @@ interface AuthorizationService {
             if (!it) AccessDeniedException("User forbidden write access to entity $entityId").left()
             else Unit.right()
         }.flatMap {
-            checkEntityTypeIsAuthorized(entityType)
+            checkEntityTypesAreAuthorized(entityTypes)
         }.flatMap {
             checkAttributesAreAuthorized(ngsiLdAttributes)
         }
 
     fun isUpdateAuthorized(
         entityId: URI,
-        entityType: ExpandedTerm,
+        entityTypes: List<ExpandedTerm>,
         attributeName: ExpandedTerm,
         sub: Option<Sub>
     ): Either<APIException, Unit> =
@@ -97,19 +103,19 @@ interface AuthorizationService {
             if (!it) AccessDeniedException("User forbidden write access to entity $entityId").left()
             else Unit.right()
         }.flatMap {
-            checkEntityTypeIsAuthorized(entityType)
+            checkEntityTypesAreAuthorized(entityTypes)
         }.flatMap {
             checkAttributeIsAuthorized(attributeName)
         }
 
     fun isUpdateAuthorized(ngsiLdEntity: NgsiLdEntity, sub: Option<Sub>): Either<APIException, Unit> =
-        isUpdateAuthorized(ngsiLdEntity.id, ngsiLdEntity.type, ngsiLdEntity.attributes, sub)
+        isUpdateAuthorized(ngsiLdEntity.id, ngsiLdEntity.types, ngsiLdEntity.attributes, sub)
 
-    fun isReadAuthorized(entityId: URI, entityType: ExpandedTerm, sub: Option<Sub>): Either<APIException, Unit> =
+    fun isReadAuthorized(entityId: URI, entityTypes: List<ExpandedTerm>, sub: Option<Sub>): Either<APIException, Unit> =
         userCanReadEntity(entityId, sub).let {
             if (!it) AccessDeniedException("User forbidden read access to entity $entityId").left()
             else Unit.right()
         }.flatMap {
-            checkEntityTypeIsAuthorized(entityType)
+            checkEntityTypesAreAuthorized(entityTypes)
         }
 }

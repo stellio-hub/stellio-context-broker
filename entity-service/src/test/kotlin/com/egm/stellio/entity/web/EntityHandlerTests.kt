@@ -276,8 +276,8 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForGetEntityById() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
-        every { authorizationService.isReadAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
+        every { authorizationService.isReadAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
     }
 
     @Test
@@ -1067,9 +1067,9 @@ class EntityHandlerTests {
     @Test
     fun `it should not authorize user without read rights on entity to get it`() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
-            authorizationService.isReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), BEEHIVE_TYPE, sub)
+            authorizationService.isReadAuthorized("urn:ngsi-ld:BeeHive:TEST".toUri(), listOf(BEEHIVE_TYPE), sub)
         } returns AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:BeeHive:TEST").left()
 
         webClient.get()
@@ -1108,7 +1108,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForAppendAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns breedingServiceType
+        every { entityService.getEntityTypes(any()) } returns listOf(breedingServiceType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), sub)
         } returns Unit.right()
@@ -1143,10 +1143,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(breedingServiceType),
+                eq(listOf(breedingServiceType)),
                 any<List<NgsiLdAttribute>>(),
                 eq(sub)
             )
@@ -1201,7 +1201,7 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             entityService.appendEntityAttributes(
                 eq(entityId),
                 any(),
@@ -1279,7 +1279,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForPartialUpdateAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), any())
         } returns Unit.right()
@@ -1310,10 +1310,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 eq(fishNumberAttribute),
                 eq(sub)
             )
@@ -1421,7 +1421,7 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(entityId)
-            authorizationService.isUpdateAuthorized(entityId, deadFishesType, any<ExpandedTerm>(), sub)
+            authorizationService.isUpdateAuthorized(entityId, listOf(deadFishesType), any<ExpandedTerm>(), sub)
             entityAttributeService.partialUpdateEntityAttribute(eq(entityId), any(), eq(listOf(AQUAC_COMPOUND_CONTEXT)))
         }
     }
@@ -1433,7 +1433,7 @@ class EntityHandlerTests {
         val attrId = "fishNumber"
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:DeadFishes:019BN").left()
@@ -1457,10 +1457,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 eq(fishNumberAttribute),
                 sub
             )
@@ -1473,7 +1473,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:BreedingService:0214".toUri()
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns breedingServiceType
+        every { entityService.getEntityTypes(any()) } returns listOf(breedingServiceType)
         every {
             authorizationService.isUpdateAuthorized(entityId, any(), any<List<NgsiLdAttribute>>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:BreedingService:0214").left()
@@ -1500,7 +1500,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForUpdateAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
         } returns Unit.right()
@@ -1535,10 +1535,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(entityId))
-            entityService.getEntityType(eq(entityId))
+            entityService.getEntityTypes(eq(entityId))
             authorizationService.isUpdateAuthorized(
                 eq(entityId),
-                eq(deadFishesType),
+                eq(listOf(deadFishesType)),
                 any<List<NgsiLdAttribute>>(),
                 eq(sub)
             )
@@ -1650,7 +1650,7 @@ class EntityHandlerTests {
         val entityId = "urn:ngsi-ld:Sensor:0022CCC".toUri()
 
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns deadFishesType
+        every { entityService.getEntityTypes(any()) } returns listOf(deadFishesType)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<List<NgsiLdAttribute>>(), any())
         } returns AccessDeniedException("User forbidden write access to entity urn:ngsi-ld:Sensor:0022CCC").left()
@@ -1680,7 +1680,7 @@ class EntityHandlerTests {
         every { entityService.getEntityCoreProperties(any()) } returns entity
         every { entity.types } returns listOf(BEEHIVE_TYPE)
         every { entity.contexts } returns listOf(APIC_COMPOUND_CONTEXT)
-        every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { authorizationService.isAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } returns Pair(1, 1)
         every { entityEventService.publishEntityDeleteEvent(any(), any(), any(), any()) } just Runs
 
@@ -1695,14 +1695,14 @@ class EntityHandlerTests {
             entityService.getEntityCoreProperties(eq(beehiveId))
             authorizationService.isAdminAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(sub)
             )
             entityService.deleteEntity(eq(beehiveId))
             entityEventService.publishEntityDeleteEvent(
                 eq("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"),
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(listOf(APIC_COMPOUND_CONTEXT))
             )
         }
@@ -1737,7 +1737,7 @@ class EntityHandlerTests {
         every { entityService.checkExistence(beehiveId) } returns Unit.right()
         every { entityService.getEntityCoreProperties(any()) } returns entity
         every { entity.types } returns listOf(BEEHIVE_TYPE)
-        every { authorizationService.isAdminAuthorized(beehiveId, BEEHIVE_TYPE, sub) } returns Unit.right()
+        every { authorizationService.isAdminAuthorized(beehiveId, listOf(BEEHIVE_TYPE), sub) } returns Unit.right()
         every { entityService.deleteEntity(any()) } throws RuntimeException("Unexpected server error")
 
         webClient.delete()
@@ -1783,7 +1783,7 @@ class EntityHandlerTests {
 
     private fun mockkDefaultBehaviorForDeleteAttribute() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns Unit.right()
@@ -1805,10 +1805,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1843,10 +1843,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1881,10 +1881,10 @@ class EntityHandlerTests {
 
         verify {
             entityService.checkExistence(eq(beehiveId))
-            entityService.getEntityType(eq(beehiveId))
+            entityService.getEntityTypes(eq(beehiveId))
             authorizationService.isUpdateAuthorized(
                 eq(beehiveId),
-                eq(BEEHIVE_TYPE),
+                eq(listOf(BEEHIVE_TYPE)),
                 eq(TEMPERATURE_PROPERTY),
                 eq(Some("60AAEBA3-C0C7-42B6-8CB0-0D30857F210E"))
             )
@@ -1973,7 +1973,7 @@ class EntityHandlerTests {
     @Test
     fun `it should not authorize user without write rights on entity to delete attributes`() {
         every { entityService.checkExistence(any()) } returns Unit.right()
-        every { entityService.getEntityType(any()) } returns BEEHIVE_TYPE
+        every { entityService.getEntityTypes(any()) } returns listOf(BEEHIVE_TYPE)
         every {
             authorizationService.isUpdateAuthorized(any(), any(), any<ExpandedTerm>(), sub)
         } returns AccessDeniedException("User forbidden write access to entity $beehiveId").left()

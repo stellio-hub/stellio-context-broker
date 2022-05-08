@@ -151,7 +151,7 @@ class EntityHandler(
 
         return either<APIException, ResponseEntity<*>> {
             entityService.checkExistence(entityUri).bind()
-            authorizationService.isReadAuthorized(entityUri, entityService.getEntityType(entityUri), sub).bind()
+            authorizationService.isReadAuthorized(entityUri, entityService.getEntityTypes(entityUri), sub).bind()
 
             val jsonLdEntity = entityService.getFullEntityById(entityUri, queryParams.includeSysAttrs)
 
@@ -190,11 +190,11 @@ class EntityHandler(
             entityService.checkExistence(entityUri).bind()
             // Is there a way to avoid loading the entity to get its type and contexts (for the event to be published)?
             val entity = entityService.getEntityCoreProperties(entityId.toUri())
-            authorizationService.isAdminAuthorized(entityUri, entity.types[0], sub).bind()
+            authorizationService.isAdminAuthorized(entityUri, entity.types, sub).bind()
 
             entityService.deleteEntity(entityUri)
 
-            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types[0], entity.contexts)
+            entityEventService.publishEntityDeleteEvent(sub.orNull(), entityId.toUri(), entity.types, entity.contexts)
 
             ResponseEntity.status(HttpStatus.NO_CONTENT).build<String>()
         }.fold(
@@ -227,7 +227,7 @@ class EntityHandler(
             val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 ngsiLdAttributes,
                 sub
             ).bind()
@@ -282,7 +282,7 @@ class EntityHandler(
             val ngsiLdAttributes = parseToNgsiLdAttributes(jsonLdAttributes)
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 ngsiLdAttributes,
                 sub
             ).bind()
@@ -334,7 +334,7 @@ class EntityHandler(
             val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 expandedAttrId,
                 sub
             ).bind()
@@ -389,7 +389,7 @@ class EntityHandler(
             val expandedAttrId = expandJsonLdTerm(attrId, contexts)!!
             authorizationService.isUpdateAuthorized(
                 entityUri,
-                entityService.getEntityType(entityUri),
+                entityService.getEntityTypes(entityUri),
                 expandedAttrId,
                 sub
             ).bind()

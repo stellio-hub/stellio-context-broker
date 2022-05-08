@@ -27,7 +27,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize an entity type that is not related to authorization`() {
-        authorizationService.checkEntityTypeIsAuthorized(BEEHIVE_TYPE)
+        authorizationService.checkEntityTypesAreAuthorized(listOf(BEEHIVE_TYPE))
             .fold({
                 fail("it should have allowed Beehive type")
             }, {})
@@ -35,9 +35,19 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should not authorize one of the entity type related to authorization`() {
-        authorizationService.checkEntityTypeIsAuthorized(USER_TYPE)
+        authorizationService.checkEntityTypesAreAuthorized(listOf(BEEHIVE_TYPE, USER_TYPE))
             .fold({
-                assertEquals("Entity type $USER_TYPE cannot be managed via normal entity API", it.message)
+                assertEquals("Entity type(s) [$USER_TYPE] cannot be managed via normal entity API", it.message)
+            }, {
+                fail("it should not have allowed User type")
+            })
+    }
+
+    @Test
+    fun `it should not authorize an entity type related to authorization`() {
+        authorizationService.checkEntityTypesAreAuthorized(listOf(USER_TYPE))
+            .fold({
+                assertEquals("Entity type(s) [$USER_TYPE] cannot be managed via normal entity API", it.message)
             }, {
                 fail("it should not have allowed User type")
             })
@@ -92,7 +102,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize access as admin`() {
-        authorizationService.isAdminAuthorized(entityUri, BEEHIVE_TYPE, None)
+        authorizationService.isAdminAuthorized(entityUri, listOf(BEEHIVE_TYPE), None)
             .mapLeft { fail("it should not have failed as entity type is allowed") }
     }
 
@@ -100,7 +110,7 @@ class AuthorizationServiceTests {
     fun `it should not authorize access as admin if user is not admin`() {
         every { authorizationService.userIsAdminOfEntity(any(), any()) } returns false
 
-        authorizationService.isAdminAuthorized(entityUri, BEEHIVE_TYPE, None)
+        authorizationService.isAdminAuthorized(entityUri, listOf(BEEHIVE_TYPE), None)
             .fold({
                 assertEquals(
                     "User forbidden admin access to entity urn:ngsi-ld:Entity:01",
@@ -113,10 +123,23 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should not authorize access as admin if entity type is related to authorization`() {
-        authorizationService.isAdminAuthorized(entityUri, USER_TYPE, None)
+        authorizationService.isAdminAuthorized(entityUri, listOf(USER_TYPE), None)
             .fold({
                 assertEquals(
-                    "Entity type $USER_TYPE cannot be managed via normal entity API",
+                    "Entity type(s) [$USER_TYPE] cannot be managed via normal entity API",
+                    it.message
+                )
+            }, {
+                fail("it should have failed as entity type is not allowed")
+            })
+    }
+
+    @Test
+    fun `it should not authorize access as admin if one of the entity types is related to authorization`() {
+        authorizationService.isAdminAuthorized(entityUri, listOf(USER_TYPE, BEEHIVE_TYPE), None)
+            .fold({
+                assertEquals(
+                    "Entity type(s) [$USER_TYPE] cannot be managed via normal entity API",
                     it.message
                 )
             }, {
@@ -127,7 +150,7 @@ class AuthorizationServiceTests {
     @Test
     fun `it should authorize access as creator`() {
         val mockedEntity = mockkClass(NgsiLdEntity::class) {
-            every { type } returns BEEHIVE_TYPE
+            every { types } returns listOf(BEEHIVE_TYPE)
         }
 
         authorizationService.isCreationAuthorized(mockedEntity, None)
@@ -137,7 +160,7 @@ class AuthorizationServiceTests {
     @Test
     fun `it should not authorize access as creator if user does not have the creator role`() {
         val mockedEntity = mockkClass(NgsiLdEntity::class) {
-            every { type } returns BEEHIVE_TYPE
+            every { types } returns listOf(BEEHIVE_TYPE)
         }
         every { authorizationService.userCanCreateEntities(any()) } returns false
 
@@ -157,13 +180,13 @@ class AuthorizationServiceTests {
     @Test
     fun `it should not authorize access as creator if entity type is related to authorization`() {
         val mockedEntity = mockkClass(NgsiLdEntity::class) {
-            every { type } returns USER_TYPE
+            every { types } returns listOf(USER_TYPE)
         }
 
         authorizationService.isCreationAuthorized(mockedEntity, None)
             .fold({
                 assertEquals(
-                    "Entity type $USER_TYPE cannot be managed via normal entity API",
+                    "Entity type(s) [$USER_TYPE] cannot be managed via normal entity API",
                     it.message
                 )
             }, {
@@ -173,7 +196,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize access to update for a single attribute`() {
-        authorizationService.isUpdateAuthorized(entityUri, BEEHIVE_TYPE, INCOMING_PROPERTY, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(BEEHIVE_TYPE), INCOMING_PROPERTY, None)
             .mapLeft {
                 fail("it should not have failed as entity type and attribute are allowed")
             }
@@ -183,7 +206,7 @@ class AuthorizationServiceTests {
     fun `it should not authorize access to update for a single attribute if user has not enough rights`() {
         every { authorizationService.userCanUpdateEntity(any(), any()) } returns false
 
-        authorizationService.isUpdateAuthorized(entityUri, BEEHIVE_TYPE, INCOMING_PROPERTY, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(BEEHIVE_TYPE), INCOMING_PROPERTY, None)
             .fold({
                 assertEquals("User forbidden write access to entity urn:ngsi-ld:Entity:01", it.message)
             }, {
@@ -195,7 +218,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should not authorize access to update if the attribute is related to authorization`() {
-        authorizationService.isUpdateAuthorized(entityUri, BEEHIVE_TYPE, AUTH_PROP_SAP, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(BEEHIVE_TYPE), AUTH_PROP_SAP, None)
             .fold({
                 assertEquals(
                     "Specific access policy cannot be updated as a normal property, " +
@@ -209,9 +232,9 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should not authorize access to update if the entity type is related to authorization`() {
-        authorizationService.isUpdateAuthorized(entityUri, USER_TYPE, INCOMING_PROPERTY, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(USER_TYPE), INCOMING_PROPERTY, None)
             .fold({
-                assertEquals("Entity type $USER_TYPE cannot be managed via normal entity API", it.message)
+                assertEquals("Entity type(s) [$USER_TYPE] cannot be managed via normal entity API", it.message)
             }, {
                 fail("it should have failed as user is not allowed to update entity")
             })
@@ -227,7 +250,7 @@ class AuthorizationServiceTests {
         }
         val ngsiLdAttributes = listOf(mockedIncomingProperty, mockedOutgoingProperty)
 
-        authorizationService.isUpdateAuthorized(entityUri, BEEHIVE_TYPE, ngsiLdAttributes, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(BEEHIVE_TYPE), ngsiLdAttributes, None)
             .mapLeft {
                 fail("it should not have failed as entity type and attributes are allowed")
             }
@@ -243,7 +266,7 @@ class AuthorizationServiceTests {
         }
         val ngsiLdAttributes = listOf(mockedIncomingProperty, mockedOutgoingProperty)
 
-        authorizationService.isUpdateAuthorized(entityUri, BEEHIVE_TYPE, ngsiLdAttributes, None)
+        authorizationService.isUpdateAuthorized(entityUri, listOf(BEEHIVE_TYPE), ngsiLdAttributes, None)
             .fold({}, {
                 fail("it should have failed as one of the attributes is not allowed")
             })
@@ -251,7 +274,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should authorize access to read`() {
-        authorizationService.isReadAuthorized(entityUri, BEEHIVE_TYPE, None)
+        authorizationService.isReadAuthorized(entityUri, listOf(BEEHIVE_TYPE), None)
             .mapLeft {
                 fail("it should not have failed as entity type is allowed")
             }
@@ -261,7 +284,7 @@ class AuthorizationServiceTests {
     fun `it should not authorize access to read if user has not enough rigts`() {
         every { authorizationService.userCanReadEntity(any(), any()) } returns false
 
-        authorizationService.isReadAuthorized(entityUri, BEEHIVE_TYPE, None)
+        authorizationService.isReadAuthorized(entityUri, listOf(BEEHIVE_TYPE), None)
             .fold({}, {
                 fail("it should have failed as user has not enough rights to read the entity")
             })
@@ -271,7 +294,7 @@ class AuthorizationServiceTests {
 
     @Test
     fun `it should not authorize access to read if entity type is related to authorization`() {
-        authorizationService.isReadAuthorized(entityUri, USER_TYPE, None)
+        authorizationService.isReadAuthorized(entityUri, listOf(USER_TYPE), None)
             .fold({}, {
                 fail("it should have failed as entity type is related to authorization")
             })

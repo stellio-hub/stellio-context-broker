@@ -26,6 +26,7 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
     private lateinit var r2dbcEntityTemplate: R2dbcEntityTemplate
 
     private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
+    private val serviceAccountUuid = "3CB80121-B2D6-4F76-BE97-B459CCC3AF72"
     private val groupUuid = "52A916AB-19E6-4D3B-B629-936BC8E5B640"
 
     @AfterEach
@@ -104,6 +105,46 @@ class SubjectReferentialServiceTests : WithTimescaleContainer {
             .expectNextMatches {
                 it.size == 1 &&
                     it.contains(subjectUuid)
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve UUIDs from client and service account`() {
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.CLIENT,
+            serviceAccountId = serviceAccountUuid
+        )
+
+        subjectReferentialService.create(subjectReferential).block()
+
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
+            .expectNextMatches {
+                it.size == 2 &&
+                    it.containsAll(listOf(serviceAccountUuid, subjectUuid))
+            }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should retrieve UUIDs from client, service account and groups memberships`() {
+        val groupsUuids = List(2) { UUID.randomUUID().toString() }
+        val subjectReferential = SubjectReferential(
+            subjectId = subjectUuid,
+            subjectType = SubjectType.CLIENT,
+            serviceAccountId = serviceAccountUuid,
+            groupsMemberships = groupsUuids
+        )
+
+        subjectReferentialService.create(subjectReferential).block()
+
+        StepVerifier.create(subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)))
+            .expectNextMatches {
+                it.size == 4 &&
+                    it.containsAll(groupsUuids.plus(serviceAccountUuid).plus(subjectUuid))
             }
             .expectComplete()
             .verify()

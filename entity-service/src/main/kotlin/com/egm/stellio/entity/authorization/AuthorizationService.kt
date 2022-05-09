@@ -47,9 +47,9 @@ interface AuthorizationService {
     fun checkAttributesAreAuthorized(
         ngsiLdAttributes: List<NgsiLdAttribute>
     ): Either<APIException, Unit> =
-        ngsiLdAttributes.traverseEither { ngsiLdAttribute ->
+        ngsiLdAttributes.traverse { ngsiLdAttribute ->
             checkAttributeIsAuthorized(ngsiLdAttribute.name)
-        }.map { it.first() }
+        }.map {}
 
     fun checkAttributeIsAuthorized(attributeName: ExpandedTerm): Either<APIException, Unit> =
         if (attributeName == AuthContextModel.AUTH_PROP_SAP)

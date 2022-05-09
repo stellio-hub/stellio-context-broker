@@ -13,6 +13,9 @@ complexity:
     thresholdInClasses: 20
     thresholdInInterfaces: 20
     thresholdInObjects: 20
+    excludes: ['**/src/test/**']
+  LargeClass:
+    excludes: ['**/src/test/**']
 
 style:
   WildcardImport:

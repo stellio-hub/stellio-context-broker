@@ -82,27 +82,21 @@ class EntityHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val (offset, limit) = extractAndValidatePaginationParameters(
-            params,
-            applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax,
-            count
-        )
-        val ids = params.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()
-        val type = params.getFirst(QUERY_PARAM_TYPE)
-        val idPattern = params.getFirst(QUERY_PARAM_ID_PATTERN)
-        val attrs = params.getFirst(QUERY_PARAM_ATTRS)
-        val q = params.getFirst(QUERY_PARAM_FILTER)
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        if (q == null && type == null && attrs == null)
+        /**
+         * Decoding query parameters is not supported by default so a call to a decode function was added query
+         * with the right parameters values
+         */
+        val queryParams = parseAndCheckQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        )
+
+        if (queryParams.q == null && queryParams.expandedType == null && queryParams.expandedAttrs.isEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
@@ -110,53 +104,44 @@ class EntityHandler(
                     )
                 )
 
-        val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
-
-        /**
-         * Decoding query parameters is not supported by default so a call to a decode function was added query
-         * with the right parameters values
-         */
-        val countAndEntities = entityService.searchEntities(
-            QueryParams(ids, type?.let { expandJsonLdTerm(type, contextLink) }, idPattern, q?.decode(), expandedAttrs),
-            sub,
-            offset,
-            limit,
-            contextLink,
-            includeSysAttrs
-        )
+        val countAndEntities = entityService.searchEntities(queryParams, sub, contextLink)
 
         if (countAndEntities.second.isEmpty())
             return PagingUtils.buildPaginationResponse(
                 serializeObject(emptyList<JsonLdEntity>()),
                 countAndEntities.first,
-                count,
+                queryParams.count,
                 Pair(null, null),
                 mediaType, contextLink
             )
 
         val filteredEntities =
-            countAndEntities.second.filter { it.containsAnyOf(expandedAttrs) }
+            countAndEntities.second.filter { it.containsAnyOf(queryParams.expandedAttrs) }
                 .map {
                     JsonLdEntity(
-                        filterJsonLdEntityOnAttributes(it, expandedAttrs),
+                        filterJsonLdEntityOnAttributes(it, queryParams.expandedAttrs),
                         it.contexts
                     )
                 }
 
-        val compactedEntities = compactEntities(filteredEntities, useSimplifiedRepresentation, contextLink, mediaType)
-            .map { it.toMutableMap() }
+        val compactedEntities = compactEntities(
+            filteredEntities,
+            queryParams.useSimplifiedRepresentation,
+            contextLink,
+            mediaType
+        ).map { it.toMutableMap() }
 
         val prevAndNextLinks = PagingUtils.getPagingLinks(
             "/ngsi-ld/v1/entities",
             params,
             countAndEntities.first,
-            offset,
-            limit
+            queryParams.offset,
+            queryParams.limit
         )
         return PagingUtils.buildPaginationResponse(
             serializeObject(compactedEntities),
             countAndEntities.first,
-            count,
+            queryParams.count,
             prevAndNextLinks,
             mediaType, contextLink
         )
@@ -172,32 +157,33 @@ class EntityHandler(
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val entityUri = entityId.toUri()
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
-        val useSimplifiedRepresentation = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_KEYVALUES_VALUE)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
+
+        val queryParams = parseAndCheckQueryParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        )
 
         return either<APIException, ResponseEntity<*>> {
             entityService.checkExistence(entityUri).bind()
             authorizationService.isReadAuthorized(entityUri, entityService.getEntityType(entityUri), sub).bind()
 
-            val jsonLdEntity = entityService.getFullEntityById(entityUri, includeSysAttrs)
+            val jsonLdEntity = entityService.getFullEntityById(entityUri, queryParams.includeSysAttrs)
 
-            val expandedAttrs = parseAndExpandRequestParameter(params.getFirst("attrs"), contextLink)
-            jsonLdEntity.checkContainsAnyOf(expandedAttrs).bind()
+            jsonLdEntity.checkContainsAnyOf(queryParams.expandedAttrs).bind()
+
             val filteredJsonLdEntity = JsonLdEntity(
-                filterJsonLdEntityOnAttributes(jsonLdEntity, expandedAttrs),
-                jsonLdEntity.contexts
+                filterJsonLdEntityOnAttributes(jsonLdEntity, queryParams.expandedAttrs),
+            jsonLdEntity.contexts
             )
-
             val compactedEntity = compact(filteredJsonLdEntity, contextLink, mediaType).toMutableMap()
 
             buildGetSuccessResponse(mediaType, contextLink)
                 .let {
-                    if (useSimplifiedRepresentation)
+                    if (queryParams.useSimplifiedRepresentation)
                         it.body(serializeObject(compactedEntity.toKeyValues()))
                     else
                         it.body(serializeObject(compactedEntity))

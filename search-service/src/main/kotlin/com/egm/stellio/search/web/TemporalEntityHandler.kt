@@ -6,7 +6,6 @@ import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.util.buildTemporalQuery
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
@@ -24,7 +23,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
-import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/temporal/entities")
@@ -104,14 +102,14 @@ class TemporalEntityHandler(
             "/ngsi-ld/v1/temporal/entities",
             params,
             total,
-            temporalEntitiesQuery.offset,
-            temporalEntitiesQuery.limit
+            temporalEntitiesQuery.queryParams.offset,
+            temporalEntitiesQuery.queryParams.limit
         )
 
         return PagingUtils.buildPaginationResponse(
             serializeObject(temporalEntities.map { addContextsToEntity(it, listOf(contextLink), mediaType) }),
             total,
-            temporalEntitiesQuery.count,
+            temporalEntitiesQuery.queryParams.count,
             prevAndNextLinks,
             mediaType,
             contextLink
@@ -132,30 +130,20 @@ class TemporalEntityHandler(
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)
 
-            val withTemporalValues =
-                hasValueInOptionsParam(
-                    Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)),
-                    OptionsParamValue.TEMPORAL_VALUES
-                )
-            val withAudit = hasValueInOptionsParam(
-                Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
-            )
+            val temporalEntitiesQuery =
+                parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink)
 
             entityAccessRightsService.canReadEntity(sub, entityId.toUri()).bind()
 
-            try {
-                val temporalQuery = buildTemporalQuery(params, contextLink)
+            val temporalEntity = queryService.queryTemporalEntity(
+                entityId.toUri(),
+                temporalEntitiesQuery.temporalQuery,
+                temporalEntitiesQuery.withTemporalValues,
+                temporalEntitiesQuery.withAudit,
+                contextLink)
 
-                val temporalEntity = queryService.queryTemporalEntity(
-                    entityId.toUri(), temporalQuery, withTemporalValues, withAudit, contextLink
-                )
-
-                buildGetSuccessResponse(mediaType, contextLink)
-                    .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
-            } catch (e: BadRequestDataException) {
-                ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
-                    .body(BadRequestDataResponse(e.message))
-            }
+            buildGetSuccessResponse(mediaType, contextLink)
+                .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))
         }.fold(
             { it.toErrorResponse() },
             { it }

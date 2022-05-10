@@ -2,6 +2,7 @@ package com.egm.stellio.search.service
 
 import com.egm.stellio.search.config.CoroutineTestRule
 import com.egm.stellio.search.model.*
+import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.ninjasquad.springmockk.MockkBean
@@ -167,18 +168,14 @@ class QueryServiceTests {
 
             queryService.queryTemporalEntities(
                 TemporalEntitiesQuery(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    QueryParams(offset = 2, limit = 2, expandedType = "$BEEHIVE_TYPE, $APIARY_TYPE"),
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false,
-                    2,
-                    2,
-                    count = false
+                    withAudit = false
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }
@@ -242,18 +239,14 @@ class QueryServiceTests {
 
             val (entities, _) = queryService.queryTemporalEntities(
                 TemporalEntitiesQuery(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
+                    QueryParams(expandedType = "$BEEHIVE_TYPE, $APIARY_TYPE", offset = 2, limit = 2),
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,
                         timeAt = ZonedDateTime.parse("2019-10-17T07:31:39Z")
                     ),
                     withTemporalValues = false,
-                    withAudit = false,
-                    2,
-                    2,
-                    false
+                    withAudit = false
                 ),
                 APIC_COMPOUND_CONTEXT
             ) { null }

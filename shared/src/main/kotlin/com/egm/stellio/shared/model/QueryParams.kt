@@ -7,5 +7,10 @@ data class QueryParams(
     val expandedType: String? = null,
     val idPattern: String? = null,
     val q: String? = null,
-    val expandedAttrs: Set<String> = emptySet()
+    val limit: Int,
+    val offset: Int,
+    val count: Boolean = false,
+    val expandedAttrs: Set<String> = emptySet(),
+    val includeSysAttrs: Boolean = false,
+    val useSimplifiedRepresentation: Boolean = false
 )

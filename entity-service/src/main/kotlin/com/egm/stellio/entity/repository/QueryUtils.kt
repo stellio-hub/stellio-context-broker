@@ -15,16 +15,13 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithAuthentication(
         queryParams: QueryParams,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
-        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
-        val idClause = buildIdClause(id)
-        val idPatternClause = buildIdPatternClause(idPattern)
+        val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrsFilterQuery(queryParams.expandedAttrs)
+        val matchEntityClause = buildMatchEntityClause(queryParams.expandedType, prefix = "")
+        val idClause = buildIdClause(queryParams.id)
+        val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
             .filter { it.isNotEmpty() }
@@ -54,7 +51,7 @@ object QueryUtils {
             $finalFilterClause
             """.trimIndent()
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity.id) as count
             """.trimIndent()
@@ -64,7 +61,7 @@ object QueryUtils {
                 UNWIND entityIds as id
                 RETURN id, count
                 ORDER BY id
-                SKIP $offset LIMIT $limit
+                SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         return """
@@ -75,24 +72,22 @@ object QueryUtils {
 
     fun prepareQueryForEntitiesWithoutAuthentication(
         queryParams: QueryParams,
-        offset: Int,
-        limit: Int,
         contexts: List<String>
     ): String {
-        val (id, expandedType, idPattern, q, expandedAttrs) = queryParams
-        val qClause = q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(expandedAttrs)
 
-        val matchEntityClause = buildMatchEntityClause(expandedType)
-        val idClause = buildIdClause(id)
-        val idPatternClause = buildIdPatternClause(idPattern)
+        val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
+        val attrsClause = buildInnerAttrsFilterQuery(queryParams.expandedAttrs)
+
+        val matchEntityClause = buildMatchEntityClause(queryParams.expandedType)
+        val idClause = buildIdClause(queryParams.id)
+        val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
             .filter { it.isNotEmpty() }
             .joinToString(separator = " AND ", prefix = " WHERE ")
             .takeIf { it.trim() != "WHERE" } ?: ""
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity) as count
             """.trimIndent()
@@ -102,7 +97,7 @@ object QueryUtils {
             UNWIND entitiesIds as entityId
             RETURN entityId as id, count
             ORDER BY id
-            SKIP $offset LIMIT $limit
+            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         return """

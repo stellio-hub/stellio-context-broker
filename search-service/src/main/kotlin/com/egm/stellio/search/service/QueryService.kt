@@ -7,6 +7,7 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
+import com.egm.stellio.shared.util.parseAndExpandRequestParameter
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.stereotype.Service
@@ -58,10 +59,10 @@ class QueryService(
         accessRightFilter: () -> String?
     ): Pair<List<CompactedJsonLdEntity>, Int> {
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
-            temporalEntitiesQuery.limit,
-            temporalEntitiesQuery.offset,
-            temporalEntitiesQuery.ids,
-            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.queryParams.limit,
+            temporalEntitiesQuery.queryParams.offset,
+            temporalEntitiesQuery.queryParams.id?.toSet() ?: emptySet(),
+            parseAndExpandRequestParameter(temporalEntitiesQuery.queryParams.expandedType, contextLink),
             temporalEntitiesQuery.temporalQuery.expandedAttrs,
             accessRightFilter
         ).awaitFirstOrDefault(emptyList())
@@ -89,8 +90,8 @@ class QueryService(
                 .toList()
 
         val count = temporalEntityAttributeService.getCountForEntities(
-            temporalEntitiesQuery.ids,
-            temporalEntitiesQuery.types,
+            temporalEntitiesQuery.queryParams.id?.toSet() ?: emptySet(),
+            parseAndExpandRequestParameter(temporalEntitiesQuery.queryParams.expandedType, contextLink),
             temporalEntitiesQuery.temporalQuery.expandedAttrs,
             accessRightFilter
         ).awaitFirst()

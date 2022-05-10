@@ -22,29 +22,21 @@ fun parseAndCheckQueryParams(
     val withAudit = hasValueInOptionsParam(
         Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val ids = parseRequestParameter(queryParams.getFirst(QUERY_PARAM_ID)).map { it.toUri() }.toSet()
-    val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val temporalQuery = buildTemporalQuery(queryParams, contextLink)
-    val (offset, limit) = extractAndValidatePaginationParameters(
+    val queryParams = parseAndCheckQueryParams(
+        Pair(pagination.limitDefault, pagination.limitMax),
         queryParams,
-        pagination.limitDefault,
-        pagination.limitMax,
-        count
+        contextLink
     )
 
-    if (types.isEmpty() && temporalQuery.expandedAttrs.isEmpty())
+    if (queryParams.expandedType == null && temporalQuery.expandedAttrs.isEmpty())
         throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     return TemporalEntitiesQuery(
-        ids = ids,
-        types = types,
+        queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
-        withAudit = withAudit,
-        limit = limit,
-        offset = offset,
-        count = count
+        withAudit = withAudit
     )
 }
 

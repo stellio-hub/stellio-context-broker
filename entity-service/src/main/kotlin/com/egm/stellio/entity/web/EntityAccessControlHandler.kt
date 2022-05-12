@@ -201,7 +201,7 @@ class EntityAccessControlHandler(
                 ALL_IAM_RIGHTS.contains(it.name)
         }
         val invalidAttributesDetails = invalidAttributes.map {
-            NotUpdatedDetails(it.compactName, "Not a relationship or not an authorized relationship name")
+            NotUpdatedDetails(it.name, "Not a relationship or not an authorized relationship name")
         }
 
         val (authorizedInstances, unauthorizedInstances) = validAttributes

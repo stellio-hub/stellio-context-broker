@@ -28,6 +28,7 @@ object AuthContextModel {
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Group"
     const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Client"
     val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
+    val IAM_COMPACTED_TYPES = setOf("User", "Group", "Client")
 
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_SID = "serviceAccountId"

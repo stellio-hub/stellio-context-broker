@@ -155,7 +155,12 @@ class EntityAccessControlHandlerTests {
             .exchange()
             .expectStatus().isNoContent
 
-        verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
+        verify(exactly = 3) {
+            authorizationService.userIsAdminOfEntity(
+                match { listOf(entityUri1, entityUri2, entityUri3).contains(it) },
+                eq(sub)
+            )
+        }
 
         verify {
             entityService.appendEntityRelationship(
@@ -177,6 +182,7 @@ class EntityAccessControlHandlerTests {
                 eq(false)
             )
         }
+        confirmVerified(authorizationService, entityService)
     }
 
     @Test
@@ -236,6 +242,7 @@ class EntityAccessControlHandlerTests {
                 eq(false)
             )
         }
+        confirmVerified(entityService)
     }
 
     @Test
@@ -268,11 +275,11 @@ class EntityAccessControlHandlerTests {
                         "updated":[],
                         "notUpdated":[
                           {
-                            "attributeName":"invalidRelationshipName",
+                            "attributeName":"https://uri.etsi.org/ngsi-ld/default-context/invalidRelationshipName",
                             "reason":"Not a relationship or not an authorized relationship name"
                           },
                           {
-                            "attributeName":"aProperty",
+                            "attributeName":"https://uri.etsi.org/ngsi-ld/default-context/aProperty",
                             "reason":"Not a relationship or not an authorized relationship name"
                           }
                         ]
@@ -281,6 +288,44 @@ class EntityAccessControlHandlerTests {
             )
 
         verify { entityService.appendEntityRelationship(any(), any(), any(), any()) wasNot Called }
+        confirmVerified(entityService)
+    }
+
+    @Test
+    fun `it should not do anything if authorization context is missing when adding rights on entities`() {
+        val requestPayload =
+            """
+            {
+                "rCanRead": {
+                    "type": "Relationship",
+                    "object": "$entityUri1"
+                },
+                "@context": ["$NGSILD_CORE_CONTEXT"]
+            }
+            """.trimIndent()
+
+        webClient.post()
+            .uri("/ngsi-ld/v1/entityAccessControl/$subjectId/attrs")
+            .bodyValue(requestPayload)
+            .exchange()
+            .expectStatus().isEqualTo(HttpStatus.MULTI_STATUS)
+            .expectBody().json(
+                """
+                    {
+                        "notUpdated":[
+                          {
+                            "attributeName":"https://uri.etsi.org/ngsi-ld/default-context/rCanRead",
+                            "reason":"Not a relationship or not an authorized relationship name"
+                          }
+                        ]
+                    }
+                """
+            )
+
+        verify {
+            entityService.appendEntityRelationship(any(), any(), any(), any()) wasNot Called
+        }
+        confirmVerified(entityService)
     }
 
     @Test
@@ -309,6 +354,7 @@ class EntityAccessControlHandlerTests {
                 eq(listOf(NGSILD_AUTHORIZATION_CONTEXT))
             )
         }
+        confirmVerified(authorizationService, entityEventService)
     }
 
     @Test
@@ -321,6 +367,7 @@ class EntityAccessControlHandlerTests {
             .expectStatus().isForbidden
 
         verify { authorizationService.userIsAdminOfEntity(eq(entityUri1), eq(sub)) }
+        confirmVerified(authorizationService)
     }
 
     @Test

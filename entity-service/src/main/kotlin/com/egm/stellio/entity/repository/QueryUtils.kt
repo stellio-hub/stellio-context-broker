@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.repository
 
+
 import com.egm.stellio.entity.util.*
+import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_PROP_SAP
@@ -18,8 +20,8 @@ object QueryUtils {
         contexts: List<String>
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(queryParams.expandedAttrs)
-        val matchEntityClause = buildMatchEntityClause(queryParams.expandedType, prefix = "")
+        val attrsClause = buildInnerAttrsFilterQuery(queryParams.attrs)
+        val matchEntityClause = buildMatchEntityClause(queryParams.type, prefix = "")
         val idClause = buildIdClause(queryParams.id)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -76,9 +78,9 @@ object QueryUtils {
     ): String {
 
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(queryParams.expandedAttrs)
+        val attrsClause = buildInnerAttrsFilterQuery(queryParams.attrs)
 
-        val matchEntityClause = buildMatchEntityClause(queryParams.expandedType)
+        val matchEntityClause = buildMatchEntityClause(type = queryParams.type)
         val idClause = buildIdClause(queryParams.id)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -107,11 +109,11 @@ object QueryUtils {
             """
     }
 
-    fun buildMatchEntityClause(expandedType: String?, prefix: String = "MATCH"): String =
-        if (expandedType == null)
+    private fun buildMatchEntityClause(type: ExpandedTerm?, prefix: String = "MATCH"): String =
+        if (type == null)
             "$prefix (entity:Entity)"
         else
-            "$prefix (entity:`$expandedType`)"
+            "$prefix (entity:`$type`)"
 
     private fun buildIdClause(id: List<URI>?): String {
         return if (id != null) {
@@ -166,16 +168,16 @@ object QueryUtils {
             .replace(";", " AND ")
             .replace("|", " OR ")
 
-    private fun buildInnerAttrsFilterQuery(expandedAttrs: Set<String>): String =
-        expandedAttrs.joinToString(
+    private fun buildInnerAttrsFilterQuery(attrs: Set<ExpandedTerm>): String =
+        attrs.joinToString(
             separator = " AND "
-        ) { expandedAttr ->
+        ) { attrs ->
             """
                EXISTS {
                    MATCH (entity)
                    WHERE (
-                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$expandedAttr' })) OR 
-                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$expandedAttr`))
+                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$attrs' })) OR 
+                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$attrs`))
                    ) 
                }
             """.trimIndent()

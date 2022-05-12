@@ -3,19 +3,24 @@ package com.egm.stellio.shared.util
 import com.egm.stellio.shared.model.QueryParams
 import org.springframework.util.MultiValueMap
 
-fun parseAndCheckQueryParams(
+fun parseAndCheckParams(
     pagination: Pair<Int, Int>,
     queryParams: MultiValueMap<String, String>,
     contextLink: String
 ): QueryParams {
 
     val ids = queryParams.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()
-    val type = queryParams.getFirst(QUERY_PARAM_TYPE)
+    val type = queryParams.getFirst(QUERY_PARAM_TYPE)?.let {
+        JsonLdUtils.expandJsonLdTerm(it, contextLink)
+    }
     val idPattern = queryParams.getFirst(QUERY_PARAM_ID_PATTERN)
-    val q = queryParams.getFirst(QUERY_PARAM_FILTER)
+    /**
+     * Decoding query parameters is not supported by default so a call to a decode function was added query
+     * with the right parameters values
+     */
+    val q = queryParams.getFirst(QUERY_PARAM_FILTER)?.decode()
     val count = queryParams.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-    val attrs = queryParams.getFirst(QUERY_PARAM_ATTRS)
-    val expandedAttrs = parseAndExpandRequestParameter(attrs, contextLink)
+    val attrs = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_ATTRS), contextLink)
     val includeSysAttrs = queryParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
         .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
     val useSimplifiedRepresentation = queryParams.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
@@ -29,13 +34,13 @@ fun parseAndCheckQueryParams(
 
     return QueryParams(
         id = ids,
-        expandedType = type,
+        type = type,
         idPattern = idPattern,
         q = q,
         limit = limit,
         offset = offset,
         count = count,
-        expandedAttrs = expandedAttrs,
+        attrs = attrs,
         includeSysAttrs = includeSysAttrs,
         useSimplifiedRepresentation = useSimplifiedRepresentation
     )

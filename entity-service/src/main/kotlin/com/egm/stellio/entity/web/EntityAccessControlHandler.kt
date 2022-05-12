@@ -389,13 +389,13 @@ class EntityAccessControlHandler(
             .map {
                 // do a first search without asking for a result in order to get the total count
                 val total = entityService.searchEntities(
-                    QueryParams(expandedType = it, offset = 0, limit = 0),
+                    QueryParams(type = it, offset = 0, limit = 0),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
                 entityService.searchEntities(
-                    QueryParams(expandedType = it, offset = 0, limit = total),
+                    QueryParams(type = it, offset = 0, limit = total),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 )
@@ -497,13 +497,13 @@ class EntityAccessControlHandler(
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body("User is not authorized to sync user referential")
         val total = entityService.searchEntities(
-            QueryParams(expandedAttrs = setOf(AUTH_PROP_SAP), offset = 0, limit = 0),
+            QueryParams(attrs = setOf(AUTH_PROP_SAP), offset = 0, limit = 0),
             sub,
             NGSILD_AUTHORIZATION_CONTEXT
         ).first
         logger.debug("Counted a total of $total entities for attribute $AUTH_PROP_SAP")
         entityService.searchEntities(
-            QueryParams(expandedAttrs = setOf(AUTH_PROP_SAP), offset = 0, limit = total),
+            QueryParams(attrs = setOf(AUTH_PROP_SAP), offset = 0, limit = total),
             sub,
             NGSILD_AUTHORIZATION_CONTEXT
         ).second

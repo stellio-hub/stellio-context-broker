@@ -77,20 +77,18 @@ class SubscriptionHandler(
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE, JSON_LD_CONTENT_TYPE])
     suspend fun getSubscriptions(
         @RequestHeader httpHeaders: HttpHeaders,
-        @RequestParam params: MultiValueMap<String, String>,
-        @RequestParam options: Optional<String>
+        @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
-        val queryParams = parseAndCheckQueryParams(
+        val queryParams = parseAndCheckParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,
             contextLink
         )
-        val includeSysAttrs = options.filter { it.contains("sysAttrs") }.isPresent
         val subscriptions = subscriptionService.getSubscriptions(queryParams.limit, queryParams.offset, sub)
-            .collectList().awaitFirst().toJson(contextLink, mediaType, includeSysAttrs)
+            .collectList().awaitFirst().toJson(contextLink, mediaType, queryParams.includeSysAttrs)
         val subscriptionsCount = subscriptionService.getSubscriptionsCount(sub).awaitFirst()
         val prevAndNextLinks = getPagingLinks(
             "/ngsi-ld/v1/subscriptions",

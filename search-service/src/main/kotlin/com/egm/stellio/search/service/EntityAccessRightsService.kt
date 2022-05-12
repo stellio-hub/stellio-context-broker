@@ -1,10 +1,15 @@
 package com.egm.stellio.search.service
 
-import arrow.core.Option
+import arrow.core.*
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.EntityAccessRights
+import com.egm.stellio.shared.model.APIException
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AccessRight.*
+import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
+import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
+import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.Sub
 import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
@@ -23,7 +28,8 @@ class EntityAccessRightsService(
     private val applicationProperties: ApplicationProperties,
     private val databaseClient: DatabaseClient,
     private val r2dbcEntityTemplate: R2dbcEntityTemplate,
-    private val subjectReferentialService: SubjectReferentialService
+    private val subjectReferentialService: SubjectReferentialService,
+    private val temporalEntityAttributeService: TemporalEntityAttributeService
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -96,6 +102,39 @@ class EntityAccessRightsService(
 
     fun canWriteEntity(sub: Option<Sub>, entityId: URI): Mono<Boolean> =
         checkHasAccessRight(sub, entityId, listOf(R_CAN_WRITE, R_CAN_ADMIN))
+
+    suspend fun hasRightOnEntity(
+        sub: Option<Sub>,
+        entityId: URI,
+        specificAccessPolicies: List<AuthContextModel.SpecificAccessPolicy>,
+        accessRights: List<AccessRight>
+    ): Either<APIException, Unit> {
+        val hasRight = Mono.just(!applicationProperties.authentication.enabled)
+            .flatMap {
+                if (it) Mono.just(true)
+                else subjectReferentialService.hasStellioAdminRole(sub)
+            }
+            .flatMap {
+                if (it) Mono.just(true)
+                else temporalEntityAttributeService.hasSpecificAccessPolicies(
+                    entityId,
+                    specificAccessPolicies
+                )
+            }
+            .flatMap {
+                if (it) Mono.just(true)
+                else subjectReferentialService.getSubjectAndGroupsUUID(sub).flatMap { uuids ->
+                    // ... and check if it has the required role with at least one of them
+                    hasAccessRightOnEntity(uuids, entityId, accessRights)
+                }
+                    .switchIfEmpty { Mono.just(false) }
+            }
+        return if (!hasRight.awaitFirst())
+            if (accessRights.contains(R_CAN_READ))
+                AccessDeniedException("User forbidden read access to entity $entityId").left()
+            else AccessDeniedException("User forbidden write access to entity $entityId").left()
+        else Unit.right()
+    }
 
     private fun checkHasAccessRight(sub: Option<Sub>, entityId: URI, accessRights: List<AccessRight>): Mono<Boolean> =
         Mono.just(!applicationProperties.authentication.enabled)

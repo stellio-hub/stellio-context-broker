@@ -3,6 +3,8 @@ package com.egm.stellio.search.service
 import arrow.core.Some
 import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.search.support.WithTimescaleContainer
+import com.egm.stellio.shared.util.AccessRight
+import com.egm.stellio.shared.util.AuthContextModel
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -10,11 +12,9 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -34,6 +34,9 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @MockkBean(relaxed = true)
     private lateinit var subjectReferentialService: SubjectReferentialService
+
+    @MockkBean
+    private lateinit var temporalEntityAttributeService: TemporalEntityAttributeService
 
     private val subjectUuid = "0768A6D5-D87B-4209-9A22-8C40A8961A79"
     private val groupUuid = "220FC854-3609-404B-BC77-F2DFE332B27B"
@@ -261,5 +264,114 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should allow user who have read right on entity`() {
+        val specificAccessPolicies =
+            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
+
+        entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId).block()
+
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
+
+        runBlocking {
+            entityAccessRightsService.hasRightOnEntity(
+                Some(subjectUuid),
+                entityId,
+                specificAccessPolicies,
+                accessRight
+            ).fold(
+                { fail("it should have authorized user") },
+                { }
+            )
+        }
+    }
+
+    @Test
+    fun `it should allow user who have write right on entity`() {
+        val specificAccessPolicies =
+            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+        val accessRight = listOf(AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
+
+        entityAccessRightsService.setWriteRoleOnEntity(subjectUuid, entityId).block()
+
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
+
+        runBlocking {
+            entityAccessRightsService.hasRightOnEntity(
+                Some(subjectUuid),
+                entityId,
+                specificAccessPolicies,
+                accessRight
+            ).fold(
+                { fail("it should have authorized user") },
+                { }
+            )
+        }
+    }
+    @Test
+    fun `it should not allow user who have not read right on entity and entity has not a specific access policy`() {
+        val specificAccessPolicies =
+            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
+
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
+
+        runBlocking {
+            entityAccessRightsService.hasRightOnEntity(
+                Some(subjectUuid),
+                entityId,
+                specificAccessPolicies,
+                accessRight
+            ).fold(
+                { assertEquals("User forbidden read access to entity $entityId", it.message) },
+                { fail("it should not have authorized user") }
+            )
+        }
+    }
+
+    @Test
+    fun `it should not allow user who have not write right on entity and entity has not a specific access policy`() {
+        val specificAccessPolicies =
+            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+        val accessRight = listOf(AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
+
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
+
+        runBlocking {
+            entityAccessRightsService.hasRightOnEntity(
+                Some(subjectUuid),
+                entityId,
+                specificAccessPolicies,
+                accessRight
+            ).fold(
+                { assertEquals("User forbidden write access to entity $entityId", it.message) },
+                { fail("it should not have authorized user") }
+            )
+        }
+    }
+    @Test
+    fun `it should allow user it has no right on entity but entity has a specific access policy`() {
+        val specificAccessPolicies =
+            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
+        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
+
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
+        runBlocking {
+            entityAccessRightsService.hasRightOnEntity(
+                Some(subjectUuid),
+                entityId,
+                specificAccessPolicies,
+                accessRight
+            ).fold(
+                { fail("it should have authorized user") },
+                { }
+            )
+
+            verify { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) wasNot Called }
+        }
     }
 }

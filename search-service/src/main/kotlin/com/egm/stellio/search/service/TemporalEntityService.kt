@@ -44,7 +44,7 @@ class TemporalEntityService {
 
         return mapOf(
             "id" to entityId,
-            "type" to JsonLdUtils.compactTerm(attributeAndResultsMap.keys.first().type, contexts)
+            "type" to attributeAndResultsMap.keys.first().types.map { JsonLdUtils.compactTerm(it, contexts) }
         ).plus(temporalAttributes)
     }
 

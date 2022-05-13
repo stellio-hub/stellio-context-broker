@@ -68,6 +68,16 @@ class EntityEventServiceTests {
     }
 
     @Test
+    fun `it should send an access right event to IAM topic`() {
+        entityEventService
+            .composeTopicName("User", null)
+            .fold(
+                { fail("it should have succeeded") },
+                { assertEquals("cim.iam.rights", it) }
+            )
+    }
+
+    @Test
     fun `it should send normal attributes events to entity topic`() {
         entityEventService
             .composeTopicName("Specie", "someAttribute")

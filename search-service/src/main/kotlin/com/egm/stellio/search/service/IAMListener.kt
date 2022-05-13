@@ -192,7 +192,7 @@ class IAMListener(
                     entityId.toUri(),
                     accessRight.value
                 ).subscribe()
-            is None -> logger.warn("Unable to extract a known access right from $accessRight")
+            is None -> logger.warn("Unable to extract a known access right from ${attributeAppendEvent.attributeName}")
         }
     }
 

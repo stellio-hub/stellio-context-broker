@@ -1,13 +1,11 @@
 package com.egm.stellio.entity.service
 
+import arrow.core.Either
 import arrow.core.Option
+import arrow.core.left
+import arrow.core.right
 import com.egm.stellio.entity.model.*
 import com.egm.stellio.entity.repository.*
-import com.egm.stellio.entity.repository.AttributeSubjectNode
-import com.egm.stellio.entity.repository.EntityRepository
-import com.egm.stellio.entity.repository.EntitySubjectNode
-import com.egm.stellio.entity.repository.Neo4jRepository
-import com.egm.stellio.entity.repository.PartialEntityRepository
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.Sub
 import com.egm.stellio.shared.util.entityNotFoundMessage
@@ -147,6 +145,11 @@ class EntityService(
 
     fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
 
+    fun checkExistence(entityId: URI): Either<APIException, Unit> =
+        if (exists(entityId))
+            Unit.right()
+        else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
+
     fun existsAsPartial(entityId: URI): Boolean = partialEntityRepository.existsById(entityId)
 
     private fun serializeEntityProperties(
@@ -230,6 +233,8 @@ class EntityService(
     }
 
     fun getEntityCoreProperties(entityId: URI) = entityRepository.getEntityCoreById(entityId.toString())!!
+
+    fun getEntityType(entityId: URI): ExpandedTerm = getEntityCoreProperties(entityId).type[0]
 
     /** @param includeSysAttrs true if createdAt and modifiedAt have to be displayed in the entity
      */

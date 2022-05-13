@@ -69,7 +69,7 @@ class SubjectReferentialService(
         databaseClient
             .sql(
                 """
-                SELECT subject_id, groups_memberships
+                SELECT subject_id, service_account_id, groups_memberships
                 FROM subject_referential
                 WHERE (subject_id = :subject_id OR service_account_id = :subject_id)
                 """.trimIndent()
@@ -78,8 +78,11 @@ class SubjectReferentialService(
             .fetch()
             .one()
             .map {
-                ((it["groups_memberships"] as Array<Sub>?)?.toList() ?: emptyList())
+                val subs = ((it["groups_memberships"] as Array<Sub>?)?.toList() ?: emptyList())
                     .plus(it["subject_id"] as Sub)
+                if (it["service_account_id"] != null)
+                    subs.plus(it["service_account_id"] as Sub)
+                else subs
             }
 
     fun hasStellioAdminRole(sub: Option<Sub>): Mono<Boolean> =

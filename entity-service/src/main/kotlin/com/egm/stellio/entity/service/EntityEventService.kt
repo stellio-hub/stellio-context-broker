@@ -17,7 +17,7 @@ import com.egm.stellio.shared.model.EntityEvent
 import com.egm.stellio.shared.model.EntityReplaceEvent
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_SAP
-import com.egm.stellio.shared.util.AuthContextModel.IAM_TYPES
+import com.egm.stellio.shared.util.AuthContextModel.IAM_COMPACTED_TYPES
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactAndSerialize
 import com.egm.stellio.shared.util.JsonLdUtils.compactFragment
@@ -65,7 +65,7 @@ class EntityEventService(
             )
 
     private fun entityChannelName(entityType: String, attributeName: String?) =
-        if (IAM_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)
+        if (IAM_COMPACTED_TYPES.contains(entityType) || attributeName?.equals(AUTH_TERM_SAP) == true)
             "cim.iam.rights"
         else
             "cim.entity.$entityType"

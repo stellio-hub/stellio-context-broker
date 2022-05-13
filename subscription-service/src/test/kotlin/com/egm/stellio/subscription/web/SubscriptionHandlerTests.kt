@@ -76,6 +76,7 @@ class SubscriptionHandlerTests {
         verify { subscriptionService.exists(subscription.id) }
         verify { subscriptionService.isCreatorOf(subscription.id, sub) }
         verify { subscriptionService.getById(subscription.id) }
+        confirmVerified()
     }
 
     @Test

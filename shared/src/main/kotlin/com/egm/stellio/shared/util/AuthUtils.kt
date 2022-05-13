@@ -1,10 +1,6 @@
 package com.egm.stellio.shared.util
 
-import arrow.core.None
-import arrow.core.Option
-import arrow.core.Some
-import arrow.core.getOrElse
-import arrow.core.toOption
+import arrow.core.*
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_ADMIN
 import com.egm.stellio.shared.util.GlobalRole.STELLIO_CREATOR
@@ -32,6 +28,7 @@ object AuthContextModel {
     const val GROUP_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Group"
     const val CLIENT_TYPE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + "Client"
     val IAM_TYPES = setOf(USER_TYPE, GROUP_TYPE, CLIENT_TYPE)
+    val IAM_COMPACTED_TYPES = setOf("User", "Group", "Client")
 
     const val AUTH_TERM_SUB = "sub"
     const val AUTH_TERM_SID = "serviceAccountId"
@@ -42,6 +39,8 @@ object AuthContextModel {
     const val AUTH_PROP_USERNAME: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_USERNAME
     const val AUTH_TERM_SAP = "specificAccessPolicy"
     const val AUTH_PROP_SAP = AUTHORIZATION_ONTOLOGY + AUTH_TERM_SAP
+    const val AUTH_TERM_RIGHT = "right"
+    const val AUTH_PROP_RIGHT: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_RIGHT
 
     const val AUTH_TERM_IS_MEMBER_OF = "isMemberOf"
     const val AUTH_REL_IS_MEMBER_OF: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_IS_MEMBER_OF
@@ -51,6 +50,7 @@ object AuthContextModel {
     const val AUTH_REL_CAN_WRITE: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_WRITE
     const val AUTH_TERM_CAN_ADMIN = "rCanAdmin"
     const val AUTH_REL_CAN_ADMIN: ExpandedTerm = AUTHORIZATION_ONTOLOGY + AUTH_TERM_CAN_ADMIN
+    val ALL_IAM_RIGHTS_TERMS = setOf(AUTH_TERM_CAN_READ, AUTH_TERM_CAN_WRITE, AUTH_TERM_CAN_ADMIN)
     val ALL_IAM_RIGHTS = setOf(AUTH_REL_CAN_READ, AUTH_REL_CAN_WRITE, AUTH_REL_CAN_ADMIN)
     val ADMIN_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_ADMIN)
     val WRITE_RIGHTS: Set<String> = setOf(AUTH_REL_CAN_WRITE).plus(ADMIN_RIGHTS)

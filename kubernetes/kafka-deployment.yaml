@@ -5,6 +5,7 @@ metadata:
     app: stellio-kafka
   name: stellio-kafka
 spec:
+  type: NodePort
   ports:
     - name: "9092"
       port: 9092
@@ -37,6 +38,11 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: KAFKA_LISTENERS
+          valueFrom:
+            configMapKeyRef:
+              name: stellio-conf
+              key: KAFKA_LISTENERS
         - name: KAFKA_ADVERTISED_LISTENERS
           value: INTERNAL://$(MY_POD_IP):29092,EXTERNAL://stellio-kafka:9092
         - name: KAFKA_BROKER_ID

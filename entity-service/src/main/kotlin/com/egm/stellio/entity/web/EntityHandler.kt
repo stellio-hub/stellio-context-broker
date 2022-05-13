@@ -86,10 +86,6 @@ class EntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
         val sub = getSubFromSecurityContext()
 
-        /**
-         * Decoding query parameters is not supported by default so a call to a decode function was added query
-         * with the right parameters values
-         */
         val queryParams = parseAndCheckParams(
             Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
             params,

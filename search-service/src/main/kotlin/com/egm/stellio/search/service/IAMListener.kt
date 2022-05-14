@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.TextNode
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import java.net.URI
 
 @Component
 class IAMListener(
@@ -52,6 +53,7 @@ class IAMListener(
         logger.debug("Received IAM rights event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is AttributeAppendEvent -> handleAttributeAppendOnRights(authorizationEvent)
+            is AttributeReplaceEvent -> handleAttributeReplaceOnRights(authorizationEvent)
             is AttributeDeleteEvent -> handleAttributeDeleteOnRights(authorizationEvent)
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
@@ -62,7 +64,12 @@ class IAMListener(
         logger.debug("Received IAM replay event: $content")
         when (val authorizationEvent = JsonUtils.deserializeAs<EntityEvent>(content)) {
             is EntityCreateEvent -> createFullSubjectReferential(authorizationEvent)
-            is AttributeAppendEvent -> addEntityToSubject(authorizationEvent)
+            is AttributeAppendEvent ->
+                addEntityToSubject(
+                    authorizationEvent.operationPayload,
+                    authorizationEvent.attributeName,
+                    authorizationEvent.entityId
+                )
             else -> logger.info("Authorization event ${authorizationEvent.operationType} not handled.")
         }
     }
@@ -164,17 +171,32 @@ class IAMListener(
         ).subscribe()
     }
 
-    private fun handleAttributeAppendOnRights(attributeAppendEvent: AttributeAppendEvent) {
-        if (attributeAppendEvent.attributeName == AUTH_TERM_SAP) {
-            updateSpecificAccessPolicy(attributeAppendEvent)
+    private fun handleAttributeReplaceOnRights(attributeReplaceEvent: AttributeReplaceEvent) {
+        if (attributeReplaceEvent.attributeName == AUTH_TERM_SAP) {
+            updateSpecificAccessPolicy(attributeReplaceEvent.operationPayload, attributeReplaceEvent.entityId)
         } else {
-            addEntityToSubject(attributeAppendEvent)
+            addEntityToSubject(
+                attributeReplaceEvent.operationPayload,
+                attributeReplaceEvent.attributeName,
+                attributeReplaceEvent.entityId
+            )
         }
     }
 
-    private fun updateSpecificAccessPolicy(attributeAppendEvent: AttributeAppendEvent) {
-        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
-        val entityId = attributeAppendEvent.entityId
+    private fun handleAttributeAppendOnRights(attributeAppendEvent: AttributeAppendEvent) {
+        if (attributeAppendEvent.attributeName == AUTH_TERM_SAP) {
+            updateSpecificAccessPolicy(attributeAppendEvent.operationPayload, attributeAppendEvent.entityId)
+        } else {
+            addEntityToSubject(
+                attributeAppendEvent.operationPayload,
+                attributeAppendEvent.attributeName,
+                attributeAppendEvent.entityId
+            )
+        }
+    }
+
+    private fun updateSpecificAccessPolicy(operationPayload: String, entityId: URI) {
+        val operationPayloadNode = mapper.readTree(operationPayload)
         val policy = SpecificAccessPolicy.valueOf(operationPayloadNode["value"].asText())
         temporalEntityAttributeService.updateSpecificAccessPolicy(entityId, policy)
             .subscribe {
@@ -182,17 +204,17 @@ class IAMListener(
             }
     }
 
-    private fun addEntityToSubject(attributeAppendEvent: AttributeAppendEvent) {
-        val operationPayloadNode = mapper.readTree(attributeAppendEvent.operationPayload)
+    private fun addEntityToSubject(operationPayload: String, attributeName: String, subjectId: URI) {
+        val operationPayloadNode = mapper.readTree(operationPayload)
         val entityId = operationPayloadNode["object"].asText()
-        when (val accessRight = AccessRight.forAttributeName(attributeAppendEvent.attributeName)) {
+        when (val accessRight = AccessRight.forAttributeName(attributeName)) {
             is Some ->
                 entityAccessRightsService.setRoleOnEntity(
-                    attributeAppendEvent.entityId.extractSub(),
+                    subjectId.extractSub(),
                     entityId.toUri(),
                     accessRight.value
                 ).subscribe()
-            is None -> logger.warn("Unable to extract a known access right from ${attributeAppendEvent.attributeName}")
+            is None -> logger.warn("Unable to extract a known access right from $attributeName")
         }
     }
 

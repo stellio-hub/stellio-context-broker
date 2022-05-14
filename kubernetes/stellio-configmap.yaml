@@ -1,7 +1,7 @@
 apiVersion: v1
 data:
   ENVIRONMENT: docker
-  NEO4J_ALLOW_UPGRADE: "false"
+  NEO4J_ALLOW_UPGRADE: "true"
   NEO4J_DEFAULT_DATABASE: stellio
   NEO4J_PASSWORD: neo4j_password
   NEO4J_SECURITY_PROCEDURES_UNRESTRICTED: "apoc.*"
@@ -17,6 +17,7 @@ data:
   STELLIO_SUBSCRIPTION_DB_PASSWORD: stellio_subscription_db_password
   STELLIO_SUBSCRIPTION_DB_USER: stellio_subscription
   KAFKA_URL: stellio-kafka:9092
+  KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092
 kind: ConfigMap
 metadata:
   name: stellio-conf

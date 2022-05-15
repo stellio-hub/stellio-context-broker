@@ -2,8 +2,14 @@ package com.egm.stellio.search.web
 
 import arrow.core.Some
 import com.egm.stellio.search.config.WebSecurityTestConfig
-import com.egm.stellio.search.model.*
-import com.egm.stellio.search.service.*
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntitiesQuery
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityAccessRightsService
+import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.BadRequestDataException
@@ -27,7 +33,7 @@ import org.springframework.web.reactive.function.BodyInserters
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @ActiveProfiles("test")
 @WebFluxTest(TemporalEntityHandler::class)

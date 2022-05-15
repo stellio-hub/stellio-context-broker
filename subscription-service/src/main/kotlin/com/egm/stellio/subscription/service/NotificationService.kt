@@ -1,6 +1,8 @@
 package com.egm.stellio.subscription.service
 
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.JsonLdEntity
+import com.egm.stellio.shared.model.NgsiLdEntity
+import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.JSON_LD_MEDIA_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.compact
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity

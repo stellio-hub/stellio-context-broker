@@ -1,12 +1,8 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.util.toUri
-import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EndpointInfo
-import com.egm.stellio.subscription.model.GeoQuery
-import com.egm.stellio.subscription.model.NotificationParams
-import com.egm.stellio.subscription.model.NotificationParams.*
-import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.*
+import com.egm.stellio.subscription.model.NotificationParams.FormatType
 import java.time.Instant
 import java.time.ZoneOffset
 

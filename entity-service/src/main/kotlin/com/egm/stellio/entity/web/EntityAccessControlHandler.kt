@@ -293,7 +293,7 @@ class EntityAccessControlHandler(
                 .body("User is not authorized to update access policy on entity $entityId")
 
         val body = requestBody.awaitFirst()
-        val expandedPayload = JsonLdUtils.expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
+        val expandedPayload = expandJsonLdFragment(AUTH_TERM_SAP, body, COMPOUND_AUTHZ_CONTEXT)
         val ngsiLdAttributes = parseToNgsiLdAttributes(expandedPayload)
         return when (val checkResult = checkSpecificAccessPolicyPayload(ngsiLdAttributes)) {
             is Invalid -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(checkResult.value)

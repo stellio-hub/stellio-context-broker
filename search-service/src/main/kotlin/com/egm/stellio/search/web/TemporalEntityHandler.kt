@@ -1,7 +1,10 @@
 package com.egm.stellio.search.web
 
 import com.egm.stellio.search.config.ApplicationProperties
-import com.egm.stellio.search.service.*
+import com.egm.stellio.search.service.AttributeInstanceService
+import com.egm.stellio.search.service.EntityAccessRightsService
+import com.egm.stellio.search.service.QueryService
+import com.egm.stellio.search.service.TemporalEntityAttributeService
 import com.egm.stellio.search.util.buildTemporalQuery
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.AccessDeniedException
@@ -16,7 +19,6 @@ import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonLdUtils.expandValueAsListOfMap
 import com.egm.stellio.shared.util.JsonUtils.deserializeAsMap
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.getSubFromSecurityContext
 import kotlinx.coroutines.reactive.awaitFirst
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus

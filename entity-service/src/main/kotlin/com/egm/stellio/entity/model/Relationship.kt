@@ -92,7 +92,7 @@ data class Relationship(
             )
         }
 
-        resultEntity[JsonLdUtils.NGSILD_RELATIONSHIP_HAS_OBJECT] = mapOf(
+        resultEntity[NGSILD_RELATIONSHIP_HAS_OBJECT] = mapOf(
             JsonLdUtils.JSONLD_ID to objectId.toString()
         )
         resultEntity[JsonLdUtils.JSONLD_TYPE] = JsonLdUtils.NGSILD_RELATIONSHIP_TYPE.uri

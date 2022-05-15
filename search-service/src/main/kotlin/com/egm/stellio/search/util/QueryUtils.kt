@@ -9,7 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
 import org.springframework.util.MultiValueMap
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.Optional
 
 fun parseAndCheckQueryParams(
     pagination: ApplicationProperties.Pagination,

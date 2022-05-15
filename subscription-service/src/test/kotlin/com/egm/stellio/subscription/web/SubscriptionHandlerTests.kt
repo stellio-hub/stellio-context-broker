@@ -2,7 +2,7 @@ package com.egm.stellio.subscription.web
 
 import arrow.core.Some
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.model.InternalErrorException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_EGM_CONTEXT

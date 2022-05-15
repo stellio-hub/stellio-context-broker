@@ -2,7 +2,7 @@ package com.egm.stellio.entity.model
 
 import com.egm.stellio.shared.util.toUri
 import java.net.URI
-import java.util.*
+import java.util.UUID
 
 class AttributeList(
     val id: URI = "urn:ngsi-ld:AttributeList:${UUID.randomUUID()}".toUri(),

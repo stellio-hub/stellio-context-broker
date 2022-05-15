@@ -1,7 +1,6 @@
 package com.egm.stellio.subscription.utils
 
 import arrow.core.Either
-import arrow.core.computations.either
 import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.shared.model.APIException

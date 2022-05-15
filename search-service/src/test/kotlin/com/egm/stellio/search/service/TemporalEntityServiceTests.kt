@@ -1,13 +1,12 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.*
-import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
+import com.egm.stellio.search.model.AttributeInstanceResult
+import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
+import com.egm.stellio.search.model.TemporalEntityAttribute
+import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.JsonUtils.serializeObject
-import com.egm.stellio.shared.util.assertJsonPayloadsAreEqual
-import com.egm.stellio.shared.util.loadSampleData
-import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.toUri
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest

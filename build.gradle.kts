@@ -103,6 +103,7 @@ subprojects {
     }
 
     ktlint {
+        disabledRules.set(setOf("experimental:multiline-if-else", "no-wildcard-imports"))
         reporters {
             reporter(ReporterType.CHECKSTYLE)
             reporter(ReporterType.PLAIN)

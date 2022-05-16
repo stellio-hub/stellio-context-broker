@@ -2,13 +2,16 @@ package com.egm.stellio.entity.web
 
 import com.egm.stellio.entity.config.WebSecurityTestConfig
 import com.egm.stellio.entity.model.*
-import com.egm.stellio.entity.model.AttributeType
 import com.egm.stellio.entity.service.EntityTypeService
 import com.egm.stellio.shared.WithMockCustomUser
-import com.egm.stellio.shared.util.*
+import com.egm.stellio.shared.util.APIC_COMPOUND_CONTEXT
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
+import com.egm.stellio.shared.util.buildContextLinkHeader
+import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.*
+import io.mockk.every
+import io.mockk.mockkClass
+import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest

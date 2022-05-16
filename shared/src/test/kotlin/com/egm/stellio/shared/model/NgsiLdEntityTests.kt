@@ -5,11 +5,7 @@ import com.egm.stellio.shared.util.JsonLdUtils.JSONLD_VALUE_KW
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.toUri
-import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.time.ZonedDateTime

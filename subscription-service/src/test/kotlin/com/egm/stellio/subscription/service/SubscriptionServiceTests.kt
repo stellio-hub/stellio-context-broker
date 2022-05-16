@@ -35,7 +35,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest
 @ActiveProfiles("test")

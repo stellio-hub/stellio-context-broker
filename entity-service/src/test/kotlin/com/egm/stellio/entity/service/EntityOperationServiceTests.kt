@@ -9,11 +9,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.model.NgsiLdEntity
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.confirmVerified
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkClass
-import io.mockk.verify
+import io.mockk.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach

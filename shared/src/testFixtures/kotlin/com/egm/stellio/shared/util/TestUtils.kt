@@ -1,10 +1,6 @@
 package com.egm.stellio.shared.util
 
-import com.egm.stellio.shared.model.JsonLdEntity
-import com.egm.stellio.shared.model.NgsiLdEntity
-import com.egm.stellio.shared.model.NgsiLdGeoProperty
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import org.springframework.core.io.ClassPathResource

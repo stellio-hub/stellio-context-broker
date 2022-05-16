@@ -3,7 +3,8 @@ package com.egm.stellio.subscription.model
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.toUri
 import com.jayway.jsonpath.JsonPath.read
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import java.time.Instant

@@ -36,7 +36,7 @@ import java.net.URI
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, classes = [Neo4jAuthorizationService::class])
 @ActiveProfiles("test")

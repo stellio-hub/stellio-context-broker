@@ -6,11 +6,7 @@ import com.egm.stellio.shared.model.NgsiLdGeoProperty
 import com.egm.stellio.shared.model.NotImplementedException
 import com.egm.stellio.shared.model.Notification
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.subscription.model.Endpoint
-import com.egm.stellio.subscription.model.EntityInfo
-import com.egm.stellio.subscription.model.GeoQuery
-import com.egm.stellio.subscription.model.NotificationParams
-import com.egm.stellio.subscription.model.Subscription
+import com.egm.stellio.subscription.model.*
 import com.egm.stellio.subscription.repository.SubscriptionRepository
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoMapToString
 import com.egm.stellio.subscription.utils.ParsingUtils.endpointInfoToString

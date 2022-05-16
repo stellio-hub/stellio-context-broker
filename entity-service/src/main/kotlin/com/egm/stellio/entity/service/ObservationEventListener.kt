@@ -1,14 +1,6 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.shared.model.AlreadyExistsException
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeUpdateEvent
-import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.ResourceNotFoundException
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
 import com.egm.stellio.shared.util.JsonUtils.deserializeAs

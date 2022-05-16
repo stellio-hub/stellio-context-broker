@@ -27,11 +27,7 @@ import org.springframework.data.neo4j.core.schema.Id
 import org.springframework.data.neo4j.core.schema.Node
 import org.springframework.data.neo4j.core.schema.Relationship
 import java.net.URI
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
+import java.time.*
 import java.util.UUID
 
 @Node

@@ -28,7 +28,7 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Mono
 import java.net.URI
-import java.util.*
+import java.util.Optional
 
 @RestController
 @RequestMapping("/ngsi-ld/v1/entities")

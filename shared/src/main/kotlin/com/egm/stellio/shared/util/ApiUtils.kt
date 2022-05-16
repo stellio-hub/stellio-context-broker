@@ -14,7 +14,7 @@ import org.springframework.util.MultiValueMap
 import org.springframework.web.server.NotAcceptableStatusException
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util.*
+import java.util.Optional
 import java.util.regex.Pattern
 
 fun String.parseTimeParameter(errorMsg: String): Either<String, ZonedDateTime> =

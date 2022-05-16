@@ -1,6 +1,8 @@
 package com.egm.stellio.entity.service
 
-import com.egm.stellio.entity.model.*
+import com.egm.stellio.entity.model.AttributeDetails
+import com.egm.stellio.entity.model.AttributeList
+import com.egm.stellio.entity.model.AttributeTypeInfo
 import com.egm.stellio.entity.repository.Neo4jRepository
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.toUri

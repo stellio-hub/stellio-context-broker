@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import java.net.URI
 import java.time.ZonedDateTime
-import java.util.*
+import java.util.UUID
 
 data class AttributeInstance private constructor(
     val temporalEntityAttribute: UUID,

@@ -1,14 +1,7 @@
 package com.egm.stellio.entity.service
 
 import com.egm.stellio.entity.authorization.Neo4jAuthorizationRepository
-import com.egm.stellio.shared.model.AttributeAppendEvent
-import com.egm.stellio.shared.model.AttributeDeleteEvent
-import com.egm.stellio.shared.model.AttributeReplaceEvent
-import com.egm.stellio.shared.model.EntityCreateEvent
-import com.egm.stellio.shared.model.EntityDeleteEvent
-import com.egm.stellio.shared.model.EntityEvent
-import com.egm.stellio.shared.model.parseToNgsiLdAttributes
-import com.egm.stellio.shared.model.toNgsiLdEntity
+import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_IS_MEMBER_OF
 import com.egm.stellio.shared.util.AuthContextModel.AUTH_TERM_ROLES
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdEntity

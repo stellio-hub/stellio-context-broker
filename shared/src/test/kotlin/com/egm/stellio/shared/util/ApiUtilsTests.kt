@@ -4,9 +4,7 @@ import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_CORE_CONTEXT
 import com.egm.stellio.shared.util.OptionsParamValue.TEMPORAL_VALUES
 import com.egm.stellio.shared.web.CustomWebFilter
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.http.HttpHeaders

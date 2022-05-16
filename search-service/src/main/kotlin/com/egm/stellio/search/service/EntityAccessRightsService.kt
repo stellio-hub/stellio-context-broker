@@ -4,9 +4,7 @@ import arrow.core.Option
 import com.egm.stellio.search.config.ApplicationProperties
 import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AccessRight.R_CAN_ADMIN
-import com.egm.stellio.shared.util.AccessRight.R_CAN_READ
-import com.egm.stellio.shared.util.AccessRight.R_CAN_WRITE
+import com.egm.stellio.shared.util.AccessRight.*
 import com.egm.stellio.shared.util.Sub
 import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory

@@ -44,9 +44,9 @@ class IAMListenerTests {
                     it.id == "urn:ngsi-ld:User:6ad19fe0-fc11-4024-85f2-931c6fa6f7e0".toUri() &&
                         it.properties.size == 3 &&
                         it.properties.any {
-                            it.compactName == "username"
-                            it.instances.size == 1
-                            it.instances.any { it.value == "stellio" }
+                            it.compactName == "username" &&
+                                it.instances.size == 1 &&
+                                it.instances.any { it.value == "stellio" }
                         }
                 }
             )

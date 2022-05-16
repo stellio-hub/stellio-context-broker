@@ -3,8 +3,8 @@ package com.egm.stellio.shared.model
 import java.net.URI
 
 data class QueryParams(
-    val id: List<URI>? = null,
-    val type: ExpandedTerm? = null,
+    val ids: Set<URI>? = null,
+    val type: Set<ExpandedTerm>? = null,
     val idPattern: String? = null,
     val q: String? = null,
     val limit: Int,

@@ -61,8 +61,8 @@ class QueryService(
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             temporalEntitiesQuery.queryParams.limit,
             temporalEntitiesQuery.queryParams.offset,
-            temporalEntitiesQuery.queryParams.id?.toSet() ?: emptySet(),
-            parseAndExpandRequestParameter(temporalEntitiesQuery.queryParams.type, contextLink),
+            temporalEntitiesQuery.queryParams.ids ?: emptySet(),
+            temporalEntitiesQuery.queryParams.type ?: emptySet(),
             temporalEntitiesQuery.temporalQuery.expandedAttrs,
             accessRightFilter
         ).awaitFirstOrDefault(emptyList())
@@ -90,8 +90,8 @@ class QueryService(
                 .toList()
 
         val count = temporalEntityAttributeService.getCountForEntities(
-            temporalEntitiesQuery.queryParams.id?.toSet() ?: emptySet(),
-            parseAndExpandRequestParameter(temporalEntitiesQuery.queryParams.type, contextLink),
+            temporalEntitiesQuery.queryParams.ids ?: emptySet(),
+            temporalEntitiesQuery.queryParams.type ?: emptySet(),
             temporalEntitiesQuery.temporalQuery.expandedAttrs,
             accessRightFilter
         ).awaitFirst()

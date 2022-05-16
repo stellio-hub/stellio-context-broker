@@ -389,13 +389,13 @@ class EntityAccessControlHandler(
             .map {
                 // do a first search without asking for a result in order to get the total count
                 val total = entityService.searchEntities(
-                    QueryParams(type = it, offset = 0, limit = 0),
+                    QueryParams(type = setOf(it), offset = 0, limit = 0),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
                 entityService.searchEntities(
-                    QueryParams(type = it, offset = 0, limit = total),
+                    QueryParams(type = setOf(it), offset = 0, limit = total),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 )

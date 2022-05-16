@@ -20,9 +20,9 @@ object QueryUtils {
         contexts: List<String>
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(queryParams.attrs)
-        val matchEntityClause = buildMatchEntityClause(queryParams.type, prefix = "")
-        val idClause = buildIdClause(queryParams.id)
+        val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
+        val matchEntityClause = buildMatchEntityClause(queryParams.type?.first(), prefix = "")
+        val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
@@ -78,10 +78,10 @@ object QueryUtils {
     ): String {
 
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
-        val attrsClause = buildInnerAttrsFilterQuery(queryParams.attrs)
+        val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
 
-        val matchEntityClause = buildMatchEntityClause(type = queryParams.type)
-        val idClause = buildIdClause(queryParams.id)
+        val matchEntityClause = buildMatchEntityClause(type = queryParams.type?.first())
+        val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
         val finalFilterClause = setOf(idClause, idPatternClause, qClause, attrsClause)
@@ -115,9 +115,9 @@ object QueryUtils {
         else
             "$prefix (entity:`$type`)"
 
-    private fun buildIdClause(id: List<URI>?): String {
-        return if (id != null) {
-            val formattedIds = id.map { "'$it'" }
+    private fun buildIdsClause(ids: Set<URI>?): String {
+        return if (ids != null) {
+            val formattedIds = ids.map { "'$it'" }
             " entity.id in $formattedIds "
         } else ""
     }
@@ -168,16 +168,16 @@ object QueryUtils {
             .replace(";", " AND ")
             .replace("|", " OR ")
 
-    private fun buildInnerAttrsFilterQuery(attrs: Set<ExpandedTerm>): String =
+    private fun buildInnerAttrFilterQuery(attrs: Set<ExpandedTerm>): String =
         attrs.joinToString(
             separator = " AND "
-        ) { attrs ->
+        ) { attr ->
             """
                EXISTS {
                    MATCH (entity)
                    WHERE (
-                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$attrs' })) OR 
-                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$attrs`))
+                        NOT isEmpty((entity)-[:HAS_VALUE]->(:Property { name: '$attr' })) OR 
+                        NOT isEmpty((entity)-[:HAS_OBJECT]-(:Relationship:`$attr`))
                    ) 
                }
             """.trimIndent()

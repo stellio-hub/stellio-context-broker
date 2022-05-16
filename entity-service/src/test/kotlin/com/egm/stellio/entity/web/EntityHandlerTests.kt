@@ -497,7 +497,12 @@ class EntityHandlerTests {
         every { entityService.exists(any()) } returns true
         every {
             entityService.searchEntities(
-                QueryParams(type = "Beehive", includeSysAttrs = true, offset = 0, limit = 30),
+                QueryParams(
+                    type = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+                    includeSysAttrs = true,
+                    offset = 0,
+                    limit = 30
+                ),
                 any(),
                 any<String>()
             )

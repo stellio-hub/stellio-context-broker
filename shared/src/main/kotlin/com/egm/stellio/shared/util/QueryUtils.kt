@@ -9,10 +9,8 @@ fun parseAndCheckParams(
     contextLink: String
 ): QueryParams {
 
-    val ids = queryParams.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()
-    val type = queryParams.getFirst(QUERY_PARAM_TYPE)?.let {
-        JsonLdUtils.expandJsonLdTerm(it, contextLink)
-    }
+    val ids = queryParams.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()?.toSet()
+    val type = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = queryParams.getFirst(QUERY_PARAM_ID_PATTERN)
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
@@ -33,7 +31,7 @@ fun parseAndCheckParams(
     )
 
     return QueryParams(
-        id = ids,
+        ids = ids,
         type = type,
         idPattern = idPattern,
         q = q,

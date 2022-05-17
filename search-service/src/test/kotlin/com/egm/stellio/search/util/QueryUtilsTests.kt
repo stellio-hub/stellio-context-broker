@@ -36,25 +36,6 @@ class QueryUtilsTests {
     }
 
     @Test
-    fun `it should throw a BadRequestData exception if neither type nor attrs is present`() {
-        val queryParams = LinkedMultiValueMap<String, String>()
-        queryParams.add("timerel", "before")
-        queryParams.add("timeAt", "2019-10-17T07:31:39Z")
-
-        val pagination = mockkClass(ApplicationProperties.Pagination::class)
-        every { pagination.limitDefault } returns 30
-        every { pagination.limitMax } returns 100
-
-        val exception = assertThrows<BadRequestDataException> {
-            parseAndCheckQueryParams(pagination, queryParams, APIC_COMPOUND_CONTEXT)
-        }
-        assertEquals(
-            "Either type or attrs need to be present in request parameters",
-            exception.message
-        )
-    }
-
-    @Test
     fun `it should parse query parameters`() {
         val queryParams = gimmeFullParamsMap()
 

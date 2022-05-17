@@ -710,7 +710,7 @@ class TemporalEntityHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             buildDefaultQueryParams().copy(
-                queryParams = QueryParams(type = BEEHIVE_COMPACT_TYPE, offset = 0, limit = 20),
+                queryParams = QueryParams(types = setOf(BEEHIVE_COMPACT_TYPE), offset = 0, limit = 20),
                 temporalQuery = temporalQuery
             )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
@@ -746,8 +746,8 @@ class TemporalEntityHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.id != null &&
-                        temporalEntitiesQuery.queryParams.type == "BeeHive" &&
+                        temporalEntitiesQuery.queryParams.ids != null &&
+                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },

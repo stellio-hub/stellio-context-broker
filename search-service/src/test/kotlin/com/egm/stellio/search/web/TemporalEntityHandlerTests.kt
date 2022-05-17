@@ -766,7 +766,9 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 0, limit = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -795,7 +797,9 @@ class TemporalEntityHandlerTests {
         ).minus("@context")
         val secondTemporalEntity = deserializeObject(loadSampleData("beehive.jsonld")).minus("@context")
 
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), limit = 0, offset = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -838,7 +842,7 @@ class TemporalEntityHandlerTests {
 
         every {
             parseAndCheckQueryParams(any(), any(), any())
-        } returns buildDefaultQueryParams().copy(queryParams = QueryParams(limit = 1, offset = 2))
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), limit = 1, offset = 2))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -863,7 +867,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 200 and empty response if requested offset does not exist`() {
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 0, limit = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
@@ -882,7 +888,9 @@ class TemporalEntityHandlerTests {
     fun `query temporal entities should return 200 and the number of results if count is asked for`() {
         every {
             parseAndCheckQueryParams(any(), any(), any())
-        } returns buildDefaultQueryParams().copy(queryParams = QueryParams(limit = 0, offset = 30, count = true))
+        } returns buildDefaultQueryParams().copy(
+            QueryParams(types = setOf("BeeHive"), limit = 0, offset = 30, count = true)
+        )
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery { queryService.queryTemporalEntities(any(), any(), any()) } returns Pair(emptyList(), 2)
 
@@ -907,7 +915,7 @@ class TemporalEntityHandlerTests {
 
         every {
             parseAndCheckQueryParams(any(), any(), any())
-        } returns buildDefaultQueryParams().copy(queryParams = QueryParams(limit = 1, offset = 0))
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), limit = 1, offset = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -939,7 +947,7 @@ class TemporalEntityHandlerTests {
 
         every {
             parseAndCheckQueryParams(any(), any(), any())
-        } returns buildDefaultQueryParams().copy(queryParams = QueryParams(limit = 1, offset = 1))
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 1, limit = 1))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -967,7 +975,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if requested offset is less than zero`() {
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 0, limit = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -996,7 +1006,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is equal or less than zero`() {
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 0, limit = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())
@@ -1025,7 +1037,9 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 400 if limit is greater than the maximum authorized limit`() {
-        every { parseAndCheckQueryParams(any(), any(), any()) } returns buildDefaultQueryParams()
+        every {
+            parseAndCheckQueryParams(any(), any(), any())
+        } returns buildDefaultQueryParams().copy(QueryParams(types = setOf("BeeHive"), offset = 0, limit = 0))
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
         coEvery {
             queryService.queryTemporalEntities(any(), any(), any())

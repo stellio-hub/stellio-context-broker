@@ -90,6 +90,9 @@ class TemporalEntityHandler(
         val mediaType = getApplicableMediaType(httpHeaders)
 
         val temporalEntitiesQuery = parseAndCheckQueryParams(applicationProperties.pagination, params, contextLink)
+        if (temporalEntitiesQuery.queryParams.types.isNullOrEmpty() &&
+            temporalEntitiesQuery.queryParams.attrs.isNullOrEmpty()
+        ) throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
         val accessRightFilter = entityAccessRightsService.computeAccessRightFilter(sub)
         val (temporalEntities, total) = queryService.queryTemporalEntities(

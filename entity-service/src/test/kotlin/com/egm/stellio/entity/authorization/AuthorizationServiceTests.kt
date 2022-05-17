@@ -280,11 +280,8 @@ class AuthorizationServiceTests {
     @Test
     fun `get authorized entities should return a count of -1 if authentication is not enabled`() {
         val authorizedEntities = authorizationService.getAuthorizedEntities(
-            QueryParams(),
+            QueryParams(offset = 0, limit = 0),
             None,
-            0,
-            0,
-            false,
             NGSILD_CORE_CONTEXT
         )
         assertEquals(-1, authorizedEntities.first)

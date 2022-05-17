@@ -283,6 +283,9 @@ class EntityHandlerTests {
     @Test
     fun `get entity by id should return 200 when entity exists`() {
         mockkDefaultBehaviorForGetEntityById()
+
+        every { entityService.exists(any()) } returns true
+        every { authorizationService.userCanReadEntity(any(), any()) } returns true
         val returnedJsonLdEntity = mockkClass(JsonLdEntity::class, relaxed = true)
         every { entityService.getFullEntityById(any()) } returns returnedJsonLdEntity
         every { returnedJsonLdEntity.checkContainsAnyOf(any()) } returns Unit.right()
@@ -498,7 +501,7 @@ class EntityHandlerTests {
         every {
             entityService.searchEntities(
                 QueryParams(
-                    type = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
+                    types = setOf("https://uri.etsi.org/ngsi-ld/default-context/Beehive"),
                     includeSysAttrs = true,
                     offset = 0,
                     limit = 30

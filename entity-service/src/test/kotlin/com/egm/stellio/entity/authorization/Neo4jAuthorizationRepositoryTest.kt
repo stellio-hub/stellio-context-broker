@@ -556,9 +556,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_ADMIN, fourthEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-            QueryParams(),
-            offset,
-            limit,
+            QueryParams(offset = offset, limit = limit),
             listOf(userUri.toString())
         )
 
@@ -586,9 +584,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-            QueryParams(q = "rCanWrite;rCanRead"),
-            offset,
-            limit,
+            QueryParams(q = "rCanWrite;rCanRead", offset = offset, limit = limit),
             listOf(userUri.toString())
         )
 
@@ -611,9 +607,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_READ, thirdEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-            QueryParams(expandedType = "Beekeeper"),
-            offset,
-            limit,
+            QueryParams(types = setOf("Beekeeper"), offset = offset, limit = limit),
             listOf(userUri.toString())
         )
 
@@ -642,9 +636,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
-            QueryParams(),
-            offset,
-            limit
+            QueryParams(offset = offset, limit = limit)
         )
         val users = listOf(userUri, "urn:ngsi-ld:User:02".toUri())
 
@@ -671,9 +663,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity2.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-            QueryParams(),
-            offset,
-            limit,
+            QueryParams(offset = offset, limit = limit),
             listOf(userUri.toString())
         )
 
@@ -699,9 +689,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesForAdmin(
-            QueryParams(),
-            offset,
-            0
+            QueryParams(offset = offset, limit = 0)
         )
 
         assertEquals(1, result.first)
@@ -716,9 +704,7 @@ class Neo4jAuthorizationRepositoryTest : WithNeo4jContainer {
         createRelationship(EntitySubjectNode(userEntity.id), AUTH_REL_CAN_WRITE, firstEntity.id)
 
         val result = neo4jAuthorizationRepository.getAuthorizedEntitiesWithAuthentication(
-            QueryParams(),
-            offset,
-            0,
+            QueryParams(offset = offset, limit = 0),
             listOf(userUri.toString())
         )
 

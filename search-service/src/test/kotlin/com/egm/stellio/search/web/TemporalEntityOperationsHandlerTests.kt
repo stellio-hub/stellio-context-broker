@@ -72,7 +72,7 @@ class TemporalEntityOperationsHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                queryParams = QueryParams(type = setOf("BeeHive", "Apiary").toString(), limit = 0, offset = 0),
+                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 0, offset = 0),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false
@@ -107,8 +107,8 @@ class TemporalEntityOperationsHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 1 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.id == null &&
-                        temporalEntitiesQuery.queryParams.type == setOf("BeeHive", "Apiary").toString() &&
+                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
                 },
@@ -132,7 +132,7 @@ class TemporalEntityOperationsHandlerTests {
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
                 queryParams = QueryParams(
-                    type = setOf("BeeHive", "Apiary").toString(),
+                    types = setOf("BeeHive", "Apiary"),
                     limit = 0,
                     offset = 1,
                     count = true
@@ -172,8 +172,8 @@ class TemporalEntityOperationsHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 0 &&
                         temporalEntitiesQuery.queryParams.offset == 1 &&
-                        temporalEntitiesQuery.queryParams.id == null &&
-                        temporalEntitiesQuery.queryParams.type == setOf("BeeHive", "Apiary").toString() &&
+                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count
                 },

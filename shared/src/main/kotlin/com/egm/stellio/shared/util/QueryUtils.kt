@@ -10,7 +10,7 @@ fun parseAndCheckParams(
 ): QueryParams {
 
     val ids = queryParams.getFirst(QUERY_PARAM_ID)?.split(",")?.toListOfUri()?.toSet()
-    val type = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
+    val types = parseAndExpandRequestParameter(queryParams.getFirst(QUERY_PARAM_TYPE), contextLink)
     val idPattern = queryParams.getFirst(QUERY_PARAM_ID_PATTERN)
     /**
      * Decoding query parameters is not supported by default so a call to a decode function was added query
@@ -32,7 +32,7 @@ fun parseAndCheckParams(
 
     return QueryParams(
         ids = ids,
-        type = type,
+        types = types,
         idPattern = idPattern,
         q = q,
         limit = limit,

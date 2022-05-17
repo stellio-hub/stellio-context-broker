@@ -7,7 +7,6 @@ import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.shared.model.CompactedJsonLdEntity
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.entityOrAttrsNotFoundMessage
-import com.egm.stellio.shared.util.parseAndExpandRequestParameter
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import org.springframework.stereotype.Service

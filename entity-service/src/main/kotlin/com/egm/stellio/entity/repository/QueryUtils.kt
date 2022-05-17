@@ -21,7 +21,7 @@ object QueryUtils {
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
         val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
-        val matchEntityClause = buildMatchEntityClause(queryParams.type?.first(), prefix = "")
+        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), prefix = "")
         val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -80,7 +80,7 @@ object QueryUtils {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
         val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
 
-        val matchEntityClause = buildMatchEntityClause(type = queryParams.type?.first())
+        val matchEntityClause = buildMatchEntityClause(type = queryParams.types?.first())
         val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -109,7 +109,7 @@ object QueryUtils {
             """
     }
 
-    private fun buildMatchEntityClause(type: ExpandedTerm?, prefix: String = "MATCH"): String =
+    fun buildMatchEntityClause(type: ExpandedTerm?, prefix: String = "MATCH"): String =
         if (type == null)
             "$prefix (entity:Entity)"
         else

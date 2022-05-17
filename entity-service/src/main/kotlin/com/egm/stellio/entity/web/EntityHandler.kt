@@ -92,7 +92,7 @@ class EntityHandler(
             contextLink
         )
 
-        if (queryParams.q.isNullOrEmpty() && queryParams.type.isNullOrEmpty() && queryParams.attrs.isNullOrEmpty())
+        if (queryParams.q.isNullOrEmpty() && queryParams.types.isNullOrEmpty() && queryParams.attrs.isNullOrEmpty())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(

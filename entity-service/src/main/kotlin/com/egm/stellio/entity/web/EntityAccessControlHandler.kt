@@ -54,22 +54,17 @@ class EntityAccessControlHandler(
         @RequestHeader httpHeaders: HttpHeaders,
         @RequestParam params: MultiValueMap<String, String>
     ): ResponseEntity<*> {
-        val count = params.getFirst(QUERY_PARAM_COUNT)?.toBoolean() ?: false
-        val (offset, limit) = extractAndValidatePaginationParameters(
-            params,
-            applicationProperties.pagination.limitDefault,
-            applicationProperties.pagination.limitMax,
-            count
-        )
-        val type = params.getFirst(QUERY_PARAM_TYPE)
-        val q = params.getFirst(QUERY_PARAM_FILTER)
         val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
         val mediaType = getApplicableMediaType(httpHeaders)
-        val includeSysAttrs = params.getOrDefault(QUERY_PARAM_OPTIONS, emptyList())
-            .contains(QUERY_PARAM_OPTIONS_SYSATTRS_VALUE)
         val sub = getSubFromSecurityContext()
 
-        if (q != null && !ALL_IAM_RIGHTS_TERMS.contains(q))
+        val queryParams = parseAndCheckParams(
+            Pair(applicationProperties.pagination.limitDefault, applicationProperties.pagination.limitMax),
+            params,
+            contextLink
+        )
+
+        if (queryParams.q != null && !ALL_IAM_RIGHTS_TERMS.contains(queryParams.q))
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON)
                 .body(
                     BadRequestDataResponse(
@@ -78,14 +73,8 @@ class EntityAccessControlHandler(
                 )
 
         val countAndAuthorizedEntities = authorizationService.getAuthorizedEntities(
-            QueryParams(
-                expandedType = type?.let { JsonLdUtils.expandJsonLdTerm(type, contextLink) },
-                q = q?.decode()
-            ),
+            queryParams,
             sub,
-            offset,
-            limit,
-            includeSysAttrs,
             contextLink
         )
 
@@ -97,7 +86,7 @@ class EntityAccessControlHandler(
             return PagingUtils.buildPaginationResponse(
                 serializeObject(emptyList<JsonLdEntity>()),
                 countAndAuthorizedEntities.first,
-                count,
+                queryParams.count,
                 Pair(null, null),
                 mediaType, contextLink
             )
@@ -113,14 +102,14 @@ class EntityAccessControlHandler(
             "/ngsi-ld/v1/entityAccessControl/entities",
             params,
             countAndAuthorizedEntities.first,
-            offset,
-            limit
+            queryParams.offset,
+            queryParams.limit
         )
 
         return PagingUtils.buildPaginationResponse(
             serializeObject(compactedAuthorizedEntities),
             countAndAuthorizedEntities.first,
-            count,
+            queryParams.count,
             prevAndNextLinks,
             mediaType,
             contextLink
@@ -389,13 +378,13 @@ class EntityAccessControlHandler(
             .map {
                 // do a first search without asking for a result in order to get the total count
                 val total = entityService.searchEntities(
-                    QueryParams(type = setOf(it), offset = 0, limit = 0),
+                    QueryParams(types = setOf(it), offset = 0, limit = 0),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 ).first
                 logger.debug("Counted a total of $total entities for type $it")
                 entityService.searchEntities(
-                    QueryParams(type = setOf(it), offset = 0, limit = total),
+                    QueryParams(types = setOf(it), offset = 0, limit = total),
                     sub,
                     NGSILD_AUTHORIZATION_CONTEXT
                 )

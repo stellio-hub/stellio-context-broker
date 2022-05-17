@@ -238,13 +238,10 @@ class Neo4jAuthorizationRepository(
 
     fun getAuthorizedEntitiesWithAuthentication(
         queryParams: QueryParams,
-        offset: Int,
-        limit: Int,
         userAndGroupIds: List<String>
     ): Pair<Int, List<EntityAccessControl>> {
-        val (_, expandedType, _, q, _) = queryParams
-        val matchEntityClause = buildMatchEntityClause(expandedType, prefix = "")
-        val authTerm = buildAuthTerm(q)
+        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), prefix = "")
+        val authTerm = buildAuthTerm(queryParams.q)
         val matchAuthorizedEntitiesClause =
             """
             MATCH (user)
@@ -255,7 +252,7 @@ class Neo4jAuthorizationRepository(
             ORDER BY entity.id
             """.trimIndent()
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(distinct(entity)) as count
             """.trimIndent()
@@ -268,7 +265,7 @@ class Neo4jAuthorizationRepository(
                     specificAccessPolicy: specificAccessPolicy
                 })) as entities, 
                 count(distinct(entity)) as count
-            SKIP $offset LIMIT $limit
+            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         val result = neo4jClient
@@ -282,17 +279,14 @@ class Neo4jAuthorizationRepository(
             .fetch()
             .all()
 
-        return prepareResultsAuthorizedEntities(result, limit)
+        return prepareResultsAuthorizedEntities(result, queryParams.limit)
     }
 
     // User is admin, so we return `rCanAdmin` as right
     fun getAuthorizedEntitiesForAdmin(
-        queryParams: QueryParams,
-        offset: Int,
-        limit: Int
+        queryParams: QueryParams
     ): Pair<Int, List<EntityAccessControl>> {
-        val (_, expandedType, _, _, _) = queryParams
-        val matchEntityClause = buildMatchEntityClause(expandedType, "")
+        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), "")
         val matchAuthorizedEntitiesClause =
             """
             MATCH $matchEntityClause
@@ -306,7 +300,7 @@ class Neo4jAuthorizationRepository(
             ORDER BY entity.id
             """.trimIndent()
 
-        val pagingClause = if (limit == 0)
+        val pagingClause = if (queryParams.limit == 0)
             """
             RETURN count(entity) as count
             """.trimIndent()
@@ -319,7 +313,7 @@ class Neo4jAuthorizationRepository(
                     specificAccessPolicy: specificAccessPolicy
                 })) as entities, 
                 count(distinct(entity)) as count 
-            SKIP $offset LIMIT $limit
+            SKIP ${queryParams.offset} LIMIT ${queryParams.limit}
             """.trimIndent()
 
         val result = neo4jClient
@@ -332,7 +326,7 @@ class Neo4jAuthorizationRepository(
             .fetch()
             .all()
 
-        return prepareResultsAuthorizedEntities(result, limit)
+        return prepareResultsAuthorizedEntities(result, queryParams.limit)
     }
 
     fun getEntityRightsPerUser(entityId: URI): List<Map<String, URI>> {

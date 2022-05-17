@@ -744,10 +744,10 @@ class TemporalEntityHandlerTests {
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 30 &&
+                    temporalEntitiesQuery.queryParams.limit == 20 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.ids != null &&
-                        temporalEntitiesQuery.queryParams.types == setOf("BeeHive") &&
+                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_COMPACT_TYPE) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },

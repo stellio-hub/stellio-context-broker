@@ -72,7 +72,7 @@ class TemporalEntityOperationsHandlerTests {
 
         every { parseAndCheckQueryParams(any(), any(), any()) } returns
             TemporalEntitiesQuery(
-                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 0, offset = 0),
+                queryParams = QueryParams(types = setOf("BeeHive", "Apiary"), limit = 1, offset = 0),
                 temporalQuery = temporalQuery,
                 withTemporalValues = true,
                 withAudit = false

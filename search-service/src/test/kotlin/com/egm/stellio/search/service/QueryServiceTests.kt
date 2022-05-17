@@ -168,7 +168,7 @@ class QueryServiceTests {
 
             queryService.queryTemporalEntities(
                 TemporalEntitiesQuery(
-                    QueryParams(offset = 2, limit = 2, types = setOf("$BEEHIVE_TYPE, $APIARY_TYPE")),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     TemporalQuery(
                         expandedAttrs = emptySet(),
                         timerel = TemporalQuery.Timerel.BEFORE,

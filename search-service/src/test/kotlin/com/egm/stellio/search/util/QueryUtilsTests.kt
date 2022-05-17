@@ -68,7 +68,7 @@ class QueryUtilsTests {
             setOf("urn:ngsi-ld:BeeHive:TESTC".toUri(), "urn:ngsi-ld:BeeHive:TESTB".toUri()),
             temporalEntitiesQuery.queryParams.ids
         )
-        assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE).toString(), temporalEntitiesQuery.queryParams.types)
+        assertEquals(setOf(BEEHIVE_TYPE, APIARY_TYPE), temporalEntitiesQuery.queryParams.types)
         assertEquals(
             TemporalQuery(
                 timerel = TemporalQuery.Timerel.BETWEEN,

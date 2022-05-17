@@ -29,7 +29,7 @@ fun parseAndCheckQueryParams(
         contextLink
     )
 
-    if (queryParamsParse.type == null && temporalQuery.expandedAttrs.isEmpty())
+    if (queryParamsParse.types == null && temporalQuery.expandedAttrs.isEmpty())
         throw BadRequestDataException("Either type or attrs need to be present in request parameters")
 
     return TemporalEntitiesQuery(

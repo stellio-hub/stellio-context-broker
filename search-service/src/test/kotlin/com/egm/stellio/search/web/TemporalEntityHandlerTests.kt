@@ -5,24 +5,20 @@ import arrow.core.left
 import arrow.core.right
 import com.egm.stellio.search.config.WebSecurityTestConfig
 import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntitiesQuery
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.model.TemporalQuery
 import com.egm.stellio.search.service.AttributeInstanceService
 import com.egm.stellio.search.service.EntityAccessRightsService
 import com.egm.stellio.search.service.QueryService
 import com.egm.stellio.search.service.TemporalEntityAttributeService
-import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.WithMockCustomUser
 import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.model.BadRequestDataException
-import com.egm.stellio.shared.model.QueryParams
 import com.egm.stellio.shared.model.ResourceNotFoundException
 import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.JsonUtils.deserializeObject
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.*
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -659,7 +655,6 @@ class TemporalEntityHandlerTests {
                 )
             }
         }
-
         listOf(Pair(0, entityTemporalProperties[0]), Pair(2, entityTemporalProperties[1])).forEach {
             every {
                 attributeInstanceService.search(any(), it.second, withTemporalValues)
@@ -673,9 +668,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `it should raise a 400 and return an error response`() {
-        every {
-            parseAndCheckQueryParams(any(), any(), any())
-        } throws BadRequestDataException("'timerel' and 'time' must be used in conjunction")
         coEvery { entityAccessRightsService.computeAccessRightFilter(any()) } returns { null }
 
         webClient.get()
@@ -716,26 +708,13 @@ class TemporalEntityHandlerTests {
             .expectStatus().isOk
             .expectBody().json("[]")
 
-        verify {
-            parseAndCheckQueryParams(
-                any(),
-                match {
-                    it.size == 4 &&
-                        it.getFirst("timerel") == "between" &&
-                        it.getFirst("timeAt") == "2019-10-17T07:31:39Z" &&
-                        it.getFirst("endTimeAt") == "2019-10-18T07:31:39Z" &&
-                        it.getFirst("type") == "BeeHive"
-                },
-                APIC_COMPOUND_CONTEXT
-            )
-        }
         coVerify {
             queryService.queryTemporalEntities(
                 match { temporalEntitiesQuery ->
-                    temporalEntitiesQuery.queryParams.limit == 20 &&
+                    temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
                         temporalEntitiesQuery.queryParams.ids == null &&
-                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_COMPACT_TYPE) &&
+                        temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues
                 },
@@ -743,7 +722,6 @@ class TemporalEntityHandlerTests {
                 any()
             )
         }
-
         confirmVerified(attributeInstanceService)
     }
 
@@ -816,7 +794,6 @@ class TemporalEntityHandlerTests {
 
     @Test
     fun `query temporal entity should return 200 with prev link header if exists`() {
-
         val firstTemporalEntity = deserializeObject(
             loadSampleData("beehive_with_two_temporal_attributes_evolution.jsonld")
         ).minus("@context")

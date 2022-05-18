@@ -22,7 +22,7 @@ fun parseAndCheckQueryParams(
     val withAudit = hasValueInOptionsParam(
         Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(queryParams, contextLink)
+    val temporalQuery = buildTemporalQuery(queryParams)
     val queryParamsParse = parseAndCheckParams(
         Pair(pagination.limitDefault, pagination.limitMax),
         queryParams,
@@ -37,14 +37,13 @@ fun parseAndCheckQueryParams(
     )
 }
 
-fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: String): TemporalQuery {
+fun buildTemporalQuery(params: MultiValueMap<String, String>): TemporalQuery {
     val timerelParam = params.getFirst("timerel")
     val timeAtParam = params.getFirst("timeAt")
     val endTimeAtParam = params.getFirst("endTimeAt")
     val timeBucketParam = params.getFirst("timeBucket")
     val aggregateParam = params.getFirst("aggregate")
     val lastNParam = params.getFirst("lastN")
-    val attrsParam = params.getFirst("attrs")
     val timeproperty = params.getFirst("timeproperty")?.let {
         AttributeInstance.TemporalProperty.forPropertyName(it)
     } ?: AttributeInstance.TemporalProperty.OBSERVED_AT
@@ -75,10 +74,7 @@ fun buildTemporalQuery(params: MultiValueMap<String, String>, contextLink: Strin
         if (it >= 1) it else null
     }
 
-    val expandedAttrs = parseAndExpandRequestParameter(attrsParam, contextLink)
-
     return TemporalQuery(
-        expandedAttrs = expandedAttrs,
         timerel = timerel,
         timeAt = timeAt,
         endTimeAt = endTimeAt,

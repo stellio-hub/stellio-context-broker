@@ -603,7 +603,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 temporalEntityAttribute.attributeName,
                 attributeInstance.instanceId
             ).fold(
-                { fail("The referred resource has been found") },
+                { fail("The referred resource should have been found") },
                 { }
             )
         }
@@ -627,7 +627,7 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
                 attributeInstanceId
             ).fold(
                 { assertEquals("Instance $attributeInstanceId was not found", it.message) },
-                { fail("The referred resource has not been found") }
+                { fail("The referred resource should have not been found") }
             )
         }
     }

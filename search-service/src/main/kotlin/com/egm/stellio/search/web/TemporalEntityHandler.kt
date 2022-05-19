@@ -10,7 +10,6 @@ import com.egm.stellio.search.util.buildTemporalQuery
 import com.egm.stellio.search.util.parseAndCheckQueryParams
 import com.egm.stellio.shared.model.*
 import com.egm.stellio.shared.util.*
-import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
 import com.egm.stellio.shared.util.JsonLdUtils.addContextsToEntity
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
 import com.egm.stellio.shared.util.JsonLdUtils.expandJsonLdFragment
@@ -47,9 +46,9 @@ class TemporalEntityHandler(
         @RequestBody requestBody: Mono<String>
     ): ResponseEntity<*> {
         val sub = getSubFromSecurityContext()
-        val canWriteEntity =
-            entityAccessRightsService.canWriteEntity(sub, entityId.toUri()).awaitFirst()
-        if (!canWriteEntity)
+
+        val canWriteEntity = entityAccessRightsService.canWriteEntity(sub, entityId.toUri())
+        if (canWriteEntity.isLeft())
             throw AccessDeniedException("User forbidden write access to entity $entityId")
 
         val body = requestBody.awaitFirst().deserializeAsMap()
@@ -142,12 +141,7 @@ class TemporalEntityHandler(
                 Optional.ofNullable(params.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
             )
 
-            entityAccessRightsService.hasRightOnEntity(
-                sub,
-                entityId.toUri(),
-                listOf(SpecificAccessPolicy.AUTH_READ, SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-            ).bind()
+            entityAccessRightsService.canReadEntity(sub, entityId.toUri()).bind()
 
             try {
                 val temporalQuery = buildTemporalQuery(params, contextLink)
@@ -187,12 +181,7 @@ class TemporalEntityHandler(
 
             temporalEntityAttributeService.checkEntityAndAttributeExistence(entityUri, expandedAttrId).bind()
 
-            entityAccessRightsService.hasRightOnEntity(
-                sub,
-                entityUri,
-                listOf(SpecificAccessPolicy.AUTH_WRITE),
-                listOf(AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-            ).bind()
+            entityAccessRightsService.canWriteEntity(sub, entityUri).bind()
 
             attributeInstanceService.deleteEntityAttributeInstance(entityUri, expandedAttrId, instanceUri).bind()
 

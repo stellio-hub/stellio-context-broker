@@ -739,7 +739,7 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
     }
 
     @Test
-    fun `it should return UUID if entity and attribute exist`() {
+    fun `it should return a right unit if entiy and attribute exist`() {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
@@ -749,14 +749,14 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
 
         runBlocking {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY).fold(
-                { fail("The referred resource has been found") },
+                { fail("The referred resource should have been found") },
                 { }
             )
         }
     }
 
     @Test
-    fun `it should return attribute not found if entity exist`() {
+    fun `it should return a left attribute not found if entity exists but not the attribute`() {
         val rawEntity = loadSampleData()
 
         every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
@@ -767,20 +767,20 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         runBlocking {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed").fold(
                 { assertEquals("Attribute speed was not found", it.message) },
-                { fail("The referred resource has not been found") }
+                { fail("The referred resource should have not been found") }
             )
         }
     }
 
     @Test
-    fun `it should return entity not found`() {
+    fun `it should return a left entity not found if entity does not exist`() {
         runBlocking {
             temporalEntityAttributeService.checkEntityAndAttributeExistence(
                 "urn:ngsi-ld:Entity:01".toUri(),
                 "speed"
             ).fold(
                 { assertEquals("Entity urn:ngsi-ld:Entity:01 was not found", it.message) },
-                { fail("The referred resource has not been found") }
+                { fail("The referred resource should have not been found") }
             )
         }
     }

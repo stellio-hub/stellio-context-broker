@@ -3,8 +3,7 @@ package com.egm.stellio.search.service
 import arrow.core.Some
 import com.egm.stellio.search.model.EntityAccessRights
 import com.egm.stellio.search.support.WithTimescaleContainer
-import com.egm.stellio.shared.util.AccessRight
-import com.egm.stellio.shared.util.AuthContextModel
+import com.egm.stellio.shared.model.AccessDeniedException
 import com.egm.stellio.shared.util.toUri
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.Called
@@ -65,15 +64,20 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:1111".toUri()))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:1111".toUri()).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
     }
 
     @Test
     fun `it should remove an entity from the allowed list of read entities`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
         StepVerifier
             .create(entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId))
             .expectNextMatches { it == 1 }
@@ -86,26 +90,30 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == false }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId"), it.message) },
+                { "it should have not read right on entity" }
+            )
+        }
     }
 
     @Test
     fun `it should remove an entity from the list of known entities`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
         StepVerifier
             .create(entityAccessRightsService.setAdminRoleOnEntity(subjectUuid, entityId))
             .expectNextMatches { it == 1 }
             .expectComplete()
             .verify()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
 
         StepVerifier
             .create(entityAccessRightsService.removeRolesOnEntity(entityId))
@@ -113,15 +121,18 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == false }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { assertEquals(AccessDeniedException("User forbidden read access to entity $entityId"), it.message) },
+                { "it should have not read right on entity" }
+            )
+        }
     }
 
     @Test
     fun `it should allow an user having a direct read role on a entity`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
         StepVerifier
             .create(entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId))
             .expectNextMatches { it == 1 }
@@ -134,48 +145,63 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
             .expectComplete()
             .verify()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()))
-            .expectNextMatches { it == false }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(entityAccessRightsService.canWriteEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:6666".toUri()))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+                {
+                    assertEquals(
+                        AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
+                        it.message
+                    )
+                },
+                { "it should have not read right on entity" }
+            )
+        }
+        runBlocking {
+            entityAccessRightsService.canWriteEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:6666".toUri()).fold(
+                { "it should have write right on entity" },
+                {}
+            )
+        }
     }
 
     @Test
     fun `it should allow an user having a read role on a entity via a group membership`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
+
         every {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { Mono.just(listOf(groupUuid, subjectUuid)) }
 
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId).block()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()))
-            .expectNextMatches { it == false }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+                {
+                    assertEquals(
+                        AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
+                        it.message
+                    )
+                },
+                { "it should have not read right on entity" }
+            )
+        }
     }
 
     @Test
     fun `it should allow an user having a read role on a entity both directly and via a group membership`() {
+        every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
         every {
             subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid))
         } answers { Mono.just(listOf(groupUuid, subjectUuid)) }
@@ -183,34 +209,41 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
         entityAccessRightsService.setReadRoleOnEntity(groupUuid, entityId).block()
         entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId).block()
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()))
-            .expectNextMatches { it == false }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+                {
+                    assertEquals(
+                        AccessDeniedException("User forbidden read access to entity urn:ngsi-ld:Entity:2222"),
+                        it.message
+                    )
+                },
+                { "it should have not read right on entity" }
+            )
+        }
     }
 
     @Test
     fun `it should allow an user having the stellio-admin role to read any entity`() {
         every { subjectReferentialService.hasStellioAdminRole(Some(subjectUuid)) } answers { Mono.just(true) }
 
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
-
-        StepVerifier
-            .create(entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()))
-            .expectNextMatches { it == true }
-            .expectComplete()
-            .verify()
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), "urn:ngsi-ld:Entity:2222".toUri()).fold(
+                { "it should have read right on entity" },
+                {}
+            )
+        }
 
         verify {
             subjectReferentialService.hasStellioAdminRole(Some(subjectUuid))
@@ -268,110 +301,72 @@ class EntityAccessRightsServiceTests : WithTimescaleContainer {
 
     @Test
     fun `it should allow user who have read right on entity`() {
-        val specificAccessPolicies =
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-
         entityAccessRightsService.setReadRoleOnEntity(subjectUuid, entityId).block()
 
         every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
 
         runBlocking {
-            entityAccessRightsService.hasRightOnEntity(
-                Some(subjectUuid),
-                entityId,
-                specificAccessPolicies,
-                accessRight
-            ).fold(
-                { fail("it should have authorized user") },
-                { }
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { "it should have read right on entity" },
+                {}
             )
         }
     }
 
     @Test
     fun `it should allow user who have write right on entity`() {
-        val specificAccessPolicies =
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val accessRight = listOf(AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-
         entityAccessRightsService.setWriteRoleOnEntity(subjectUuid, entityId).block()
 
         every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
 
         runBlocking {
-            entityAccessRightsService.hasRightOnEntity(
-                Some(subjectUuid),
-                entityId,
-                specificAccessPolicies,
-                accessRight
-            ).fold(
-                { fail("it should have authorized user") },
-                { }
+            entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).fold(
+                { "it should have write right on entity" },
+                {}
             )
         }
     }
     @Test
     fun `it should not allow user who have not read right on entity and entity has not a specific access policy`() {
-        val specificAccessPolicies =
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-
         every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
 
         runBlocking {
-            entityAccessRightsService.hasRightOnEntity(
-                Some(subjectUuid),
-                entityId,
-                specificAccessPolicies,
-                accessRight
-            ).fold(
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
                 { assertEquals("User forbidden read access to entity $entityId", it.message) },
-                { fail("it should not have authorized user") }
+                { fail("it should have not read right on entity") }
             )
         }
     }
 
     @Test
     fun `it should not allow user who have not write right on entity and entity has not a specific access policy`() {
-        val specificAccessPolicies =
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val accessRight = listOf(AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-
         every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(false)
 
         runBlocking {
-            entityAccessRightsService.hasRightOnEntity(
-                Some(subjectUuid),
-                entityId,
-                specificAccessPolicies,
-                accessRight
-            ).fold(
+            entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).fold(
                 { assertEquals("User forbidden write access to entity $entityId", it.message) },
-                { fail("it should not have authorized user") }
+                { fail("it should have not write right on entity") }
             )
         }
     }
     @Test
     fun `it should allow user it has no right on entity but entity has a specific access policy`() {
-        val specificAccessPolicies =
-            listOf(AuthContextModel.SpecificAccessPolicy.AUTH_READ, AuthContextModel.SpecificAccessPolicy.AUTH_WRITE)
-        val accessRight = listOf(AccessRight.R_CAN_READ, AccessRight.R_CAN_WRITE, AccessRight.R_CAN_ADMIN)
-
         every { temporalEntityAttributeService.hasSpecificAccessPolicies(any(), any()) } returns Mono.just(true)
 
         runBlocking {
-            entityAccessRightsService.hasRightOnEntity(
-                Some(subjectUuid),
-                entityId,
-                specificAccessPolicies,
-                accessRight
-            ).fold(
-                { fail("it should have authorized user") },
+            entityAccessRightsService.canWriteEntity(Some(subjectUuid), entityId).fold(
+                { fail("it should have write right on entity") },
                 { }
             )
-
-            verify { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) wasNot Called }
         }
+
+        runBlocking {
+            entityAccessRightsService.canReadEntity(Some(subjectUuid), entityId).fold(
+                { fail("it should have read right on entity") },
+                { }
+            )
+        }
+
+        verify { subjectReferentialService.getSubjectAndGroupsUUID(Some(subjectUuid)) wasNot Called }
     }
 }

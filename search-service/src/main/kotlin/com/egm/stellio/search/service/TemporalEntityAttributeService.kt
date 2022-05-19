@@ -1,21 +1,17 @@
 package com.egm.stellio.search.service
 
-import arrow.core.Validated
-import arrow.core.invalid
-import arrow.core.valid
+import arrow.core.*
 import com.egm.stellio.search.model.AttributeInstance
 import com.egm.stellio.search.model.AttributeMetadata
 import com.egm.stellio.search.model.TemporalEntityAttribute
 import com.egm.stellio.search.util.valueToDoubleOrNull
 import com.egm.stellio.search.util.valueToStringOrNull
 import com.egm.stellio.shared.model.*
+import com.egm.stellio.shared.util.*
 import com.egm.stellio.shared.util.AuthContextModel.SpecificAccessPolicy
-import com.egm.stellio.shared.util.JsonLdUtils
 import com.egm.stellio.shared.util.JsonLdUtils.compactTerm
-import com.egm.stellio.shared.util.JsonUtils
-import com.egm.stellio.shared.util.extractAttributeInstanceFromCompactedEntity
-import com.egm.stellio.shared.util.toUri
 import io.r2dbc.spi.Row
+import kotlinx.coroutines.reactive.awaitFirst
 import org.slf4j.LoggerFactory
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria.where
@@ -404,5 +400,40 @@ class TemporalEntityAttributeService(
 
     private var rowToId: ((Row) -> UUID) = { row ->
         row.get("id", UUID::class.java)!!
+    }
+
+    suspend fun checkEntityAndAttributeExistence(
+        entityId: URI,
+        entityAttributeName: String
+    ): Either<APIException, Unit> {
+        val selectQuery =
+            """
+                select 
+                    exists(
+                        select 1 
+                        from temporal_entity_attribute 
+                        where entity_id = :entity_id
+                    ) as entityExists,
+                    exists(
+                        select 1 
+                        from temporal_entity_attribute 
+                        where entity_id = :entity_id 
+                        and attribute_name = :attribute_name
+                    ) as attributeNameExists;
+            """.trimIndent()
+
+        val result = databaseClient
+            .sql(selectQuery)
+            .bind("entity_id", entityId)
+            .bind("attribute_name", entityAttributeName)
+            .fetch()
+            .one()
+            .awaitFirst()
+
+        return if ((result["entityExists"] as Boolean)) {
+            if ((result["attributeNameExists"] as Boolean))
+                Unit.right()
+            else ResourceNotFoundException(attributeNotFoundMessage(entityAttributeName)).left()
+        } else ResourceNotFoundException(entityNotFoundMessage(entityId.toString())).left()
     }
 }

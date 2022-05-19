@@ -11,9 +11,11 @@ import com.ninjasquad.springmockk.SpykBean
 import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -734,5 +736,52 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
             .expectNextCount(0)
             .expectComplete()
             .verify()
+    }
+
+    @Test
+    fun `it should return a right unit if entiy and attribute exist`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, INCOMING_PROPERTY).fold(
+                { fail("The referred resource should have been found") },
+                { }
+            )
+        }
+    }
+
+    @Test
+    fun `it should return a left attribute not found if entity exists but not the attribute`() {
+        val rawEntity = loadSampleData()
+
+        every { attributeInstanceService.create(any()) } answers { Mono.just(1) }
+        every { entityPayloadService.createEntityPayload(any(), any()) } answers { Mono.just(1) }
+
+        temporalEntityAttributeService.createEntityTemporalReferences(rawEntity, listOf(APIC_COMPOUND_CONTEXT)).block()
+
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(beehiveTestCId, "speed").fold(
+                { assertEquals("Attribute speed was not found", it.message) },
+                { fail("The referred resource should have not been found") }
+            )
+        }
+    }
+
+    @Test
+    fun `it should return a left entity not found if entity does not exist`() {
+        runBlocking {
+            temporalEntityAttributeService.checkEntityAndAttributeExistence(
+                "urn:ngsi-ld:Entity:01".toUri(),
+                "speed"
+            ).fold(
+                { assertEquals("Entity urn:ngsi-ld:Entity:01 was not found", it.message) },
+                { fail("The referred resource should have not been found") }
+            )
+        }
     }
 }

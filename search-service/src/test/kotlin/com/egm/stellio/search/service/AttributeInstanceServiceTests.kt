@@ -1,10 +1,6 @@
 package com.egm.stellio.search.service
 
-import com.egm.stellio.search.model.AttributeInstance
-import com.egm.stellio.search.model.FullAttributeInstanceResult
-import com.egm.stellio.search.model.SimplifiedAttributeInstanceResult
-import com.egm.stellio.search.model.TemporalEntityAttribute
-import com.egm.stellio.search.model.TemporalQuery
+import com.egm.stellio.search.model.*
 import com.egm.stellio.search.support.WithTimescaleContainer
 import com.egm.stellio.shared.model.BadRequestDataException
 import com.egm.stellio.shared.util.*
@@ -17,11 +13,9 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_PROPERTY_VALUE
 import io.mockk.confirmVerified
 import io.mockk.spyk
 import io.mockk.verify
-import org.junit.jupiter.api.AfterEach
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
@@ -596,6 +590,46 @@ class AttributeInstanceServiceTests : WithTimescaleContainer {
             )
         }
         assertEquals("Attribute outgoing has an instance without an observed date", exception.message)
+    }
+
+    @Test
+    fun `it should delete attribute instance`() {
+        val attributeInstance = gimmeAttributeInstance()
+        attributeInstanceService.create(attributeInstance).block()
+
+        runBlocking {
+            attributeInstanceService.deleteEntityAttributeInstance(
+                temporalEntityAttribute.entityId,
+                temporalEntityAttribute.attributeName,
+                attributeInstance.instanceId
+            ).fold(
+                { fail("The referred resource should have been found") },
+                { }
+            )
+        }
+
+        val enrichedEntity =
+            attributeInstanceService.search(TemporalQuery(), temporalEntityAttribute, false)
+
+        StepVerifier.create(enrichedEntity)
+            .expectNextMatches { it.isEmpty() }
+            .expectComplete()
+            .verify()
+    }
+
+    @Test
+    fun `it should not delete attribute instance if instance is not found`() {
+        val attributeInstanceId = "urn:ngsi-ld:Instance:01".toUri()
+        runBlocking {
+            attributeInstanceService.deleteEntityAttributeInstance(
+                temporalEntityAttribute.entityId,
+                temporalEntityAttribute.attributeName,
+                attributeInstanceId
+            ).fold(
+                { assertEquals("Instance $attributeInstanceId was not found", it.message) },
+                { fail("The referred resource should have not been found") }
+            )
+        }
     }
 
     private fun gimmeAttributeInstance(): AttributeInstance {

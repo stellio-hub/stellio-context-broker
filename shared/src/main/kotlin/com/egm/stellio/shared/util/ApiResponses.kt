@@ -6,6 +6,11 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 
 fun entityNotFoundMessage(entityId: String) = "Entity $entityId was not found"
+
+fun attributeNotFoundMessage(attributeName: String) = "Attribute $attributeName was not found"
+
+fun instanceNotFoundMessage(instanceId: String) = "Instance $instanceId was not found"
+
 fun entityOrAttrsNotFoundMessage(
     entityId: String,
     attrs: Set<String>

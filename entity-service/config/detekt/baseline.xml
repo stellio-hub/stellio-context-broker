@@ -12,7 +12,6 @@
     <ID>LongMethod:EntityServiceTests.kt$EntityServiceTests$@Test fun `it should create a new multi attribute property`()</ID>
     <ID>LongMethod:Neo4jAuthorizationServiceTest.kt$Neo4jAuthorizationServiceTest$@Test fun `it should get and transform authorized entities into JSON-LD entities`()</ID>
     <ID>LongMethod:Neo4jRepositoryTests.kt$Neo4jRepositoryTests$@Test fun `it should retrieve details of attributes`()</ID>
-    <ID>LongParameterList:AuthorizationService.kt$AuthorizationService$( queryParams: QueryParams, sub: Option&lt;Sub&gt;, offset: Int, limit: Int, includeSysAttrs: Boolean, contextLink: String )</ID>
     <ID>LongParameterList:EntityAccessControlHandlerTests.kt$EntityAccessControlHandlerTests$( id: String, type: String, right: String, specificAccessPolicy: String? = null, rCanReadUser: URI? = null, createdAt: String? = null, modifiedAt: String? = null, context: String )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, deleteAll: Boolean, contexts: List&lt;String&gt; )</ID>
     <ID>LongParameterList:EntityEventService.kt$EntityEventService$( sub: String?, entityId: URI, attributeName: String, datasetId: URI? = null, overwrite: Boolean, operationPayload: String, updateOperationResult: UpdateOperationResult, contexts: List&lt;String&gt; )</ID>

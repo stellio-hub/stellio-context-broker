@@ -1,6 +1,5 @@
 package com.egm.stellio.entity.repository
 
-
 import com.egm.stellio.entity.util.*
 import com.egm.stellio.shared.model.ExpandedTerm
 import com.egm.stellio.shared.model.QueryParams

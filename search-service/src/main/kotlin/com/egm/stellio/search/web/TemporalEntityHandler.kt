@@ -136,8 +136,8 @@ class TemporalEntityHandler(
             val contextLink = getContextFromLinkHeaderOrDefault(httpHeaders)
             val mediaType = getApplicableMediaType(httpHeaders)
 
-        val temporalEntitiesQuery =
-            parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
+            val temporalEntitiesQuery =
+                parseAndCheckQueryParams(applicationProperties.pagination, requestParams, contextLink)
 
             entityAccessRightsService.canReadEntity(sub, entityId.toUri()).bind()
 
@@ -146,7 +146,8 @@ class TemporalEntityHandler(
                 temporalEntitiesQuery.temporalQuery,
                 temporalEntitiesQuery.withTemporalValues,
                 temporalEntitiesQuery.withAudit,
-                contextLink)
+                contextLink
+            )
 
             buildGetSuccessResponse(mediaType, contextLink)
                 .body(serializeObject(addContextsToEntity(temporalEntity, listOf(contextLink), mediaType)))

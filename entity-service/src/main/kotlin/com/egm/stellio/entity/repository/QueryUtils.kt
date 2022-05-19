@@ -20,7 +20,7 @@ object QueryUtils {
     ): String {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
         val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
-        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), prefix = "")
+        val matchEntityClause = buildMatchEntityClause(queryParams.types, "")
         val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -79,7 +79,7 @@ object QueryUtils {
         val qClause = queryParams.q?.let { buildInnerQuery(it, contexts) } ?: ""
         val attrsClause = buildInnerAttrFilterQuery(queryParams.attrs)
 
-        val matchEntityClause = buildMatchEntityClause(type = queryParams.types?.first())
+        val matchEntityClause = buildMatchEntityClause(queryParams.types)
         val idClause = buildIdsClause(queryParams.ids)
         val idPatternClause = buildIdPatternClause(queryParams.idPattern)
 
@@ -108,14 +108,14 @@ object QueryUtils {
             """
     }
 
-    fun buildMatchEntityClause(type: ExpandedTerm?, prefix: String = "MATCH"): String =
-        if (type == null)
+    fun buildMatchEntityClause(types: Set<ExpandedTerm>, prefix: String = "MATCH"): String =
+        if (types.isEmpty())
             "$prefix (entity:Entity)"
         else
-            "$prefix (entity:`$type`)"
+            "$prefix (entity:`${types.first()}`)"
 
-    private fun buildIdsClause(ids: Set<URI>?): String {
-        return if (ids != null) {
+    private fun buildIdsClause(ids: Set<URI>): String {
+        return if (ids.isNotEmpty()) {
             val formattedIds = ids.map { "'$it'" }
             " entity.id in $formattedIds "
         } else ""
@@ -127,7 +127,6 @@ object QueryUtils {
         else ""
 
     private fun buildInnerQuery(rawQuery: String, contexts: List<String>): String =
-
         rawQuery.replace(qPattern.toRegex()) { matchResult ->
             val parsedQueryTerm = extractComparisonParametersFromQuery(matchResult.value)
             if (parsedQueryTerm.third.isRelationshipTarget()) {

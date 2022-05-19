@@ -107,7 +107,7 @@ class TemporalEntityOperationsHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 1 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
                         temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues
@@ -172,7 +172,7 @@ class TemporalEntityOperationsHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 0 &&
                         temporalEntitiesQuery.queryParams.offset == 1 &&
-                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
                         temporalEntitiesQuery.queryParams.types == setOf("BeeHive", "Apiary") &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         temporalEntitiesQuery.withTemporalValues && temporalEntitiesQuery.queryParams.count

@@ -251,7 +251,7 @@ class TemporalEntityAttributeService(
     fun getForEntities(
         limit: Int,
         offset: Int,
-        ids: Set<URI>?,
+        ids: Set<URI>,
         types: Set<ExpandedTerm>,
         attrs: Set<ExpandedTerm>,
         accessRightFilter: () -> String?
@@ -263,7 +263,7 @@ class TemporalEntityAttributeService(
                 WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids ?: emptySet(), types, attrs, accessRightFilter)
+        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
         val finalQuery = """
             $selectQuery
             $filterQuery

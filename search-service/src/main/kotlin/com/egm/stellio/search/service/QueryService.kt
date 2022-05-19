@@ -60,8 +60,8 @@ class QueryService(
         val temporalEntityAttributes = temporalEntityAttributeService.getForEntities(
             temporalEntitiesQuery.queryParams.limit,
             temporalEntitiesQuery.queryParams.offset,
-            temporalEntitiesQuery.queryParams.ids ?: emptySet(),
-            temporalEntitiesQuery.queryParams.types ?: emptySet(),
+            temporalEntitiesQuery.queryParams.ids,
+            temporalEntitiesQuery.queryParams.types,
             temporalEntitiesQuery.temporalQuery.expandedAttrs,
             accessRightFilter
         ).awaitFirstOrDefault(emptyList())

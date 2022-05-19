@@ -713,7 +713,7 @@ class TemporalEntityHandlerTests {
                 match { temporalEntitiesQuery ->
                     temporalEntitiesQuery.queryParams.limit == 30 &&
                         temporalEntitiesQuery.queryParams.offset == 0 &&
-                        temporalEntitiesQuery.queryParams.ids == null &&
+                        temporalEntitiesQuery.queryParams.ids.isEmpty() &&
                         temporalEntitiesQuery.queryParams.types == setOf(BEEHIVE_TYPE) &&
                         temporalEntitiesQuery.temporalQuery == temporalQuery &&
                         !temporalEntitiesQuery.withTemporalValues

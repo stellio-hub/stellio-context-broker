@@ -240,7 +240,7 @@ class Neo4jAuthorizationRepository(
         queryParams: QueryParams,
         userAndGroupIds: List<String>
     ): Pair<Int, List<EntityAccessControl>> {
-        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), prefix = "")
+        val matchEntityClause = buildMatchEntityClause(queryParams.types, "")
         val authTerm = buildAuthTerm(queryParams.q)
         val matchAuthorizedEntitiesClause =
             """
@@ -286,7 +286,7 @@ class Neo4jAuthorizationRepository(
     fun getAuthorizedEntitiesForAdmin(
         queryParams: QueryParams
     ): Pair<Int, List<EntityAccessControl>> {
-        val matchEntityClause = buildMatchEntityClause(queryParams.types?.first(), "")
+        val matchEntityClause = buildMatchEntityClause(queryParams.types, "")
         val matchAuthorizedEntitiesClause =
             """
             MATCH $matchEntityClause

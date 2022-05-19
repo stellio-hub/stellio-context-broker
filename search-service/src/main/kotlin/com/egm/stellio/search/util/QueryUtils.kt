@@ -13,24 +13,24 @@ import java.util.Optional
 
 fun parseAndCheckQueryParams(
     pagination: ApplicationProperties.Pagination,
-    queryParams: MultiValueMap<String, String>,
+    requestParams: MultiValueMap<String, String>,
     contextLink: String
 ): TemporalEntitiesQuery {
     val withTemporalValues = hasValueInOptionsParam(
-        Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.TEMPORAL_VALUES
     )
     val withAudit = hasValueInOptionsParam(
-        Optional.ofNullable(queryParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
+        Optional.ofNullable(requestParams.getFirst(QUERY_PARAM_OPTIONS)), OptionsParamValue.AUDIT
     )
-    val temporalQuery = buildTemporalQuery(queryParams)
-    val queryParamsParse = parseAndCheckParams(
+    val temporalQuery = buildTemporalQuery(requestParams)
+    val queryParams = parseAndCheckParams(
         Pair(pagination.limitDefault, pagination.limitMax),
-        queryParams,
+        requestParams,
         contextLink
     )
 
     return TemporalEntitiesQuery(
-        queryParams = queryParamsParse,
+        queryParams = queryParams,
         temporalQuery = temporalQuery,
         withTemporalValues = withTemporalValues,
         withAudit = withAudit

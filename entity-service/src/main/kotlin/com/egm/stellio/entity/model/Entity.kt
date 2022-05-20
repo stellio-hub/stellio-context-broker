@@ -9,6 +9,8 @@ import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_DATE_TIME_TYPE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_GEOPROPERTY_VALUE
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_LOCATION_PROPERTY
 import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_MODIFIED_AT_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OBSERVATION_SPACE_PROPERTY
+import com.egm.stellio.shared.util.JsonLdUtils.NGSILD_OPERATION_SPACE_PROPERTY
 import com.egm.stellio.shared.util.toNgsiLdFormat
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
@@ -46,6 +48,12 @@ data class Entity(
     @JsonIgnore
     var location: String? = null,
 
+    @JsonIgnore
+    var observationSpace: String? = null,
+
+    @JsonIgnore
+    var operationSpace: String? = null,
+
     @Relationship(type = "HAS_VALUE")
     val properties: MutableList<Property> = mutableListOf(),
 
@@ -78,6 +86,24 @@ data class Entity(
             // leave the WKT encoded value at this step,
             // it will be transformed in GeoJSON after JSON-LD compaction to not break the structure of the coordinates
             resultEntity[NGSILD_LOCATION_PROPERTY] = mapOf(
+                JSONLD_TYPE to "GeoProperty",
+                NGSILD_GEOPROPERTY_VALUE to this
+            )
+        }
+
+        observationSpace?.run {
+            // leave the WKT encoded value at this step,
+            // it will be transformed in GeoJSON after JSON-LD compaction to not break the structure of the coordinates
+            resultEntity[NGSILD_OBSERVATION_SPACE_PROPERTY] = mapOf(
+                JSONLD_TYPE to "GeoProperty",
+                NGSILD_GEOPROPERTY_VALUE to this
+            )
+        }
+
+        operationSpace?.run {
+            // leave the WKT encoded value at this step,
+            // it will be transformed in GeoJSON after JSON-LD compaction to not break the structure of the coordinates
+            resultEntity[NGSILD_OPERATION_SPACE_PROPERTY] = mapOf(
                 JSONLD_TYPE to "GeoProperty",
                 NGSILD_GEOPROPERTY_VALUE to this
             )

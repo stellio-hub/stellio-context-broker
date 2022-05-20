@@ -218,10 +218,10 @@ class QueryServiceTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
             every {
-                temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any())
+                temporalEntityAttributeService.getForEntities(any(), any())
             } answers { Mono.just(listOf(temporalEntityAttribute)) }
             every {
-                temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+                temporalEntityAttributeService.getCountForEntities(any(), any())
             } answers { Mono.just(1) }
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())

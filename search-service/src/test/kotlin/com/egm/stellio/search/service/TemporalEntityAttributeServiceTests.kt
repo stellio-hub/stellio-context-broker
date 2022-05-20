@@ -369,8 +369,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 0,
+                    offset = 0,
+                    limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
@@ -435,8 +435,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 0,
+                    offset = 0,
+                    limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
@@ -481,8 +481,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 0,
+                    offset = 0,
+                    limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)
@@ -525,8 +525,8 @@ class TemporalEntityAttributeServiceTests : WithTimescaleContainer {
         val temporalEntityAttributes =
             temporalEntityAttributeService.getForEntities(
                 QueryParams(
-                    offset = 10,
-                    limit = 0,
+                    offset = 0,
+                    limit = 30,
                     ids = setOf(beehiveTestDId, beehiveTestCId),
                     types = setOf(BEEHIVE_TYPE),
                     attrs = setOf(INCOMING_PROPERTY, OUTGOING_PROPERTY)

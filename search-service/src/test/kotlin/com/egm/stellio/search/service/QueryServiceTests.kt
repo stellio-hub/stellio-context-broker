@@ -144,10 +144,10 @@ class QueryServiceTests {
                 attributeValueType = TemporalEntityAttribute.AttributeValueType.MEASURE
             )
             every {
-                temporalEntityAttributeService.getForEntities(any(), any(), any(), any(), any(), any())
+                temporalEntityAttributeService.getForEntities(any(), any())
             } answers { Mono.just(listOf(temporalEntityAttribute)) }
             every {
-                temporalEntityAttributeService.getCountForEntities(any(), any(), any(), any())
+                temporalEntityAttributeService.getCountForEntities(any(), any())
             } answers { Mono.just(1) }
             every {
                 attributeInstanceService.search(any(), any<List<TemporalEntityAttribute>>(), any())
@@ -182,11 +182,7 @@ class QueryServiceTests {
 
             verify {
                 temporalEntityAttributeService.getForEntities(
-                    2,
-                    2,
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    emptySet(),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     any()
                 )
                 attributeInstanceService.search(
@@ -198,9 +194,7 @@ class QueryServiceTests {
                     false
                 )
                 temporalEntityAttributeService.getCountForEntities(
-                    emptySet(),
-                    setOf(BEEHIVE_TYPE, APIARY_TYPE),
-                    emptySet(),
+                    QueryParams(offset = 2, limit = 2, types = setOf(BEEHIVE_TYPE, APIARY_TYPE)),
                     any()
                 )
                 temporalEntityService.buildTemporalEntities(

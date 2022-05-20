@@ -37,11 +37,7 @@ class EntityService(
 
         ngsiLdEntity.relationships.forEach { ngsiLdRelationship ->
             ngsiLdRelationship.instances.forEach { ngsiLdRelationshipInstance ->
-                createEntityRelationship(
-                    ngsiLdEntity.id,
-                    ngsiLdRelationship.name,
-                    ngsiLdRelationshipInstance
-                )
+                createEntityRelationship(ngsiLdEntity.id, ngsiLdRelationship.name, ngsiLdRelationshipInstance)
             }
         }
 
@@ -53,7 +49,7 @@ class EntityService(
 
         ngsiLdEntity.geoProperties.forEach { ngsiLdGeoProperty ->
             // TODO we currently don't support multi-attributes for geoproperties
-            createLocationProperty(ngsiLdEntity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            createGeoProperty(ngsiLdEntity.id, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
         }
 
         return ngsiLdEntity.id
@@ -134,13 +130,13 @@ class EntityService(
             )
         }.all { it }
 
-    internal fun createLocationProperty(
+    internal fun createGeoProperty(
         entityId: URI,
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ): Int {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        return neo4jRepository.addLocationPropertyToEntity(entityId, ngsiLdGeoPropertyInstance)
+        return neo4jRepository.addGeoPropertyToEntity(entityId, propertyKey, ngsiLdGeoPropertyInstance)
     }
 
     fun exists(entityId: URI): Boolean = entityRepository.existsById(entityId)
@@ -415,7 +411,7 @@ class EntityService(
                 ngsiLdGeoProperty.name.extractShortTypeFromExpanded()
             )
         ) {
-            createLocationProperty(
+            createGeoProperty(
                 entityId,
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0]
@@ -439,7 +435,7 @@ class EntityService(
                     "and overwrite is not allowed, ignoring"
             )
         } else {
-            updateLocationProperty(
+            updateGeoProperty(
                 entityId,
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0]
@@ -546,7 +542,7 @@ class EntityService(
 
     fun updateEntityGeoProperty(entityId: URI, ngsiLdGeoProperty: NgsiLdGeoProperty): UpdateAttributeResult =
         if (neo4jRepository.hasGeoPropertyOfName(EntitySubjectNode(entityId), ngsiLdGeoProperty.compactName)) {
-            updateLocationProperty(entityId, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
+            updateGeoProperty(entityId, ngsiLdGeoProperty.name, ngsiLdGeoProperty.instances[0])
             UpdateAttributeResult(
                 ngsiLdGeoProperty.name,
                 ngsiLdGeoProperty.instances[0].datasetId,
@@ -560,13 +556,13 @@ class EntityService(
                 "GeoProperty does not exist"
             )
 
-    internal fun updateLocationProperty(
+    internal fun updateGeoProperty(
         entityId: URI,
         propertyKey: String,
         ngsiLdGeoPropertyInstance: NgsiLdGeoPropertyInstance
     ) {
         logger.debug("Geo property $propertyKey has values ${ngsiLdGeoPropertyInstance.coordinates.value}")
-        neo4jRepository.updateLocationPropertyOfEntity(entityId, ngsiLdGeoPropertyInstance)
+        neo4jRepository.updateGeoPropertyOfEntity(entityId, propertyKey, ngsiLdGeoPropertyInstance)
     }
 
     @Transactional

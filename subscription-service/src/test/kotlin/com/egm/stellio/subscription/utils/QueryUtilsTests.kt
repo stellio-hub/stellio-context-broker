@@ -1,7 +1,7 @@
 package com.egm.stellio.subscription.utils
 
 import com.egm.stellio.shared.util.matchContent
-import com.egm.stellio.shared.util.parseLocationFragmentToPointGeoProperty
+import com.egm.stellio.shared.util.parseGeoFragmentToPointGeoProperty
 import com.egm.stellio.subscription.model.GeoQuery
 import io.mockk.every
 import io.mockk.mockk
@@ -19,7 +19,7 @@ class QueryUtilsTests {
         val geoQuery = mockk<GeoQuery>()
         every { geoQuery.georel } returns "disjoint"
         every { geoQuery.pgisGeometry } returns "001"
-        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(24.30623, 60.07966)
+        val ngsiLdGeoProperty = parseGeoFragmentToPointGeoProperty("location", 24.30623, 60.07966)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 
@@ -37,7 +37,7 @@ class QueryUtilsTests {
         val geoQuery = mockk<GeoQuery>()
         every { geoQuery.georel } returns "near;maxDistance==2000"
         every { geoQuery.pgisGeometry } returns "001"
-        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.07966, 24.30623)
+        val ngsiLdGeoProperty = parseGeoFragmentToPointGeoProperty("location", 60.07966, 24.30623)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 
@@ -55,7 +55,7 @@ class QueryUtilsTests {
         val geoQuery = mockk<GeoQuery>()
         every { geoQuery.georel } returns "near;minDistance==15"
         every { geoQuery.pgisGeometry } returns "001"
-        val ngsiLdGeoProperty = parseLocationFragmentToPointGeoProperty(60.30623, 30.07966)
+        val ngsiLdGeoProperty = parseGeoFragmentToPointGeoProperty("location", 60.30623, 30.07966)
 
         val queryStatement = QueryUtils.createGeoQueryStatement(geoQuery, ngsiLdGeoProperty)
 

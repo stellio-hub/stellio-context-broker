@@ -249,11 +249,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getForEntities(
-        limit: Int,
-        offset: Int,
-        ids: Set<URI>,
-        types: Set<ExpandedTerm>,
-        attrs: Set<ExpandedTerm>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<List<TemporalEntityAttribute>> {
         val selectQuery =
@@ -263,7 +259,10 @@ class TemporalEntityAttributeService(
                 WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        )
         val finalQuery = """
             $selectQuery
             $filterQuery
@@ -273,8 +272,8 @@ class TemporalEntityAttributeService(
         """.trimIndent()
         return databaseClient
             .sql(finalQuery)
-            .bind("limit", limit)
-            .bind("offset", offset)
+            .bind("limit", queryParams.limit)
+            .bind("offset", queryParams.offset)
             .fetch()
             .all()
             .map { rowToTemporalEntityAttribute(it) }
@@ -282,9 +281,7 @@ class TemporalEntityAttributeService(
     }
 
     fun getCountForEntities(
-        ids: Set<URI>,
-        types: Set<String>,
-        attrs: Set<String>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?
     ): Mono<Int> {
         val selectStatement =
@@ -293,7 +290,10 @@ class TemporalEntityAttributeService(
             WHERE
             """.trimIndent()
 
-        val filterQuery = buildEntitiesQueryFilter(ids, types, attrs, accessRightFilter)
+        val filterQuery = buildEntitiesQueryFilter(
+            queryParams,
+            accessRightFilter
+        )
         return databaseClient
             .sql("$selectStatement $filterQuery")
             .map { row ->
@@ -303,22 +303,23 @@ class TemporalEntityAttributeService(
     }
 
     fun buildEntitiesQueryFilter(
-        ids: Set<URI>,
-        types: Set<String>,
-        attrs: Set<String>,
+        queryParams: QueryParams,
         accessRightFilter: () -> String?,
     ): String {
         val formattedIds =
-            if (ids.isNotEmpty())
-                ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
+            if (queryParams.ids.isNotEmpty())
+                queryParams.ids.joinToString(separator = ",", prefix = "entity_id in(", postfix = ")") { "'$it'" }
             else null
         val formattedTypes =
-            if (types.isNotEmpty())
-                types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
+            if (queryParams.types.isNotEmpty())
+                queryParams.types.joinToString(separator = ",", prefix = "type in (", postfix = ")") { "'$it'" }
             else null
         val formattedAttrs =
-            if (attrs.isNotEmpty())
-                attrs.joinToString(separator = ",", prefix = "attribute_name in (", postfix = ")") { "'$it'" }
+            if (queryParams.attrs.isNotEmpty())
+                queryParams.attrs.joinToString(
+                    separator = ",",
+                    prefix = "attribute_name in (", postfix = ")"
+                ) { "'$it'" }
             else null
 
         return listOfNotNull(formattedIds, formattedTypes, formattedAttrs, accessRightFilter())
